@@ -4635,8 +4635,8 @@ button {
   .hero-section         { padding: 5rem 0 3rem; }
   .hero-h1              { font-size: 2.6rem; }
   .hero-subtitle        { font-size: 1rem; margin-bottom: 1.75rem; }
-  .hero-btns            { flex-wrap: wrap; }
-  .hero-btns .btn-pill  { flex: 1; min-width: 160px; justify-content: space-between; }
+  .hero-btns            { flex-direction: column; align-items: stretch; gap: 0.75rem; }
+  .hero-btns .btn-pill  { width: 100%; justify-content: space-between; white-space: nowrap; }
   .hero-social-proof    { margin-top: 3rem; }
 }
 
