@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 50" role="img" aria-label="Nequi">
+  <rect width="80" height="50" rx="6" fill="#6A23A8"/>
+  <!-- N shape stylized -->
+  <text x="40" y="30" font-family="Arial,sans-serif" font-size="14" font-weight="700" fill="#fff" text-anchor="middle" letter-spacing="0.5">nequi</text>
+</svg>

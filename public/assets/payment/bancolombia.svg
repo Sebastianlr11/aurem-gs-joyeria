@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 50" role="img" aria-label="Bancolombia">
+  <rect width="80" height="50" rx="6" fill="#FBCE07"/>
+  <!-- Simplified "B" symbol -->
+  <text x="40" y="22" font-family="Arial,sans-serif" font-size="8" font-weight="700" fill="#000" text-anchor="middle">Banco</text>
+  <text x="40" y="33" font-family="Arial,sans-serif" font-size="8" font-weight="700" fill="#000" text-anchor="middle">colombia</text>
+</svg>

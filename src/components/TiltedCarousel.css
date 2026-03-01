@@ -1,0 +1,129 @@
+.tilted-carousel-section {
+    padding: 6rem 0 7rem 0;
+    background-color: var(--bg-color);
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100vw;
+    margin-left: calc(-50vw + 50%);
+    margin-right: calc(-50vw + 50%);
+}
+
+/* Subtle shadow band — same angle as the carousel, barely visible */
+.carousel-bg-band {
+    position: absolute;
+    top: -10%;
+    left: -5%;
+    width: 110%;
+    height: 120%;
+    background: linear-gradient(
+        to bottom,
+        transparent 0%,
+        rgba(0, 0, 0, 0.055) 30%,
+        rgba(0, 0, 0, 0.055) 70%,
+        transparent 100%
+    );
+    transform: rotate(-3deg);
+    z-index: 0;
+}
+
+/* Label sits above the band */
+.carousel-label {
+    position: relative;
+    z-index: 3;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    color: #555;
+    text-transform: uppercase;
+    margin-bottom: 2.5rem;
+}
+
+.carousel-label span {
+    color: var(--accent-gold);
+    margin: 0 0.6rem;
+}
+
+.tilted-carousel-wrapper {
+    transform: rotate(-3deg) scale(1.08);
+    width: 115%;
+    display: flex;
+    overflow: hidden;
+    position: relative;
+    z-index: 1;
+    mask-image: linear-gradient(
+        to right,
+        transparent 0%,
+        black 7%,
+        black 93%,
+        transparent 100%
+    );
+    -webkit-mask-image: linear-gradient(
+        to right,
+        transparent 0%,
+        black 7%,
+        black 93%,
+        transparent 100%
+    );
+}
+
+.tilted-carousel-track {
+    display: flex;
+    gap: 1.5rem;
+    animation: scrollCarousel 40s linear infinite;
+    padding: 2rem 0;
+}
+
+.tilted-carousel-track:hover {
+    animation-play-state: paused;
+}
+
+.tilted-carousel-slide {
+    flex-shrink: 0;
+    width: 380px;
+    height: 260px;
+    border-radius: 16px;
+    overflow: hidden;
+    transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+                box-shadow 0.5s ease;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.tilted-carousel-slide:hover {
+    transform: scale(1.05) translateY(-6px);
+    box-shadow: 0 24px 56px rgba(0, 0, 0, 0.7);
+}
+
+.tilted-carousel-slide img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.tilted-carousel-slide:hover img {
+    transform: scale(1.04);
+}
+
+@keyframes scrollCarousel {
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(calc(-50% - 0.75rem)); }
+}
+
+@media (max-width: 768px) {
+    .tilted-carousel-slide {
+        width: 260px;
+        height: 180px;
+    }
+
+    .tilted-carousel-wrapper {
+        transform: rotate(-4deg) scale(1.12);
+    }
+
+    .carousel-bg-band {
+        transform: rotate(-4deg);
+    }
+}
