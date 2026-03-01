@@ -1,5 +1,14 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 50" role="img" aria-label="PSE">
-  <rect width="80" height="50" rx="6" fill="#fff" stroke="#e8e8e8" stroke-width="1"/>
-  <rect x="8" y="8" width="64" height="34" rx="4" fill="#003DA5"/>
-  <text x="40" y="30" font-family="Arial,sans-serif" font-size="15" font-weight="800" fill="#fff" text-anchor="middle" letter-spacing="2">PSE</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 124 78">
+  <rect width="124" height="78" rx="6" fill="#003DA5"/>
+  <!-- Top white bar -->
+  <rect x="0" y="0" width="124" height="22" rx="6" fill="#fff"/>
+  <rect x="0" y="14" width="124" height="8" fill="#fff"/>
+  <!-- Bottom green bar -->
+  <rect x="0" y="62" width="124" height="16" rx="0" fill="#00A651"/>
+  <rect x="0" y="56" width="124" height="8" fill="#00A651"/>
+  <!-- PSE text -->
+  <text x="62" y="48" font-family="Arial Black, Arial, sans-serif" font-size="26" font-weight="900" fill="#fff" text-anchor="middle" letter-spacing="3">PSE</text>
+  <!-- Padlock icon -->
+  <rect x="10" y="28" width="10" height="8" rx="1" fill="rgba(255,255,255,0.4)"/>
+  <path d="M12 28 L12 25 Q15 21 18 25 L18 28" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="2"/>
 </svg>
