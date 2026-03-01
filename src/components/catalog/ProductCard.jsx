@@ -5,8 +5,7 @@ import { waUrl } from '../../lib/whatsapp';
 const fmt = (price) => price?.toLocaleString('es-CO');
 
 const ProductCard = ({ product }) => {
-    const waLink  = waUrl(`Hola! Me interesa la pieza "${product.name}" ($ ${fmt(product.price)} COP). ¿Tienen disponibilidad? 💍`);
-    const buyLink = waUrl(`Hola! Quiero comprar la pieza "${product.name}" ($ ${fmt(product.price)} COP). ¿Cómo procedo? 🛍️`);
+    const waLink = waUrl(`Hola! Me interesa la pieza "${product.name}" ($ ${fmt(product.price)} COP). ¿Tienen disponibilidad? 💍`);
 
     return (
         <Link to={`/catalogo/${product.id}`} className="product-card">
@@ -46,15 +45,13 @@ const ProductCard = ({ product }) => {
                 </div>
 
                 <div className="product-card-actions">
-                    <a
-                        href={buyLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                    <Link
+                        to={`/catalogo/${product.id}?buy=1`}
                         className="product-card-btn product-card-btn--buy"
                         onClick={e => e.stopPropagation()}
                     >
                         Comprar
-                    </a>
+                    </Link>
                     <a
                         href={waLink}
                         target="_blank"

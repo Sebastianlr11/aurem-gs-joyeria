@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { waUrl } from '../lib/whatsapp';
 import { Wallet } from '@mercadopago/sdk-react';
@@ -447,6 +447,7 @@ const Gallery = ({ images, badges }) => {
 /* ── Product Page ──────────────────────────────────────────────── */
 const ProductPage = () => {
     const { id } = useParams();
+    const [searchParams] = useSearchParams();
     const [product, setProduct] = useState(null);
     const timeLeft = useCountdown(id ? `offer_end_${id}` : null);
     const [related, setRelated] = useState([]);
@@ -487,6 +488,12 @@ const ProductPage = () => {
 
         fetchData();
     }, [id]);
+
+    useEffect(() => {
+        if (!loading && product && searchParams.get('buy') === '1') {
+            setShowBuyModal(true);
+        }
+    }, [loading, product, searchParams]);
 
     if (loading) return <Skeleton />;
 
