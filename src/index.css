@@ -4321,18 +4321,28 @@ button {
   background: #fafafa;
   border: 1px solid #e8e8e8;
   border-radius: 6px;
-  padding: 5px 8px;
+  padding: 4px 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 32px;
-  min-width: 44px;
+  height: 42px;
+  min-width: 60px;
 }
 .pm-item img {
-  height: 18px;
+  height: 30px;
   width: auto;
   object-fit: contain;
   display: block;
+}
+@media (max-width: 600px) {
+  .pm-item {
+    height: 50px;
+    min-width: 72px;
+    padding: 5px 8px;
+  }
+  .pm-item img {
+    height: 38px;
+  }
 }
 
 .pm-cod-tag {
