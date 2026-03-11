@@ -5238,7 +5238,50 @@ button {
 .catalog-load-more {
   display: flex;
   justify-content: center;
-  padding: 2.5rem 0 1rem;
+  padding: 3rem 0 1.5rem;
+}
+
+.catalog-load-more-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 1rem 2.5rem;
+  border-radius: 14px;
+  background: #fff;
+  border: 1.5px solid #e5e5e5;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.3s, box-shadow 0.3s, transform 0.2s;
+}
+
+.catalog-load-more-btn span:first-child {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+
+.catalog-load-more-count {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+}
+
+.catalog-load-more-btn svg {
+  color: var(--accent-gold);
+  transition: transform 0.3s cubic-bezier(0.16,1,0.3,1);
+}
+
+.catalog-load-more-btn:hover {
+  border-color: var(--accent-gold);
+  box-shadow: 0 4px 16px rgba(212,175,55,0.12);
+  transform: translateY(-2px);
+}
+
+.catalog-load-more-btn:hover svg {
+  transform: translateY(3px);
 }
 
 /* ================================================================

@@ -146,10 +146,14 @@ const Catalog = () => {
                         {paginated.length < filtered.length && (
                             <div className="catalog-load-more">
                                 <button
-                                    className="btn-pill black"
+                                    className="catalog-load-more-btn"
                                     onClick={() => setPage(p => p + 1)}
                                 >
-                                    Cargar más
+                                    <span>Ver más piezas</span>
+                                    <span className="catalog-load-more-count">
+                                        {paginated.length} de {filtered.length}
+                                    </span>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
                                 </button>
                             </div>
                         )}
