@@ -2,7 +2,16 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import FilterBar from '../components/catalog/FilterBar';
 import ProductCard from '../components/catalog/ProductCard';
+import QuickView from '../components/catalog/QuickView';
 import { supabase } from '../lib/supabase';
+
+const PRICE_RANGES = [
+    { label: 'Todos los precios', min: 0, max: Infinity },
+    { label: 'Hasta $100K',       min: 0,      max: 100000  },
+    { label: '$100K – $300K',     min: 100000,  max: 300000  },
+    { label: '$300K – $600K',     min: 300000,  max: 600000  },
+    { label: '+$600K',            min: 600000,  max: Infinity },
+];
 
 const Catalog = () => {
     const [searchParams] = useSearchParams();
@@ -13,7 +22,9 @@ const Catalog = () => {
     const [activeCategory, setActiveCategory] = useState(initialCategory);
     const [search, setSearch] = useState('');
     const [sort, setSort] = useState('newest');
+    const [priceRange, setPriceRange] = useState(0);
     const [page, setPage] = useState(1);
+    const [quickView, setQuickView] = useState(null);
     const PER_PAGE = 12;
 
     useEffect(() => {
@@ -36,24 +47,26 @@ const Catalog = () => {
     }, [activeCategory]);
 
     const filtered = useMemo(() => {
-        let result = search.trim()
-            ? products.filter(p =>
+        const { min, max } = PRICE_RANGES[priceRange];
+        let result = products.filter(p => {
+            const matchSearch = !search.trim() ||
                 p.name.toLowerCase().includes(search.toLowerCase()) ||
-                (p.description || '').toLowerCase().includes(search.toLowerCase())
-            )
-            : [...products];
+                (p.description || '').toLowerCase().includes(search.toLowerCase());
+            const matchPrice = p.price >= min && p.price <= max;
+            return matchSearch && matchPrice;
+        });
 
         if (sort === 'price_asc')  result.sort((a, b) => a.price - b.price);
         if (sort === 'price_desc') result.sort((a, b) => b.price - a.price);
-        // 'newest' ya viene ordenado por created_at desc desde Supabase
 
         return result;
-    }, [products, search, sort]);
+    }, [products, search, sort, priceRange]);
 
     const paginated = filtered.slice(0, page * PER_PAGE);
 
     return (
         <main className="catalog-page">
+            {quickView && <QuickView product={quickView} onClose={() => setQuickView(null)} />}
             {/* Header */}
             <div className="catalog-header section-with-borders">
                 <div className="container">
@@ -74,6 +87,17 @@ const Catalog = () => {
                             active={activeCategory}
                             onChange={val => { setActiveCategory(val); setSearch(''); setPage(1); }}
                         />
+                        <div className="catalog-price-filters">
+                            {PRICE_RANGES.map((r, i) => (
+                                <button
+                                    key={i}
+                                    className={`filter-btn ${priceRange === i ? 'filter-btn--active' : ''}`}
+                                    onClick={() => { setPriceRange(i); setPage(1); }}
+                                >
+                                    {r.label}
+                                </button>
+                            ))}
+                        </div>
                     </div>
                     <div className="catalog-toolbar-right">
                         <div className="catalog-search-wrap">
@@ -116,7 +140,7 @@ const Catalog = () => {
                         <p className="catalog-count">{filtered.length} pieza{filtered.length !== 1 ? 's' : ''}</p>
                         <div className="catalog-grid">
                             {paginated.map(product => (
-                                <ProductCard key={product.id} product={product} />
+                                <ProductCard key={product.id} product={product} onQuickView={setQuickView} />
                             ))}
                         </div>
                         {paginated.length < filtered.length && (

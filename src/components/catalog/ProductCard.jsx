@@ -4,7 +4,7 @@ import { waUrl } from '../../lib/whatsapp';
 
 const fmt = (price) => price?.toLocaleString('es-CO');
 
-const ProductCard = ({ product }) => {
+const ProductCard = ({ product, onQuickView }) => {
     const waLink = waUrl(`Hola! Me interesa la pieza "${product.name}" ($ ${fmt(product.price)} COP). ¿Tienen disponibilidad? 💍`);
 
     return (
@@ -19,6 +19,14 @@ const ProductCard = ({ product }) => {
                 )}
                 <div className="product-card-overlay">
                     <span className="product-card-cta">Ver pieza</span>
+                    {onQuickView && (
+                        <button
+                            className="product-card-quickview"
+                            onClick={e => { e.preventDefault(); e.stopPropagation(); onQuickView(product); }}
+                        >
+                            Vista rápida
+                        </button>
+                    )}
                 </div>
                 <div className="product-card-badges">
                     {product.is_new && <span className="product-badge product-badge--new">Nuevo</span>}

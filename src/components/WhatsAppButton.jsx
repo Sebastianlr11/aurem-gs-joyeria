@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { waUrl } from '../lib/whatsapp';
 
 const WhatsAppButton = () => {
+  const { pathname } = useLocation();
   const [visible, setVisible] = useState(false);
+
+  if (pathname.startsWith('/admin')) return null;
 
   // Aparece suavemente al cargar
   useEffect(() => {

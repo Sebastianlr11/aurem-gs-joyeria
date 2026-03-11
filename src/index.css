@@ -2064,8 +2064,10 @@ button {
   inset: 0;
   background: linear-gradient(to top, rgba(0,0,0,0.52) 0%, transparent 55%);
   display: flex;
-  align-items: flex-end;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
   padding-bottom: 1.4rem;
   opacity: 0;
   transition: opacity 0.35s ease;
@@ -2090,6 +2092,38 @@ button {
 
 .product-card:hover .product-card-cta {
   transform: translateY(0);
+}
+
+/* Vista rápida button */
+.product-card-quickview {
+  background: rgba(212,175,55,0.9);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.46rem 1.2rem;
+  border-radius: 100px;
+  border: none;
+  cursor: pointer;
+  transform: translateY(12px);
+  transition: transform 0.4s cubic-bezier(0.16,1,0.3,1) 0.04s, background 0.2s;
+}
+
+.product-card:hover .product-card-quickview {
+  transform: translateY(0);
+}
+
+.product-card-quickview:hover {
+  background: var(--accent-gold);
+}
+
+/* Precio filtros catálogo */
+.catalog-price-filters {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  margin-top: 0.5rem;
 }
 
 /* Badges */
@@ -5205,6 +5239,255 @@ button {
   display: flex;
   justify-content: center;
   padding: 2.5rem 0 1rem;
+}
+
+/* ================================================================
+   QUICK VIEW MODAL
+   ================================================================ */
+.qv-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15,23,42,0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 1rem;
+  animation: qvFadeIn 0.2s ease;
+}
+
+@keyframes qvFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.qv-modal {
+  background: #fff;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 820px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.2);
+  position: relative;
+  animation: qvSlideUp 0.3s cubic-bezier(0.16,1,0.3,1);
+}
+
+@keyframes qvSlideUp {
+  from { opacity: 0; transform: translateY(16px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.qv-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #f1f5f9;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  z-index: 10;
+  transition: background 0.2s, color 0.2s;
+}
+
+.qv-close:hover { background: #e2e8f0; color: #0f172a; }
+
+.qv-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 400px;
+}
+
+.qv-gallery {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.qv-main-img {
+  position: relative;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #f8f9fb;
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.qv-main-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.qv-placeholder {
+  font-size: 3rem;
+  color: #d1d5db;
+}
+
+.qv-discount-badge {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  background: var(--accent-red);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 800;
+  padding: 0.3rem 0.7rem;
+  border-radius: 100px;
+}
+
+.qv-thumbs {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.qv-thumb {
+  width: 56px;
+  height: 56px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  padding: 0;
+  background: #f1f5f9;
+}
+
+.qv-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.qv-thumb--active { border-color: var(--accent-gold); }
+.qv-thumb:hover { border-color: #94a3b8; }
+
+.qv-info {
+  padding: 2rem 2rem 2rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  justify-content: center;
+}
+
+.qv-category {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--accent-gold);
+}
+
+.qv-name {
+  font-size: 1.4rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #0f172a;
+  line-height: 1.15;
+}
+
+.qv-price-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  margin-top: 0.2rem;
+}
+
+.qv-compare {
+  font-size: 0.9rem;
+  color: #94a3b8;
+  text-decoration: line-through;
+}
+
+.qv-price {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.03em;
+}
+
+.qv-currency {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.qv-desc {
+  font-size: 0.88rem;
+  color: #64748b;
+  line-height: 1.6;
+  margin-top: 0.25rem;
+}
+
+.qv-trust {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #10b981;
+}
+
+.qv-actions {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 0.75rem;
+}
+
+.qv-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.72rem 1.5rem;
+  border-radius: 100px;
+  font-size: 0.84rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: opacity 0.2s, transform 0.2s;
+  cursor: pointer;
+  border: none;
+  white-space: nowrap;
+}
+
+.qv-btn:hover { opacity: 0.88; transform: translateY(-1px); }
+
+.qv-btn--buy {
+  background: var(--accent-gold);
+  color: #fff;
+  box-shadow: 0 2px 10px rgba(212,175,55,0.35);
+  flex: 1;
+}
+
+.qv-btn--wa {
+  background: #25d366;
+  color: #fff;
+}
+
+.qv-detail-link {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #64748b;
+  text-decoration: none;
+  margin-top: 0.5rem;
+  transition: color 0.2s;
+}
+
+.qv-detail-link:hover { color: var(--accent-gold); }
+
+@media (max-width: 768px) {
+  .qv-body { grid-template-columns: 1fr; }
+  .qv-info { padding: 1.25rem 1.5rem 1.5rem; }
+  .qv-gallery { padding: 1.25rem 1.25rem 0; }
+  .qv-name { font-size: 1.15rem; }
+  .qv-price { font-size: 1.25rem; }
 }
 
 /* ================================================================
