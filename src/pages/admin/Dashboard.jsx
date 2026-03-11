@@ -4,21 +4,62 @@ import { supabase } from '../../lib/supabase';
 
 /* ─── Constants ──────────────────────────────────────────────────── */
 const CATEGORIES = ['Anillos', 'Collares', 'Aretes', 'Pulseras'];
-const ORDER_STATUSES = ['pendiente', 'pagado', 'enviado', 'entregado', 'cancelado'];
+const ORDER_STATUSES = ['pendiente', 'pagado', 'procesando', 'enviado', 'entregado', 'cancelado'];
 const STATUS_META = {
-    pendiente:  { label: 'Pendiente',  cls: 'badge--yellow' },
-    pagado:     { label: 'Pagado',     cls: 'badge--green'  },
-    enviado:    { label: 'Enviado',    cls: 'badge--purple' },
-    entregado:  { label: 'Entregado',  cls: 'badge--blue'   },
-    cancelado:  { label: 'Cancelado',  cls: 'badge--red'    },
-    confirmado: { label: 'Confirmado', cls: 'badge--blue'   }, // legacy
+    pendiente:  { label: 'Pendiente',   cls: 'badge--yellow' },
+    pagado:     { label: 'Pagado',      cls: 'badge--green'  },
+    procesando: { label: 'Procesando',  cls: 'badge--orange' },
+    enviado:    { label: 'Enviado',     cls: 'badge--purple' },
+    entregado:  { label: 'Entregado',   cls: 'badge--blue'   },
+    cancelado:  { label: 'Cancelado',   cls: 'badge--red'    },
+    confirmado: { label: 'Confirmado',  cls: 'badge--blue'   }, // legacy
 };
+
+const NEXT_ACTION = {
+    pendiente:  { next: 'pagado',     label: 'Confirmar pago',    cls: 'action--green' },
+    pagado:     { next: 'procesando', label: 'Procesar',          cls: 'action--blue' },
+    procesando: { next: 'enviado',    label: 'Marcar enviado',    cls: 'action--purple' },
+    enviado:    { next: 'entregado',  label: 'Marcar entregado',  cls: 'action--teal' },
+};
+
+const WA_MESSAGES = {
+    pagado: (o) => `Hola ${o.customer_name}! \u{1F389} Tu pedido de "${o.product_name}" en Aurem Gs Joyeria fue recibido con exito. Estamos preparandolo. Te mantendremos informado!`,
+    procesando: (o) => `Hola ${o.customer_name}! Tu pedido de "${o.product_name}" esta siendo procesado. Pronto te enviaremos los detalles del envio. \u2728`,
+    enviado: (o) => `Hola ${o.customer_name}! Tu pedido de "${o.product_name}" fue enviado${o.carrier ? ` por ${o.carrier}` : ''}${o.tracking_number ? `. Numero de guia: ${o.tracking_number}` : ''}. Pronto lo recibiras! \u{1F4E6}`,
+    entregado: (o) => `Hola ${o.customer_name}! Esperamos que estes disfrutando tu "${o.product_name}" de Aurem Gs Joyeria. Gracias por tu compra! \u{1F48E}`,
+    pendiente: (o) => `Hola ${o.customer_name}! Vimos que tienes un pedido pendiente de "${o.product_name}" en Aurem Gs Joyeria. Podemos ayudarte a completarlo?`,
+};
+
+const SOURCE_META = {
+    web:      { label: 'Web',      cls: 'source--blue' },
+    whatsapp: { label: 'WhatsApp', cls: 'source--green' },
+    tiktok:   { label: 'TikTok',   cls: 'source--pink' },
+    manual:   { label: 'Manual',   cls: 'source--gray' },
+};
+
+const CARRIERS = ['Servientrega', 'Interrapidisimo', 'Coordinadora', 'Otro'];
+
+const REVENUE_STATUSES = ['pagado', 'procesando', 'enviado', 'entregado'];
+
 const fmt = n => Number(n || 0).toLocaleString('es-CO');
 const fmtDate = d => new Date(d).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
 
 const EMPTY_PRODUCT  = { name:'', category:'Anillos', price:'', compare_price:'', description:'', image_url:'', is_new:false, is_featured:false };
-const EMPTY_ORDER    = { customer_name:'', customer_phone:'', product_id:'', product_name:'', amount:'', status:'pendiente', notes:'' };
+const EMPTY_ORDER    = { customer_name:'', customer_phone:'', product_id:'', product_name:'', amount:'', status:'pendiente', notes:'', carrier:'', tracking_number:'' };
 const EMPTY_CUSTOMER = { name:'', phone:'', email:'', notes:'' };
+
+/* ─── Webhook helper ─────────────────────────────────────────────── */
+const fireWebhook = async (order, newStatus) => {
+    const url = localStorage.getItem('admin_webhook_url');
+    if (!url) return;
+    try {
+        await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ event: 'order_status_changed', order: { ...order, status: newStatus }, timestamp: new Date().toISOString() }),
+        });
+    } catch (e) { console.error('Webhook error:', e); }
+};
 
 /* ─── Sidebar nav items ──────────────────────────────────────────── */
 const NAV = [
@@ -38,6 +79,14 @@ const NAV = [
         id: 'customers', label: 'Clientes',
         icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>,
     },
+    {
+        id: 'reports', label: 'Reportes',
+        icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>,
+    },
+    {
+        id: 'settings', label: 'Ajustes',
+        icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>,
+    },
 ];
 
 /* ─── StatusBadge ────────────────────────────────────────────────── */
@@ -46,6 +95,12 @@ const StatusBadge = ({ status }) => (
         {STATUS_META[status]?.label ?? status}
     </span>
 );
+
+/* ─── SourceBadge ────────────────────────────────────────────────── */
+const SourceBadge = ({ source }) => {
+    const meta = SOURCE_META[source] || SOURCE_META.web;
+    return <span className={`source-badge ${meta.cls}`}>{meta.label}</span>;
+};
 
 /* ═══════════════════════════════════════════════════════════════════
    MODALS
@@ -93,7 +148,7 @@ const ProductModal = ({ product, onClose, onSaved }) => {
     const handleSubmit = async (e) => {
         e.preventDefault(); setError('');
         if (!form.name.trim()) { setError('El nombre es obligatorio.'); return; }
-        if (!form.price || isNaN(Number(form.price))) { setError('El precio debe ser un número.'); return; }
+        if (!form.price || isNaN(Number(form.price))) { setError('El precio debe ser un numero.'); return; }
         setSaving(true);
         const payload = {
             name: form.name.trim(), category: form.category,
@@ -116,7 +171,7 @@ const ProductModal = ({ product, onClose, onSaved }) => {
             <div className="modal-box">
                 <div className="modal-header">
                     <h2 className="modal-title">{isEdit ? 'Editar producto' : 'Nuevo producto'}</h2>
-                    <button className="modal-close" onClick={onClose}>✕</button>
+                    <button className="modal-close" onClick={onClose}>&#x2715;</button>
                 </div>
                 <form className="modal-form" onSubmit={handleSubmit}>
                     {error && <p className="admin-error">{error}</p>}
@@ -126,7 +181,7 @@ const ProductModal = ({ product, onClose, onSaved }) => {
                             <input value={form.name} onChange={e => set('name', e.target.value)} placeholder="Ej. Anillo Solitario Oro" required />
                         </div>
                         <div className="modal-field">
-                            <label>Categoría *</label>
+                            <label>Categoria *</label>
                             <select value={form.category} onChange={e => set('category', e.target.value)}>
                                 {CATEGORIES.map(c => <option key={c}>{c}</option>)}
                             </select>
@@ -139,21 +194,21 @@ const ProductModal = ({ product, onClose, onSaved }) => {
                         </div>
                         <div className="modal-field">
                             <label>Precio anterior — opcional</label>
-                            <input type="number" min="0" step="0.01" value={form.compare_price || ''} onChange={e => set('compare_price', e.target.value)} placeholder="Dejar vacío si no hay oferta" />
+                            <input type="number" min="0" step="0.01" value={form.compare_price || ''} onChange={e => set('compare_price', e.target.value)} placeholder="Dejar vacio si no hay oferta" />
                         </div>
                     </div>
                     <div className="modal-field">
-                        <label>Descripción</label>
-                        <textarea rows={3} value={form.description} onChange={e => set('description', e.target.value)} placeholder="Descripción breve de la pieza..." />
+                        <label>Descripcion</label>
+                        <textarea rows={3} value={form.description} onChange={e => set('description', e.target.value)} placeholder="Descripcion breve de la pieza..." />
                     </div>
                     <div className="modal-field">
-                        <label>Imágenes del producto</label>
+                        <label>Imagenes del producto</label>
                         <p className="modal-img-hint">Sube al menos 3 fotos. La primera es la portada.</p>
                         <div className="modal-images-grid">
                             {images.map((url, idx) => (
                                 <div key={idx} className="modal-img-thumb">
                                     <img src={url} alt="" onError={e => { e.currentTarget.style.opacity = '0.3'; }} />
-                                    <button type="button" className="modal-img-thumb-remove" onClick={() => setImages(p => p.filter((_, i) => i !== idx))}>✕</button>
+                                    <button type="button" className="modal-img-thumb-remove" onClick={() => setImages(p => p.filter((_, i) => i !== idx))}>&#x2715;</button>
                                     {idx === 0 && <span className="modal-img-cover-badge">PORTADA</span>}
                                 </div>
                             ))}
@@ -185,7 +240,7 @@ const ProductModal = ({ product, onClose, onSaved }) => {
 /* ─── OrderModal ─────────────────────────────────────────────────── */
 const OrderModal = ({ order, products, onClose, onSaved }) => {
     const isEdit = !!order?.id;
-    const [form, setForm] = useState(isEdit ? { ...order, product_id: order.product_id || '' } : { ...EMPTY_ORDER });
+    const [form, setForm] = useState(isEdit ? { ...order, product_id: order.product_id || '', carrier: order.carrier || '', tracking_number: order.tracking_number || '' } : { ...EMPTY_ORDER });
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
     const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
@@ -201,7 +256,7 @@ const OrderModal = ({ order, products, onClose, onSaved }) => {
         e.preventDefault(); setError('');
         if (!form.customer_name.trim()) { setError('Nombre del cliente obligatorio.'); return; }
         if (!form.product_name.trim())  { setError('Nombre del producto obligatorio.'); return; }
-        if (!form.amount || isNaN(Number(form.amount))) { setError('Monto inválido.'); return; }
+        if (!form.amount || isNaN(Number(form.amount))) { setError('Monto invalido.'); return; }
         setSaving(true);
         const payload = {
             customer_name: form.customer_name.trim(),
@@ -211,7 +266,12 @@ const OrderModal = ({ order, products, onClose, onSaved }) => {
             amount: Number(form.amount),
             status: form.status,
             notes: form.notes.trim() || null,
+            carrier: form.carrier.trim() || null,
+            tracking_number: form.tracking_number.trim() || null,
         };
+        if (!isEdit) {
+            payload.order_source = 'manual';
+        }
         let err;
         if (isEdit) ({ error: err } = await supabase.from('orders').update(payload).eq('id', order.id));
         else ({ error: err } = await supabase.from('orders').insert([payload]));
@@ -225,7 +285,7 @@ const OrderModal = ({ order, products, onClose, onSaved }) => {
             <div className="modal-box">
                 <div className="modal-header">
                     <h2 className="modal-title">{isEdit ? 'Editar pedido' : 'Nuevo pedido'}</h2>
-                    <button className="modal-close" onClick={onClose}>✕</button>
+                    <button className="modal-close" onClick={onClose}>&#x2715;</button>
                 </div>
                 <form className="modal-form" onSubmit={handleSubmit}>
                     {error && <p className="admin-error">{error}</p>}
@@ -235,7 +295,7 @@ const OrderModal = ({ order, products, onClose, onSaved }) => {
                             <input value={form.customer_name} onChange={e => set('customer_name', e.target.value)} placeholder="Nombre del cliente" />
                         </div>
                         <div className="modal-field">
-                            <label>Teléfono / WhatsApp</label>
+                            <label>Telefono / WhatsApp</label>
                             <input value={form.customer_phone} onChange={e => set('customer_phone', e.target.value)} placeholder="+57 300 000 0000" />
                         </div>
                     </div>
@@ -243,7 +303,7 @@ const OrderModal = ({ order, products, onClose, onSaved }) => {
                         <div className="modal-field">
                             <label>Seleccionar producto</label>
                             <select value={form.product_id} onChange={handleProductSelect}>
-                                <option value="">— Buscar en catálogo —</option>
+                                <option value="">— Buscar en catalogo —</option>
                                 {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                             </select>
                         </div>
@@ -264,9 +324,22 @@ const OrderModal = ({ order, products, onClose, onSaved }) => {
                             </select>
                         </div>
                     </div>
+                    <div className="modal-row">
+                        <div className="modal-field">
+                            <label>Transportadora</label>
+                            <select value={form.carrier} onChange={e => set('carrier', e.target.value)}>
+                                <option value="">— Sin transportadora —</option>
+                                {CARRIERS.map(c => <option key={c} value={c}>{c}</option>)}
+                            </select>
+                        </div>
+                        <div className="modal-field">
+                            <label>Numero de guia</label>
+                            <input value={form.tracking_number} onChange={e => set('tracking_number', e.target.value)} placeholder="Numero de seguimiento" />
+                        </div>
+                    </div>
                     {isEdit && (form.shipping_address || form.shipping_city || form.shipping_department) && (
                         <div className="modal-field">
-                            <label>Dirección de envío</label>
+                            <label>Direccion de envio</label>
                             <div className="modal-address-info">
                                 {form.shipping_address && <span>{form.shipping_address}</span>}
                                 {(form.shipping_city || form.shipping_department) && (
@@ -282,6 +355,51 @@ const OrderModal = ({ order, products, onClose, onSaved }) => {
                     <div className="modal-actions">
                         <button type="button" className="admin-btn admin-btn--outline" onClick={onClose}>Cancelar</button>
                         <button type="submit" className="admin-btn" disabled={saving}>{saving ? 'Guardando...' : isEdit ? 'Guardar' : 'Crear pedido'}</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
+
+/* ─── ShipModal ──────────────────────────────────────────────────── */
+const ShipModal = ({ order, onClose, onConfirm }) => {
+    const [carrier, setCarrier] = useState(order.carrier || '');
+    const [trackingNumber, setTrackingNumber] = useState(order.tracking_number || '');
+    const [saving, setSaving] = useState(false);
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setSaving(true);
+        await onConfirm(carrier, trackingNumber);
+        setSaving(false);
+    };
+
+    return (
+        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+            <div className="modal-box modal-box--sm">
+                <div className="modal-header">
+                    <h2 className="modal-title">Datos de envio</h2>
+                    <button className="modal-close" onClick={onClose}>&#x2715;</button>
+                </div>
+                <form className="modal-form" onSubmit={handleSubmit}>
+                    <p style={{ fontSize: '0.9rem', color: '#666', marginBottom: '1rem' }}>
+                        Pedido de <strong>{order.customer_name}</strong> — {order.product_name}
+                    </p>
+                    <div className="modal-field">
+                        <label>Transportadora *</label>
+                        <select value={carrier} onChange={e => setCarrier(e.target.value)} required>
+                            <option value="">— Seleccionar —</option>
+                            {CARRIERS.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                    </div>
+                    <div className="modal-field">
+                        <label>Numero de guia</label>
+                        <input value={trackingNumber} onChange={e => setTrackingNumber(e.target.value)} placeholder="Numero de seguimiento" />
+                    </div>
+                    <div className="modal-actions">
+                        <button type="button" className="admin-btn admin-btn--outline" onClick={onClose}>Cancelar</button>
+                        <button type="submit" className="admin-btn" disabled={saving}>{saving ? 'Guardando...' : 'Marcar como enviado'}</button>
                     </div>
                 </form>
             </div>
@@ -315,7 +433,7 @@ const CustomerModal = ({ customer, onClose, onSaved }) => {
             <div className="modal-box modal-box--sm">
                 <div className="modal-header">
                     <h2 className="modal-title">{isEdit ? 'Editar cliente' : 'Nuevo cliente'}</h2>
-                    <button className="modal-close" onClick={onClose}>✕</button>
+                    <button className="modal-close" onClick={onClose}>&#x2715;</button>
                 </div>
                 <form className="modal-form" onSubmit={handleSubmit}>
                     {error && <p className="admin-error">{error}</p>}
@@ -325,7 +443,7 @@ const CustomerModal = ({ customer, onClose, onSaved }) => {
                     </div>
                     <div className="modal-row">
                         <div className="modal-field">
-                            <label>Teléfono</label>
+                            <label>Telefono</label>
                             <input value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="+57 300 000 0000" />
                         </div>
                         <div className="modal-field">
@@ -355,7 +473,7 @@ const ConfirmModal = ({ title, text, onClose, onConfirm }) => {
             <div className="modal-box modal-box--sm">
                 <div className="modal-header">
                     <h2 className="modal-title">{title}</h2>
-                    <button className="modal-close" onClick={onClose}>✕</button>
+                    <button className="modal-close" onClick={onClose}>&#x2715;</button>
                 </div>
                 <p className="modal-delete-text">{text}</p>
                 <div className="modal-actions">
@@ -379,7 +497,7 @@ const DashboardHome = ({ products, orders, customers, onNavigate }) => {
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
     const ordersMonth  = orders.filter(o => new Date(o.created_at) >= monthStart);
-    const revenue      = ordersMonth.filter(o => ['pagado','enviado','entregado','confirmado'].includes(o.status)).reduce((s, o) => s + Number(o.amount), 0);
+    const revenue      = ordersMonth.filter(o => REVENUE_STATUSES.includes(o.status)).reduce((s, o) => s + Number(o.amount), 0);
     const recentOrders = orders.slice(0, 6);
 
     const metrics = [
@@ -405,7 +523,7 @@ const DashboardHome = ({ products, orders, customers, onNavigate }) => {
         <div className="admin-section">
             <div className="admin-section-head">
                 <h1 className="admin-section-title">Dashboard</h1>
-                <p className="admin-section-sub">Bienvenido al panel de administración de Aurem Gs Joyería</p>
+                <p className="admin-section-sub">Bienvenido al panel de administracion de Aurem Gs Joyeria</p>
             </div>
 
             <div className="admin-metrics">
@@ -426,10 +544,10 @@ const DashboardHome = ({ products, orders, customers, onNavigate }) => {
                 <div className="admin-card">
                     <div className="admin-card-head">
                         <h3 className="admin-card-title">Pedidos recientes</h3>
-                        <button className="admin-card-link" onClick={() => onNavigate('orders')}>Ver todos →</button>
+                        <button className="admin-card-link" onClick={() => onNavigate('orders')}>Ver todos &rarr;</button>
                     </div>
                     {recentOrders.length === 0 ? (
-                        <p className="admin-empty-text">No hay pedidos aún.</p>
+                        <p className="admin-empty-text">No hay pedidos aun.</p>
                     ) : (
                         <table className="admin-table">
                             <thead><tr><th>Cliente</th><th>Producto</th><th>Monto</th><th>Estado</th></tr></thead>
@@ -469,7 +587,7 @@ const DashboardHome = ({ products, orders, customers, onNavigate }) => {
                     </div>
 
                     <div className="admin-card-head" style={{ marginTop: '1.5rem' }}>
-                        <h3 className="admin-card-title">Productos por categoría</h3>
+                        <h3 className="admin-card-title">Productos por categoria</h3>
                     </div>
                     <div className="admin-status-list">
                         {CATEGORIES.map(cat => {
@@ -512,7 +630,7 @@ const ProductsSection = ({ products, loading, onRefresh }) => {
             <div className="admin-section-head">
                 <div>
                     <h1 className="admin-section-title">Productos</h1>
-                    <p className="admin-section-sub">{products.length} productos en el catálogo</p>
+                    <p className="admin-section-sub">{products.length} productos en el catalogo</p>
                 </div>
                 <button className="admin-btn" onClick={() => setModal({ type: 'add' })}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -542,14 +660,14 @@ const ProductsSection = ({ products, loading, onRefresh }) => {
                 ) : (
                     <div className="admin-table-wrap">
                         <table className="admin-table">
-                            <thead><tr><th>Imagen</th><th>Nombre</th><th>Categoría</th><th>Precio</th><th>Estado</th><th>Acciones</th></tr></thead>
+                            <thead><tr><th>Imagen</th><th>Nombre</th><th>Categoria</th><th>Precio</th><th>Estado</th><th>Acciones</th></tr></thead>
                             <tbody>
                                 {visible.map(p => (
                                     <tr key={p.id}>
                                         <td>
                                             <div className="admin-thumb">
                                                 {p.image_url ? <img src={p.image_url} alt={p.name} onError={e => { e.currentTarget.style.display='none'; e.currentTarget.nextSibling.style.display='flex'; }} /> : null}
-                                                <div className="admin-thumb-placeholder" style={p.image_url ? { display:'none' } : {}}>✦</div>
+                                                <div className="admin-thumb-placeholder" style={p.image_url ? { display:'none' } : {}}>&#x2726;</div>
                                             </div>
                                         </td>
                                         <td className="admin-td-name">{p.name}</td>
@@ -581,7 +699,7 @@ const ProductsSection = ({ products, loading, onRefresh }) => {
             {modal?.type === 'delete' && (
                 <ConfirmModal
                     title="Eliminar producto"
-                    text={`¿Seguro que quieres eliminar "${modal.product.name}"? Esta acción no se puede deshacer.`}
+                    text={`Seguro que quieres eliminar "${modal.product.name}"? Esta accion no se puede deshacer.`}
                     onClose={closeModal}
                     onConfirm={async () => { await supabase.from('products').delete().eq('id', modal.product.id); afterSave(); }}
                 />
@@ -592,27 +710,68 @@ const ProductsSection = ({ products, loading, onRefresh }) => {
 
 /* ─── OrdersSection ──────────────────────────────────────────────── */
 const OrdersSection = ({ orders, products, loading, onRefresh }) => {
-    const [search, setSearch]     = useState('');
+    const [search, setSearch]           = useState('');
     const [filterStatus, setFilterStatus] = useState('Todos');
-    const [modal, setModal]       = useState(null);
+    const [filterSource, setFilterSource] = useState('Todos');
+    const [modal, setModal]             = useState(null);
 
     const closeModal = () => setModal(null);
     const afterSave  = () => { closeModal(); onRefresh(); };
 
     const visible = orders.filter(o => {
         const matchStatus = filterStatus === 'Todos' || o.status === filterStatus;
+        const matchSource = filterSource === 'Todos' || (o.order_source || 'web') === filterSource;
         const matchSearch = !search.trim() || o.customer_name.toLowerCase().includes(search.toLowerCase()) || o.product_name.toLowerCase().includes(search.toLowerCase());
-        return matchStatus && matchSearch;
+        return matchStatus && matchSearch && matchSource;
     });
 
     const totalVisible = visible.reduce((s, o) => s + Number(o.amount), 0);
+
+    /* Quick status change */
+    const changeStatus = async (order, newStatus, extraFields = {}) => {
+        const payload = { status: newStatus, status_updated_at: new Date().toISOString(), ...extraFields };
+        const { error } = await supabase.from('orders').update(payload).eq('id', order.id);
+        if (error) { alert('Error: ' + error.message); return; }
+        await fireWebhook(order, newStatus);
+        onRefresh();
+    };
+
+    const handleQuickAction = (order) => {
+        const action = NEXT_ACTION[order.status];
+        if (!action) return;
+
+        if (action.next === 'enviado') {
+            setModal({ type: 'ship', order });
+        } else {
+            if (window.confirm(`Cambiar estado de "${order.customer_name}" a "${STATUS_META[action.next].label}"?`)) {
+                changeStatus(order, action.next);
+            }
+        }
+    };
+
+    const handleShipConfirm = async (carrier, trackingNumber) => {
+        const order = modal.order;
+        await changeStatus(order, 'enviado', {
+            carrier: carrier || null,
+            tracking_number: trackingNumber || null,
+        });
+        closeModal();
+    };
+
+    const getWaLink = (o) => {
+        const phone = (o.customer_phone || '').replace(/\D/g, '');
+        if (!phone) return null;
+        const msgFn = WA_MESSAGES[o.status];
+        const msg = msgFn ? msgFn(o) : `Hola ${o.customer_name}, gracias por tu compra en Aurem Gs Joyeria.`;
+        return `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+    };
 
     return (
         <div className="admin-section">
             <div className="admin-section-head">
                 <div>
                     <h1 className="admin-section-title">Pedidos</h1>
-                    <p className="admin-section-sub">{orders.length} pedidos · Total visible: ${fmt(totalVisible)} COP</p>
+                    <p className="admin-section-sub">{orders.length} pedidos &middot; Total visible: ${fmt(totalVisible)} COP</p>
                 </div>
                 <button className="admin-btn" onClick={() => setModal({ type: 'add' })}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -622,10 +781,16 @@ const OrdersSection = ({ orders, products, loading, onRefresh }) => {
 
             <div className="admin-card">
                 <div className="admin-toolbar">
-                    <div className="admin-filters">
+                    <div className="admin-filters" style={{ flexWrap: 'wrap', gap: '0.35rem' }}>
                         {['Todos', ...ORDER_STATUSES].map(s => (
                             <button key={s} className={`filter-btn ${filterStatus === s ? 'filter-btn--active' : ''}`} onClick={() => setFilterStatus(s)}>
                                 {s === 'Todos' ? 'Todos' : STATUS_META[s].label}
+                            </button>
+                        ))}
+                        <span style={{ width: '1px', height: '20px', background: '#e0e0e0', margin: '0 0.25rem' }} />
+                        {['Todos', ...Object.keys(SOURCE_META)].map(s => (
+                            <button key={`src-${s}`} className={`filter-btn ${filterSource === s ? 'filter-btn--active' : ''}`} onClick={() => setFilterSource(s)}>
+                                {s === 'Todos' ? 'Todos canales' : SOURCE_META[s].label}
                             </button>
                         ))}
                     </div>
@@ -644,30 +809,44 @@ const OrdersSection = ({ orders, products, loading, onRefresh }) => {
                 ) : (
                     <div className="admin-table-wrap">
                         <table className="admin-table">
-                            <thead><tr><th>Cliente</th><th>Teléfono</th><th>Producto</th><th>Dirección</th><th>Monto</th><th>Estado</th><th>Fecha</th><th>Acciones</th></tr></thead>
+                            <thead><tr><th>Canal</th><th>Cliente</th><th>Producto</th><th>Direccion</th><th>Monto</th><th>Met. pago</th><th>Estado</th><th>Accion rapida</th><th>Acciones</th></tr></thead>
                             <tbody>
                                 {visible.map(o => {
                                     const addressParts = [o.shipping_address, o.shipping_city, o.shipping_department].filter(Boolean);
-                                    const waPhone = (o.customer_phone || '').replace(/\D/g, '');
-                                    const waMsg = encodeURIComponent(`Hola ${o.customer_name}, tu pedido de "${o.product_name}" (Aurem Gs Joyería) está siendo procesado.`);
+                                    const action = NEXT_ACTION[o.status];
+                                    const waLink = getWaLink(o);
                                     return (
                                     <tr key={o.id}>
+                                        <td><SourceBadge source={o.order_source || 'web'} /></td>
                                         <td className="admin-td-name">{o.customer_name}</td>
-                                        <td>{o.customer_phone || <span style={{color:'#aaa'}}>—</span>}</td>
                                         <td>{o.product_name}</td>
                                         <td style={{fontSize:'0.8rem',color:'#555',maxWidth:160}}>
-                                            {addressParts.length ? addressParts.join(', ') : <span style={{color:'#aaa'}}>—</span>}
+                                            {addressParts.length ? addressParts.join(', ') : <span style={{color:'#aaa'}}>&mdash;</span>}
                                         </td>
                                         <td className="admin-td-price">${fmt(o.amount)}</td>
+                                        <td style={{fontSize:'0.82rem',color:'#666'}}>{o.payment_method || <span style={{color:'#aaa'}}>&mdash;</span>}</td>
                                         <td><StatusBadge status={o.status} /></td>
-                                        <td style={{fontSize:'0.82rem',color:'#666'}}>{fmtDate(o.created_at)}</td>
+                                        <td>
+                                            {action && (
+                                                <button
+                                                    className={`admin-quick-action ${action.cls}`}
+                                                    onClick={() => handleQuickAction(o)}
+                                                >
+                                                    {action.label}
+                                                </button>
+                                            )}
+                                        </td>
                                         <td>
                                             <div className="admin-actions">
-                                                {waPhone && (
-                                                    <a className="admin-action-btn admin-action-btn--wa" href={`https://wa.me/${waPhone}?text=${waMsg}`} target="_blank" rel="noreferrer">WA</a>
+                                                {waLink && (
+                                                    <a className="admin-action-btn admin-action-btn--wa" href={waLink} target="_blank" rel="noreferrer" title="WhatsApp">
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.121.553 4.114 1.519 5.845L.525 23.5l5.793-.983A11.937 11.937 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818c-1.9 0-3.699-.496-5.254-1.368l-.377-.223-3.437.583.594-3.326-.244-.39A9.778 9.778 0 012.182 12c0-5.42 4.398-9.818 9.818-9.818S21.818 6.58 21.818 12 17.42 21.818 12 21.818z"/></svg>
+                                                    </a>
                                                 )}
-                                                <button className="admin-action-btn admin-action-btn--edit" onClick={() => setModal({ type: 'edit', order: o })}>Editar</button>
-                                                <button className="admin-action-btn admin-action-btn--delete" onClick={() => setModal({ type: 'delete', order: o })}>Eliminar</button>
+                                                <button className="admin-action-btn admin-action-btn--edit admin-action-btn--sm" onClick={() => setModal({ type: 'edit', order: o })} title="Editar">Editar</button>
+                                                <button className="admin-action-btn admin-action-btn--delete admin-action-btn--icon" onClick={() => setModal({ type: 'delete', order: o })} title="Eliminar">
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+                                                </button>
                                             </div>
                                         </td>
                                     </tr>
@@ -681,10 +860,11 @@ const OrdersSection = ({ orders, products, loading, onRefresh }) => {
 
             {modal?.type === 'add'    && <OrderModal products={products} onClose={closeModal} onSaved={afterSave} />}
             {modal?.type === 'edit'   && <OrderModal order={modal.order} products={products} onClose={closeModal} onSaved={afterSave} />}
+            {modal?.type === 'ship'   && <ShipModal order={modal.order} onClose={closeModal} onConfirm={handleShipConfirm} />}
             {modal?.type === 'delete' && (
                 <ConfirmModal
                     title="Eliminar pedido"
-                    text={`¿Eliminar el pedido de "${modal.order.customer_name}"?`}
+                    text={`Eliminar el pedido de "${modal.order.customer_name}"?`}
                     onClose={closeModal}
                     onConfirm={async () => { await supabase.from('orders').delete().eq('id', modal.order.id); afterSave(); }}
                 />
@@ -725,7 +905,7 @@ const CustomersSection = ({ customers, loading, onRefresh }) => {
                 <div className="admin-toolbar">
                     <div className="admin-search-wrap" style={{ maxWidth: 320 }}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                        <input className="admin-search" placeholder="Buscar por nombre, teléfono o email..." value={search} onChange={e => setSearch(e.target.value)} />
+                        <input className="admin-search" placeholder="Buscar por nombre, telefono o email..." value={search} onChange={e => setSearch(e.target.value)} />
                     </div>
                 </div>
 
@@ -738,14 +918,14 @@ const CustomersSection = ({ customers, loading, onRefresh }) => {
                 ) : (
                     <div className="admin-table-wrap">
                         <table className="admin-table">
-                            <thead><tr><th>Nombre</th><th>Teléfono</th><th>Email</th><th>Notas</th><th>Registro</th><th>Acciones</th></tr></thead>
+                            <thead><tr><th>Nombre</th><th>Telefono</th><th>Email</th><th>Notas</th><th>Registro</th><th>Acciones</th></tr></thead>
                             <tbody>
                                 {visible.map(c => (
                                     <tr key={c.id}>
                                         <td className="admin-td-name">{c.name}</td>
-                                        <td>{c.phone || <span style={{color:'#aaa'}}>—</span>}</td>
-                                        <td>{c.email || <span style={{color:'#aaa'}}>—</span>}</td>
-                                        <td style={{maxWidth:200,fontSize:'0.82rem',color:'#666'}}>{c.notes || <span style={{color:'#aaa'}}>—</span>}</td>
+                                        <td>{c.phone || <span style={{color:'#aaa'}}>&mdash;</span>}</td>
+                                        <td>{c.email || <span style={{color:'#aaa'}}>&mdash;</span>}</td>
+                                        <td style={{maxWidth:200,fontSize:'0.82rem',color:'#666'}}>{c.notes || <span style={{color:'#aaa'}}>&mdash;</span>}</td>
                                         <td style={{fontSize:'0.82rem',color:'#666'}}>{fmtDate(c.created_at)}</td>
                                         <td>
                                             <div className="admin-actions">
@@ -766,11 +946,245 @@ const CustomersSection = ({ customers, loading, onRefresh }) => {
             {modal?.type === 'delete' && (
                 <ConfirmModal
                     title="Eliminar cliente"
-                    text={`¿Eliminar a "${modal.customer.name}" del registro?`}
+                    text={`Eliminar a "${modal.customer.name}" del registro?`}
                     onClose={closeModal}
                     onConfirm={async () => { await supabase.from('customers').delete().eq('id', modal.customer.id); afterSave(); }}
                 />
             )}
+        </div>
+    );
+};
+
+/* ─── ReportsSection ─────────────────────────────────────────────── */
+const ReportsSection = ({ orders }) => {
+    const now = new Date();
+
+    /* Date helpers */
+    const startOfDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const today = startOfDay(now);
+    const weekStart = new Date(today); weekStart.setDate(today.getDate() - today.getDay());
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const paidOrders = orders.filter(o => REVENUE_STATUSES.includes(o.status));
+
+    const revenueToday = paidOrders.filter(o => new Date(o.created_at) >= today).reduce((s, o) => s + Number(o.amount), 0);
+    const revenueWeek  = paidOrders.filter(o => new Date(o.created_at) >= weekStart).reduce((s, o) => s + Number(o.amount), 0);
+    const revenueMonth = paidOrders.filter(o => new Date(o.created_at) >= monthStart).reduce((s, o) => s + Number(o.amount), 0);
+    const revenueTotal = paidOrders.reduce((s, o) => s + Number(o.amount), 0);
+
+    /* Orders by day (last 14 days) */
+    const days14 = [];
+    for (let i = 13; i >= 0; i--) {
+        const d = new Date(today);
+        d.setDate(d.getDate() - i);
+        days14.push(d);
+    }
+    const ordersByDay = days14.map(d => {
+        const dayEnd = new Date(d); dayEnd.setDate(dayEnd.getDate() + 1);
+        return {
+            label: d.toLocaleDateString('es-CO', { day: '2-digit', month: 'short' }),
+            count: orders.filter(o => { const oc = new Date(o.created_at); return oc >= d && oc < dayEnd; }).length,
+        };
+    });
+    const maxDayCount = Math.max(...ordersByDay.map(d => d.count), 1);
+
+    /* Top 5 products */
+    const productCounts = {};
+    orders.forEach(o => { productCounts[o.product_name] = (productCounts[o.product_name] || 0) + 1; });
+    const top5Products = Object.entries(productCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+    const maxProductCount = top5Products.length ? top5Products[0][1] : 1;
+
+    /* Orders by source */
+    const sourceCounts = {};
+    orders.forEach(o => { const src = o.order_source || 'web'; sourceCounts[src] = (sourceCounts[src] || 0) + 1; });
+    const sourceEntries = Object.entries(sourceCounts).sort((a, b) => b[1] - a[1]);
+    const maxSourceCount = sourceEntries.length ? sourceEntries[0][1] : 1;
+
+    /* Orders by payment method */
+    const paymentCounts = {};
+    orders.forEach(o => { const pm = o.payment_method || 'Sin especificar'; paymentCounts[pm] = (paymentCounts[pm] || 0) + 1; });
+    const paymentEntries = Object.entries(paymentCounts).sort((a, b) => b[1] - a[1]);
+    const maxPaymentCount = paymentEntries.length ? paymentEntries[0][1] : 1;
+
+    const revenueCards = [
+        { label: 'Hoy', value: revenueToday, color: '#10b981' },
+        { label: 'Esta semana', value: revenueWeek, color: '#3b82f6' },
+        { label: 'Este mes', value: revenueMonth, color: '#8b5cf6' },
+        { label: 'Total', value: revenueTotal, color: '#f59e0b' },
+    ];
+
+    return (
+        <div className="admin-section">
+            <div className="admin-section-head">
+                <h1 className="admin-section-title">Reportes</h1>
+                <p className="admin-section-sub">Resumen de ventas y estadisticas</p>
+            </div>
+
+            {/* Revenue cards */}
+            <div className="admin-metrics">
+                {revenueCards.map(c => (
+                    <div key={c.label} className="admin-metric-card" style={{ '--mc-color': c.color }}>
+                        <div className="admin-metric-icon" style={{ background: c.color + '15', color: c.color }}>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+                        </div>
+                        <div className="admin-metric-body">
+                            <div className="admin-metric-value">${fmt(c.value)}</div>
+                            <div className="admin-metric-label">{c.label}</div>
+                            <div className="admin-metric-sub">COP</div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            <div className="admin-reports-grid">
+                {/* Orders by day chart */}
+                <div className="admin-card">
+                    <div className="admin-card-head">
+                        <h3 className="admin-card-title">Pedidos por dia (ultimos 14 dias)</h3>
+                    </div>
+                    <div className="admin-bar-chart">
+                        {ordersByDay.map((d, i) => (
+                            <div key={i} className="admin-bar-col">
+                                <div className="admin-bar-value">{d.count}</div>
+                                <div className="admin-bar" style={{ height: `${Math.max((d.count / maxDayCount) * 100, 4)}%`, background: '#6366f1' }} />
+                                <div className="admin-bar-label">{d.label}</div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Top 5 products */}
+                <div className="admin-card">
+                    <div className="admin-card-head">
+                        <h3 className="admin-card-title">Top 5 productos</h3>
+                    </div>
+                    <div className="admin-hbar-chart">
+                        {top5Products.map(([name, count], i) => (
+                            <div key={i} className="admin-hbar-row">
+                                <span className="admin-hbar-label" title={name}>{name.length > 25 ? name.slice(0, 25) + '...' : name}</span>
+                                <div className="admin-hbar-track">
+                                    <div className="admin-hbar" style={{ width: `${(count / maxProductCount) * 100}%`, background: '#f59e0b' }} />
+                                </div>
+                                <span className="admin-hbar-value">{count}</span>
+                            </div>
+                        ))}
+                        {top5Products.length === 0 && <p className="admin-empty-text">Sin datos</p>}
+                    </div>
+                </div>
+
+                {/* Orders by source */}
+                <div className="admin-card">
+                    <div className="admin-card-head">
+                        <h3 className="admin-card-title">Pedidos por canal</h3>
+                    </div>
+                    <div className="admin-hbar-chart">
+                        {sourceEntries.map(([src, count], i) => (
+                            <div key={i} className="admin-hbar-row">
+                                <span className="admin-hbar-label"><SourceBadge source={src} /></span>
+                                <div className="admin-hbar-track">
+                                    <div className="admin-hbar" style={{ width: `${(count / maxSourceCount) * 100}%`, background: '#10b981' }} />
+                                </div>
+                                <span className="admin-hbar-value">{count}</span>
+                            </div>
+                        ))}
+                        {sourceEntries.length === 0 && <p className="admin-empty-text">Sin datos</p>}
+                    </div>
+                </div>
+
+                {/* Orders by payment method */}
+                <div className="admin-card">
+                    <div className="admin-card-head">
+                        <h3 className="admin-card-title">Pedidos por metodo de pago</h3>
+                    </div>
+                    <div className="admin-hbar-chart">
+                        {paymentEntries.map(([pm, count], i) => (
+                            <div key={i} className="admin-hbar-row">
+                                <span className="admin-hbar-label">{pm}</span>
+                                <div className="admin-hbar-track">
+                                    <div className="admin-hbar" style={{ width: `${(count / maxPaymentCount) * 100}%`, background: '#8b5cf6' }} />
+                                </div>
+                                <span className="admin-hbar-value">{count}</span>
+                            </div>
+                        ))}
+                        {paymentEntries.length === 0 && <p className="admin-empty-text">Sin datos</p>}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+/* ─── SettingsSection ────────────────────────────────────────────── */
+const SettingsSection = () => {
+    const [webhookUrl, setWebhookUrl] = useState(() => localStorage.getItem('admin_webhook_url') || '');
+    const [saved, setSaved] = useState(false);
+    const [testing, setTesting] = useState(false);
+    const [testResult, setTestResult] = useState('');
+
+    const handleSave = () => {
+        localStorage.setItem('admin_webhook_url', webhookUrl.trim());
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
+    };
+
+    const handleTest = async () => {
+        const url = webhookUrl.trim();
+        if (!url) { setTestResult('Ingresa una URL primero.'); return; }
+        setTesting(true); setTestResult('');
+        try {
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    event: 'test',
+                    message: 'Test webhook from Aurem Gs Admin Panel',
+                    timestamp: new Date().toISOString(),
+                }),
+            });
+            setTestResult(res.ok ? 'Webhook enviado correctamente.' : `Error: HTTP ${res.status}`);
+        } catch (e) {
+            setTestResult(`Error: ${e.message}`);
+        }
+        setTesting(false);
+    };
+
+    return (
+        <div className="admin-section">
+            <div className="admin-section-head">
+                <h1 className="admin-section-title">Ajustes</h1>
+                <p className="admin-section-sub">Configuracion del panel de administracion</p>
+            </div>
+
+            <div className="admin-card" style={{ maxWidth: 600 }}>
+                <div className="admin-card-head">
+                    <h3 className="admin-card-title">Webhook URL</h3>
+                </div>
+                <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: '1rem' }}>
+                    Recibe notificaciones cuando cambia el estado de un pedido. Se enviara un POST con los datos del pedido.
+                </p>
+                <div className="modal-field">
+                    <label>URL del webhook</label>
+                    <input
+                        value={webhookUrl}
+                        onChange={e => setWebhookUrl(e.target.value)}
+                        placeholder="https://ejemplo.com/webhook"
+                        style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}
+                    />
+                </div>
+                <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem', alignItems: 'center' }}>
+                    <button className="admin-btn" onClick={handleSave}>
+                        {saved ? 'Guardado!' : 'Guardar'}
+                    </button>
+                    <button className="admin-btn admin-btn--outline" onClick={handleTest} disabled={testing}>
+                        {testing ? 'Enviando...' : 'Probar webhook'}
+                    </button>
+                </div>
+                {testResult && (
+                    <p style={{ marginTop: '0.75rem', fontSize: '0.85rem', color: testResult.startsWith('Error') ? '#ef4444' : '#10b981' }}>
+                        {testResult}
+                    </p>
+                )}
+            </div>
         </div>
     );
 };
@@ -823,7 +1237,7 @@ const Dashboard = () => {
 
     return (
         <div className="admin-layout">
-            {/* ── Sidebar ── */}
+            {/* Sidebar */}
             <aside className="admin-sidebar">
                 <div className="admin-sidebar-logo">
                     <img src="/assets/logo1.png" alt="Aurem GS" className="admin-sidebar-logo-img" />
@@ -856,12 +1270,12 @@ const Dashboard = () => {
                     </div>
                     <button className="admin-sidebar-logout" onClick={handleLogout}>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-                        Cerrar sesión
+                        Cerrar sesion
                     </button>
                 </div>
             </aside>
 
-            {/* ── Main content ── */}
+            {/* Main content */}
             <main className="admin-content">
                 <header className="admin-topbar">
                     <div className="admin-topbar-left">
@@ -888,8 +1302,156 @@ const Dashboard = () => {
                     {section === 'customers' && (
                         <CustomersSection customers={customers} loading={loadingC} onRefresh={fetchCustomers} />
                     )}
+                    {section === 'reports' && (
+                        <ReportsSection orders={orders} />
+                    )}
+                    {section === 'settings' && (
+                        <SettingsSection />
+                    )}
                 </div>
             </main>
+
+            {/* Inline styles for new components */}
+            <style>{`
+                /* Source badge */
+                .source-badge {
+                    display: inline-block;
+                    padding: 2px 8px;
+                    border-radius: 9999px;
+                    font-size: 0.7rem;
+                    font-weight: 600;
+                    letter-spacing: 0.02em;
+                    white-space: nowrap;
+                }
+                .source--blue  { background: #dbeafe; color: #1d4ed8; }
+                .source--green { background: #dcfce7; color: #15803d; }
+                .source--pink  { background: #fce7f3; color: #be185d; }
+                .source--gray  { background: #f3f4f6; color: #4b5563; }
+
+                /* Badge orange for procesando */
+                .badge--orange { background: #fff7ed; color: #c2410c; }
+
+                /* Quick action buttons */
+                .admin-quick-action {
+                    padding: 4px 10px;
+                    border-radius: 6px;
+                    font-size: 0.75rem;
+                    font-weight: 600;
+                    border: none;
+                    cursor: pointer;
+                    white-space: nowrap;
+                    transition: opacity 0.2s;
+                }
+                .admin-quick-action:hover { opacity: 0.85; }
+                .action--green  { background: #dcfce7; color: #15803d; }
+                .action--blue   { background: #dbeafe; color: #1d4ed8; }
+                .action--purple { background: #ede9fe; color: #6d28d9; }
+                .action--teal   { background: #ccfbf1; color: #0f766e; }
+
+                /* Small action button variants */
+                .admin-action-btn--sm {
+                    font-size: 0.75rem !important;
+                    padding: 3px 8px !important;
+                }
+                .admin-action-btn--icon {
+                    padding: 4px 6px !important;
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    min-width: auto !important;
+                }
+
+                /* Reports grid */
+                .admin-reports-grid {
+                    display: grid;
+                    grid-template-columns: 1fr;
+                    gap: 1.25rem;
+                }
+                @media (min-width: 900px) {
+                    .admin-reports-grid {
+                        grid-template-columns: 1fr 1fr;
+                    }
+                }
+
+                /* Vertical bar chart */
+                .admin-bar-chart {
+                    display: flex;
+                    align-items: flex-end;
+                    gap: 4px;
+                    height: 200px;
+                    padding: 1rem 0.5rem 0;
+                }
+                .admin-bar-col {
+                    flex: 1;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    height: 100%;
+                    justify-content: flex-end;
+                }
+                .admin-bar-value {
+                    font-size: 0.7rem;
+                    font-weight: 600;
+                    color: #555;
+                    margin-bottom: 4px;
+                }
+                .admin-bar {
+                    width: 100%;
+                    max-width: 32px;
+                    border-radius: 4px 4px 0 0;
+                    transition: height 0.3s ease;
+                    min-height: 4px;
+                }
+                .admin-bar-label {
+                    font-size: 0.6rem;
+                    color: #888;
+                    margin-top: 6px;
+                    text-align: center;
+                    white-space: nowrap;
+                }
+
+                /* Horizontal bar chart */
+                .admin-hbar-chart {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 0.6rem;
+                    padding: 0.5rem 0;
+                }
+                .admin-hbar-row {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.75rem;
+                }
+                .admin-hbar-label {
+                    min-width: 100px;
+                    max-width: 160px;
+                    font-size: 0.8rem;
+                    color: #444;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                }
+                .admin-hbar-track {
+                    flex: 1;
+                    height: 20px;
+                    background: #f3f4f6;
+                    border-radius: 4px;
+                    overflow: hidden;
+                }
+                .admin-hbar {
+                    height: 100%;
+                    border-radius: 4px;
+                    transition: width 0.3s ease;
+                    min-width: 4px;
+                }
+                .admin-hbar-value {
+                    min-width: 30px;
+                    font-size: 0.8rem;
+                    font-weight: 600;
+                    color: #555;
+                    text-align: right;
+                }
+            `}</style>
         </div>
     );
 };
