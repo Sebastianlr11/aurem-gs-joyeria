@@ -1,4 +1,4 @@
-export const WA_NUMBER = '573143602930';
+export const WA_NUMBER = '573115761896';
 
 /**
  * Codifica el texto para URLs de WhatsApp.
