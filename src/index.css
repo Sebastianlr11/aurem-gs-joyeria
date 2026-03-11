@@ -577,10 +577,12 @@ button {
 
 /* Image */
 .collection-card-image {
+  display: block;
   position: relative;
   height: 248px;
   overflow: hidden;
   background-color: #f3f3f3;
+  cursor: pointer;
 }
 
 .collection-card-image img {

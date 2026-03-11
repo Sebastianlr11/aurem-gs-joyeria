@@ -83,10 +83,10 @@ const Collections = () => {
                         <motion.div key={item.id} className={`collection-card animate-fade-in delay-${index + 1}`} variants={fadeUp}>
 
                             {/* Image */}
-                            <div className="collection-card-image">
+                            <Link to={`/catalogo?categoria=${item.category}`} className="collection-card-image">
                                 <img src={item.image} alt={item.title} />
                                 <span className="collection-card-number">0{index + 1}</span>
-                            </div>
+                            </Link>
 
                             {/* Body */}
                             <div className="collection-card-body">
