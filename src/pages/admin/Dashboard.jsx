@@ -4,13 +4,14 @@ import { supabase } from '../../lib/supabase';
 
 /* ─── Constants ──────────────────────────────────────────────────── */
 const CATEGORIES = ['Anillos', 'Collares', 'Aretes', 'Pulseras'];
-const ORDER_STATUSES = ['pendiente', 'confirmado', 'enviado', 'entregado', 'cancelado'];
+const ORDER_STATUSES = ['pendiente', 'pagado', 'enviado', 'entregado', 'cancelado'];
 const STATUS_META = {
     pendiente:  { label: 'Pendiente',  cls: 'badge--yellow' },
-    confirmado: { label: 'Confirmado', cls: 'badge--blue'   },
-    enviado:    { label: 'Enviado',    cls: 'badge--purple'  },
-    entregado:  { label: 'Entregado',  cls: 'badge--green'   },
-    cancelado:  { label: 'Cancelado',  cls: 'badge--red'     },
+    pagado:     { label: 'Pagado',     cls: 'badge--green'  },
+    enviado:    { label: 'Enviado',    cls: 'badge--purple' },
+    entregado:  { label: 'Entregado',  cls: 'badge--blue'   },
+    cancelado:  { label: 'Cancelado',  cls: 'badge--red'    },
+    confirmado: { label: 'Confirmado', cls: 'badge--blue'   }, // legacy
 };
 const fmt = n => Number(n || 0).toLocaleString('es-CO');
 const fmtDate = d => new Date(d).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -263,6 +264,17 @@ const OrderModal = ({ order, products, onClose, onSaved }) => {
                             </select>
                         </div>
                     </div>
+                    {isEdit && (form.shipping_address || form.shipping_city || form.shipping_department) && (
+                        <div className="modal-field">
+                            <label>Dirección de envío</label>
+                            <div className="modal-address-info">
+                                {form.shipping_address && <span>{form.shipping_address}</span>}
+                                {(form.shipping_city || form.shipping_department) && (
+                                    <span>{[form.shipping_city, form.shipping_department].filter(Boolean).join(', ')}</span>
+                                )}
+                            </div>
+                        </div>
+                    )}
                     <div className="modal-field">
                         <label>Notas</label>
                         <textarea rows={2} value={form.notes} onChange={e => set('notes', e.target.value)} placeholder="Notas del pedido..." />
@@ -367,7 +379,7 @@ const DashboardHome = ({ products, orders, customers, onNavigate }) => {
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
     const ordersMonth  = orders.filter(o => new Date(o.created_at) >= monthStart);
-    const revenue      = ordersMonth.filter(o => o.status === 'entregado' || o.status === 'confirmado').reduce((s, o) => s + Number(o.amount), 0);
+    const revenue      = ordersMonth.filter(o => ['pagado','enviado','entregado','confirmado'].includes(o.status)).reduce((s, o) => s + Number(o.amount), 0);
     const recentOrders = orders.slice(0, 6);
 
     const metrics = [
@@ -380,7 +392,7 @@ const DashboardHome = ({ products, orders, customers, onNavigate }) => {
             icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>,
         },
         {
-            label: 'Ingresos confirmados', value: `$${fmt(revenue)}`, color: '#10b981', sub: 'COP este mes',
+            label: 'Ingresos (pagados)', value: `$${fmt(revenue)}`, color: '#10b981', sub: 'COP este mes',
             icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>,
         },
         {
@@ -632,24 +644,35 @@ const OrdersSection = ({ orders, products, loading, onRefresh }) => {
                 ) : (
                     <div className="admin-table-wrap">
                         <table className="admin-table">
-                            <thead><tr><th>Cliente</th><th>Teléfono</th><th>Producto</th><th>Monto</th><th>Estado</th><th>Fecha</th><th>Acciones</th></tr></thead>
+                            <thead><tr><th>Cliente</th><th>Teléfono</th><th>Producto</th><th>Dirección</th><th>Monto</th><th>Estado</th><th>Fecha</th><th>Acciones</th></tr></thead>
                             <tbody>
-                                {visible.map(o => (
+                                {visible.map(o => {
+                                    const addressParts = [o.shipping_address, o.shipping_city, o.shipping_department].filter(Boolean);
+                                    const waPhone = (o.customer_phone || '').replace(/\D/g, '');
+                                    const waMsg = encodeURIComponent(`Hola ${o.customer_name}, tu pedido de "${o.product_name}" (Aurem Gs Joyería) está siendo procesado.`);
+                                    return (
                                     <tr key={o.id}>
                                         <td className="admin-td-name">{o.customer_name}</td>
                                         <td>{o.customer_phone || <span style={{color:'#aaa'}}>—</span>}</td>
                                         <td>{o.product_name}</td>
+                                        <td style={{fontSize:'0.8rem',color:'#555',maxWidth:160}}>
+                                            {addressParts.length ? addressParts.join(', ') : <span style={{color:'#aaa'}}>—</span>}
+                                        </td>
                                         <td className="admin-td-price">${fmt(o.amount)}</td>
                                         <td><StatusBadge status={o.status} /></td>
                                         <td style={{fontSize:'0.82rem',color:'#666'}}>{fmtDate(o.created_at)}</td>
                                         <td>
                                             <div className="admin-actions">
+                                                {waPhone && (
+                                                    <a className="admin-action-btn admin-action-btn--wa" href={`https://wa.me/${waPhone}?text=${waMsg}`} target="_blank" rel="noreferrer">WA</a>
+                                                )}
                                                 <button className="admin-action-btn admin-action-btn--edit" onClick={() => setModal({ type: 'edit', order: o })}>Editar</button>
                                                 <button className="admin-action-btn admin-action-btn--delete" onClick={() => setModal({ type: 'delete', order: o })}>Eliminar</button>
                                             </div>
                                         </td>
                                     </tr>
-                                ))}
+                                    );
+                                })}
                             </tbody>
                         </table>
                     </div>

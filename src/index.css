@@ -3734,6 +3734,20 @@ button {
 .admin-action-btn--edit:hover { background: #e2e8f0; }
 .admin-action-btn--delete { background: rgba(234,67,53,0.08); color: var(--accent-red); }
 .admin-action-btn--delete:hover { background: rgba(234,67,53,0.15); }
+.admin-action-btn--wa { background: rgba(37,211,102,0.10); color: #25d366; text-decoration: none; }
+.admin-action-btn--wa:hover { background: rgba(37,211,102,0.2); }
+
+.modal-address-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.6rem 0.75rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: #334155;
+}
 
 .admin-loading, .admin-empty {
   padding: 4rem 2rem;
