@@ -15,7 +15,7 @@ const Confirmacion = () => {
     if (!externalRef || !status || updated) return
 
     const mpStatus = status
-    const orderStatus = status === 'approved' ? 'confirmado' : 'pendiente'
+    const orderStatus = status === 'approved' ? 'pagado' : 'pendiente'
 
     supabase
       .from('orders')
