@@ -307,7 +307,7 @@ const BuyModal = ({ product, onClose }) => {
             <p className="buy-modal-wallet-hint">Haz clic en el botón para completar tu pago de forma segura</p>
             <Wallet
               key={preferenceId}
-              initialization={{ preferenceId, redirectMode: 'self' }}
+              initialization={{ preferenceId, redirectMode: 'modal' }}
               customization={{ texts: { valueProp: 'smart_option' } }}
             />
             <p className="buy-modal-secure-note">

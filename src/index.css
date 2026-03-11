@@ -3883,7 +3883,7 @@ button {
   width: 100%;
   max-width: 440px;
   max-height: 90vh;
-  overflow-y: auto;
+  overflow: visible;
   padding: 1.75rem;
   position: relative;
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.18);
@@ -4031,6 +4031,23 @@ button {
   align-items: center;
   gap: 1rem;
   padding: 0.5rem 0;
+  width: 100%;
+}
+
+/* Asegura que el botón y el iframe de MP sean visibles */
+.buy-modal-wallet > div,
+.buy-modal-wallet iframe,
+.buy-modal-wallet button {
+  width: 100% !important;
+  min-height: 48px !important;
+  overflow: visible !important;
+}
+
+/* Overlay del modal de MP por encima de todo */
+cho-iframe-wrapper,
+.mercadopago-button,
+[id^="cho-container"] {
+  z-index: 99999 !important;
 }
 .buy-modal-wallet-hint {
   font-size: 0.875rem;
