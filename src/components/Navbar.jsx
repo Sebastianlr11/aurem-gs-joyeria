@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 
 const links = [
@@ -6,6 +6,7 @@ const links = [
     { label: 'Nosotros',  id:   'nosotros'   },
     { label: 'Reseñas',   id:   'resenas'    },
     { label: 'FAQs',      id:   'faqs'       },
+    { label: 'Contacto',  id:   'contacto'   },
 ];
 
 const Navbar = () => {
@@ -20,106 +21,134 @@ const Navbar = () => {
         return () => window.removeEventListener('scroll', onScroll);
     }, []);
 
-    // Lock body scroll when menu is open
     useEffect(() => {
         document.body.style.overflow = menuOpen ? 'hidden' : '';
         return () => { document.body.style.overflow = ''; };
     }, [menuOpen]);
 
-    // Close menu on route change
     useEffect(() => { setMenuOpen(false); }, [location.pathname]);
 
-    const scrollToSection = (id) => {
+    const closeMenu = useCallback(() => setMenuOpen(false), []);
+
+    const scrollToSection = useCallback((id) => {
         const el = document.getElementById(id);
         if (el) el.scrollIntoView({ behavior: 'smooth' });
-    };
+    }, []);
 
-    const handleNavClick = (e, id) => {
+    const handleNavClick = useCallback((e, id) => {
         e.preventDefault();
         setMenuOpen(false);
+
         if (location.pathname === '/') {
-            scrollToSection(id);
+            // Small delay so menu closes first, then scroll
+            setTimeout(() => scrollToSection(id), 100);
         } else {
             navigate('/');
-            setTimeout(() => scrollToSection(id), 150);
+            setTimeout(() => scrollToSection(id), 400);
         }
-    };
+    }, [location.pathname, navigate, scrollToSection]);
 
     return (
-        <div className="navbar-outer">
-            <nav className={`navbar-pill ${scrolled ? 'navbar-pill--scrolled' : ''}`}>
+        <>
+            <div className="navbar-outer">
+                <nav className={`navbar-pill ${scrolled ? 'navbar-pill--scrolled' : ''}`}>
 
-                {/* Logo → Home */}
-                <Link
-                    to="/"
-                    className="navbar-logo"
-                    onClick={() => { setMenuOpen(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                >
-                    <img src="/assets/logo1.png" alt="Aurem Gs Joyería" className="navbar-logo-img" />
-                    <span className="navbar-logo-text">Aurem Gs</span>
-                </Link>
+                    {/* Logo */}
+                    <Link
+                        to="/"
+                        className="navbar-logo"
+                        onClick={() => { closeMenu(); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                    >
+                        <img src="/assets/logo1.png" alt="Aurem Gs Joyería" className="navbar-logo-img" />
+                        <span className="navbar-logo-text">Aurem Gs</span>
+                    </Link>
 
-                {/* Desktop Links */}
-                <ul className="navbar-links">
-                    {links.map(link => (
-                        <li key={link.label}>
-                            {link.href
-                                ? <Link to={link.href} className="navbar-link">{link.label}</Link>
-                                : <a href={`#${link.id}`} className="navbar-link" onClick={e => handleNavClick(e, link.id)}>{link.label}</a>
-                            }
-                        </li>
-                    ))}
-                </ul>
+                    {/* Desktop Links */}
+                    <ul className="navbar-links">
+                        {links.filter(l => l.label !== 'Contacto').map(link => (
+                            <li key={link.label}>
+                                {link.href
+                                    ? <Link to={link.href} className="navbar-link">{link.label}</Link>
+                                    : <a href={`#${link.id}`} className="navbar-link" onClick={e => handleNavClick(e, link.id)}>{link.label}</a>
+                                }
+                            </li>
+                        ))}
+                    </ul>
 
-                {/* CTA (desktop) */}
-                <a
-                    href="#contacto"
-                    className="navbar-cta"
-                    onClick={e => handleNavClick(e, 'contacto')}
-                >
-                    Contactar
-                    <div className="navbar-cta-circle">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <line x1="7" y1="17" x2="17" y2="7" />
-                            <polyline points="7 7 17 7 17 17" />
-                        </svg>
-                    </div>
-                </a>
+                    {/* CTA (desktop) */}
+                    <a
+                        href="#contacto"
+                        className="navbar-cta"
+                        onClick={e => handleNavClick(e, 'contacto')}
+                    >
+                        Contactar
+                        <div className="navbar-cta-circle">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <line x1="7" y1="17" x2="17" y2="7" />
+                                <polyline points="7 7 17 7 17 17" />
+                            </svg>
+                        </div>
+                    </a>
 
-                {/* Hamburger button (mobile) */}
-                <button
-                    className={`navbar-hamburger ${menuOpen ? 'navbar-hamburger--open' : ''}`}
-                    onClick={() => setMenuOpen(o => !o)}
-                    aria-label="Menú"
-                >
-                    <span />
-                    <span />
-                    <span />
-                </button>
-            </nav>
-
-            {/* Mobile menu overlay */}
-            {menuOpen && <div className="mobile-menu-backdrop" onClick={() => setMenuOpen(false)} />}
-            <div className={`mobile-menu ${menuOpen ? 'mobile-menu--open' : ''}`}>
-                <ul className="mobile-menu-links">
-                    {links.map(link => (
-                        <li key={link.label}>
-                            {link.href
-                                ? <Link to={link.href} className="mobile-menu-link" onClick={() => setMenuOpen(false)}>{link.label}</Link>
-                                : <a href={`#${link.id}`} className="mobile-menu-link" onClick={e => handleNavClick(e, link.id)}>{link.label}</a>
-                            }
-                        </li>
-                    ))}
-                </ul>
-                <a
-                    href="#contacto"
-                    className="mobile-menu-cta"
-                    onClick={e => handleNavClick(e, 'contacto')}
-                >
-                    Contactar
-                </a>
+                    {/* Hamburger (mobile) */}
+                    <button
+                        className={`navbar-hamburger ${menuOpen ? 'navbar-hamburger--open' : ''}`}
+                        onClick={() => setMenuOpen(o => !o)}
+                        aria-label="Menú"
+                    >
+                        <span />
+                        <span />
+                        <span />
+                    </button>
+                </nav>
             </div>
-        </div>
+
+            {/* ── Mobile fullscreen menu ── */}
+            <div
+                className={`mobile-menu ${menuOpen ? 'mobile-menu--open' : ''}`}
+                onClick={(e) => { if (e.target === e.currentTarget) closeMenu(); }}
+            >
+                <div className="mobile-menu-panel">
+                    {/* Close button */}
+                    <button className="mobile-menu-close" onClick={closeMenu} aria-label="Cerrar menú">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18" />
+                            <line x1="6" y1="6" x2="18" y2="18" />
+                        </svg>
+                    </button>
+
+                    {/* Brand */}
+                    <div className="mobile-menu-brand">
+                        <img src="/assets/logo1.png" alt="Aurem Gs" className="mobile-menu-logo" />
+                        <span className="mobile-menu-brand-name">Aurem Gs</span>
+                    </div>
+
+                    {/* Links */}
+                    <ul className="mobile-menu-links">
+                        {links.map(link => (
+                            <li key={link.label}>
+                                {link.href
+                                    ? <Link to={link.href} className="mobile-menu-link" onClick={closeMenu}>
+                                        {link.label}
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                                      </Link>
+                                    : <a href={`#${link.id}`} className="mobile-menu-link" onClick={e => handleNavClick(e, link.id)}>
+                                        {link.label}
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                                      </a>
+                                }
+                            </li>
+                        ))}
+                    </ul>
+
+                    {/* Footer */}
+                    <div className="mobile-menu-footer">
+                        <p className="mobile-menu-footer-text">auremgsjoyeria@gmail.com</p>
+                        <p className="mobile-menu-footer-text">+57 311 576 1896</p>
+                    </div>
+                </div>
+            </div>
+        </>
     );
 };
 
