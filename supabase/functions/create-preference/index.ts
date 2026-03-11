@@ -51,7 +51,14 @@ Deno.serve(async (req: Request) => {
         amount: totalAmount,
         status: 'pendiente',
         payment_method: paymentMethod === 'cod' ? 'contraentrega' : 'mercadopago',
-        notes: buyer.city ? `Ciudad: ${buyer.city}` : null,
+        notes: [
+          buyer.address ? `Dirección: ${buyer.address}` : null,
+          buyer.city ? `Ciudad: ${buyer.city}` : null,
+          buyer.department ? `Departamento: ${buyer.department}` : null,
+        ].filter(Boolean).join(' | ') || null,
+        shipping_address: buyer.address ?? null,
+        shipping_city: buyer.city ?? null,
+        shipping_department: buyer.department ?? null,
       })
       .select('id')
       .single()
@@ -89,17 +96,13 @@ Deno.serve(async (req: Request) => {
     const preference: Record<string, unknown> = {
       items: mpItems,
       payer: {
-        name: buyer.name,
-        email: buyer.email,
-        phone: buyer.phone ? { number: buyer.phone } : undefined,
+        email: 'comprador@auremgsjoyeria.com',
       },
       back_urls: {
         success: `${appUrl}/confirmacion`,
         failure: `${appUrl}/confirmacion`,
         pending: `${appUrl}/confirmacion`,
       },
-      auto_return: 'approved',
-      purpose: 'wallet_purchase',
       external_reference: orderId,
       statement_descriptor: 'AUREM GS JOYERIA',
     }

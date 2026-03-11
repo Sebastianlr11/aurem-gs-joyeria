@@ -1,0 +1,3 @@
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS shipping_address TEXT;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS shipping_city TEXT;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS shipping_department TEXT;

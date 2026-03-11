@@ -88,7 +88,7 @@ const BuyModal = ({ product, onClose }) => {
   const mpSaving = product.price - mpPrice;
   const [step, setStep] = useState('method'); // method | form | loading | wallet | cod-success | error
   const [paymentMethod, setPaymentMethod] = useState(null); // 'mp' | 'cod'
-  const [form, setForm] = useState({ name: '', email: '', phone: '', city: '' });
+  const [form, setForm] = useState({ name: '', email: '', phone: '', city: '', address: '', department: '' });
   const [errors, setErrors] = useState({});
   const [preferenceId, setPreferenceId] = useState(null);
   const [initPoint, setInitPoint] = useState(null);
@@ -108,7 +108,9 @@ const BuyModal = ({ product, onClose }) => {
     const e = {};
     if (!form.name.trim()) e.name = 'Ingresa tu nombre';
     if (!form.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = 'Ingresa un email válido';
-    if (paymentMethod === 'cod' && !form.city) e.city = 'Selecciona tu ciudad';
+    if (!form.address.trim()) e.address = 'Ingresa tu dirección de entrega';
+    if (!form.department.trim()) e.department = 'Ingresa tu departamento';
+    if (!form.city.trim()) e.city = 'Ingresa tu ciudad';
     return e;
   };
 
@@ -130,6 +132,8 @@ const BuyModal = ({ product, onClose }) => {
             email: form.email.trim(),
             phone: form.phone.trim() || undefined,
             city: form.city || undefined,
+            address: form.address.trim() || undefined,
+            department: form.department.trim() || undefined,
           },
         },
       });
@@ -244,6 +248,29 @@ const BuyModal = ({ product, onClose }) => {
                 onChange={handleChange('phone')} className={errors.phone ? 'buy-modal-input--error' : ''} />
               {errors.phone && <span className="buy-modal-field-error">{errors.phone}</span>}
             </div>
+
+            <div className="buy-modal-field">
+              <label>Dirección de entrega *</label>
+              <input type="text" placeholder="Ej. Calle 123 # 45-67, Apto 301" value={form.address}
+                onChange={handleChange('address')} className={errors.address ? 'buy-modal-input--error' : ''} />
+              {errors.address && <span className="buy-modal-field-error">{errors.address}</span>}
+            </div>
+
+            <div className="buy-modal-field">
+              <label>Departamento *</label>
+              <input type="text" placeholder="Ej. Cundinamarca" value={form.department}
+                onChange={handleChange('department')} className={errors.department ? 'buy-modal-input--error' : ''} />
+              {errors.department && <span className="buy-modal-field-error">{errors.department}</span>}
+            </div>
+
+            {paymentMethod === 'mp' && (
+              <div className="buy-modal-field">
+                <label>Ciudad *</label>
+                <input type="text" placeholder="Ej. Bogotá" value={form.city}
+                  onChange={handleChange('city')} className={errors.city ? 'buy-modal-input--error' : ''} />
+                {errors.city && <span className="buy-modal-field-error">{errors.city}</span>}
+              </div>
+            )}
 
             {paymentMethod === 'cod' && (
               <div className="buy-modal-field">
