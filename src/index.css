@@ -4034,6 +4034,23 @@ button {
   width: 100%;
 }
 
+.buy-modal-mp-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 0.9rem 1.5rem;
+  background: #009ee3;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 700;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: background 0.2s ease;
+}
+.buy-modal-mp-btn:hover { background: #007ab8; }
+
 /* Overlay del modal de MP por encima de todo */
 [id^="cho-container"],
 [class*="mercadopago"] {

@@ -91,6 +91,7 @@ const BuyModal = ({ product, onClose }) => {
   const [form, setForm] = useState({ name: '', email: '', phone: '', city: '' });
   const [errors, setErrors] = useState({});
   const [preferenceId, setPreferenceId] = useState(null);
+  const [initPoint, setInitPoint] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
@@ -140,6 +141,7 @@ const BuyModal = ({ product, onClose }) => {
       } else {
         if (!data.preferenceId) throw new Error(data?.error || 'Error desconocido');
         setPreferenceId(data.preferenceId);
+        setInitPoint(data.initPoint);
         setStep('wallet');
       }
     } catch (err) {
@@ -302,14 +304,20 @@ const BuyModal = ({ product, onClose }) => {
           </div>
         )}
 
-        {step === 'wallet' && preferenceId && (
+        {step === 'wallet' && initPoint && (
           <div className="buy-modal-wallet">
-            <p className="buy-modal-wallet-hint">Haz clic en el botón para completar tu pago de forma segura</p>
-            <Wallet
-              key={preferenceId}
-              initialization={{ preferenceId, redirectMode: 'modal' }}
-              customization={{ texts: { valueProp: 'smart_option' } }}
-            />
+            <p className="buy-modal-wallet-hint">Tu pedido está listo. Haz clic para completar el pago de forma segura.</p>
+            <a
+              href={initPoint}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="buy-modal-mp-btn"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/>
+              </svg>
+              Pagar con Mercado Pago
+            </a>
             <p className="buy-modal-secure-note">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
