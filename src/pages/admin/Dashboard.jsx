@@ -407,6 +407,41 @@ const ShipModal = ({ order, onClose, onConfirm }) => {
     );
 };
 
+/* ─── StatusConfirmModal ─────────────────────────────────────────── */
+const StatusConfirmModal = ({ order, nextStatus, onClose, onConfirm }) => {
+    const [loading, setLoading] = useState(false);
+    const meta = STATUS_META[nextStatus];
+    return (
+        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+            <div className="modal-box modal-box--sm">
+                <div className="modal-header">
+                    <h2 className="modal-title">Cambiar estado</h2>
+                    <button className="modal-close" onClick={onClose}>&#x2715;</button>
+                </div>
+                <div style={{ padding: '1.25rem 1.75rem 0' }}>
+                    <p style={{ fontSize: '0.92rem', color: '#334155', lineHeight: 1.6 }}>
+                        Cambiar el pedido de <strong>{order.customer_name}</strong> a:
+                    </p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginTop: '0.75rem' }}>
+                        <StatusBadge status={order.status} />
+                        <span style={{ color: '#94a3b8' }}>&rarr;</span>
+                        <StatusBadge status={nextStatus} />
+                    </div>
+                    <p style={{ fontSize: '0.82rem', color: '#64748b', marginTop: '0.75rem' }}>
+                        Producto: {order.product_name} &middot; ${fmt(order.amount)} COP
+                    </p>
+                </div>
+                <div className="modal-actions" style={{ padding: '1.25rem 1.75rem 1.75rem' }}>
+                    <button className="admin-btn admin-btn--outline" onClick={onClose}>Cancelar</button>
+                    <button className="admin-btn" onClick={async () => { setLoading(true); await onConfirm(); setLoading(false); }} disabled={loading}>
+                        {loading ? 'Cambiando...' : meta?.label || 'Confirmar'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 /* ─── CustomerModal ──────────────────────────────────────────────── */
 const CustomerModal = ({ customer, onClose, onSaved }) => {
     const isEdit = !!customer?.id;
@@ -743,9 +778,7 @@ const OrdersSection = ({ orders, products, loading, onRefresh }) => {
         if (action.next === 'enviado') {
             setModal({ type: 'ship', order });
         } else {
-            if (window.confirm(`Cambiar estado de "${order.customer_name}" a "${STATUS_META[action.next].label}"?`)) {
-                changeStatus(order, action.next);
-            }
+            setModal({ type: 'confirm_status', order, nextStatus: action.next });
         }
     };
 
@@ -861,6 +894,14 @@ const OrdersSection = ({ orders, products, loading, onRefresh }) => {
             {modal?.type === 'add'    && <OrderModal products={products} onClose={closeModal} onSaved={afterSave} />}
             {modal?.type === 'edit'   && <OrderModal order={modal.order} products={products} onClose={closeModal} onSaved={afterSave} />}
             {modal?.type === 'ship'   && <ShipModal order={modal.order} onClose={closeModal} onConfirm={handleShipConfirm} />}
+            {modal?.type === 'confirm_status' && (
+                <StatusConfirmModal
+                    order={modal.order}
+                    nextStatus={modal.nextStatus}
+                    onClose={closeModal}
+                    onConfirm={async () => { await changeStatus(modal.order, modal.nextStatus); closeModal(); }}
+                />
+            )}
             {modal?.type === 'delete' && (
                 <ConfirmModal
                     title="Eliminar pedido"
