@@ -410,8 +410,8 @@ const DashboardHome = ({ products, orders, customers, onNavigate }) => {
 
             <div className="admin-metrics">
                 {metrics.map(m => (
-                    <div key={m.label} className="admin-metric-card">
-                        <div className="admin-metric-icon" style={{ background: m.color + '18', color: m.color }}>{m.icon}</div>
+                    <div key={m.label} className="admin-metric-card" style={{ '--mc-color': m.color }}>
+                        <div className="admin-metric-icon" style={{ background: m.color + '15', color: m.color }}>{m.icon}</div>
                         <div className="admin-metric-body">
                             <div className="admin-metric-value">{m.value}</div>
                             <div className="admin-metric-label">{m.label}</div>
@@ -826,8 +826,11 @@ const Dashboard = () => {
             {/* ── Sidebar ── */}
             <aside className="admin-sidebar">
                 <div className="admin-sidebar-logo">
-                    <span>AUREM GS</span>
-                    <span className="admin-sidebar-logo-sub">Admin</span>
+                    <img src="/assets/logo1.png" alt="Aurem GS" className="admin-sidebar-logo-img" />
+                    <div className="admin-sidebar-logo-text">
+                        <span>AUREM GS</span>
+                        <span className="admin-sidebar-logo-sub">Admin Panel</span>
+                    </div>
                 </div>
 
                 <nav className="admin-sidebar-nav">
@@ -844,7 +847,13 @@ const Dashboard = () => {
                 </nav>
 
                 <div className="admin-sidebar-footer">
-                    <div className="admin-sidebar-email">{session.user.email}</div>
+                    <div className="admin-sidebar-user">
+                        <div className="admin-sidebar-avatar">{session.user.email[0].toUpperCase()}</div>
+                        <div className="admin-sidebar-user-info">
+                            <div className="admin-sidebar-email">{session.user.email}</div>
+                            <div className="admin-sidebar-role">Administrador</div>
+                        </div>
+                    </div>
                     <button className="admin-sidebar-logout" onClick={handleLogout}>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
                         Cerrar sesión
@@ -854,21 +863,32 @@ const Dashboard = () => {
 
             {/* ── Main content ── */}
             <main className="admin-content">
-                {section === 'dashboard' && (
-                    <DashboardHome
-                        products={products} orders={orders} customers={customers}
-                        onNavigate={setSection}
-                    />
-                )}
-                {section === 'products' && (
-                    <ProductsSection products={products} loading={loadingP} onRefresh={fetchProducts} />
-                )}
-                {section === 'orders' && (
-                    <OrdersSection orders={orders} products={products} loading={loadingO} onRefresh={fetchOrders} />
-                )}
-                {section === 'customers' && (
-                    <CustomersSection customers={customers} loading={loadingC} onRefresh={fetchCustomers} />
-                )}
+                <header className="admin-topbar">
+                    <div className="admin-topbar-left">
+                        <span className="admin-topbar-icon">{NAV.find(n => n.id === section)?.icon}</span>
+                        <h2 className="admin-topbar-title">{NAV.find(n => n.id === section)?.label ?? 'Dashboard'}</h2>
+                    </div>
+                    <div className="admin-topbar-right">
+                        <div className="admin-topbar-avatar">{session.user.email[0].toUpperCase()}</div>
+                    </div>
+                </header>
+                <div className="admin-main">
+                    {section === 'dashboard' && (
+                        <DashboardHome
+                            products={products} orders={orders} customers={customers}
+                            onNavigate={setSection}
+                        />
+                    )}
+                    {section === 'products' && (
+                        <ProductsSection products={products} loading={loadingP} onRefresh={fetchProducts} />
+                    )}
+                    {section === 'orders' && (
+                        <OrdersSection orders={orders} products={products} loading={loadingO} onRefresh={fetchOrders} />
+                    )}
+                    {section === 'customers' && (
+                        <CustomersSection customers={customers} loading={loadingC} onRefresh={fetchCustomers} />
+                    )}
+                </div>
             </main>
         </div>
     );
