@@ -1,5 +1,11 @@
 import React, { useState } from 'react';
 import { WA_NUMBER, waUrl } from '../lib/whatsapp';
+import { motion } from 'framer-motion';
+
+const fadeUp = {
+    hidden: { opacity: 0, y: 30 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.16, 1, 0.3, 1] } }
+};
 
 const MailIcon = () => (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -14,7 +20,7 @@ const WhatsAppIcon = () => (
     </svg>
 );
 
-const EMAIL = 'hola@galajoyeria.com';
+const EMAIL = 'hola@auremgsjoyeria.com';
 
 const interestOptions = ['Joya del Catálogo', 'Pieza Personalizada'];
 
@@ -70,7 +76,13 @@ const Contact = () => {
                 <div className="contact-layout">
 
                     {/* Left */}
-                    <div className="contact-left">
+                    <motion.div
+                        className="contact-left"
+                        initial={{ opacity: 0, x: -40 }}
+                        whileInView={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                        viewport={{ once: true, margin: '-80px' }}
+                    >
                         <div className="contact-badge">
                             <span>//</span> Contacto <span>//</span>
                         </div>
@@ -117,10 +129,17 @@ const Contact = () => {
                                 </div>
                             )}
                         </div>
-                    </div>
+                    </motion.div>
 
                     {/* Right — form */}
-                    <form className="contact-form" onSubmit={handleSubmit}>
+                    <motion.form
+                        className="contact-form"
+                        onSubmit={handleSubmit}
+                        initial={{ opacity: 0, x: 40 }}
+                        whileInView={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
+                        viewport={{ once: true, margin: '-80px' }}
+                    >
 
                         <div className="contact-field">
                             <label className="contact-label">Tu nombre *</label>
@@ -192,7 +211,7 @@ const Contact = () => {
                             {sent ? '✓ Mensaje enviado — abrimos WhatsApp' : 'Enviar Mensaje'}
                         </button>
 
-                    </form>
+                    </motion.form>
 
                 </div>
             </div>

@@ -1,4 +1,15 @@
 import React, { useState } from 'react';
+import { motion } from 'framer-motion';
+
+const fadeUp = {
+    hidden: { opacity: 0, y: 30 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.16, 1, 0.3, 1] } }
+};
+
+const stagger = {
+    hidden: {},
+    visible: { transition: { staggerChildren: 0.1 } }
+};
 
 const faqs = [
     {
@@ -56,7 +67,13 @@ const Faq = () => {
                 <div className="faq-layout">
 
                     {/* Left — sticky title */}
-                    <div className="faq-left">
+                    <motion.div
+                        className="faq-left"
+                        variants={fadeUp}
+                        initial="hidden"
+                        whileInView="visible"
+                        viewport={{ once: true, margin: '-80px' }}
+                    >
                         <div className="luxury-badge">
                             <span>//</span> FAQs <span>//</span>
                         </div>
@@ -64,10 +81,16 @@ const Faq = () => {
                         <p className="faq-subtitle">
                             Todo lo que necesitas saber antes de elegir tu pieza perfecta.
                         </p>
-                    </div>
+                    </motion.div>
 
                     {/* Right — accordion */}
-                    <div className="faq-right">
+                    <motion.div
+                        className="faq-right"
+                        variants={stagger}
+                        initial="hidden"
+                        whileInView="visible"
+                        viewport={{ once: true, margin: '-80px' }}
+                    >
                         {faqs.map((faq, index) => (
                             <FaqItem
                                 key={index}
@@ -77,7 +100,7 @@ const Faq = () => {
                                 onToggle={() => setOpenIndex(openIndex === index ? null : index)}
                             />
                         ))}
-                    </div>
+                    </motion.div>
 
                 </div>
             </div>

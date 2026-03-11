@@ -86,12 +86,11 @@ const MP_DISCOUNT = 0.02; // 2% descuento pagando con Mercado Pago
 const BuyModal = ({ product, onClose }) => {
   const mpPrice = Math.round(product.price * (1 - MP_DISCOUNT));
   const mpSaving = product.price - mpPrice;
-  const [step, setStep] = useState('method'); // method | form | loading | wallet | sandbox | cod-success | error
+  const [step, setStep] = useState('method'); // method | form | loading | wallet | cod-success | error
   const [paymentMethod, setPaymentMethod] = useState(null); // 'mp' | 'cod'
   const [form, setForm] = useState({ name: '', email: '', phone: '', city: '' });
   const [errors, setErrors] = useState({});
   const [preferenceId, setPreferenceId] = useState(null);
-  const [sandboxUrl, setSandboxUrl] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
@@ -141,12 +140,7 @@ const BuyModal = ({ product, onClose }) => {
       } else {
         if (!data.preferenceId) throw new Error(data?.error || 'Error desconocido');
         setPreferenceId(data.preferenceId);
-        if (data.isLocalhost && data.sandboxInitPoint) {
-          setSandboxUrl(data.sandboxInitPoint);
-          setStep('sandbox');
-        } else {
-          setStep('wallet');
-        }
+        setStep('wallet');
       }
     } catch (err) {
       setErrorMsg(err.message || 'No se pudo procesar tu pedido. Intenta de nuevo.');
@@ -305,19 +299,6 @@ const BuyModal = ({ product, onClose }) => {
               <span>Ciudad</span><span>{form.city}</span>
             </div>
             <button className="buy-modal-submit" onClick={onClose}>Entendido</button>
-          </div>
-        )}
-
-        {step === 'sandbox' && sandboxUrl && (
-          <div className="buy-modal-wallet">
-            <p className="buy-modal-wallet-hint">Entorno de pruebas — haz clic para completar el pago</p>
-            <a href={sandboxUrl} target="_blank" rel="noopener noreferrer"
-              className="buy-modal-submit" style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}>
-              Ir al checkout de prueba →
-            </a>
-            <p className="buy-modal-secure-note" style={{ marginTop: '0.75rem' }}>
-              Tarjeta de prueba: <strong>4509 9535 6623 3704</strong> · CVV: <strong>123</strong> · Nombre: <strong>APRO</strong>
-            </p>
           </div>
         )}
 

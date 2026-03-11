@@ -45,7 +45,7 @@ const Navbar = () => {
                     className="navbar-logo"
                     onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
                 >
-                    AUREM GS <span>JOYERÍA</span>
+                    <img src="/assets/logo1.png" alt="Aurem Gs Joyería" className="navbar-logo-img" />
                 </Link>
 
                 {/* Links */}

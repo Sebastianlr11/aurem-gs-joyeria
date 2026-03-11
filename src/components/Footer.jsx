@@ -1,38 +1,13 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 
 const Footer = () => {
-    const [email, setEmail] = useState('');
-
     return (
         <footer className="footer">
             <div className="container">
 
-                {/* Top grid: newsletter + nav columns */}
+                {/* Top grid: nav columns */}
                 <div className="footer-top">
-
-                    {/* Newsletter */}
-                    <div className="footer-newsletter">
-                        <h3 className="footer-newsletter-title">Newsletter</h3>
-                        <p className="footer-newsletter-desc">
-                            Suscríbete y recibe primero las nuevas colecciones, ofertas exclusivas y cuidado de joyas.
-                        </p>
-                        <form className="footer-email-form" onSubmit={e => e.preventDefault()}>
-                            <input
-                                type="email"
-                                placeholder="Tu correo electrónico"
-                                value={email}
-                                onChange={e => setEmail(e.target.value)}
-                                className="footer-email-input"
-                            />
-                            <button type="submit" className="footer-email-btn">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                    <line x1="5" y1="12" x2="19" y2="12" />
-                                    <polyline points="12 5 19 12 12 19" />
-                                </svg>
-                            </button>
-                        </form>
-                    </div>
 
                     {/* Nav columns */}
                     <div className="footer-nav-columns">

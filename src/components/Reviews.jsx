@@ -7,28 +7,28 @@ const reviews = [
         quote: 'La calidad del anillo superó todas mis expectativas. Un diseño impecable que enamora desde el primer vistazo.',
         name: 'María González',
         role: 'NOVIA',
-        avatar: '/assets/hero1.png',
+        initials: 'MG',
     },
     {
         rating: '5.0',
         quote: 'Recibí el collar en un embalaje de lujo precioso. Se nota la atención al detalle en cada aspecto del producto.',
         name: 'Carlos Ruiz',
         role: 'CLIENTE',
-        avatar: '/assets/hero2.png',
+        initials: 'CR',
     },
     {
         rating: '4.9',
         quote: 'La certificación de autenticidad me dio total confianza. Sin duda la mejor joyería que he comprado online.',
         name: 'Ana Martínez',
         role: 'COLECCIONISTA',
-        avatar: '/assets/hero3.png',
+        initials: 'AM',
     },
     {
         rating: '5.0',
         quote: 'Las pulseras son exactamente como en las fotos, incluso más bonitas en persona. Envío rapidísimo y seguro.',
         name: 'Laura Sánchez',
         role: 'CLIENTE FRECUENTE',
-        avatar: '/assets/hero1.png',
+        initials: 'LS',
     },
 ];
 
@@ -72,9 +72,9 @@ const Reviews = () => {
 
                         <div className="score-bottom">
                             <div className="score-avatars">
-                                {['/assets/hero1.png', '/assets/hero2.png', '/assets/hero3.png', '/assets/rings.png'].map((src, i) => (
-                                    <div key={i} className="score-avatar" style={{ zIndex: 4 - i }}>
-                                        <img src={src} alt="cliente" />
+                                {['MG', 'CR', 'AM', 'LS'].map((initials, i) => (
+                                    <div key={i} className="score-avatar avatar-initials" style={{ zIndex: 4 - i }}>
+                                        {initials}
                                     </div>
                                 ))}
                             </div>
@@ -110,8 +110,8 @@ const Reviews = () => {
                                 <p className="review-quote">"{review.quote}"</p>
 
                                 <div className="review-author">
-                                    <div className="review-avatar">
-                                        <img src={review.avatar} alt={review.name} />
+                                    <div className="review-avatar avatar-initials">
+                                        {review.initials}
                                     </div>
                                     <div>
                                         <p className="review-name">{review.name}</p>

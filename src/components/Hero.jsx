@@ -1,6 +1,16 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import { waUrl } from '../lib/whatsapp';
+import { motion } from 'framer-motion';
+
+const fadeUp = {
+    hidden: { opacity: 0, y: 30 },
+    visible: (delay = 0) => ({
+        opacity: 1,
+        y: 0,
+        transition: { duration: 0.7, ease: [0.16, 1, 0.3, 1], delay }
+    })
+};
 
 const Hero = () => {
     const column1 = [
@@ -41,33 +51,72 @@ const Hero = () => {
                     {/* Left Column Text */}
                     <div className="hero-left-col">
 
-                        <div className="luxury-badge hero-anim" style={{ '--hero-delay': '0s' }}>
+                        <motion.div
+                            className="luxury-badge hero-anim"
+                            style={{ '--hero-delay': '0s' }}
+                            variants={fadeUp}
+                            initial="hidden"
+                            whileInView="visible"
+                            custom={0}
+                            viewport={{ once: true, margin: '-80px' }}
+                        >
                             <span style={{ color: 'var(--accent-red)' }}>//</span> DISPONIBLE PARA PEDIDOS <span style={{ color: 'var(--accent-red)' }}>//</span>
-                        </div>
+                        </motion.div>
 
-                        <h1 className="hero-h1">
+                        <motion.h1
+                            className="hero-h1"
+                            variants={fadeUp}
+                            initial="hidden"
+                            whileInView="visible"
+                            custom={0}
+                            viewport={{ once: true, margin: '-80px' }}
+                        >
                             <div className="hero-line" style={{ '--line-delay': '0.1s' }}>
                                 <span>Diseño de Joyas</span>
                             </div>
                             <div className="hero-line" style={{ '--line-delay': '0.28s' }}>
                                 <span>De Clase <span style={{ color: 'var(--text-muted)' }}>Mundial</span></span>
                             </div>
-                        </h1>
+                        </motion.h1>
 
-                        <p className="hero-anim hero-subtitle" style={{ '--hero-delay': '0.55s' }}>
+                        <motion.p
+                            className="hero-anim hero-subtitle"
+                            style={{ '--hero-delay': '0.55s' }}
+                            variants={fadeUp}
+                            initial="hidden"
+                            whileInView="visible"
+                            custom={0.1}
+                            viewport={{ once: true, margin: '-80px' }}
+                        >
                             Suscripciones de diseño para piezas artesanales únicas. Joyería de autor para momentos que duran siempre.
-                        </p>
+                        </motion.p>
 
-                        <div className="hero-anim hero-btns" style={{ '--hero-delay': '0.7s' }}>
+                        <motion.div
+                            className="hero-anim hero-btns"
+                            style={{ '--hero-delay': '0.7s' }}
+                            variants={fadeUp}
+                            initial="hidden"
+                            whileInView="visible"
+                            custom={0.2}
+                            viewport={{ once: true, margin: '-80px' }}
+                        >
                             <Link to="/catalogo" className="btn-pill black">
                                 Ver Catálogo <RedArrow />
                             </Link>
                             <a href={waUrl('Hola! Me interesa conocer las joyas de Aurem Gs Joyería. ¿Me pueden asesorar? 💎✨')} target="_blank" rel="noopener noreferrer" className="btn-pill light-fill">
                                 Contáctanos <RedArrow />
                             </a>
-                        </div>
+                        </motion.div>
 
-                        <div className="hero-anim hero-social-proof" style={{ '--hero-delay': '0.88s' }}>
+                        <motion.div
+                            className="hero-anim hero-social-proof"
+                            style={{ '--hero-delay': '0.88s' }}
+                            variants={fadeUp}
+                            initial="hidden"
+                            whileInView="visible"
+                            custom={0.3}
+                            viewport={{ once: true, margin: '-80px' }}
+                        >
                             <div style={{ display: 'flex' }}>
                                 {[1, 2, 3, 4].map(i => (
                                     <div key={i} style={{
@@ -89,31 +138,44 @@ const Hero = () => {
                                 <div style={{ color: 'var(--accent-red)', fontSize: '1.1rem', letterSpacing: '2px', display: 'flex', gap: '2px', marginBottom: '2px' }}>
                                     ★★★★★
                                 </div>
-                                <p style={{ fontSize: '0.9rem', fontWeight: 700 }}>Confiado por +100 negocios</p>
+                                <p style={{ fontSize: '0.9rem', fontWeight: 700 }}>Confiado por +100 clientes</p>
                                 <p style={{ fontSize: '0.65rem', fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '0.05em', marginTop: '2px', textTransform: 'uppercase' }}>
                                     ELLOS ALCANZARON SUS METAS.
                                 </p>
                             </div>
-                        </div>
+                        </motion.div>
                     </div>
 
                     {/* Right Column Ticker */}
                     <div className="animate-fade-in delay-2 hero-right-col">
                         <div className="hero-ticker-container">
-                            <div className="ticker-column down" style={{ paddingTop: '-300px' }}>
+                            <motion.div
+                                className="ticker-column down"
+                                style={{ paddingTop: '-300px' }}
+                                initial={{ opacity: 0, x: -40 }}
+                                whileInView={{ opacity: 1, x: 0 }}
+                                transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                                viewport={{ once: true, margin: '-80px' }}
+                            >
                                 {tickerItems1.map((img, i) => (
                                     <div key={`col1-${i}`} className="ticker-item">
                                         <img src={img} alt="Jewelry Item" />
                                     </div>
                                 ))}
-                            </div>
-                            <div className="ticker-column up">
+                            </motion.div>
+                            <motion.div
+                                className="ticker-column up"
+                                initial={{ opacity: 0, x: 40 }}
+                                whileInView={{ opacity: 1, x: 0 }}
+                                transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
+                                viewport={{ once: true, margin: '-80px' }}
+                            >
                                 {tickerItems2.map((img, i) => (
                                     <div key={`col2-${i}`} className="ticker-item">
                                         <img src={img} alt="Jewelry Item" />
                                     </div>
                                 ))}
-                            </div>
+                            </motion.div>
                         </div>
                     </div>
                 </div>

@@ -1,4 +1,15 @@
 import React from 'react';
+import { motion } from 'framer-motion';
+
+const fadeUp = {
+    hidden: { opacity: 0, y: 30 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.16, 1, 0.3, 1] } }
+};
+
+const stagger = {
+    hidden: {},
+    visible: { transition: { staggerChildren: 0.15 } }
+};
 
 const PackageIcon = () => (
     <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -50,7 +61,13 @@ const WhyUs = () => {
             <div className="container">
 
                 {/* Header */}
-                <div className="why-us-header">
+                <motion.div
+                    className="why-us-header"
+                    variants={fadeUp}
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true, margin: '-80px' }}
+                >
                     <div>
                         <div className="luxury-badge">
                             <span>//</span> Por Qué Nosotros <span>//</span>
@@ -60,12 +77,18 @@ const WhyUs = () => {
                     <p className="why-us-subtitle">
                         Cada detalle importa — desde el origen de los materiales hasta el momento en que la pieza llega a tus manos.
                     </p>
-                </div>
+                </motion.div>
 
                 {/* Pillars */}
-                <div className="why-us-pillars">
+                <motion.div
+                    className="why-us-pillars"
+                    variants={stagger}
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true, margin: '-80px' }}
+                >
                     {pillars.map((pillar, index) => (
-                        <div key={index} className={`why-us-pillar animate-fade-in delay-${index + 1}`}>
+                        <motion.div key={index} className={`why-us-pillar animate-fade-in delay-${index + 1}`} variants={fadeUp}>
                             <div className="pillar-icon-wrap">
                                 {pillar.icon}
                             </div>
@@ -73,9 +96,9 @@ const WhyUs = () => {
                             <h3 className="pillar-title">{pillar.title}</h3>
                             <p className="pillar-desc">{pillar.description}</p>
                             <div className="pillar-accent-line"></div>
-                        </div>
+                        </motion.div>
                     ))}
-                </div>
+                </motion.div>
 
             </div>
             <div className="horizontal-divider" style={{ position: 'absolute', bottom: 0, left: 0 }}></div>

@@ -1,5 +1,16 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
+
+const fadeUp = {
+    hidden: { opacity: 0, y: 30 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.16, 1, 0.3, 1] } }
+};
+
+const stagger = {
+    hidden: {},
+    visible: { transition: { staggerChildren: 0.15 } }
+};
 
 const collectionsData = [
     {
@@ -41,7 +52,13 @@ const Collections = () => {
             <div className="container">
 
                 {/* Header */}
-                <div className="collections-header">
+                <motion.div
+                    className="collections-header"
+                    variants={fadeUp}
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true, margin: '-80px' }}
+                >
                     <div>
                         <div className="luxury-badge">
                             <span>//</span> Nuestras Colecciones <span>//</span>
@@ -52,12 +69,18 @@ const Collections = () => {
                         Combinamos delicadeza y artesanía para crear piezas que perduran —
                         cada diseño cuenta una historia.
                     </p>
-                </div>
+                </motion.div>
 
                 {/* Cards Grid */}
-                <div className="collections-grid">
+                <motion.div
+                    className="collections-grid"
+                    variants={stagger}
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true, margin: '-80px' }}
+                >
                     {collectionsData.map((item, index) => (
-                        <div key={item.id} className={`collection-card animate-fade-in delay-${index + 1}`}>
+                        <motion.div key={item.id} className={`collection-card animate-fade-in delay-${index + 1}`} variants={fadeUp}>
 
                             {/* Image */}
                             <div className="collection-card-image">
@@ -86,9 +109,9 @@ const Collections = () => {
                                 </div>
                             </div>
 
-                        </div>
+                        </motion.div>
                     ))}
-                </div>
+                </motion.div>
 
             </div>
             <div className="horizontal-divider" style={{ position: 'absolute', bottom: 0, left: 0 }}></div>

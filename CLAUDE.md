@@ -13,7 +13,7 @@ npm run preview   # Preview production build
 
 ## Architecture
 
-Single-page React 19 + Vite + TypeScript app for a luxury jewelry brand ("Gala Joyería"). No routing — one page with stacked sections.
+Single-page React 19 + Vite + TypeScript app for a luxury jewelry brand ("Aurem Gs Joyería"). No routing — one page with stacked sections.
 
 **Component tree** (`src/App.tsx`):
 ```

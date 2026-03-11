@@ -13,6 +13,8 @@ const Catalog = () => {
     const [activeCategory, setActiveCategory] = useState(initialCategory);
     const [search, setSearch] = useState('');
     const [sort, setSort] = useState('newest');
+    const [page, setPage] = useState(1);
+    const PER_PAGE = 12;
 
     useEffect(() => {
         const fetchProducts = async () => {
@@ -48,6 +50,8 @@ const Catalog = () => {
         return result;
     }, [products, search, sort]);
 
+    const paginated = filtered.slice(0, page * PER_PAGE);
+
     return (
         <main className="catalog-page">
             {/* Header */}
@@ -68,7 +72,7 @@ const Catalog = () => {
                     <div className="catalog-toolbar-left">
                         <FilterBar
                             active={activeCategory}
-                            onChange={val => { setActiveCategory(val); setSearch(''); }}
+                            onChange={val => { setActiveCategory(val); setSearch(''); setPage(1); }}
                         />
                     </div>
                     <div className="catalog-toolbar-right">
@@ -79,7 +83,7 @@ const Catalog = () => {
                                 type="text"
                                 placeholder="Buscar pieza..."
                                 value={search}
-                                onChange={e => setSearch(e.target.value)}
+                                onChange={e => { setSearch(e.target.value); setPage(1); }}
                             />
                         </div>
                         <select
@@ -111,10 +115,20 @@ const Catalog = () => {
                     <>
                         <p className="catalog-count">{filtered.length} pieza{filtered.length !== 1 ? 's' : ''}</p>
                         <div className="catalog-grid">
-                            {filtered.map(product => (
+                            {paginated.map(product => (
                                 <ProductCard key={product.id} product={product} />
                             ))}
                         </div>
+                        {paginated.length < filtered.length && (
+                            <div className="catalog-load-more">
+                                <button
+                                    className="btn-pill black"
+                                    onClick={() => setPage(p => p + 1)}
+                                >
+                                    Cargar más
+                                </button>
+                            </div>
+                        )}
                     </>
                 )}
             </div>
