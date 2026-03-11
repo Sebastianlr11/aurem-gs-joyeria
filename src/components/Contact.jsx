@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { WA_NUMBER, waUrl } from '../lib/whatsapp';
+import { WA_NUMBER, waUrl, isMobile } from '../lib/whatsapp';
 import { motion } from 'framer-motion';
 
 const fadeUp = {
@@ -54,14 +54,17 @@ const Contact = () => {
         const e2 = validate();
         if (Object.keys(e2).length) { setErrors(e2); return; }
 
+        const mobile = isMobile();
         const lines = [
-            `Hola! Me comunico desde el formulario de contacto de Aurem Gs Joyeria. 💎`,
+            mobile ? `Hola! 👋 Me comunico desde la web de *Aurem Gs Joyería*` : `Hola! Me comunico desde la web de *Aurem Gs Joyería*`,
             ``,
-            `👤 Nombre: ${form.name.trim()}`,
-            `📧 Correo: ${form.email.trim()}`,
-            form.phone.trim() ? `📞 Telefono: ${form.phone.trim()}` : null,
-            `💡 Interes: ${interest}`,
-            form.message.trim() ? `💬 Mensaje: ${form.message.trim()}` : null,
+            mobile ? `👤 *Nombre:* ${form.name.trim()}` : `- *Nombre:* ${form.name.trim()}`,
+            mobile ? `📧 *Correo:* ${form.email.trim()}` : `- *Correo:* ${form.email.trim()}`,
+            form.phone.trim() ? (mobile ? `📞 *Teléfono:* ${form.phone.trim()}` : `- *Teléfono:* ${form.phone.trim()}`) : null,
+            mobile ? `💎 *Interés:* ${interest}` : `- *Interés:* ${interest}`,
+            form.message.trim() ? (mobile ? `\n💬 *Mensaje:*\n${form.message.trim()}` : `\n*Mensaje:*\n${form.message.trim()}`) : null,
+            ``,
+            mobile ? `Quedo atento/a a su respuesta! 😊` : `Quedo atento/a a su respuesta!`,
         ].filter(Boolean).join('\n');
 
         window.open(waUrl(lines), '_blank');

@@ -1,18 +1,24 @@
 export const WA_NUMBER = '573115761896';
 
-/**
- * Codifica el texto para URLs de WhatsApp.
- * Deja los emojis (code points > U+FFFF) sin codificar
- * para que lleguen correctamente a WhatsApp.
- */
-export const encodeWA = (text) =>
-  [...text]
-    .map((char) => {
-      const cp = char.codePointAt(0);
-      if (cp > 0xffff) return char; // emoji — sin codificar
-      return encodeURIComponent(char);
-    })
-    .join('');
+export const isMobile = () =>
+  /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(
+    navigator.userAgent
+  );
 
-export const waUrl = (text) =>
-  `https://wa.me/${WA_NUMBER}?text=${encodeWA(text)}`;
+const encodeWA = (text) =>
+  text.replace(/[&=+#%?]/g, encodeURIComponent)
+      .replace(/ /g, '%20')
+      .replace(/\n/g, '%0A');
+
+/**
+ * Genera URL de WhatsApp.
+ * Recibe { mobile, desktop } para enviar mensaje con emojis en móvil
+ * y sin emojis en PC (WhatsApp Web no los renderiza bien por URL).
+ * También acepta un string simple para ambos.
+ */
+export const waUrl = (msg) => {
+  const text = typeof msg === 'string'
+    ? msg
+    : isMobile() ? msg.mobile : msg.desktop;
+  return `https://wa.me/${WA_NUMBER}?text=${encodeWA(text)}`;
+};

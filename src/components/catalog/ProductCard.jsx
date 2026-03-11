@@ -5,7 +5,10 @@ import { waUrl } from '../../lib/whatsapp';
 const fmt = (price) => price?.toLocaleString('es-CO');
 
 const ProductCard = ({ product, onQuickView }) => {
-    const waLink = waUrl(`Hola! Me interesa la pieza "${product.name}" ($ ${fmt(product.price)} COP). ¿Tienen disponibilidad? 💍`);
+    const waLink = waUrl({
+        mobile: `Hola! 😊 Vi esta pieza en su tienda y me encantó:\n\n✨ *${product.name}*\n💰 Precio: $${fmt(product.price)} COP\n\nMe gustaría saber si está disponible 🙏`,
+        desktop: `Hola! Vi esta pieza en su tienda y me encantó:\n\n- *${product.name}*\n- Precio: $${fmt(product.price)} COP\n\nMe gustaría saber si está disponible.`,
+    });
 
     return (
         <Link to={`/catalogo/${product.id}`} className="product-card">

@@ -32,7 +32,7 @@ const Confirmacion = () => {
   const isPending   = status === 'pending' || status === 'in_process'
   const isFailure   = !isApproved && !isPending
 
-  const waContact = waUrl('Hola! Acabo de realizar un pedido en Aurem Gs Joyería y necesito ayuda. ¿Me pueden asistir? 🙏')
+  const waContact = waUrl({ mobile: 'Hola! 🙏 Acabo de hacer un pedido en *Aurem Gs Joyería* y necesito ayuda con mi orden. Me pueden asistir?', desktop: 'Hola! Acabo de hacer un pedido en *Aurem Gs Joyería* y necesito ayuda con mi orden. Me pueden asistir?' })
 
   return (
     <div className="confirmacion-page">

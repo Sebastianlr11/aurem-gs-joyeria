@@ -530,7 +530,10 @@ const ProductPage = () => {
         ? product.images
         : product.image_url ? [product.image_url] : [];
 
-    const waLink = waUrl(`Hola! Vi la pieza "${product.name}" en su tienda ($ ${fmt(product.price)} COP) y me encantó. ¿Tienen disponibilidad? 💎`);
+    const waLink = waUrl({
+        mobile: `Hola! 😊 Vi la pieza *${product.name}* en su tienda y me encantó.\n\n💰 Precio: $${fmt(product.price)} COP\n\nMe gustaría comprarla, está disponible? 💎`,
+        desktop: `Hola! Vi la pieza *${product.name}* en su tienda y me encantó.\n\n- Precio: $${fmt(product.price)} COP\n\nMe gustaría comprarla, está disponible?`,
+    });
 
     const badges = (
         <div className="product-page-badges">

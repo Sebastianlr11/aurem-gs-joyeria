@@ -87,7 +87,7 @@ const Reviews = () => {
                             <p className="score-tagline">ELLOS ELIGIERON CALIDAD — TÚ TAMBIÉN PUEDES.</p>
 
                             <a
-                                href={waUrl('Hola! Quiero compartir mi experiencia con Aurem Gs Joyería. Estoy muy feliz con mi compra! 🌟✨')}
+                                href={waUrl({ mobile: 'Hola! 🌟 Quiero compartir mi experiencia con *Aurem Gs Joyería*. Estoy muy feliz con mi compra! ✨', desktop: 'Hola! Quiero compartir mi experiencia con *Aurem Gs Joyería*. Estoy muy feliz con mi compra!' })}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="score-cta"

@@ -103,7 +103,7 @@ const Hero = () => {
                             <Link to="/catalogo" className="btn-pill black">
                                 Ver Catálogo <RedArrow />
                             </Link>
-                            <a href={waUrl('Hola! Me interesa conocer las joyas de Aurem Gs Joyería. ¿Me pueden asesorar? 💎✨')} target="_blank" rel="noopener noreferrer" className="btn-pill light-fill">
+                            <a href={waUrl({ mobile: 'Hola! 👋 Estoy interesado/a en las joyas de *Aurem Gs Joyería*. Me encantaría recibir asesoría personalizada ✨', desktop: 'Hola! Estoy interesado/a en las joyas de *Aurem Gs Joyería*. Me encantaría recibir asesoría personalizada.' })} target="_blank" rel="noopener noreferrer" className="btn-pill light-fill">
                                 Contáctanos <RedArrow />
                             </a>
                         </motion.div>
@@ -118,19 +118,26 @@ const Hero = () => {
                             viewport={{ once: true, margin: '-80px' }}
                         >
                             <div style={{ display: 'flex' }}>
-                                {[1, 2, 3, 4].map(i => (
+                                {[
+                                    { letter: 'M', bg: '#111' },
+                                    { letter: 'C', bg: '#111' },
+                                    { letter: 'L', bg: '#111' },
+                                    { letter: 'A', bg: '#111' },
+                                ].map((client, i) => (
                                     <div key={i} style={{
                                         width: '45px',
                                         height: '45px',
                                         borderRadius: '50%',
                                         border: '3px solid var(--bg-color)',
-                                        marginLeft: i === 1 ? 0 : '-15px',
-                                        backgroundColor: '#ddd',
-                                        overflow: 'hidden',
+                                        marginLeft: i === 0 ? 0 : '-15px',
+                                        backgroundColor: client.bg,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
                                         zIndex: 5 - i,
                                         boxShadow: '0 4px 10px rgba(0,0,0,0.1)'
                                     }}>
-                                        <img src={`/assets/hero${(i % 3) + 1}.png`} alt="Client" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        <span style={{ color: '#fff', fontSize: '0.85rem', fontWeight: 700, lineHeight: 1 }}>{client.letter}</span>
                                     </div>
                                 ))}
                             </div>

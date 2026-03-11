@@ -16,7 +16,7 @@ const WhatsAppButton = () => {
 
   return (
     <a
-      href={waUrl('Hola! Me interesa conocer más sobre las joyas de Aurem Gs Joyería. ¿Me pueden ayudar? 💎')}
+      href={waUrl({ mobile: 'Hola! 👋 Estoy viendo el catálogo de *Aurem Gs Joyería* y me encanta. Me pueden asesorar? ✨', desktop: 'Hola! Estoy viendo el catálogo de *Aurem Gs Joyería* y me encanta. Me pueden asesorar?' })}
       target="_blank"
       rel="noopener noreferrer"
       className={`wa-float${visible ? ' wa-float--visible' : ''}`}

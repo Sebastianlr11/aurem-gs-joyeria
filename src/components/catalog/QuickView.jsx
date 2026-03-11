@@ -10,7 +10,10 @@ const QuickView = ({ product, onClose }) => {
     const images = product.images?.length ? product.images
         : product.image_url ? [product.image_url] : [];
 
-    const waLink = waUrl(`Hola! Me interesa la pieza "${product.name}" ($ ${fmt(product.price)} COP). ¿Tienen disponibilidad? 💍`);
+    const waLink = waUrl({
+        mobile: `Hola! 😊 Vi esta pieza en su tienda y me encantó:\n\n✨ *${product.name}*\n💰 Precio: $${fmt(product.price)} COP\n\nMe gustaría saber si está disponible 🙏`,
+        desktop: `Hola! Vi esta pieza en su tienda y me encantó:\n\n- *${product.name}*\n- Precio: $${fmt(product.price)} COP\n\nMe gustaría saber si está disponible.`,
+    });
 
     // Cierra con Escape
     useEffect(() => {
