@@ -903,10 +903,9 @@ const OrdersSection = ({ orders, products, loading, onRefresh }) => {
                 ) : (
                     <div className="admin-table-wrap">
                         <table className="admin-table">
-                            <thead><tr><th>Canal</th><th>Cliente</th><th>Producto</th><th>Notas</th><th>Direccion</th><th>Monto</th><th>Met. pago</th><th>Estado</th><th>Accion rapida</th><th>Acciones</th></tr></thead>
+                            <thead><tr><th>Canal</th><th>Cliente</th><th>Producto</th><th>Monto</th><th>Pago</th><th>Estado</th><th>Detalles</th><th>Acción rápida</th><th>Acciones</th></tr></thead>
                             <tbody>
                                 {visible.map(o => {
-                                    const addressParts = [o.shipping_address, o.shipping_city, o.shipping_department].filter(Boolean);
                                     const action = getNextAction(o);
                                     const waLink = getWaLink(o);
                                     return (
@@ -914,12 +913,6 @@ const OrdersSection = ({ orders, products, loading, onRefresh }) => {
                                         <td><SourceBadge source={o.order_source || 'web'} /></td>
                                         <td className="admin-td-name">{o.customer_name}</td>
                                         <td>{o.product_name}</td>
-                                        <td style={{fontSize:'0.82rem',color:'#555',maxWidth:180,whiteSpace:'pre-wrap'}}>
-                                            {o.notes || <span style={{color:'#aaa'}}>&mdash;</span>}
-                                        </td>
-                                        <td style={{fontSize:'0.8rem',color:'#555',maxWidth:160}}>
-                                            {addressParts.length ? addressParts.join(', ') : <span style={{color:'#aaa'}}>&mdash;</span>}
-                                        </td>
                                         <td className="admin-td-price">${fmt(o.amount)}</td>
                                         <td style={{fontSize:'0.82rem',color:'#666'}}>
                                             {o.payment_method
@@ -930,6 +923,15 @@ const OrdersSection = ({ orders, products, loading, onRefresh }) => {
                                             }
                                         </td>
                                         <td><StatusBadge status={o.status} /></td>
+                                        <td>
+                                            <button
+                                                className="admin-detail-btn"
+                                                onClick={() => setModal({ type: 'detail', order: o })}
+                                            >
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                                Ver
+                                            </button>
+                                        </td>
                                         <td>
                                             {action && (
                                                 <button
@@ -962,6 +964,116 @@ const OrdersSection = ({ orders, products, loading, onRefresh }) => {
                 )}
             </div>
 
+            {modal?.type === 'detail' && (() => {
+                const o = modal.order;
+                const addressParts = [o.shipping_address, o.shipping_city, o.shipping_department].filter(Boolean);
+                const waLink = getWaLink(o);
+                return (
+                    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && closeModal()}>
+                        <div className="od-modal">
+                            {/* Close */}
+                            <button className="od-close" onClick={closeModal}>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                            </button>
+
+                            {/* Hero header */}
+                            <div className="od-hero">
+                                <div className="od-hero-top">
+                                    <StatusBadge status={o.status} />
+                                    <SourceBadge source={o.order_source || 'web'} />
+                                    {o.payment_method && (
+                                        <span className={`od-pay-badge ${isCOD(o) ? 'od-pay-badge--cod' : ''}`}>{o.payment_method}</span>
+                                    )}
+                                </div>
+                                <p className="od-hero-amount">${fmt(o.amount)}</p>
+                                <p className="od-hero-product">{o.product_name}</p>
+                                <p className="od-hero-date">{fmtDate(o.created_at)}</p>
+                            </div>
+
+                            {/* Cliente */}
+                            <div className="od-section">
+                                <p className="od-section-title">
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                    Cliente
+                                </p>
+                                <div className="od-info-grid">
+                                    <div className="od-info-item">
+                                        <span className="od-info-label">Nombre</span>
+                                        <span className="od-info-value">{o.customer_name}</span>
+                                    </div>
+                                    {o.customer_phone && (
+                                        <div className="od-info-item">
+                                            <span className="od-info-label">Teléfono</span>
+                                            <span className="od-info-value">{o.customer_phone}</span>
+                                        </div>
+                                    )}
+                                    {o.customer_email && (
+                                        <div className="od-info-item">
+                                            <span className="od-info-label">Correo</span>
+                                            <span className="od-info-value">{o.customer_email}</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Envío */}
+                            {(addressParts.length > 0 || o.carrier) && (
+                                <div className="od-section">
+                                    <p className="od-section-title">
+                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+                                        Envío
+                                    </p>
+                                    <div className="od-info-grid">
+                                        {addressParts.length > 0 && (
+                                            <div className="od-info-item od-info-item--full">
+                                                <span className="od-info-label">Dirección</span>
+                                                <span className="od-info-value">{addressParts.join(', ')}</span>
+                                            </div>
+                                        )}
+                                        {o.carrier && (
+                                            <div className="od-info-item">
+                                                <span className="od-info-label">Transportadora</span>
+                                                <span className="od-info-value">{o.carrier}</span>
+                                            </div>
+                                        )}
+                                        {o.tracking_number && (
+                                            <div className="od-info-item">
+                                                <span className="od-info-label">Guía</span>
+                                                <span className="od-info-value" style={{ fontFamily: 'monospace' }}>{o.tracking_number}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Notas */}
+                            {o.notes && (
+                                <div className="od-section">
+                                    <p className="od-section-title">
+                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                                        Notas
+                                    </p>
+                                    <div className="od-notes-box">{o.notes}</div>
+                                </div>
+                            )}
+
+                            {/* Actions */}
+                            <div className="od-actions">
+                                {waLink && (
+                                    <a className="od-action-btn od-action-btn--wa" href={waLink} target="_blank" rel="noreferrer">
+                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.121.553 4.114 1.519 5.845L.525 23.5l5.793-.983A11.937 11.937 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818c-1.9 0-3.699-.496-5.254-1.368l-.377-.223-3.437.583.594-3.326-.244-.39A9.778 9.778 0 012.182 12c0-5.42 4.398-9.818 9.818-9.818S21.818 6.58 21.818 12 17.42 21.818 12 21.818z"/></svg>
+                                        WhatsApp
+                                    </a>
+                                )}
+                                <button className="od-action-btn od-action-btn--edit" onClick={() => setModal({ type: 'edit', order: o })}>
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                    Editar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
             {modal?.type === 'add'    && <OrderModal products={products} onClose={closeModal} onSaved={afterSave} />}
             {modal?.type === 'edit'   && <OrderModal order={modal.order} products={products} onClose={closeModal} onSaved={afterSave} />}
             {modal?.type === 'ship'   && <ShipModal order={modal.order} onClose={closeModal} onConfirm={handleShipConfirm} />}
@@ -1667,16 +1779,17 @@ const Dashboard = () => {
 
                 /* Quick action buttons */
                 .admin-quick-action {
-                    padding: 4px 10px;
-                    border-radius: 6px;
-                    font-size: 0.75rem;
-                    font-weight: 600;
+                    padding: 0.38rem 0.85rem;
+                    border-radius: 9px;
+                    font-size: 0.74rem;
+                    font-weight: 700;
                     border: none;
                     cursor: pointer;
                     white-space: nowrap;
-                    transition: opacity 0.2s;
+                    transition: all 0.2s cubic-bezier(0.16,1,0.3,1);
+                    letter-spacing: 0.01em;
                 }
-                .admin-quick-action:hover { opacity: 0.85; }
+                .admin-quick-action:hover { transform: translateY(-1px); box-shadow: 0 3px 10px rgba(0,0,0,0.1); }
                 .action--green  { background: #dcfce7; color: #15803d; }
                 .action--blue   { background: #dbeafe; color: #1d4ed8; }
                 .action--purple { background: #ede9fe; color: #6d28d9; }
