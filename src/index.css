@@ -5588,30 +5588,61 @@ button {
    RING SIZE GUIDE
    ================================================================ */
 .ring-guide-page {
-  padding-top: 6rem;
+  padding-top: 0;
   min-height: 100vh;
   background: #fafafa;
 }
 
-.ring-guide-header {
+.ring-guide-hero {
+  background: var(--text-primary);
+  color: #fff;
   text-align: center;
-  padding: 3rem 0 2rem;
+  padding: 7rem 1.5rem 3rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.ring-guide-hero::before {
+  content: '';
+  position: absolute;
+  top: -40%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(212,175,55,0.12) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.ring-guide-hero .section-label {
+  color: var(--accent-gold);
+  border-color: rgba(212,175,55,0.3);
 }
 
 .ring-guide-title {
   font-family: var(--font-display, 'Playfair Display', serif);
-  font-size: clamp(2rem, 5vw, 3.2rem);
+  font-size: clamp(2rem, 5vw, 3rem);
   font-weight: 700;
-  color: var(--text-primary);
-  margin-top: 0.5rem;
+  color: #fff;
+  margin-top: 0.75rem;
+  position: relative;
 }
 
 .ring-guide-subtitle {
-  color: #666;
-  font-size: 1.05rem;
-  max-width: 540px;
+  color: rgba(255,255,255,0.65);
+  font-size: 1rem;
+  max-width: 480px;
   margin: 0.75rem auto 0;
   line-height: 1.6;
+  position: relative;
+}
+
+.ring-guide-body {
+  max-width: 800px;
+  margin: -2rem auto 0;
+  padding: 0 1.5rem;
+  position: relative;
+  z-index: 1;
 }
 
 .ring-guide-tip {
@@ -5619,17 +5650,22 @@ button {
   align-items: flex-start;
   gap: 1rem;
   background: #fff;
-  border: 1px solid #ebebeb;
-  border-radius: 12px;
+  border: none;
+  border-radius: 16px;
   padding: 1.25rem 1.5rem;
-  margin-bottom: 2.5rem;
-  max-width: 600px;
-  margin-left: auto;
-  margin-right: auto;
+  margin-bottom: 2rem;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
 }
 
 .ring-guide-tip-icon {
-  font-size: 1.5rem;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--accent-gold), #c9a027);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
   flex-shrink: 0;
 }
 
@@ -5637,12 +5673,13 @@ button {
   display: block;
   margin-bottom: 0.3rem;
   color: var(--text-primary);
+  font-size: 0.95rem;
 }
 
 .ring-guide-tip p {
   color: #666;
-  font-size: 0.92rem;
-  line-height: 1.5;
+  font-size: 0.88rem;
+  line-height: 1.55;
   margin: 0;
 }
 
@@ -5654,7 +5691,10 @@ button {
 }
 
 .ring-table-wrap {
-  overflow-x: auto;
+  background: #fff;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
 }
 
 .ring-table {
@@ -5667,34 +5707,111 @@ button {
   background: var(--text-primary);
   color: #fff;
   font-weight: 600;
-  padding: 0.85rem 1rem;
+  padding: 0.75rem 1.2rem;
   text-align: center;
   white-space: nowrap;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .ring-table tbody td {
   text-align: center;
-  padding: 0.7rem 1rem;
-  border-bottom: 1px solid #ebebeb;
+  padding: 0.65rem 1.2rem;
+  border-bottom: 1px solid #f3f3f3;
   color: var(--text-primary);
+  font-size: 0.92rem;
+}
+
+.ring-table-size {
+  font-weight: 700;
 }
 
 .ring-table tbody tr:nth-child(even) {
-  background: #fdf2f4;
+  background: #fafafa;
 }
 
 .ring-table tbody tr:hover {
-  background: #f5e6e9;
+  background: #f5f0e8;
+}
+
+/* Mobile list - hidden on desktop */
+.ring-list-mobile {
+  display: none;
 }
 
 @media (max-width: 768px) {
-  .ring-tables-grid {
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
+  .ring-tables-desktop {
+    display: none;
+  }
+
+  .ring-list-mobile {
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    margin-bottom: 4rem;
+  }
+
+  .ring-list-header {
+    display: grid;
+    grid-template-columns: 1fr 1.4fr 1fr;
+    padding: 0.85rem 1rem;
+    background: var(--text-primary);
+    color: #fff;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 700;
+  }
+
+  .ring-list-header span:not(:first-child) {
+    text-align: right;
+  }
+
+  .ring-list-item {
+    display: grid;
+    grid-template-columns: 1fr 1.4fr 1fr;
+    padding: 0.75rem 1rem;
+    align-items: center;
+    border-bottom: 1px solid #f3f3f3;
+    transition: background 0.15s;
+  }
+
+  .ring-list-item:last-child {
+    border-bottom: none;
+  }
+
+  .ring-list-item--alt {
+    background: #fafafa;
+  }
+
+  .ring-list-size {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: var(--text-primary);
+  }
+
+  .ring-list-val {
+    font-size: 0.88rem;
+    color: #555;
+    font-weight: 500;
+    text-align: right;
   }
 
   .ring-guide-tip {
-    margin-bottom: 2rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .ring-guide-hero {
+    padding: 6rem 1.25rem 2.5rem;
+  }
+
+  .ring-guide-body {
+    margin-top: -1.5rem;
+    padding: 0 1rem;
   }
 }
 

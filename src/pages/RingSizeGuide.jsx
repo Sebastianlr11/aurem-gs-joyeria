@@ -32,15 +32,15 @@ const SizeTable = ({ data }) => (
     <table className="ring-table">
       <thead>
         <tr>
-          <th>Número de Anillo</th>
-          <th>Circunferencia mm</th>
-          <th>Circunferencia cm</th>
+          <th>Talla</th>
+          <th>mm</th>
+          <th>cm</th>
         </tr>
       </thead>
       <tbody>
         {data.map(row => (
           <tr key={row.size}>
-            <td>{row.size}</td>
+            <td className="ring-table-size">{row.size}</td>
             <td>{row.mm}</td>
             <td>{row.cm}</td>
           </tr>
@@ -52,26 +52,43 @@ const SizeTable = ({ data }) => (
 
 const RingSizeGuide = () => (
   <main className="ring-guide-page">
-    <div className="container">
-      <div className="ring-guide-header">
-        <span className="section-label">Guía</span>
-        <h1 className="ring-guide-title">Guía de Tallas de Anillos</h1>
-        <p className="ring-guide-subtitle">
-          Encuentra tu talla ideal midiendo la circunferencia de tu dedo con un hilo o cinta métrica flexible.
-        </p>
-      </div>
+    <div className="ring-guide-hero">
+      <span className="section-label">Guía de Tallas</span>
+      <h1 className="ring-guide-title">Encuentra tu talla ideal</h1>
+      <p className="ring-guide-subtitle">
+        Mide la circunferencia de tu dedo con un hilo o cinta métrica y compara con nuestra tabla.
+      </p>
+    </div>
 
+    <div className="ring-guide-body">
       <div className="ring-guide-tip">
         <div className="ring-guide-tip-icon">💍</div>
         <div>
           <strong>¿Cómo medir tu dedo?</strong>
-          <p>Envuelve un hilo alrededor de tu dedo, marca donde se cruza y mide la longitud con una regla. Compara el resultado con la tabla.</p>
+          <p>Envuelve un hilo alrededor de tu dedo, marca donde se cruza y mide la longitud con una regla. Compara el resultado con la tabla de abajo.</p>
         </div>
       </div>
 
-      <div className="ring-tables-grid">
+      {/* Desktop: two tables side by side */}
+      <div className="ring-tables-grid ring-tables-desktop">
         <SizeTable data={LEFT_SIZES} />
         <SizeTable data={RIGHT_SIZES} />
+      </div>
+
+      {/* Mobile: premium styled list */}
+      <div className="ring-list-mobile">
+        <div className="ring-list-header">
+          <span>Talla</span>
+          <span>Circunferencia</span>
+          <span>Diámetro</span>
+        </div>
+        {SIZES.map((row, i) => (
+          <div key={row.size} className={`ring-list-item${i % 2 === 0 ? ' ring-list-item--alt' : ''}`}>
+            <span className="ring-list-size">{row.size}</span>
+            <span className="ring-list-val">{row.mm} mm</span>
+            <span className="ring-list-val">{row.cm} cm</span>
+          </div>
+        ))}
       </div>
     </div>
   </main>
