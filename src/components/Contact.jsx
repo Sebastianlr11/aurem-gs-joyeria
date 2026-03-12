@@ -122,7 +122,7 @@ const Contact = () => {
                                     </div>
                                 </div>
                                 <p className="contact-card-label">/ WhatsApp</p>
-                                <p className="contact-card-value">+57 314 360 2930</p>
+                                <p className="contact-card-value">+57 311 576 1896</p>
                             </a>
 
                             {/* Toast copiado */}
