@@ -63,14 +63,14 @@ const PAYMENT_METHODS = ['MercadoPago', 'Nequi', 'Daviplata', 'Transferencia', '
 const EMPTY_CUSTOMER = { name:'', phone:'', email:'', notes:'' };
 
 /* ─── Webhook helper ─────────────────────────────────────────────── */
-const fireWebhook = async (order, newStatus) => {
+const fireWebhook = async (order, newStatus, extraFields = {}) => {
     const url = localStorage.getItem('admin_webhook_url');
     if (!url) return;
     try {
         await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ event: 'order_status_changed', order: { ...order, status: newStatus }, timestamp: new Date().toISOString() }),
+            body: JSON.stringify({ event: 'order_status_changed', order: { ...order, status: newStatus, ...extraFields }, timestamp: new Date().toISOString() }),
         });
     } catch (e) { console.error('Webhook error:', e); }
 };
@@ -567,15 +567,15 @@ const ConfirmModal = ({ title, text, onClose, onConfirm }) => {
     const [loading, setLoading] = useState(false);
     return (
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-            <div className="modal-box modal-box--sm">
-                <div className="modal-header">
-                    <h2 className="modal-title">{title}</h2>
-                    <button className="modal-close" onClick={onClose}>&#x2715;</button>
+            <div className="confirm-modal">
+                <div className="confirm-modal-icon">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
                 </div>
-                <p className="modal-delete-text">{text}</p>
-                <div className="modal-actions">
-                    <button className="admin-btn admin-btn--outline" onClick={onClose}>Cancelar</button>
-                    <button className="admin-btn admin-btn--danger" onClick={async () => { setLoading(true); await onConfirm(); setLoading(false); }} disabled={loading}>
+                <h3 className="confirm-modal-title">{title}</h3>
+                <p className="confirm-modal-text">{text}</p>
+                <div className="confirm-modal-actions">
+                    <button className="confirm-modal-btn confirm-modal-btn--cancel" onClick={onClose}>Cancelar</button>
+                    <button className="confirm-modal-btn confirm-modal-btn--delete" onClick={async () => { setLoading(true); await onConfirm(); setLoading(false); }} disabled={loading}>
                         {loading ? 'Eliminando...' : 'Eliminar'}
                     </button>
                 </div>
@@ -829,7 +829,7 @@ const OrdersSection = ({ orders, products, loading, onRefresh }) => {
         const payload = { status: newStatus, status_updated_at: new Date().toISOString(), ...extraFields };
         const { error } = await supabase.from('orders').update(payload).eq('id', order.id);
         if (error) { alert('Error: ' + error.message); return; }
-        await fireWebhook(order, newStatus);
+        await fireWebhook(order, newStatus, extraFields);
         onRefresh();
     };
 
