@@ -766,10 +766,13 @@ const DashboardHome = ({ products, orders, customers, onNavigate }) => {
 };
 
 /* ─── ProductsSection ────────────────────────────────────────────── */
+const PRODUCTS_PER_PAGE = 12;
+
 const ProductsSection = ({ products, loading, onRefresh }) => {
     const [search, setSearch] = useState('');
     const [filterCat, setFilterCat] = useState('Todos');
     const [modal, setModal] = useState(null);
+    const [page, setPage] = useState(1);
 
     const closeModal = () => setModal(null);
     const afterSave  = () => { closeModal(); onRefresh(); };
@@ -779,6 +782,13 @@ const ProductsSection = ({ products, loading, onRefresh }) => {
         const matchSearch = !search.trim() || p.name.toLowerCase().includes(search.toLowerCase());
         return matchCat && matchSearch;
     });
+
+    const totalPages = Math.ceil(visible.length / PRODUCTS_PER_PAGE);
+    const paginated  = visible.slice((page - 1) * PRODUCTS_PER_PAGE, page * PRODUCTS_PER_PAGE);
+
+    // Reset page when filters change
+    const setFilterAndReset = (cat) => { setFilterCat(cat); setPage(1); };
+    const setSearchAndReset = (v) => { setSearch(v); setPage(1); };
 
     return (
         <div className="admin-section">
@@ -797,12 +807,12 @@ const ProductsSection = ({ products, loading, onRefresh }) => {
                 <div className="admin-toolbar">
                     <div className="admin-filters">
                         {['Todos', ...CATEGORIES].map(c => (
-                            <button key={c} className={`filter-btn ${filterCat === c ? 'filter-btn--active' : ''}`} onClick={() => setFilterCat(c)}>{c}</button>
+                            <button key={c} className={`filter-btn ${filterCat === c ? 'filter-btn--active' : ''}`} onClick={() => setFilterAndReset(c)}>{c}</button>
                         ))}
                     </div>
                     <div className="admin-search-wrap">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                        <input className="admin-search" placeholder="Buscar producto..." value={search} onChange={e => setSearch(e.target.value)} />
+                        <input className="admin-search" placeholder="Buscar producto..." value={search} onChange={e => setSearchAndReset(e.target.value)} />
                     </div>
                 </div>
 
@@ -813,38 +823,56 @@ const ProductsSection = ({ products, loading, onRefresh }) => {
                         <button className="admin-btn" onClick={() => setModal({ type: 'add' })}>Agregar el primero</button>
                     </div>
                 ) : (
-                    <div className="admin-table-wrap">
-                        <table className="admin-table">
-                            <thead><tr><th>Imagen</th><th>Nombre</th><th>Categoria</th><th>Precio</th><th>Estado</th><th>Acciones</th></tr></thead>
-                            <tbody>
-                                {visible.map(p => (
-                                    <tr key={p.id}>
-                                        <td>
-                                            <div className="admin-thumb">
-                                                {p.image_url ? <img src={p.image_url} alt={p.name} onError={e => { e.currentTarget.style.display='none'; e.currentTarget.nextSibling.style.display='flex'; }} /> : null}
-                                                <div className="admin-thumb-placeholder" style={p.image_url ? { display:'none' } : {}}>&#x2726;</div>
-                                            </div>
-                                        </td>
-                                        <td className="admin-td-name">{p.name}</td>
-                                        <td><span className="admin-category-pill">{p.category}</span></td>
-                                        <td className="admin-td-price">${fmt(p.price)}</td>
-                                        <td>
-                                            <div className="admin-badges">
-                                                {p.is_new      && <span className="admin-badge admin-badge--new">Nuevo</span>}
-                                                {p.is_featured && <span className="admin-badge admin-badge--featured">Destacado</span>}
-                                                {p.compare_price && <span className="admin-badge admin-badge--offer">Oferta</span>}
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <div className="admin-actions">
-                                                <button className="admin-action-btn admin-action-btn--edit" onClick={() => setModal({ type: 'edit', product: p })}>Editar</button>
-                                                <button className="admin-action-btn admin-action-btn--delete" onClick={() => setModal({ type: 'delete', product: p })}>Eliminar</button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                    <div className="prod-grid">
+                        {paginated.map(p => (
+                            <div key={p.id} className="prod-card">
+                                <div className="prod-card-img">
+                                    {p.image_url
+                                        ? <img src={p.image_url} alt={p.name} onError={e => { e.currentTarget.style.display='none'; e.currentTarget.nextElementSibling.style.display='flex'; }} />
+                                        : null}
+                                    <div className="prod-card-img-placeholder" style={p.image_url ? { display:'none' } : {}}>
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+                                    </div>
+                                    <div className="prod-card-badges">
+                                        {p.is_new      && <span className="prod-badge prod-badge--new">Nuevo</span>}
+                                        {p.is_featured && <span className="prod-badge prod-badge--featured">Destacado</span>}
+                                        {p.compare_price && <span className="prod-badge prod-badge--offer">Oferta</span>}
+                                    </div>
+                                </div>
+                                <div className="prod-card-body">
+                                    <span className="prod-card-cat">{p.category}</span>
+                                    <h4 className="prod-card-name">{p.name}</h4>
+                                    <div className="prod-card-price">
+                                        <span className="prod-card-price-main">${fmt(p.price)}</span>
+                                        {p.compare_price && <span className="prod-card-price-old">${fmt(p.compare_price)}</span>}
+                                    </div>
+                                </div>
+                                <div className="prod-card-actions">
+                                    <button className="prod-card-btn prod-card-btn--edit" onClick={() => setModal({ type: 'edit', product: p })}>
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                        Editar
+                                    </button>
+                                    <button className="prod-card-btn prod-card-btn--delete" onClick={() => setModal({ type: 'delete', product: p })}>
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {totalPages > 1 && (
+                    <div className="pagination">
+                        <button className="pagination-btn" disabled={page === 1} onClick={() => setPage(p => p - 1)}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                        </button>
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map(n => (
+                            <button key={n} className={`pagination-num${n === page ? ' pagination-num--active' : ''}`} onClick={() => setPage(n)}>{n}</button>
+                        ))}
+                        <button className="pagination-btn" disabled={page === totalPages} onClick={() => setPage(p => p + 1)}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                        </button>
+                        <span className="pagination-info">{visible.length} producto{visible.length !== 1 ? 's' : ''}</span>
                     </div>
                 )}
             </div>
@@ -864,11 +892,20 @@ const ProductsSection = ({ products, loading, onRefresh }) => {
 };
 
 /* ─── OrdersSection ──────────────────────────────────────────────── */
+const ORDERS_PER_PAGE = 15;
+
+const fmtShortDate = (d) => {
+    if (!d) return '—';
+    const date = new Date(d);
+    return date.toLocaleDateString('es-CO', { day: '2-digit', month: 'short' }).replace('.', '');
+};
+
 const OrdersSection = ({ orders, products, loading, onRefresh }) => {
     const [search, setSearch]           = useState('');
     const [filterStatus, setFilterStatus] = useState('Todos');
     const [filterSource, setFilterSource] = useState('Todos');
     const [modal, setModal]             = useState(null);
+    const [page, setPage]               = useState(1);
 
     const closeModal = () => setModal(null);
     const afterSave  = () => { closeModal(); onRefresh(); };
@@ -881,6 +918,12 @@ const OrdersSection = ({ orders, products, loading, onRefresh }) => {
     });
 
     const totalVisible = visible.reduce((s, o) => s + Number(o.amount), 0);
+    const totalPages = Math.ceil(visible.length / ORDERS_PER_PAGE);
+    const paginated  = visible.slice((page - 1) * ORDERS_PER_PAGE, page * ORDERS_PER_PAGE);
+
+    const setFilterStatusAndReset = (s) => { setFilterStatus(s); setPage(1); };
+    const setFilterSourceAndReset = (s) => { setFilterSource(s); setPage(1); };
+    const setSearchAndReset = (v) => { setSearch(v); setPage(1); };
 
     /* Quick status change */
     const changeStatus = async (order, newStatus, extraFields = {}) => {
@@ -936,20 +979,20 @@ const OrdersSection = ({ orders, products, loading, onRefresh }) => {
                 <div className="admin-toolbar">
                     <div className="admin-filters" style={{ flexWrap: 'wrap', gap: '0.35rem' }}>
                         {['Todos', ...ORDER_STATUSES].map(s => (
-                            <button key={s} className={`filter-btn ${filterStatus === s ? 'filter-btn--active' : ''}`} onClick={() => setFilterStatus(s)}>
+                            <button key={s} className={`filter-btn ${filterStatus === s ? 'filter-btn--active' : ''}`} onClick={() => setFilterStatusAndReset(s)}>
                                 {s === 'Todos' ? 'Todos' : STATUS_META[s].label}
                             </button>
                         ))}
                         <span style={{ width: '1px', height: '20px', background: '#e0e0e0', margin: '0 0.25rem' }} />
                         {['Todos', ...Object.keys(SOURCE_META)].map(s => (
-                            <button key={`src-${s}`} className={`filter-btn ${filterSource === s ? 'filter-btn--active' : ''}`} onClick={() => setFilterSource(s)}>
+                            <button key={`src-${s}`} className={`filter-btn ${filterSource === s ? 'filter-btn--active' : ''}`} onClick={() => setFilterSourceAndReset(s)}>
                                 {s === 'Todos' ? 'Todos canales' : SOURCE_META[s].label}
                             </button>
                         ))}
                     </div>
                     <div className="admin-search-wrap">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                        <input className="admin-search" placeholder="Buscar cliente o producto..." value={search} onChange={e => setSearch(e.target.value)} />
+                        <input className="admin-search" placeholder="Buscar cliente o producto..." value={search} onChange={e => setSearchAndReset(e.target.value)} />
                     </div>
                 </div>
 
@@ -961,15 +1004,16 @@ const OrdersSection = ({ orders, products, loading, onRefresh }) => {
                     </div>
                 ) : (
                     <div className="admin-table-wrap">
-                        <table className="admin-table">
-                            <thead><tr><th>Canal</th><th>Cliente</th><th>Producto</th><th>Monto</th><th>Pago</th><th>Estado</th><th>Detalles</th><th>Acción rápida</th><th>Acciones</th></tr></thead>
+                        <table className="admin-table orders-table">
+                            <thead><tr><th>Canal</th><th>Fecha</th><th>Cliente</th><th>Producto</th><th>Monto</th><th>Pago</th><th>Estado</th><th>Detalles</th><th>Acción rápida</th><th>Acciones</th></tr></thead>
                             <tbody>
-                                {visible.map(o => {
+                                {paginated.map(o => {
                                     const action = getNextAction(o);
                                     const waLink = getWaLink(o);
                                     return (
                                     <tr key={o.id}>
                                         <td><SourceBadge source={o.order_source || 'web'} /></td>
+                                        <td className="orders-td-date">{fmtShortDate(o.created_at)}</td>
                                         <td className="admin-td-name">{o.customer_name}</td>
                                         <td>{o.product_name}</td>
                                         <td className="admin-td-price">${fmt(o.amount)}</td>
@@ -1019,6 +1063,21 @@ const OrdersSection = ({ orders, products, loading, onRefresh }) => {
                                 })}
                             </tbody>
                         </table>
+                    </div>
+                )}
+
+                {totalPages > 1 && (
+                    <div className="pagination">
+                        <button className="pagination-btn" disabled={page === 1} onClick={() => setPage(p => p - 1)}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                        </button>
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map(n => (
+                            <button key={n} className={`pagination-num${n === page ? ' pagination-num--active' : ''}`} onClick={() => setPage(n)}>{n}</button>
+                        ))}
+                        <button className="pagination-btn" disabled={page === totalPages} onClick={() => setPage(p => p + 1)}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                        </button>
+                        <span className="pagination-info">{visible.length} pedido{visible.length !== 1 ? 's' : ''}</span>
                     </div>
                 )}
             </div>
@@ -1239,119 +1298,218 @@ const CustomersSection = ({ customers, loading, onRefresh }) => {
 };
 
 /* ─── ReportsSection ─────────────────────────────────────────────── */
+const REPORT_PERIODS = ['7d', '14d', '30d', '90d', 'todo'];
+const REPORT_PERIOD_LABELS = { '7d': '7 días', '14d': '14 días', '30d': '30 días', '90d': '90 días', 'todo': 'Todo' };
+
+const calcMPNet = (amount) => {
+    const base = amount * MP_FEE_PERCENT + MP_FEE_FIXED;
+    return amount - Math.ceil(base * (1 + MP_IVA) + amount * MP_RETE_FUENTE + amount * MP_RETE_ICA);
+};
+
 const ReportsSection = ({ orders }) => {
+    const [period, setPeriod] = useState('30d');
     const now = new Date();
 
-    /* Date helpers */
     const startOfDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
     const today = startOfDay(now);
-    const weekStart = new Date(today); weekStart.setDate(today.getDate() - today.getDay());
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    const paidOrders = orders.filter(o => REVENUE_STATUSES.includes(o.status));
+    const periodStart = (() => {
+        if (period === 'todo') return new Date(0);
+        const days = parseInt(period);
+        const d = new Date(today);
+        d.setDate(d.getDate() - days);
+        return d;
+    })();
 
-    const revenueToday = paidOrders.filter(o => new Date(o.created_at) >= today).reduce((s, o) => s + Number(o.amount), 0);
-    const revenueWeek  = paidOrders.filter(o => new Date(o.created_at) >= weekStart).reduce((s, o) => s + Number(o.amount), 0);
-    const revenueMonth = paidOrders.filter(o => new Date(o.created_at) >= monthStart).reduce((s, o) => s + Number(o.amount), 0);
-    const revenueTotal = paidOrders.reduce((s, o) => s + Number(o.amount), 0);
+    const filtered = orders.filter(o => new Date(o.created_at) >= periodStart);
+    const paidFiltered = filtered.filter(o => REVENUE_STATUSES.includes(o.status));
 
-    /* Orders by day (last 14 days) */
-    const days14 = [];
-    for (let i = 13; i >= 0; i--) {
+    /* Revenue breakdown */
+    const grossTotal = paidFiltered.reduce((s, o) => s + Number(o.amount), 0);
+    const mpOrders = paidFiltered.filter(o => !isCOD(o));
+    const codOrders = paidFiltered.filter(o => isCOD(o));
+    const mpGross = mpOrders.reduce((s, o) => s + Number(o.amount), 0);
+    const mpNet = mpOrders.reduce((s, o) => s + calcMPNet(Number(o.amount)), 0);
+    const mpFees = mpGross - mpNet;
+    const codTotal = codOrders.reduce((s, o) => s + Number(o.amount), 0);
+    const netTotal = mpNet + codTotal;
+
+    /* Avg order value */
+    const avgOrder = paidFiltered.length ? Math.round(grossTotal / paidFiltered.length) : 0;
+
+    /* Conversion rate */
+    const conversionRate = filtered.length ? Math.round((paidFiltered.length / filtered.length) * 100) : 0;
+
+    /* Orders by day */
+    const numDays = period === 'todo' ? 30 : parseInt(period);
+    const daysArr = [];
+    for (let i = numDays - 1; i >= 0; i--) {
         const d = new Date(today);
         d.setDate(d.getDate() - i);
-        days14.push(d);
+        daysArr.push(d);
     }
-    const ordersByDay = days14.map(d => {
+    const ordersByDay = daysArr.map(d => {
         const dayEnd = new Date(d); dayEnd.setDate(dayEnd.getDate() + 1);
+        const dayOrders = filtered.filter(o => { const oc = new Date(o.created_at); return oc >= d && oc < dayEnd; });
         return {
-            label: d.toLocaleDateString('es-CO', { day: '2-digit', month: 'short' }),
-            count: orders.filter(o => { const oc = new Date(o.created_at); return oc >= d && oc < dayEnd; }).length,
+            label: d.toLocaleDateString('es-CO', { day: '2-digit', month: 'short' }).replace('.', ''),
+            count: dayOrders.length,
+            revenue: dayOrders.filter(o => REVENUE_STATUSES.includes(o.status)).reduce((s, o) => s + Number(o.amount), 0),
         };
     });
     const maxDayCount = Math.max(...ordersByDay.map(d => d.count), 1);
 
     /* Top 5 products */
     const productCounts = {};
-    orders.forEach(o => { productCounts[o.product_name] = (productCounts[o.product_name] || 0) + 1; });
+    const productRevenue = {};
+    filtered.forEach(o => {
+        productCounts[o.product_name] = (productCounts[o.product_name] || 0) + 1;
+        if (REVENUE_STATUSES.includes(o.status)) productRevenue[o.product_name] = (productRevenue[o.product_name] || 0) + Number(o.amount);
+    });
     const top5Products = Object.entries(productCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
     const maxProductCount = top5Products.length ? top5Products[0][1] : 1;
 
+    /* Orders by status */
+    const statusCounts = {};
+    filtered.forEach(o => { statusCounts[o.status] = (statusCounts[o.status] || 0) + 1; });
+
     /* Orders by source */
     const sourceCounts = {};
-    orders.forEach(o => { const src = o.order_source || 'web'; sourceCounts[src] = (sourceCounts[src] || 0) + 1; });
+    filtered.forEach(o => { const src = o.order_source || 'web'; sourceCounts[src] = (sourceCounts[src] || 0) + 1; });
     const sourceEntries = Object.entries(sourceCounts).sort((a, b) => b[1] - a[1]);
     const maxSourceCount = sourceEntries.length ? sourceEntries[0][1] : 1;
 
     /* Orders by payment method */
     const paymentCounts = {};
-    orders.forEach(o => { const pm = o.payment_method || 'Sin especificar'; paymentCounts[pm] = (paymentCounts[pm] || 0) + 1; });
+    filtered.forEach(o => { const pm = o.payment_method || 'Sin especificar'; paymentCounts[pm] = (paymentCounts[pm] || 0) + 1; });
     const paymentEntries = Object.entries(paymentCounts).sort((a, b) => b[1] - a[1]);
     const maxPaymentCount = paymentEntries.length ? paymentEntries[0][1] : 1;
-
-    const revenueCards = [
-        { label: 'Hoy', value: revenueToday, color: '#10b981' },
-        { label: 'Esta semana', value: revenueWeek, color: '#3b82f6' },
-        { label: 'Este mes', value: revenueMonth, color: '#8b5cf6' },
-        { label: 'Total', value: revenueTotal, color: '#f59e0b' },
-    ];
 
     return (
         <div className="admin-section">
             <div className="admin-section-head">
-                <h1 className="admin-section-title">Reportes</h1>
-                <p className="admin-section-sub">Resumen de ventas y estadisticas</p>
+                <div>
+                    <h1 className="admin-section-title">Informes</h1>
+                    <p className="admin-section-sub">Análisis de ventas y rendimiento</p>
+                </div>
+                <div className="rpt-period-selector">
+                    {REPORT_PERIODS.map(p => (
+                        <button key={p} className={`rpt-period-btn${period === p ? ' rpt-period-btn--active' : ''}`} onClick={() => setPeriod(p)}>
+                            {REPORT_PERIOD_LABELS[p]}
+                        </button>
+                    ))}
+                </div>
             </div>
 
-            {/* Revenue cards */}
-            <div className="admin-metrics">
-                {revenueCards.map(c => (
-                    <div key={c.label} className="admin-metric-card" style={{ '--mc-color': c.color }}>
-                        <div className="admin-metric-icon" style={{ background: c.color + '15', color: c.color }}>
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+            {/* Revenue hero */}
+            <div className="rpt-revenue-hero">
+                <div className="rpt-revenue-main">
+                    <div className="rpt-revenue-main-top">
+                        <div className="rpt-revenue-main-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
                         </div>
-                        <div className="admin-metric-body">
-                            <div className="admin-metric-value">${fmt(c.value)}</div>
-                            <div className="admin-metric-label">{c.label}</div>
-                            <div className="admin-metric-sub">COP</div>
+                        <span className="rpt-revenue-main-label">Ingreso neto</span>
+                    </div>
+                    <div className="rpt-revenue-main-amount">${fmt(netTotal)}</div>
+                    <div className="rpt-revenue-main-sub">de ${fmt(grossTotal)} bruto</div>
+                    <div className="rpt-revenue-breakdown">
+                        <div className="rpt-rev-item">
+                            <span className="rpt-rev-dot" style={{background:'#3b82f6'}}></span>
+                            <span>MercadoPago neto</span>
+                            <strong>${fmt(mpNet)}</strong>
+                        </div>
+                        <div className="rpt-rev-item">
+                            <span className="rpt-rev-dot" style={{background:'#ef4444'}}></span>
+                            <span>Comisiones MP</span>
+                            <strong>-${fmt(mpFees)}</strong>
+                        </div>
+                        <div className="rpt-rev-item">
+                            <span className="rpt-rev-dot" style={{background:'var(--accent-gold)'}}></span>
+                            <span>Contraentrega</span>
+                            <strong>${fmt(codTotal)}</strong>
                         </div>
                     </div>
-                ))}
+                </div>
+                <div className="rpt-kpi-grid">
+                    <div className="rpt-kpi">
+                        <div className="rpt-kpi-value">{filtered.length}</div>
+                        <div className="rpt-kpi-label">Pedidos</div>
+                    </div>
+                    <div className="rpt-kpi">
+                        <div className="rpt-kpi-value">{paidFiltered.length}</div>
+                        <div className="rpt-kpi-label">Pagados</div>
+                    </div>
+                    <div className="rpt-kpi">
+                        <div className="rpt-kpi-value">${fmt(avgOrder)}</div>
+                        <div className="rpt-kpi-label">Ticket promedio</div>
+                    </div>
+                    <div className="rpt-kpi">
+                        <div className="rpt-kpi-value">{conversionRate}%</div>
+                        <div className="rpt-kpi-label">Conversión</div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Activity: orders by day */}
+            <div className="admin-card" style={{marginBottom:'1.25rem'}}>
+                <div className="admin-card-head">
+                    <h3 className="admin-card-title">Actividad diaria</h3>
+                    <span className="rpt-chart-legend">Últimos {numDays} días</span>
+                </div>
+                <div className="rpt-activity">
+                    {ordersByDay.filter(d => d.count > 0).length === 0
+                        ? <p className="admin-empty-text">Sin pedidos en este período</p>
+                        : ordersByDay.filter(d => d.count > 0).reverse().map((d, i) => (
+                        <div key={i} className="rpt-activity-row">
+                            <span className="rpt-activity-date">{d.label}</span>
+                            <div className="rpt-activity-bar-wrap">
+                                <div className="rpt-activity-bar" style={{ width: `${(d.count / maxDayCount) * 100}%` }} />
+                            </div>
+                            <span className="rpt-activity-count">{d.count} pedido{d.count !== 1 ? 's' : ''}</span>
+                            <span className="rpt-activity-rev">${fmt(d.revenue)}</span>
+                        </div>
+                    ))}
+                </div>
             </div>
 
             <div className="admin-reports-grid">
-                {/* Orders by day chart */}
-                <div className="admin-card">
-                    <div className="admin-card-head">
-                        <h3 className="admin-card-title">Pedidos por dia (ultimos 14 dias)</h3>
-                    </div>
-                    <div className="admin-bar-chart">
-                        {ordersByDay.map((d, i) => (
-                            <div key={i} className="admin-bar-col">
-                                <div className="admin-bar-value">{d.count}</div>
-                                <div className="admin-bar" style={{ height: `${Math.max((d.count / maxDayCount) * 100, 4)}%`, background: '#6366f1' }} />
-                                <div className="admin-bar-label">{d.label}</div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
                 {/* Top 5 products */}
                 <div className="admin-card">
                     <div className="admin-card-head">
                         <h3 className="admin-card-title">Top 5 productos</h3>
                     </div>
-                    <div className="admin-hbar-chart">
+                    <div className="rpt-product-list">
                         {top5Products.map(([name, count], i) => (
-                            <div key={i} className="admin-hbar-row">
-                                <span className="admin-hbar-label" title={name}>{name.length > 25 ? name.slice(0, 25) + '...' : name}</span>
-                                <div className="admin-hbar-track">
-                                    <div className="admin-hbar" style={{ width: `${(count / maxProductCount) * 100}%`, background: '#f59e0b' }} />
+                            <div key={i} className="rpt-product-row">
+                                <span className="rpt-product-rank">#{i + 1}</span>
+                                <div className="rpt-product-info">
+                                    <span className="rpt-product-name" title={name}>{name.length > 28 ? name.slice(0, 28) + '…' : name}</span>
+                                    <div className="rpt-product-bar-wrap">
+                                        <div className="rpt-product-bar" style={{ width: `${(count / maxProductCount) * 100}%` }} />
+                                    </div>
                                 </div>
-                                <span className="admin-hbar-value">{count}</span>
+                                <div className="rpt-product-stats">
+                                    <strong>{count}</strong>
+                                    <span>${fmt(productRevenue[name] || 0)}</span>
+                                </div>
                             </div>
                         ))}
                         {top5Products.length === 0 && <p className="admin-empty-text">Sin datos</p>}
+                    </div>
+                </div>
+
+                {/* Status breakdown */}
+                <div className="admin-card">
+                    <div className="admin-card-head">
+                        <h3 className="admin-card-title">Estado de pedidos</h3>
+                    </div>
+                    <div className="rpt-status-grid">
+                        {ORDER_STATUSES.map(s => (
+                            <div key={s} className="rpt-status-item">
+                                <div className="rpt-status-count">{statusCounts[s] || 0}</div>
+                                <StatusBadge status={s} />
+                            </div>
+                        ))}
                     </div>
                 </div>
 
@@ -1377,7 +1535,7 @@ const ReportsSection = ({ orders }) => {
                 {/* Orders by payment method */}
                 <div className="admin-card">
                     <div className="admin-card-head">
-                        <h3 className="admin-card-title">Pedidos por metodo de pago</h3>
+                        <h3 className="admin-card-title">Métodos de pago</h3>
                     </div>
                     <div className="admin-hbar-chart">
                         {paymentEntries.map(([pm, count], i) => (
