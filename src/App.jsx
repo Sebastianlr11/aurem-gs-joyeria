@@ -22,6 +22,7 @@ const Catalog       = lazy(() => import('./pages/Catalog'))
 const ProductPage   = lazy(() => import('./pages/ProductPage'))
 const Confirmacion  = lazy(() => import('./pages/Confirmacion'))
 const Login         = lazy(() => import('./pages/admin/Login'))
+const ResetPassword = lazy(() => import('./pages/admin/ResetPassword'))
 const Dashboard     = lazy(() => import('./pages/admin/Dashboard'))
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'))
 const TermsOfService = lazy(() => import('./pages/TermsOfService'))
@@ -81,6 +82,7 @@ function App() {
 
           {/* Admin — sin Navbar pública */}
           <Route path="/admin/login" element={<Login />} />
+          <Route path="/admin/reset-password" element={<ResetPassword />} />
           <Route path="/admin" element={
             <ProtectedRoute>
               <Dashboard />
