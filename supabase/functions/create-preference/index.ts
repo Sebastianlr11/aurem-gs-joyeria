@@ -13,7 +13,7 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const { items, product, buyer, paymentMethod = 'mp' } = await req.json()
+    const { items, product, buyer, paymentMethod = 'mp', notes: orderNotes } = await req.json()
 
     // Soporta formato nuevo (items array) y formato legacy (product objeto)
     const productItems: Array<{ id: string; name: string; price: number }> =
@@ -55,6 +55,7 @@ Deno.serve(async (req: Request) => {
           buyer.address ? `Dirección: ${buyer.address}` : null,
           buyer.city ? `Ciudad: ${buyer.city}` : null,
           buyer.department ? `Departamento: ${buyer.department}` : null,
+          orderNotes || null,
         ].filter(Boolean).join(' | ') || null,
         shipping_address: buyer.address ?? null,
         shipping_city: buyer.city ?? null,

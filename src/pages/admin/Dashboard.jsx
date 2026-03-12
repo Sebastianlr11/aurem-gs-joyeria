@@ -15,12 +15,24 @@ const STATUS_META = {
     confirmado: { label: 'Confirmado',  cls: 'badge--blue'   }, // legacy
 };
 
-const NEXT_ACTION = {
+/* Flujo pago anticipado: pendiente → pagado → procesando → enviado → entregado */
+const NEXT_ACTION_PREPAID = {
     pendiente:  { next: 'pagado',     label: 'Confirmar pago',    cls: 'action--green' },
     pagado:     { next: 'procesando', label: 'Procesar',          cls: 'action--blue' },
     procesando: { next: 'enviado',    label: 'Marcar enviado',    cls: 'action--purple' },
     enviado:    { next: 'entregado',  label: 'Marcar entregado',  cls: 'action--teal' },
 };
+
+/* Flujo contraentrega: pendiente → procesando → enviado → entregado → pagado */
+const NEXT_ACTION_COD = {
+    pendiente:  { next: 'procesando', label: 'Procesar',          cls: 'action--blue' },
+    procesando: { next: 'enviado',    label: 'Marcar enviado',    cls: 'action--purple' },
+    enviado:    { next: 'entregado',  label: 'Marcar entregado',  cls: 'action--teal' },
+    entregado:  { next: 'pagado',     label: 'Confirmar pago',    cls: 'action--green' },
+};
+
+const isCOD = (order) => order.payment_method === 'contraentrega';
+const getNextAction = (order) => (isCOD(order) ? NEXT_ACTION_COD : NEXT_ACTION_PREPAID)[order.status];
 
 const WA_MESSAGES = {
     pagado: (o) => `Hola ${o.customer_name}! \u{1F389} Tu pedido de "${o.product_name}" en Aurem Gs Joyeria fue recibido con exito. Estamos preparandolo. Te mantendremos informado!`,
@@ -45,7 +57,8 @@ const fmt = n => Number(n || 0).toLocaleString('es-CO');
 const fmtDate = d => new Date(d).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
 
 const EMPTY_PRODUCT  = { name:'', category:'Anillos', price:'', compare_price:'', description:'', image_url:'', is_new:false, is_featured:false };
-const EMPTY_ORDER    = { customer_name:'', customer_phone:'', product_id:'', product_name:'', amount:'', status:'pendiente', notes:'', carrier:'', tracking_number:'' };
+const EMPTY_ORDER    = { customer_name:'', customer_phone:'', customer_email:'', product_id:'', product_name:'', amount:'', status:'pendiente', payment_method:'', notes:'', carrier:'', tracking_number:'', shipping_address:'', shipping_city:'', shipping_department:'' };
+const PAYMENT_METHODS = ['MercadoPago', 'Nequi', 'Daviplata', 'Transferencia', 'Efectivo', 'Contraentrega'];
 const EMPTY_CUSTOMER = { name:'', phone:'', email:'', notes:'' };
 
 /* ─── Webhook helper ─────────────────────────────────────────────── */
@@ -82,6 +95,10 @@ const NAV = [
     {
         id: 'reports', label: 'Reportes',
         icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>,
+    },
+    {
+        id: 'notes', label: 'Anotaciones',
+        icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>,
     },
     {
         id: 'settings', label: 'Ajustes',
@@ -261,13 +278,18 @@ const OrderModal = ({ order, products, onClose, onSaved }) => {
         const payload = {
             customer_name: form.customer_name.trim(),
             customer_phone: form.customer_phone.trim() || null,
+            customer_email: form.customer_email?.trim() || null,
             product_id: form.product_id || null,
             product_name: form.product_name.trim(),
             amount: Number(form.amount),
             status: form.status,
+            payment_method: form.payment_method || null,
             notes: form.notes.trim() || null,
-            carrier: form.carrier.trim() || null,
-            tracking_number: form.tracking_number.trim() || null,
+            carrier: form.carrier?.trim() || null,
+            tracking_number: form.tracking_number?.trim() || null,
+            shipping_address: form.shipping_address?.trim() || null,
+            shipping_city: form.shipping_city?.trim() || null,
+            shipping_department: form.shipping_department?.trim() || null,
         };
         if (!isEdit) {
             payload.order_source = 'manual';
@@ -324,29 +346,68 @@ const OrderModal = ({ order, products, onClose, onSaved }) => {
                             </select>
                         </div>
                     </div>
-                    <div className="modal-row">
-                        <div className="modal-field">
-                            <label>Transportadora</label>
-                            <select value={form.carrier} onChange={e => set('carrier', e.target.value)}>
-                                <option value="">— Sin transportadora —</option>
-                                {CARRIERS.map(c => <option key={c} value={c}>{c}</option>)}
-                            </select>
-                        </div>
-                        <div className="modal-field">
-                            <label>Numero de guia</label>
-                            <input value={form.tracking_number} onChange={e => set('tracking_number', e.target.value)} placeholder="Numero de seguimiento" />
-                        </div>
+                    <div className="modal-field">
+                        <label>Método de pago</label>
+                        <select value={form.payment_method || ''} onChange={e => set('payment_method', e.target.value)}>
+                            <option value="">— Seleccionar —</option>
+                            {PAYMENT_METHODS.map(m => <option key={m} value={m.toLowerCase()}>{m}</option>)}
+                        </select>
                     </div>
-                    {isEdit && (form.shipping_address || form.shipping_city || form.shipping_department) && (
-                        <div className="modal-field">
-                            <label>Direccion de envio</label>
-                            <div className="modal-address-info">
-                                {form.shipping_address && <span>{form.shipping_address}</span>}
-                                {(form.shipping_city || form.shipping_department) && (
-                                    <span>{[form.shipping_city, form.shipping_department].filter(Boolean).join(', ')}</span>
-                                )}
+                    {!isEdit ? (
+                        <>
+                            <div className="modal-field">
+                                <label>Correo electrónico</label>
+                                <input value={form.customer_email} onChange={e => set('customer_email', e.target.value)} placeholder="cliente@email.com" />
                             </div>
-                        </div>
+                            <div className="modal-field">
+                                <label>Dirección de envío</label>
+                                <input value={form.shipping_address} onChange={e => set('shipping_address', e.target.value)} placeholder="Calle, número, barrio..." />
+                            </div>
+                            <div className="modal-row">
+                                <div className="modal-field">
+                                    <label>Ciudad</label>
+                                    <input value={form.shipping_city} onChange={e => set('shipping_city', e.target.value)} placeholder="Ej: Bogotá" />
+                                </div>
+                                <div className="modal-field">
+                                    <label>Departamento</label>
+                                    <input value={form.shipping_department} onChange={e => set('shipping_department', e.target.value)} placeholder="Ej: Cundinamarca" />
+                                </div>
+                            </div>
+                        </>
+                    ) : (
+                        <>
+                            <div className="modal-field">
+                                <label>Correo electrónico</label>
+                                <input value={form.customer_email || ''} onChange={e => set('customer_email', e.target.value)} placeholder="cliente@email.com" />
+                            </div>
+                            <div className="modal-field">
+                                <label>Dirección de envío</label>
+                                <input value={form.shipping_address || ''} onChange={e => set('shipping_address', e.target.value)} placeholder="Calle, número, barrio..." />
+                            </div>
+                            <div className="modal-row">
+                                <div className="modal-field">
+                                    <label>Ciudad</label>
+                                    <input value={form.shipping_city || ''} onChange={e => set('shipping_city', e.target.value)} placeholder="Ej: Bogotá" />
+                                </div>
+                                <div className="modal-field">
+                                    <label>Departamento</label>
+                                    <input value={form.shipping_department || ''} onChange={e => set('shipping_department', e.target.value)} placeholder="Ej: Cundinamarca" />
+                                </div>
+                            </div>
+                            <div className="modal-row">
+                                <div className="modal-field">
+                                    <label>Transportadora</label>
+                                    <select value={form.carrier} onChange={e => set('carrier', e.target.value)}>
+                                        <option value="">— Sin transportadora —</option>
+                                        {CARRIERS.map(c => <option key={c} value={c}>{c}</option>)}
+                                    </select>
+                                </div>
+                                <div className="modal-field">
+                                    <label>Número de guía</label>
+                                    <input value={form.tracking_number} onChange={e => set('tracking_number', e.target.value)} placeholder="Número de seguimiento" />
+                                </div>
+                            </div>
+                        </>
                     )}
                     <div className="modal-field">
                         <label>Notas</label>
@@ -772,7 +833,7 @@ const OrdersSection = ({ orders, products, loading, onRefresh }) => {
     };
 
     const handleQuickAction = (order) => {
-        const action = NEXT_ACTION[order.status];
+        const action = getNextAction(order);
         if (!action) return;
 
         if (action.next === 'enviado') {
@@ -842,22 +903,32 @@ const OrdersSection = ({ orders, products, loading, onRefresh }) => {
                 ) : (
                     <div className="admin-table-wrap">
                         <table className="admin-table">
-                            <thead><tr><th>Canal</th><th>Cliente</th><th>Producto</th><th>Direccion</th><th>Monto</th><th>Met. pago</th><th>Estado</th><th>Accion rapida</th><th>Acciones</th></tr></thead>
+                            <thead><tr><th>Canal</th><th>Cliente</th><th>Producto</th><th>Notas</th><th>Direccion</th><th>Monto</th><th>Met. pago</th><th>Estado</th><th>Accion rapida</th><th>Acciones</th></tr></thead>
                             <tbody>
                                 {visible.map(o => {
                                     const addressParts = [o.shipping_address, o.shipping_city, o.shipping_department].filter(Boolean);
-                                    const action = NEXT_ACTION[o.status];
+                                    const action = getNextAction(o);
                                     const waLink = getWaLink(o);
                                     return (
                                     <tr key={o.id}>
                                         <td><SourceBadge source={o.order_source || 'web'} /></td>
                                         <td className="admin-td-name">{o.customer_name}</td>
                                         <td>{o.product_name}</td>
+                                        <td style={{fontSize:'0.82rem',color:'#555',maxWidth:180,whiteSpace:'pre-wrap'}}>
+                                            {o.notes || <span style={{color:'#aaa'}}>&mdash;</span>}
+                                        </td>
                                         <td style={{fontSize:'0.8rem',color:'#555',maxWidth:160}}>
                                             {addressParts.length ? addressParts.join(', ') : <span style={{color:'#aaa'}}>&mdash;</span>}
                                         </td>
                                         <td className="admin-td-price">${fmt(o.amount)}</td>
-                                        <td style={{fontSize:'0.82rem',color:'#666'}}>{o.payment_method || <span style={{color:'#aaa'}}>&mdash;</span>}</td>
+                                        <td style={{fontSize:'0.82rem',color:'#666'}}>
+                                            {o.payment_method
+                                                ? <span style={isCOD(o) ? {background:'#fef3c7',color:'#92400e',padding:'2px 8px',borderRadius:'9999px',fontWeight:600,fontSize:'0.7rem',textTransform:'uppercase'} : {}}>
+                                                    {o.payment_method}
+                                                  </span>
+                                                : <span style={{color:'#aaa'}}>&mdash;</span>
+                                            }
+                                        </td>
                                         <td><StatusBadge status={o.status} /></td>
                                         <td>
                                             {action && (
@@ -1155,6 +1226,225 @@ const ReportsSection = ({ orders }) => {
     );
 };
 
+/* ─── NotesSection ──────────────────────────────────────────────── */
+const PRIORITY_META = {
+    baja:    { label: 'Baja',    cls: 'badge--blue' },
+    normal:  { label: 'Normal',  cls: 'badge--green' },
+    alta:    { label: 'Alta',    cls: 'badge--orange' },
+    urgente: { label: 'Urgente', cls: 'badge--red' },
+};
+
+const EMPTY_NOTE = { title: '', content: '', priority: 'normal' };
+
+const NoteModal = ({ note, onClose, onSaved }) => {
+    const isEdit = !!note?.id;
+    const [form, setForm] = useState(isEdit ? { title: note.title, content: note.content, priority: note.priority } : { ...EMPTY_NOTE });
+    const [saving, setSaving] = useState(false);
+    const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+    const handleSave = async () => {
+        if (!form.title.trim()) return;
+        setSaving(true);
+        if (isEdit) {
+            await supabase.from('notes').update({ ...form, updated_at: new Date().toISOString() }).eq('id', note.id);
+        } else {
+            await supabase.from('notes').insert([form]);
+        }
+        setSaving(false);
+        onSaved();
+        onClose();
+    };
+
+    return (
+        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+            <div className="modal-box">
+                <div className="modal-header">
+                    <h2 className="modal-title">{isEdit ? 'Editar Anotación' : 'Nueva Anotación'}</h2>
+                    <button className="modal-close" onClick={onClose}>&times;</button>
+                </div>
+                <div className="modal-body">
+                    <div className="modal-field">
+                        <label>Título *</label>
+                        <input value={form.title} onChange={e => set('title', e.target.value)} placeholder="Ej: Anillo talla 7 para María" />
+                    </div>
+                    <div className="modal-field">
+                        <label>Contenido</label>
+                        <textarea value={form.content} onChange={e => set('content', e.target.value)} rows={5} placeholder="Detalles de la venta, medidas, especificaciones..." style={{ resize: 'vertical' }} />
+                    </div>
+                    <div className="modal-field">
+                        <label>Prioridad</label>
+                        <select value={form.priority} onChange={e => set('priority', e.target.value)}>
+                            <option value="baja">Baja</option>
+                            <option value="normal">Normal</option>
+                            <option value="alta">Alta</option>
+                            <option value="urgente">Urgente</option>
+                        </select>
+                    </div>
+                </div>
+                <div className="modal-footer">
+                    <button className="admin-btn admin-btn--outline" onClick={onClose}>Cancelar</button>
+                    <button className="admin-btn" onClick={handleSave} disabled={saving || !form.title.trim()}>
+                        {saving ? 'Guardando...' : isEdit ? 'Actualizar' : 'Crear'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const NotesSection = () => {
+    const [notes, setNotes] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [modal, setModal] = useState(null);        // null | 'new' | noteObj
+    const [confirmDel, setConfirmDel] = useState(null);
+    const [search, setSearch] = useState('');
+    const [filterPriority, setFilterPriority] = useState('all');
+    const [filterStatus, setFilterStatus] = useState('pending'); // 'all' | 'pending' | 'completed'
+
+    const fetchNotes = useCallback(async () => {
+        setLoading(true);
+        const { data } = await supabase.from('notes').select('*').order('created_at', { ascending: false });
+        setNotes(data || []);
+        setLoading(false);
+    }, []);
+
+    useEffect(() => { fetchNotes(); }, [fetchNotes]);
+
+    const toggleComplete = async (note) => {
+        await supabase.from('notes').update({ is_completed: !note.is_completed, updated_at: new Date().toISOString() }).eq('id', note.id);
+        fetchNotes();
+    };
+
+    const deleteNote = async () => {
+        if (!confirmDel) return;
+        await supabase.from('notes').delete().eq('id', confirmDel.id);
+        setConfirmDel(null);
+        fetchNotes();
+    };
+
+    const filtered = notes.filter(n => {
+        const matchSearch = !search.trim() || n.title.toLowerCase().includes(search.toLowerCase()) || (n.content || '').toLowerCase().includes(search.toLowerCase());
+        const matchPriority = filterPriority === 'all' || n.priority === filterPriority;
+        const matchStatus = filterStatus === 'all' || (filterStatus === 'pending' ? !n.is_completed : n.is_completed);
+        return matchSearch && matchPriority && matchStatus;
+    });
+
+    return (
+        <div className="admin-section">
+            {modal && (
+                <NoteModal
+                    note={modal === 'new' ? null : modal}
+                    onClose={() => setModal(null)}
+                    onSaved={fetchNotes}
+                />
+            )}
+            {confirmDel && (
+                <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setConfirmDel(null)}>
+                    <div className="modal-box" style={{ maxWidth: 420 }}>
+                        <div className="modal-header"><h2 className="modal-title">Eliminar anotación</h2><button className="modal-close" onClick={() => setConfirmDel(null)}>&times;</button></div>
+                        <div className="modal-body"><p>¿Eliminar "<strong>{confirmDel.title}</strong>"? Esta acción no se puede deshacer.</p></div>
+                        <div className="modal-footer">
+                            <button className="admin-btn admin-btn--outline" onClick={() => setConfirmDel(null)}>Cancelar</button>
+                            <button className="admin-btn admin-btn--danger" onClick={deleteNote}>Eliminar</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            <div className="admin-section-head">
+                <div>
+                    <h1 className="admin-section-title">Anotaciones</h1>
+                    <p className="admin-section-sub">Registra información importante de ventas: medidas, especificaciones, detalles del pedido.</p>
+                </div>
+                <button className="admin-btn" onClick={() => setModal('new')}>+ Nueva Anotación</button>
+            </div>
+
+            {/* Filters */}
+            <div className="admin-card" style={{ marginBottom: '1.5rem' }}>
+                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                    <div className="modal-field" style={{ flex: '1 1 200px', marginBottom: 0 }}>
+                        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar anotación..." />
+                    </div>
+                    <div className="modal-field" style={{ flex: '0 1 160px', marginBottom: 0 }}>
+                        <select value={filterPriority} onChange={e => setFilterPriority(e.target.value)}>
+                            <option value="all">Todas las prioridades</option>
+                            <option value="baja">Baja</option>
+                            <option value="normal">Normal</option>
+                            <option value="alta">Alta</option>
+                            <option value="urgente">Urgente</option>
+                        </select>
+                    </div>
+                    <div className="modal-field" style={{ flex: '0 1 150px', marginBottom: 0 }}>
+                        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+                            <option value="pending">Pendientes</option>
+                            <option value="completed">Completadas</option>
+                            <option value="all">Todas</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            {/* Notes list */}
+            {loading ? (
+                <div style={{ textAlign: 'center', padding: '3rem', color: '#999' }}>Cargando...</div>
+            ) : filtered.length === 0 ? (
+                <div className="admin-card" style={{ textAlign: 'center', padding: '3rem' }}>
+                    <p style={{ color: '#999', fontSize: '0.95rem' }}>
+                        {notes.length === 0 ? 'No hay anotaciones aún. Crea la primera.' : 'Sin resultados para estos filtros.'}
+                    </p>
+                </div>
+            ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    {filtered.map(note => (
+                        <div key={note.id} className="admin-card" style={{ opacity: note.is_completed ? 0.6 : 1 }}>
+                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+                                {/* Checkbox */}
+                                <button
+                                    onClick={() => toggleComplete(note)}
+                                    style={{
+                                        marginTop: 2, width: 22, height: 22, borderRadius: 6, border: '2px solid #d1d5db',
+                                        background: note.is_completed ? '#10b981' : 'transparent', cursor: 'pointer',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                                    }}
+                                    title={note.is_completed ? 'Marcar como pendiente' : 'Marcar como completada'}
+                                >
+                                    {note.is_completed && (
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                    )}
+                                </button>
+
+                                {/* Content */}
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.35rem' }}>
+                                        <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 600, textDecoration: note.is_completed ? 'line-through' : 'none' }}>
+                                            {note.title}
+                                        </h3>
+                                        <span className={`status-badge ${PRIORITY_META[note.priority]?.cls || ''}`}>
+                                            {PRIORITY_META[note.priority]?.label || note.priority}
+                                        </span>
+                                    </div>
+                                    {note.content && (
+                                        <p style={{ margin: '0.25rem 0 0.5rem', fontSize: '0.88rem', color: '#555', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
+                                            {note.content}
+                                        </p>
+                                    )}
+                                    <span style={{ fontSize: '0.75rem', color: '#999' }}>{fmtDate(note.created_at)}</span>
+                                </div>
+
+                                {/* Actions */}
+                                <div style={{ display: 'flex', gap: '0.4rem', flexShrink: 0 }}>
+                                    <button className="admin-btn admin-btn--outline" style={{ padding: '0.35rem 0.65rem', fontSize: '0.78rem' }} onClick={() => setModal(note)}>Editar</button>
+                                    <button className="admin-btn admin-btn--danger" style={{ padding: '0.35rem 0.65rem', fontSize: '0.78rem' }} onClick={() => setConfirmDel(note)}>Eliminar</button>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
+
 /* ─── SettingsSection ────────────────────────────────────────────── */
 const SettingsSection = () => {
     const [webhookUrl, setWebhookUrl] = useState(() => localStorage.getItem('admin_webhook_url') || '');
@@ -1345,6 +1635,9 @@ const Dashboard = () => {
                     )}
                     {section === 'reports' && (
                         <ReportsSection orders={orders} />
+                    )}
+                    {section === 'notes' && (
+                        <NotesSection />
                     )}
                     {section === 'settings' && (
                         <SettingsSection />
