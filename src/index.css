@@ -2562,7 +2562,7 @@ button {
 @media (max-width: 968px) {
   .catalog-title  { font-size: 3rem; }
   .catalog-grid   { grid-template-columns: repeat(2, 1fr); }
-  .catalog-toolbar { flex-direction: column; align-items: flex-start; top: 4rem; }
+  .catalog-toolbar { flex-direction: column; align-items: flex-start; position: static; }
   .catalog-toolbar-left,
   .catalog-toolbar-right { width: 100%; }
 }
