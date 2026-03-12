@@ -24,8 +24,9 @@ const Footer = () => {
                         </div>
 
                         <div className="footer-col">
-                            <p className="footer-col-label">/Legal</p>
+                            <p className="footer-col-label">/Ayuda</p>
                             <ul className="footer-col-links">
+                                <li><Link to="/guia-de-tallas">Guía de Tallas</Link></li>
                                 <li><Link to="/politica-de-privacidad">Política de Privacidad</Link></li>
                                 <li><Link to="/terminos-de-servicio">Términos de Servicio</Link></li>
                                 <li><Link to="/politica-de-devoluciones">Política de Devoluciones</Link></li>

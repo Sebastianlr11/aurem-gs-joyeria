@@ -2,11 +2,12 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 
 const links = [
-    { label: 'Catálogo',  href: '/catalogo'  },
-    { label: 'Nosotros',  id:   'nosotros'   },
-    { label: 'Reseñas',   id:   'resenas'    },
-    { label: 'FAQs',      id:   'faqs'       },
-    { label: 'Contacto',  id:   'contacto'   },
+    { label: 'Catálogo',        href: '/catalogo'        },
+    { label: 'Guía de Tallas',  href: '/guia-de-tallas'  },
+    { label: 'Nosotros',        id:   'nosotros'         },
+    { label: 'Reseñas',         id:   'resenas'          },
+    { label: 'FAQs',            id:   'faqs'             },
+    { label: 'Contacto',        id:   'contacto'         },
 ];
 
 const Navbar = () => {

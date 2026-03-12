@@ -5361,6 +5361,120 @@ button {
 }
 
 /* ================================================================
+   RING SIZE GUIDE
+   ================================================================ */
+.ring-guide-page {
+  padding-top: 6rem;
+  min-height: 100vh;
+  background: #fafafa;
+}
+
+.ring-guide-header {
+  text-align: center;
+  padding: 3rem 0 2rem;
+}
+
+.ring-guide-title {
+  font-family: var(--font-display, 'Playfair Display', serif);
+  font-size: clamp(2rem, 5vw, 3.2rem);
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-top: 0.5rem;
+}
+
+.ring-guide-subtitle {
+  color: #666;
+  font-size: 1.05rem;
+  max-width: 540px;
+  margin: 0.75rem auto 0;
+  line-height: 1.6;
+}
+
+.ring-guide-tip {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  background: #fff;
+  border: 1px solid #ebebeb;
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 2.5rem;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.ring-guide-tip-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.ring-guide-tip strong {
+  display: block;
+  margin-bottom: 0.3rem;
+  color: var(--text-primary);
+}
+
+.ring-guide-tip p {
+  color: #666;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.ring-tables-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  padding-bottom: 4rem;
+}
+
+.ring-table-wrap {
+  overflow-x: auto;
+}
+
+.ring-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.ring-table thead th {
+  background: var(--text-primary);
+  color: #fff;
+  font-weight: 600;
+  padding: 0.85rem 1rem;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.ring-table tbody td {
+  text-align: center;
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid #ebebeb;
+  color: var(--text-primary);
+}
+
+.ring-table tbody tr:nth-child(even) {
+  background: #fdf2f4;
+}
+
+.ring-table tbody tr:hover {
+  background: #f5e6e9;
+}
+
+@media (max-width: 768px) {
+  .ring-tables-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .ring-guide-tip {
+    margin-bottom: 2rem;
+  }
+}
+
+/* ================================================================
    PRODUCT PAGE — mobile reorder (category+name above gallery)
    ================================================================ */
 .pp-mobile-header { display: none; }

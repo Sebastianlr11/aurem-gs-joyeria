@@ -26,6 +26,7 @@ const Dashboard     = lazy(() => import('./pages/admin/Dashboard'))
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'))
 const TermsOfService = lazy(() => import('./pages/TermsOfService'))
 const ReturnsPolicy = lazy(() => import('./pages/ReturnsPolicy'))
+const RingSizeGuide = lazy(() => import('./pages/RingSizeGuide'))
 
 const PageLoader = () => (
   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
@@ -76,6 +77,7 @@ function App() {
           <Route path="/politica-de-privacidad" element={<><Navbar /><PrivacyPolicy /><Footer /></>} />
           <Route path="/terminos-de-servicio" element={<><Navbar /><TermsOfService /><Footer /></>} />
           <Route path="/politica-de-devoluciones" element={<><Navbar /><ReturnsPolicy /><Footer /></>} />
+          <Route path="/guia-de-tallas" element={<><Navbar /><RingSizeGuide /><Footer /></>} />
 
           {/* Admin — sin Navbar pública */}
           <Route path="/admin/login" element={<Login />} />
