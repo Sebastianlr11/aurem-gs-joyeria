@@ -589,51 +589,109 @@ const ConfirmModal = ({ title, text, onClose, onConfirm }) => {
 ═══════════════════════════════════════════════════════════════════ */
 
 /* ─── DashboardHome ──────────────────────────────────────────────── */
+const MP_FEE_PERCENT = 0.0329;  // 3.29%
+const MP_FEE_FIXED   = 800;    // $800 COP por transacción
+const MP_IVA         = 0.19;   // 19% IVA sobre la comisión
+const MP_RETE_FUENTE = 0.015;  // 1.5% retención en la fuente
+const MP_RETE_ICA    = 0.00414;// ~0.414% retención ICA
+
 const DashboardHome = ({ products, orders, customers, onNavigate }) => {
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
     const ordersMonth  = orders.filter(o => new Date(o.created_at) >= monthStart);
-    const revenue      = ordersMonth.filter(o => REVENUE_STATUSES.includes(o.status)).reduce((s, o) => s + Number(o.amount), 0);
     const recentOrders = orders.slice(0, 6);
 
-    const metrics = [
-        {
-            label: 'Productos', value: products.length, color: '#6366f1',
-            icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>,
-        },
-        {
-            label: 'Pedidos este mes', value: ordersMonth.length, color: '#f59e0b',
-            icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>,
-        },
-        {
-            label: 'Ingresos (pagados)', value: `$${fmt(revenue)}`, color: '#10b981', sub: 'COP este mes',
-            icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>,
-        },
-        {
-            label: 'Clientes', value: customers.length, color: '#3b82f6',
-            icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>,
-        },
-    ];
+    // Ingresos pagados (MP): descontar comisión (3.29% + $800 por cada transacción)
+    const paidMPOrders = ordersMonth.filter(o => REVENUE_STATUSES.includes(o.status) && !isCOD(o));
+    const paidMPGross  = paidMPOrders.reduce((s, o) => s + Number(o.amount), 0);
+    const paidMPFees   = paidMPOrders.reduce((s, o) => {
+        const amount = Number(o.amount);
+        const comision = (amount * MP_FEE_PERCENT + MP_FEE_FIXED) * (1 + MP_IVA);
+        const reteFuente = amount * MP_RETE_FUENTE;
+        const reteICA = amount * MP_RETE_ICA;
+        return s + Math.ceil(comision + reteFuente + reteICA);
+    }, 0);
+    const paidMPNet    = paidMPGross - paidMPFees;
+
+    // Ingresos pagados COD ya entregados
+    const paidCODOrders = ordersMonth.filter(o => o.status === 'entregado' && isCOD(o));
+    const paidCODTotal  = paidCODOrders.reduce((s, o) => s + Number(o.amount), 0);
+
+    // Ingresos pendientes: contraentrega aún no entregados
+    const pendingCODOrders = ordersMonth.filter(o => isCOD(o) && o.status !== 'entregado' && o.status !== 'cancelado');
+    const pendingCODTotal  = pendingCODOrders.reduce((s, o) => s + Number(o.amount), 0);
+
+    const totalRevenue = paidMPNet + paidCODTotal;
 
     return (
         <div className="admin-section">
             <div className="admin-section-head">
                 <h1 className="admin-section-title">Dashboard</h1>
-                <p className="admin-section-sub">Bienvenido al panel de administracion de Aurem Gs Joyeria</p>
+                <p className="admin-section-sub">Bienvenido al panel de administración de Aurem Gs Joyería</p>
             </div>
 
-            <div className="admin-metrics">
-                {metrics.map(m => (
-                    <div key={m.label} className="admin-metric-card" style={{ '--mc-color': m.color }}>
-                        <div className="admin-metric-icon" style={{ background: m.color + '15', color: m.color }}>{m.icon}</div>
-                        <div className="admin-metric-body">
-                            <div className="admin-metric-value">{m.value}</div>
-                            <div className="admin-metric-label">{m.label}</div>
-                            {m.sub && <div className="admin-metric-sub">{m.sub}</div>}
+            {/* ── Revenue highlight row ── */}
+            <div className="dash-revenue-row">
+                <div className="dash-revenue-card dash-revenue-card--main">
+                    <div className="dash-revenue-top">
+                        <div className="dash-revenue-icon">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+                        </div>
+                        <span className="dash-revenue-badge">Este mes</span>
+                    </div>
+                    <div className="dash-revenue-amount">${fmt(totalRevenue)}</div>
+                    <div className="dash-revenue-label">Ingresos totales</div>
+                    <div className="dash-revenue-breakdown">
+                        <div className="dash-revenue-detail">
+                            <span className="dash-revenue-dot dash-revenue-dot--mp"></span>
+                            <span>MercadoPago (neto)</span>
+                            <strong>${fmt(paidMPNet)}</strong>
+                        </div>
+                        <div className="dash-revenue-detail">
+                            <span className="dash-revenue-dot dash-revenue-dot--cod"></span>
+                            <span>Contraentrega cobrado</span>
+                            <strong>${fmt(paidCODTotal)}</strong>
                         </div>
                     </div>
-                ))}
+                </div>
+
+                <div className="dash-revenue-card dash-revenue-card--pending">
+                    <div className="dash-revenue-top">
+                        <div className="dash-revenue-icon dash-revenue-icon--pending">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        </div>
+                    </div>
+                    <div className="dash-revenue-amount dash-revenue-amount--pending">${fmt(pendingCODTotal)}</div>
+                    <div className="dash-revenue-label">Ingresos pendientes</div>
+                    <div className="dash-revenue-sub">Contraentrega por cobrar</div>
+                    <div className="dash-revenue-count">{pendingCODOrders.length} pedido{pendingCODOrders.length !== 1 ? 's' : ''}</div>
+                </div>
+            </div>
+
+            {/* ── Quick stats ── */}
+            <div className="dash-stats-row">
+                <div className="dash-stat-card">
+                    <div className="dash-stat-icon" style={{ background: '#6366f115', color: '#6366f1' }}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+                    </div>
+                    <div className="dash-stat-value">{products.length}</div>
+                    <div className="dash-stat-label">Productos</div>
+                </div>
+                <div className="dash-stat-card">
+                    <div className="dash-stat-icon" style={{ background: '#f59e0b15', color: '#f59e0b' }}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+                    </div>
+                    <div className="dash-stat-value">{ordersMonth.length}</div>
+                    <div className="dash-stat-label">Pedidos este mes</div>
+                </div>
+                <div className="dash-stat-card">
+                    <div className="dash-stat-icon" style={{ background: '#3b82f615', color: '#3b82f6' }}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+                    </div>
+                    <div className="dash-stat-value">{customers.length}</div>
+                    <div className="dash-stat-label">Clientes</div>
+                </div>
             </div>
 
             <div className="admin-home-grid">
@@ -644,7 +702,7 @@ const DashboardHome = ({ products, orders, customers, onNavigate }) => {
                         <button className="admin-card-link" onClick={() => onNavigate('orders')}>Ver todos &rarr;</button>
                     </div>
                     {recentOrders.length === 0 ? (
-                        <p className="admin-empty-text">No hay pedidos aun.</p>
+                        <p className="admin-empty-text">No hay pedidos aún.</p>
                     ) : (
                         <table className="admin-table">
                             <thead><tr><th>Cliente</th><th>Producto</th><th>Monto</th><th>Estado</th></tr></thead>
@@ -684,7 +742,7 @@ const DashboardHome = ({ products, orders, customers, onNavigate }) => {
                     </div>
 
                     <div className="admin-card-head" style={{ marginTop: '1.5rem' }}>
-                        <h3 className="admin-card-title">Productos por categoria</h3>
+                        <h3 className="admin-card-title">Productos por categoría</h3>
                     </div>
                     <div className="admin-status-list">
                         {CATEGORIES.map(cat => {

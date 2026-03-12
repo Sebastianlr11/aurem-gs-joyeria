@@ -3786,6 +3786,207 @@ button {
 }
 
 /* ── Metric cards ── */
+/* ── Dashboard Revenue Cards ── */
+.dash-revenue-row {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.dash-revenue-card {
+  border-radius: 20px;
+  padding: 1.75rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.dash-revenue-card--main {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  color: #fff;
+}
+
+.dash-revenue-card--main::before {
+  content: '';
+  position: absolute;
+  top: -30%;
+  right: -10%;
+  width: 250px;
+  height: 250px;
+  background: radial-gradient(circle, rgba(212,175,55,0.15) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.dash-revenue-card--pending {
+  background: #fff;
+  border: 1px solid rgba(0,0,0,0.06);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+}
+
+.dash-revenue-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.dash-revenue-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(212,175,55,0.15);
+  color: var(--accent-gold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dash-revenue-icon--pending {
+  background: #fef3c715;
+  color: #f59e0b;
+}
+
+.dash-revenue-badge {
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.7);
+  padding: 0.3rem 0.75rem;
+  border-radius: 9999px;
+}
+
+.dash-revenue-amount {
+  font-size: 2.2rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  position: relative;
+}
+
+.dash-revenue-amount--pending {
+  color: #0f172a;
+}
+
+.dash-revenue-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-top: 0.4rem;
+  opacity: 0.7;
+}
+
+.dash-revenue-card--pending .dash-revenue-label {
+  color: #64748b;
+}
+
+.dash-revenue-sub {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  margin-top: 0.25rem;
+}
+
+.dash-revenue-count {
+  margin-top: 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #f59e0b;
+  background: #fef3c7;
+  display: inline-block;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+}
+
+.dash-revenue-breakdown {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.dash-revenue-detail {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+  color: rgba(255,255,255,0.6);
+}
+
+.dash-revenue-detail strong {
+  margin-left: auto;
+  color: #fff;
+  font-weight: 700;
+}
+
+.dash-revenue-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dash-revenue-dot--mp {
+  background: #3b82f6;
+}
+
+.dash-revenue-dot--cod {
+  background: var(--accent-gold);
+}
+
+/* ── Quick Stats Row ── */
+.dash-stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.dash-stat-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.5rem;
+  border: 1px solid rgba(0,0,0,0.05);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+  transition: transform 0.25s cubic-bezier(0.16,1,0.3,1), box-shadow 0.25s ease;
+}
+
+.dash-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.06);
+}
+
+.dash-stat-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dash-stat-value {
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #0f172a;
+  line-height: 1;
+}
+
+.dash-stat-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #64748b;
+  letter-spacing: 0.02em;
+}
+
+/* Legacy metric cards - keep for compatibility */
 .admin-metrics {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -4412,6 +4613,7 @@ button {
 @media (max-width: 1024px) {
   .admin-metrics { grid-template-columns: repeat(2, 1fr); }
   .admin-home-grid { grid-template-columns: 1fr; }
+  .dash-revenue-row { grid-template-columns: 1fr 1fr; }
 }
 
 @media (max-width: 768px) {
@@ -4422,6 +4624,11 @@ button {
   .admin-section { padding: 1.5rem 1rem 3rem; }
   .admin-metrics { grid-template-columns: repeat(2, 1fr); }
   .admin-topbar { padding: 0 1.25rem; }
+  .dash-revenue-row { grid-template-columns: 1fr; }
+  .dash-stats-row { grid-template-columns: repeat(3, 1fr); gap: 0.75rem; }
+  .dash-stat-card { padding: 1rem; }
+  .dash-stat-value { font-size: 1.3rem; }
+  .dash-revenue-amount { font-size: 1.8rem; }
 }
 
 /* ================================================================
