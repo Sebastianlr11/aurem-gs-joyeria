@@ -40,6 +40,7 @@ const WA_MESSAGES = {
     enviado: (o) => `Hola ${o.customer_name}! Tu pedido de "${o.product_name}" fue enviado${o.carrier ? ` por ${o.carrier}` : ''}${o.tracking_number ? `. Numero de guia: ${o.tracking_number}` : ''}. Pronto lo recibiras! \u{1F4E6}`,
     entregado: (o) => `Hola ${o.customer_name}! Esperamos que estes disfrutando tu "${o.product_name}" de Aurem Gs Joyeria. Gracias por tu compra! \u{1F48E}`,
     pendiente: (o) => `Hola ${o.customer_name}! Vimos que tienes un pedido pendiente de "${o.product_name}" en Aurem Gs Joyeria. Podemos ayudarte a completarlo?`,
+    cancelado: (o) => `Hola ${o.customer_name}, tu pedido de "${o.product_name}" ha sido cancelado. Si tienes alguna duda o quieres hacer un nuevo pedido, escribenos con gusto.`,
 };
 
 const SOURCE_META = {
@@ -1564,6 +1565,65 @@ const SettingsSection = () => {
     const [testing, setTesting] = useState(false);
     const [testResult, setTestResult] = useState('');
 
+    // Admin users
+    const [adminEmail, setAdminEmail] = useState('');
+    const [adminPass, setAdminPass] = useState('');
+    const [adminCreating, setAdminCreating] = useState(false);
+    const [adminResult, setAdminResult] = useState({ type: '', msg: '' });
+    const [adminUsers, setAdminUsers] = useState([]);
+    const [loadingUsers, setLoadingUsers] = useState(true);
+    const [deletingId, setDeletingId] = useState(null);
+    const [confirmDelete, setConfirmDelete] = useState(null);
+    const [currentUserId, setCurrentUserId] = useState(null);
+
+    const adminApiCall = async (body) => {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return { error: 'No hay sesión activa' };
+        const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-admin`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify(body),
+        });
+        return await res.json();
+    };
+
+    const fetchAdminUsers = async () => {
+        setLoadingUsers(true);
+        try {
+            const data = await adminApiCall({ action: 'list' });
+            if (data && data.users) setAdminUsers(data.users);
+        } catch (err) {
+            console.error('Error fetching admin users:', err);
+        }
+        setLoadingUsers(false);
+    };
+
+    useEffect(() => {
+        fetchAdminUsers();
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            if (session && session.user) setCurrentUserId(session.user.id);
+        });
+    }, []);
+
+    const handleDeleteAdmin = async (userId) => {
+        setDeletingId(userId);
+        try {
+            const data = await adminApiCall({ action: 'delete', userId });
+            if (data.error) {
+                setAdminResult({ type: 'error', msg: data.error });
+            } else {
+                fetchAdminUsers();
+            }
+        } catch (e) {
+            setAdminResult({ type: 'error', msg: e.message });
+        }
+        setDeletingId(null);
+        setConfirmDelete(null);
+    };
+
     const handleSave = () => {
         localStorage.setItem('admin_webhook_url', webhookUrl.trim());
         setSaved(true);
@@ -1591,26 +1651,191 @@ const SettingsSection = () => {
         setTesting(false);
     };
 
+    const handleCreateAdmin = async () => {
+        if (!adminEmail.trim() || !adminPass.trim()) {
+            setAdminResult({ type: 'error', msg: 'Email y contraseña son obligatorios.' });
+            return;
+        }
+        if (adminPass.length < 6) {
+            setAdminResult({ type: 'error', msg: 'La contraseña debe tener al menos 6 caracteres.' });
+            return;
+        }
+        setAdminCreating(true);
+        setAdminResult({ type: '', msg: '' });
+        try {
+            const data = await adminApiCall({ email: adminEmail.trim(), password: adminPass });
+            if (data.error) {
+                setAdminResult({ type: 'error', msg: data.error });
+            } else {
+                setAdminResult({ type: 'success', msg: `Administrador ${data.user.email} creado correctamente.` });
+                setAdminEmail('');
+                setAdminPass('');
+                fetchAdminUsers();
+            }
+        } catch (e) {
+            setAdminResult({ type: 'error', msg: e.message });
+        }
+        setAdminCreating(false);
+    };
+
     return (
         <div className="admin-section">
             <div className="admin-section-head">
-                <h1 className="admin-section-title">Ajustes</h1>
-                <p className="admin-section-sub">Configuracion del panel de administracion</p>
+                <div>
+                    <h1 className="admin-section-title">Ajustes</h1>
+                    <p className="admin-section-sub">Configuración del panel de administración</p>
+                </div>
             </div>
 
+            {/* Admin Users */}
             <div className="admin-card" style={{ maxWidth: 600 }}>
                 <div className="admin-card-head">
-                    <h3 className="admin-card-title">Webhook URL</h3>
+                    <h3 className="admin-card-title">
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+                            Agregar administrador
+                        </span>
+                    </h3>
                 </div>
-                <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: '1rem' }}>
-                    Recibe notificaciones cuando cambia el estado de un pedido. Se enviara un POST con los datos del pedido.
+                <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: '1.25rem', lineHeight: 1.5 }}>
+                    Crea una cuenta para un empleado o colaborador. Tendrá acceso completo al panel de administración.
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                    <div className="modal-field">
+                        <label>Correo electrónico</label>
+                        <input
+                            type="email"
+                            value={adminEmail}
+                            onChange={e => setAdminEmail(e.target.value)}
+                            placeholder="empleado@email.com"
+                        />
+                    </div>
+                    <div className="modal-field">
+                        <label>Contraseña</label>
+                        <input
+                            type="password"
+                            value={adminPass}
+                            onChange={e => setAdminPass(e.target.value)}
+                            placeholder="Mínimo 6 caracteres"
+                        />
+                    </div>
+                    <div>
+                        <button className="admin-btn" onClick={handleCreateAdmin} disabled={adminCreating}>
+                            {adminCreating ? 'Creando...' : 'Crear administrador'}
+                        </button>
+                    </div>
+                    {adminResult.msg && (
+                        <p style={{ fontSize: '0.85rem', color: adminResult.type === 'error' ? '#ef4444' : '#10b981', margin: 0 }}>
+                            {adminResult.msg}
+                        </p>
+                    )}
+                </div>
+            </div>
+
+            {/* Admin users list */}
+            <div className="admin-card" style={{ maxWidth: 600 }}>
+                <div className="admin-card-head">
+                    <h3 className="admin-card-title">
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+                            Administradores
+                        </span>
+                    </h3>
+                    <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 600 }}>{adminUsers.length}{' '}usuarios</span>
+                </div>
+                {loadingUsers ? (
+                    <p style={{ fontSize: '0.85rem', color: '#999', textAlign: 'center', padding: '1rem 0' }}>Cargando...</p>
+                ) : adminUsers.length === 0 ? (
+                    <p style={{ fontSize: '0.85rem', color: '#999', textAlign: 'center', padding: '1rem 0' }}>No se pudieron cargar los usuarios.</p>
+                ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        {adminUsers.map(u => (
+                            <div key={u.id} style={{
+                                display: 'flex', alignItems: 'center', gap: '0.75rem',
+                                padding: '0.75rem 0.85rem', borderRadius: '12px', background: '#f8f9fc',
+                                transition: 'background 0.15s',
+                            }}>
+                                <div style={{
+                                    width: 36, height: 36, borderRadius: '50%',
+                                    background: u.id === currentUserId ? 'linear-gradient(135deg, #0c1220, #1a2332)' : '#e2e8f0',
+                                    color: u.id === currentUserId ? '#fff' : '#64748b',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    fontSize: '0.82rem', fontWeight: 800, flexShrink: 0,
+                                }}>
+                                    {(u.email || '?')[0].toUpperCase()}
+                                </div>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                    <p style={{ margin: 0, fontSize: '0.88rem', fontWeight: 600, color: '#0f172a' }}>
+                                        {u.email}
+                                        {u.id === currentUserId && (
+                                            <span style={{
+                                                marginLeft: '0.5rem', fontSize: '0.62rem', fontWeight: 700,
+                                                background: '#dbeafe', color: '#1d4ed8', padding: '2px 7px',
+                                                borderRadius: '100px', textTransform: 'uppercase', letterSpacing: '0.04em',
+                                            }}>Tú</span>
+                                        )}
+                                    </p>
+                                    <p style={{ margin: 0, fontSize: '0.72rem', color: '#94a3b8' }}>
+                                        Desde {fmtDate(u.created_at)}
+                                    </p>
+                                </div>
+                                {u.id !== currentUserId && (
+                                    <button
+                                        className="admin-action-btn admin-action-btn--delete"
+                                        onClick={() => setConfirmDelete(u)}
+                                        disabled={deletingId === u.id}
+                                    >
+                                        {deletingId === u.id ? '...' : 'Eliminar'}
+                                    </button>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+
+            {/* Confirm delete admin modal */}
+            {confirmDelete && (
+                <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setConfirmDelete(null)}>
+                    <div className="modal-box" style={{ maxWidth: 420 }}>
+                        <div className="modal-header">
+                            <h2 className="modal-title">Eliminar administrador</h2>
+                            <button className="modal-close" onClick={() => setConfirmDelete(null)}>&times;</button>
+                        </div>
+                        <div className="modal-body">
+                            <p style={{ fontSize: '0.92rem', color: '#334155', lineHeight: 1.6 }}>
+                                ¿Estás seguro de eliminar a <strong>{confirmDelete.email}</strong>? Ya no podrá acceder al panel de administración.
+                            </p>
+                        </div>
+                        <div className="modal-footer">
+                            <button className="admin-btn admin-btn--outline" onClick={() => setConfirmDelete(null)}>Cancelar</button>
+                            <button className="admin-btn admin-btn--danger" onClick={() => handleDeleteAdmin(confirmDelete.id)} disabled={deletingId === confirmDelete.id}>
+                                {deletingId === confirmDelete.id ? 'Eliminando...' : 'Eliminar'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Webhook */}
+            <div className="admin-card" style={{ maxWidth: 600 }}>
+                <div className="admin-card-head">
+                    <h3 className="admin-card-title">
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+                            Webhook URL
+                        </span>
+                    </h3>
+                </div>
+                <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: '1rem', lineHeight: 1.5 }}>
+                    Recibe notificaciones cuando cambia el estado de un pedido. Se enviará un POST con los datos del pedido.
                 </p>
                 <div className="modal-field">
                     <label>URL del webhook</label>
                     <input
                         value={webhookUrl}
                         onChange={e => setWebhookUrl(e.target.value)}
-                        placeholder="https://ejemplo.com/webhook"
+                        placeholder="http://localhost:5678/webhook/notificacion-estado-pedido"
                         style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}
                     />
                 </div>
