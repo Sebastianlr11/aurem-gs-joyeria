@@ -82,16 +82,21 @@ const ChatPanel = () => {
     const [imageCaption, setImageCaption] = useState('');
     const [selectedProduct, setSelectedProduct] = useState(null);
     const [sendingImage, setSendingImage] = useState(false);
+    const [webhookMissing, setWebhookMissing] = useState(false);
     const [takeoverMap, setTakeoverMap] = useState({});
     const [showContactInfo, setShowContactInfo] = useState(false);
     const [contactOrders, setContactOrders] = useState([]);
     const [contactCustomer, setContactCustomer] = useState(null);
     const [editingNotes, setEditingNotes] = useState(false);
     const [customerNotes, setCustomerNotes] = useState('');
+    const [sendError, setSendError] = useState(null);
+    const [realtimeStatus, setRealtimeStatus] = useState('CONNECTING');
+    const [soundEnabled, setSoundEnabled] = useState(() => localStorage.getItem('admin_sound_enabled') !== 'false');
     const quickReplies = useMemo(() => parseQuickReplies(), []);
     const quickRepliesRef = useRef(null);
     const imagePickerRef = useRef(null);
     const takeoverMapRef = useRef(takeoverMap);
+    const searchInputRef = useRef(null);
     const navigate = useNavigate();
 
     /* ─── Auth ───────────────────────────────────────────────────── */
@@ -134,6 +139,20 @@ const ChatPanel = () => {
             });
         }
 
+        // Count unread messages per phone_number
+        const { data: unreadData } = await supabase
+            .from('whatsapp_conversaciones')
+            .select('phone_number')
+            .eq('is_read', false)
+            .eq('role', 'user');
+
+        const unreadMap = new Map();
+        if (unreadData) {
+            unreadData.forEach(row => {
+                unreadMap.set(row.phone_number, (unreadMap.get(row.phone_number) || 0) + 1);
+            });
+        }
+
         const contactList = phones.map(phone => {
             const row = contactMap.get(phone);
             const name = customerMap.get(normalizePhone(phone)) || customerMap.get(phone) || null;
@@ -143,6 +162,7 @@ const ChatPanel = () => {
                 last_role: row.role,
                 last_time: row.created_at,
                 customer_name: name,
+                unread: unreadMap.get(phone) || 0,
             };
         });
 
@@ -236,14 +256,20 @@ const ChatPanel = () => {
     /* ─── Load contact info panel ──────────────────────────────── */
     useEffect(() => {
         if (!activeContact || !showContactInfo) return;
-        // Customer data
-        supabase.from('customers').select('*').eq('phone', activeContact).maybeSingle()
+        // Customer data — search with normalized phone variants
+        const norm = normalizePhone(activeContact);
+        const short = norm.startsWith('57') ? norm.slice(2) : norm;
+        supabase.from('customers').select('*')
+            .or(`phone.eq.${norm},phone.eq.${short},phone.eq.${activeContact}`)
+            .maybeSingle()
             .then(({ data }) => {
                 setContactCustomer(data);
                 setCustomerNotes(data?.notes || '');
             });
-        // Orders
-        supabase.from('orders').select('*').eq('customer_phone', activeContact).order('created_at', { ascending: false }).limit(10)
+        // Orders — search with normalized phone variants
+        supabase.from('orders').select('*')
+            .or(`customer_phone.eq.${norm},customer_phone.eq.${short},customer_phone.eq.${activeContact}`)
+            .order('created_at', { ascending: false }).limit(10)
             .then(({ data }) => setContactOrders(data || []));
     }, [activeContact, showContactInfo]);
 
@@ -258,77 +284,139 @@ const ChatPanel = () => {
         prevMsgCountRef.current = messages.length;
     }, [messages.length]);
 
-    /* ─── Polling for new messages (replaces Realtime) ─────────────── */
+    /* ─── Supabase Realtime subscription ──────────────────────────── */
     useEffect(() => {
         if (!session) return;
-        let cancelled = false;
-        let lastContactPoll = 0;
-        const CONTACT_INTERVAL = 5000;
-        const MSG_INTERVAL = 2500;
+        let fallbackInterval = null;
+        let fallbackMsgInterval = null;
 
-        const poll = async () => {
-            if (cancelled) return;
-            try {
-                const now = Date.now();
+        const channel = supabase
+            .channel('chat-realtime', { config: { broadcast: { self: true } } })
+            .on('postgres_changes',
+                { event: 'INSERT', schema: 'public', table: 'whatsapp_conversaciones' },
+                (payload) => {
+                    const newMsg = payload.new;
+                    if (!newMsg) return;
+                    console.log('[Realtime] Nuevo mensaje:', newMsg.role, newMsg.phone_number);
 
-                // Poll contacts periodically
-                if (now - lastContactPoll >= CONTACT_INTERVAL) {
-                    lastContactPoll = now;
-                    fetchContacts(true);
-                }
+                    // Play sound for incoming user messages
+                    if (newMsg.role === 'user' && localStorage.getItem('admin_sound_enabled') !== 'false') {
+                        try { new Audio('/assets/notificacion.mp3').play().catch(() => {}); } catch (e) {}
+                    }
 
-                // Poll messages for active contact
-                const phone = activeContactRef.current;
-                if (phone) {
-                    const { data: rawData } = await supabase
-                        .from('whatsapp_conversaciones')
-                        .select('*')
-                        .eq('phone_number', phone)
-                        .order('created_at', { ascending: true })
-                        .limit(200);
-                    const data = rawData ? sortMessages(rawData) : null;
+                    // Desktop notification for user messages when tab is hidden
+                    if (newMsg.role === 'user' && document.hidden && Notification.permission === 'granted') {
+                        try {
+                            new Notification('Nuevo mensaje - Aurem Gs', {
+                                body: truncate(newMsg.content, 80),
+                                icon: '/assets/hero1.png',
+                            });
+                        } catch (e) {}
+                    }
 
-                    if (data && !cancelled && activeContactRef.current === phone) {
+                    // If message belongs to active contact, add to messages (dedup by id)
+                    const phone = activeContactRef.current;
+                    if (phone && newMsg.phone_number === phone) {
                         setMessages(prev => {
-                            if (prev.length === data.length && prev[prev.length - 1]?.id === data[data.length - 1]?.id) {
-                                return prev;
-                            }
-                            if (data.length > prev.length) {
-                                const newest = data[data.length - 1];
-                                if (newest?.role === 'user' && localStorage.getItem('admin_sound_enabled') !== 'false') {
-                                    try { new Audio('/assets/notificacion.mp3').play().catch(() => {}); } catch (e) {}
+                            // Skip if already exists (dedup by real id or temp id)
+                            if (prev.some(m => m.id === newMsg.id)) return prev;
+                            // Replace optimistic temp message if this is our own sent message
+                            if (newMsg.role === 'assistant') {
+                                const tempIdx = prev.findIndex(m => String(m.id).startsWith('temp-') && m.content === newMsg.content);
+                                if (tempIdx !== -1) {
+                                    const updated = [...prev];
+                                    updated[tempIdx] = newMsg;
+                                    return updated;
                                 }
                             }
-                            return data;
+                            return sortMessages([...prev, newMsg]);
                         });
+
+                        // Mark as read since user is viewing this contact
+                        if (newMsg.role === 'user') {
+                            supabase.from('whatsapp_conversaciones')
+                                .update({ is_read: true })
+                                .eq('id', newMsg.id)
+                                .then(() => {});
+                        }
                     }
+
+                    // Refresh contacts list to update last message / unread counts
+                    fetchContacts(true);
                 }
-            } catch (e) {
-                console.warn('Poll error:', e);
-            }
-            if (!cancelled) {
-                setTimeout(poll, MSG_INTERVAL);
-            }
+            )
+            .subscribe((status, err) => {
+                console.log('[Realtime] Estado:', status, err || '');
+                setRealtimeStatus(status);
+
+                // Fallback polling if Realtime disconnects
+                if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+                    console.warn('[Realtime] Desconectado, activando polling de respaldo');
+                    if (!fallbackInterval) {
+                        fallbackInterval = setInterval(() => fetchContacts(true), 10000);
+                    }
+                    if (!fallbackMsgInterval) {
+                        fallbackMsgInterval = setInterval(() => {
+                            const phone = activeContactRef.current;
+                            if (!phone) return;
+                            supabase.from('whatsapp_conversaciones')
+                                .select('*').eq('phone_number', phone)
+                                .order('created_at', { ascending: true }).limit(200)
+                                .then(({ data }) => {
+                                    if (data && activeContactRef.current === phone) {
+                                        setMessages(prev => {
+                                            const sorted = sortMessages(data);
+                                            if (prev.length === sorted.length && prev[prev.length - 1]?.id === sorted[sorted.length - 1]?.id) return prev;
+                                            return sorted;
+                                        });
+                                    }
+                                });
+                        }, 5000);
+                    }
+                } else if (status === 'SUBSCRIBED') {
+                    console.log('[Realtime] Conectado correctamente');
+                    if (fallbackInterval) { clearInterval(fallbackInterval); fallbackInterval = null; }
+                    if (fallbackMsgInterval) { clearInterval(fallbackMsgInterval); fallbackMsgInterval = null; }
+                }
+            });
+
+        // Request notification permission
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
+
+        return () => {
+            supabase.removeChannel(channel);
+            if (fallbackInterval) clearInterval(fallbackInterval);
+            if (fallbackMsgInterval) clearInterval(fallbackMsgInterval);
         };
-
-        // Start immediately
-        poll();
-
-        return () => { cancelled = true; };
     }, [session, fetchContacts]);
 
-    /* ─── Send manual message ─────────────────────────────────────── */
+    /* ─── Send manual message (optimistic UI) ────────────────────── */
     const handleSend = async () => {
         if (!newMessage.trim() || !activeContact || sending) return;
         setSending(true);
+        setSendError(null);
         const msg = newMessage.trim();
+        const tempId = `temp-${Date.now()}`;
 
         const webhookUrl = localStorage.getItem('admin_chat_webhook_url');
         if (!webhookUrl) {
-            alert('Configura la URL del webhook de respuesta manual en Ajustes (admin_chat_webhook_url)');
+            setWebhookMissing(true);
             setSending(false);
             return;
         }
+
+        // Optimistic: show message immediately and clear input
+        const optimisticMsg = {
+            id: tempId,
+            phone_number: activeContact,
+            role: 'assistant',
+            content: msg,
+            created_at: new Date().toISOString(),
+        };
+        setMessages(prev => [...prev, optimisticMsg]);
+        setNewMessage('');
 
         try {
             // 1. Fire-and-forget to n8n (sends WhatsApp via Meta API)
@@ -339,22 +427,30 @@ const ChatPanel = () => {
                 body: JSON.stringify({ phone: activeContact, message: msg }),
             }).catch(() => {});
 
-            // 2. Save to Supabase (Realtime will add it to messages)
-            const { error } = await supabase.from('whatsapp_conversaciones').insert({
+            // 2. Save to Supabase
+            const { data, error } = await supabase.from('whatsapp_conversaciones').insert({
                 phone_number: activeContact,
                 role: 'assistant',
                 content: msg,
-            }).select();
+            }).select().single();
 
             if (error) {
                 console.error('Error guardando mensaje:', error);
-                alert('Error al guardar mensaje en base de datos.');
-            } else {
-                setNewMessage('');
+                // Mark optimistic message as failed
+                setMessages(prev => prev.map(m => m.id === tempId ? { ...m, _failed: true } : m));
+                setSendError('Error al guardar mensaje en base de datos.');
+            } else if (data) {
+                // Replace temp with real (Realtime may have already done this)
+                setMessages(prev => {
+                    const hasReal = prev.some(m => m.id === data.id);
+                    if (hasReal) return prev.filter(m => m.id !== tempId);
+                    return prev.map(m => m.id === tempId ? data : m);
+                });
             }
         } catch (e) {
             console.error('Error enviando mensaje:', e);
-            alert('Error de conexion al enviar mensaje.');
+            setMessages(prev => prev.map(m => m.id === tempId ? { ...m, _failed: true } : m));
+            setSendError('Error de conexion al enviar mensaje.');
         }
         setSending(false);
     };
@@ -452,6 +548,34 @@ const ChatPanel = () => {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
+    /* ─── Tab title with unread badge ─────────────────────────────── */
+    const totalUnreadMemo = useMemo(() => contacts.reduce((s, c) => s + (c.unread || 0), 0), [contacts]);
+    useEffect(() => {
+        document.title = totalUnreadMemo > 0 ? `(${totalUnreadMemo}) Chat - Aurem Gs` : 'Chat - Aurem Gs';
+        return () => { document.title = 'Aurem Gs'; };
+    }, [totalUnreadMemo]);
+
+    /* ─── Keyboard shortcuts ──────────────────────────────────────── */
+    useEffect(() => {
+        const handleGlobalKeyDown = (e) => {
+            // Ctrl+K → focus search
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                e.preventDefault();
+                searchInputRef.current?.focus();
+                return;
+            }
+            // Escape → close panels cascade
+            if (e.key === 'Escape') {
+                if (showContactInfo) { setShowContactInfo(false); return; }
+                if (showQuickReplies) { setShowQuickReplies(false); return; }
+                if (showImagePicker) { setShowImagePicker(false); setSelectedProduct(null); return; }
+                if (activeContact) { setActiveContact(null); setMobileShowChat(false); return; }
+            }
+        };
+        document.addEventListener('keydown', handleGlobalKeyDown);
+        return () => document.removeEventListener('keydown', handleGlobalKeyDown);
+    }, [showContactInfo, showQuickReplies, showImagePicker, activeContact]);
+
     /* ─── Sidebar nav ─────────────────────────────────────────────── */
     const handleNavClick = (id) => {
         navigate('/admin');
@@ -482,7 +606,7 @@ const ChatPanel = () => {
     const activeContactData = contacts.find(c => c.phone_number === activeContact);
     const activeDisplayName = activeContactData?.customer_name || activeContact;
     const isTakeover = !!takeoverMap[activeContact];
-    const totalUnread = contacts.reduce((s, c) => s + (c.unread || 0), 0);
+    const totalUnread = totalUnreadMemo;
 
     return (
         <div className="admin-layout">
@@ -494,10 +618,27 @@ const ChatPanel = () => {
                         <span className="admin-topbar-icon">{NAV.find(n => n.id === 'chat')?.icon}</span>
                         <h2 className="admin-topbar-title">
                             <span>Conversaciones</span>
+                            <span className={`chat-rt-status ${realtimeStatus === 'SUBSCRIBED' ? 'chat-rt-status--ok' : 'chat-rt-status--err'}`}
+                                  title={realtimeStatus === 'SUBSCRIBED' ? 'Conectado en tiempo real' : `Estado: ${realtimeStatus}`} />
                             {totalUnread > 0 ? <span className="chat-nav-badge">{totalUnread}</span> : null}
                         </h2>
                     </div>
                     <div className="admin-topbar-right">
+                        <button
+                            className={`chat-sound-toggle ${soundEnabled ? '' : 'chat-sound-toggle--muted'}`}
+                            onClick={() => {
+                                const next = !soundEnabled;
+                                setSoundEnabled(next);
+                                localStorage.setItem('admin_sound_enabled', String(next));
+                            }}
+                            title={soundEnabled ? 'Silenciar notificaciones' : 'Activar notificaciones'}
+                        >
+                            {soundEnabled ? (
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 010 7.07"/><path d="M19.07 4.93a10 10 0 010 14.14"/></svg>
+                            ) : (
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+                            )}
+                        </button>
                         <div className="admin-topbar-avatar">{session.user.email[0].toUpperCase()}</div>
                     </div>
                 </header>
@@ -507,9 +648,10 @@ const ChatPanel = () => {
                     <div className={`chat-contacts ${mobileShowChat ? 'chat-contacts--hidden-mobile' : ''}`}>
                         <div className="chat-contacts-header">
                             <input
+                                ref={searchInputRef}
                                 type="text"
                                 className="chat-search"
-                                placeholder="Buscar conversacion..."
+                                placeholder="Buscar conversacion... (Ctrl+K)"
                                 value={searchQuery}
                                 onChange={e => setSearchQuery(e.target.value)}
                             />
@@ -615,12 +757,14 @@ const ChatPanel = () => {
                                                                 <span>{fmtDateFull(msg.created_at)}</span>
                                                             </div>
                                                         ) : null}
-                                                        <div className={`chat-bubble chat-bubble--${msg.role || 'user'}`}>
+                                                        <div className={`chat-bubble chat-bubble--${msg.role || 'user'}${msg._failed ? ' chat-bubble--error' : ''}`}>
                                                             {msg.message_type === 'image' && msg.media_url ? (
                                                                 <img src={msg.media_url} alt="" className="chat-bubble-image" />
                                                             ) : null}
                                                             <div className="chat-bubble-content"><span>{msg.content || ''}</span></div>
-                                                            <div className="chat-bubble-time"><span>{fmtTime(msg.created_at)}</span></div>
+                                                            <div className="chat-bubble-time">
+                                                                {msg._failed ? <span style={{ color: '#ef4444' }}>Error al enviar</span> : <span>{fmtTime(msg.created_at)}</span>}
+                                                            </div>
                                                         </div>
                                                     </React.Fragment>
                                                 );
@@ -699,6 +843,23 @@ const ChatPanel = () => {
                                         </div>
                                     )}
                                 </div>
+
+                                {/* Webhook missing banner */}
+                                {webhookMissing && (
+                                    <div className="chat-webhook-banner">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                                        <span>Configura el webhook en <strong>Ajustes</strong> para enviar mensajes por WhatsApp.</span>
+                                        <button className="chat-webhook-banner-close" onClick={() => setWebhookMissing(false)}>&times;</button>
+                                    </div>
+                                )}
+
+                                {/* Send error banner */}
+                                {sendError && (
+                                    <div className="chat-send-error">
+                                        <span>{sendError}</span>
+                                        <button onClick={() => setSendError(null)}>&times;</button>
+                                    </div>
+                                )}
 
                                 {/* Input area */}
                                 <div className="chat-conv-input">
