@@ -502,23 +502,25 @@ const ChatPanel = () => {
                 }).catch(() => {});
             }
 
-            // 2. Save to Supabase
-            const { data, error } = await supabase.from('whatsapp_conversaciones').insert({
-                phone_number: activeContact,
-                role: 'assistant',
-                content: msg,
-            }).select().single();
+            // 2. Save to Supabase (solo si NO es manual — el workflow ya guarda)
+            if (!isManual) {
+                const { data, error } = await supabase.from('whatsapp_conversaciones').insert({
+                    phone_number: activeContact,
+                    role: 'assistant',
+                    content: msg,
+                }).select().single();
 
-            if (error) {
-                console.error('Error guardando mensaje:', error);
-                setMessages(prev => prev.map(m => m.id === tempId ? { ...m, _failed: true } : m));
-                setSendError('Error al guardar mensaje en base de datos.');
-            } else if (data) {
-                setMessages(prev => {
-                    const hasReal = prev.some(m => m.id === data.id);
-                    if (hasReal) return prev.filter(m => m.id !== tempId);
-                    return prev.map(m => m.id === tempId ? data : m);
-                });
+                if (error) {
+                    console.error('Error guardando mensaje:', error);
+                    setMessages(prev => prev.map(m => m.id === tempId ? { ...m, _failed: true } : m));
+                    setSendError('Error al guardar mensaje en base de datos.');
+                } else if (data) {
+                    setMessages(prev => {
+                        const hasReal = prev.some(m => m.id === data.id);
+                        if (hasReal) return prev.filter(m => m.id !== tempId);
+                        return prev.map(m => m.id === tempId ? data : m);
+                    });
+                }
             }
         } catch (e) {
             console.error('Error enviando mensaje:', e);
@@ -557,13 +559,16 @@ const ChatPanel = () => {
             }).catch(() => {});
         }
 
-        await supabase.from('whatsapp_conversaciones').insert({
-            phone_number: activeContact,
-            role: 'assistant',
-            content: caption,
-            message_type: 'image',
-            media_url: product.image_url,
-        });
+        // Solo guardar desde frontend si NO es manual (el workflow ya guarda)
+        if (!isManual) {
+            await supabase.from('whatsapp_conversaciones').insert({
+                phone_number: activeContact,
+                role: 'assistant',
+                content: caption,
+                message_type: 'image',
+                media_url: product.image_url,
+            });
+        }
 
         setShowImagePicker(false);
         setSelectedProduct(null);
