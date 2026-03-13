@@ -985,35 +985,89 @@ const ChatPanel = () => {
                                     {showContactInfo && (
                                         <div className="chat-info-panel">
                                             <div className="chat-info-panel-header">
-                                                <h4>Info del contacto</h4>
-                                                <button className="chat-info-close" onClick={() => setShowContactInfo(false)}>&times;</button>
+                                                <h4>Contacto</h4>
+                                                <button className="chat-info-close" onClick={() => setShowContactInfo(false)}>
+                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                                </button>
                                             </div>
                                             <div className="chat-info-panel-body">
-                                                {contactCustomer ? (
-                                                    <>
-                                                        <div className="chat-info-section">
-                                                            <div className="chat-info-avatar">
-                                                                {contactCustomer.name ? contactCustomer.name[0].toUpperCase() : '#'}
-                                                            </div>
-                                                            <h5>{contactCustomer.name || 'Sin nombre'}</h5>
-                                                            <p className="chat-info-phone">{activeContact}</p>
-                                                            {contactCustomer.email && <p className="chat-info-email">{contactCustomer.email}</p>}
-                                                            {contactCustomer.city && <p className="chat-info-detail">Ciudad: {contactCustomer.city}</p>}
-                                                            <p className="chat-info-detail">Total gastado: ${contactOrders.filter(o => o.status === 'pagado' || o.status === 'entregado').reduce((s, o) => s + Number(o.amount || 0), 0).toLocaleString('es-CO')}</p>
-                                                            {messages.length > 0 && <p className="chat-info-detail">Primer mensaje: {fmtDateFull(messages[0]?.created_at)}</p>}
-                                                            <p className="chat-info-detail">Mensajes: {messages.length}</p>
+                                                {/* ── Profile card ── */}
+                                                <div className="chat-info-profile">
+                                                    <div className="chat-info-avatar">
+                                                        {(contactCustomer?.name || (contactOrders.length > 0 && contactOrders[0].customer_name))
+                                                            ? (contactCustomer?.name || contactOrders[0].customer_name)[0].toUpperCase()
+                                                            : '#'}
+                                                    </div>
+                                                    <div className="chat-info-identity">
+                                                        <h5>{contactCustomer?.name || (contactOrders.length > 0 && contactOrders[0].customer_name) || 'Sin nombre'}</h5>
+                                                        <span className="chat-info-phone">{activeContact}</span>
+                                                    </div>
+                                                </div>
+
+                                                {/* ── Meta pills ── */}
+                                                <div className="chat-info-meta">
+                                                    {(contactCustomer?.email || (contactOrders.length > 0 && contactOrders[0].customer_email && contactOrders[0].customer_email !== 'noreply@auremgs.com')) && (
+                                                        <div className="chat-info-meta-row">
+                                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                                                            <span>{contactCustomer?.email || contactOrders[0].customer_email}</span>
                                                         </div>
+                                                    )}
+                                                    {contactCustomer?.city && (
+                                                        <div className="chat-info-meta-row">
+                                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                                                            <span>{contactCustomer.city}</span>
+                                                        </div>
+                                                    )}
+                                                    <div className="chat-info-meta-row">
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                                        <span>Desde {messages.length > 0 ? fmtDateFull(messages[0]?.created_at) : '—'}</span>
+                                                    </div>
+                                                </div>
+
+                                                {/* ── Stats grid ── */}
+                                                <div className="chat-info-stats">
+                                                    <div className="chat-info-stat">
+                                                        <span className="chat-info-stat-value">${contactOrders.filter(o => o.status === 'pagado' || o.status === 'entregado').reduce((s, o) => s + Number(o.amount || 0), 0).toLocaleString('es-CO')}</span>
+                                                        <span className="chat-info-stat-label">Total gastado</span>
+                                                    </div>
+                                                    <div className="chat-info-stat">
+                                                        <span className="chat-info-stat-value">{contactOrders.length}</span>
+                                                        <span className="chat-info-stat-label">Pedidos</span>
+                                                    </div>
+                                                    <div className="chat-info-stat">
+                                                        <span className="chat-info-stat-value">{messages.length}</span>
+                                                        <span className="chat-info-stat-label">Mensajes</span>
+                                                    </div>
+                                                    <div className="chat-info-stat">
+                                                        <span className={`chat-info-stat-badge ${isTakeover ? 'chat-info-stat-badge--manual' : 'chat-info-stat-badge--ai'}`}>
+                                                            {isTakeover ? 'Manual' : 'IA'}
+                                                        </span>
+                                                        <span className="chat-info-stat-label">Modo</span>
+                                                    </div>
+                                                </div>
+
+                                                {contactCustomer && (
+                                                    <>
+                                                        {/* ── Notes ── */}
                                                         <div className="chat-info-section">
-                                                            <h6>Notas</h6>
+                                                            <div className="chat-info-section-head">
+                                                                <h6>Notas</h6>
+                                                                {!editingNotes && (
+                                                                    <button className="chat-info-edit-btn" onClick={() => setEditingNotes(true)}>
+                                                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                                                    </button>
+                                                                )}
+                                                            </div>
                                                             {editingNotes ? (
-                                                                <div>
+                                                                <div className="chat-info-notes-edit">
                                                                     <textarea
                                                                         className="chat-info-notes-input"
                                                                         value={customerNotes}
                                                                         onChange={e => setCustomerNotes(e.target.value)}
                                                                         rows={3}
+                                                                        autoFocus
                                                                     />
-                                                                    <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+                                                                    <div className="chat-info-notes-actions">
                                                                         <button className="chat-info-btn" onClick={handleSaveNotes}>Guardar</button>
                                                                         <button className="chat-info-btn chat-info-btn--outline" onClick={() => setEditingNotes(false)}>Cancelar</button>
                                                                     </div>
@@ -1024,39 +1078,36 @@ const ChatPanel = () => {
                                                                 </p>
                                                             )}
                                                         </div>
-                                                        <div className="chat-info-section">
-                                                            <h6>Pedidos recientes</h6>
-                                                            {contactOrders.length === 0 ? (
-                                                                <p className="chat-info-empty">Sin pedidos</p>
-                                                            ) : (
-                                                                contactOrders.map(o => (
-                                                                    <div key={o.id} className="chat-info-order">
+                                                    </>
+                                                )}
+
+                                                {/* ── Orders ── */}
+                                                <div className="chat-info-section">
+                                                    <div className="chat-info-section-head">
+                                                        <h6>Pedidos recientes</h6>
+                                                    </div>
+                                                    {contactOrders.length === 0 ? (
+                                                        <div className="chat-info-empty">
+                                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg>
+                                                            <span>Sin pedidos aún</span>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="chat-info-orders">
+                                                            {contactOrders.map(o => (
+                                                                <div key={o.id} className="chat-info-order">
+                                                                    <div className="chat-info-order-top">
                                                                         <span className="chat-info-order-name">{o.product_name}</span>
-                                                                        <span className="chat-info-order-amount">${Number(o.amount).toLocaleString('es-CO')}</span>
                                                                         <span className={`chat-info-order-status chat-info-order-status--${o.status}`}>{o.status}</span>
                                                                     </div>
-                                                                ))
-                                                            )}
+                                                                    <div className="chat-info-order-bottom">
+                                                                        <span className="chat-info-order-amount">${Number(o.amount).toLocaleString('es-CO')}</span>
+                                                                        <span className="chat-info-order-date">{fmtDate(o.created_at)}</span>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
                                                         </div>
-                                                        <div className="chat-info-section">
-                                                            <h6>Estado</h6>
-                                                            <span className={`chat-mode-badge ${isTakeover ? 'chat-mode-badge--manual' : 'chat-mode-badge--ai'}`}>
-                                                                {isTakeover ? 'Control manual' : 'Agente IA'}
-                                                            </span>
-                                                        </div>
-                                                    </>
-                                                ) : (
-                                                    <div className="chat-info-section">
-                                                        <div className="chat-info-avatar">
-                                                            {contactOrders.length > 0 && contactOrders[0].customer_name ? contactOrders[0].customer_name[0].toUpperCase() : '#'}
-                                                        </div>
-                                                        <h5>{contactOrders.length > 0 && contactOrders[0].customer_name ? contactOrders[0].customer_name : 'Cliente no registrado'}</h5>
-                                                        <p className="chat-info-phone">{activeContact}</p>
-                                                        {contactOrders.length > 0 && contactOrders[0].customer_email && contactOrders[0].customer_email !== 'noreply@auremgs.com' && (
-                                                            <p className="chat-info-email">{contactOrders[0].customer_email}</p>
-                                                        )}
-                                                    </div>
-                                                )}
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                     )}
