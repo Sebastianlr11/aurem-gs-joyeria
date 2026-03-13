@@ -24,6 +24,7 @@ const Confirmacion  = lazy(() => import('./pages/Confirmacion'))
 const Login         = lazy(() => import('./pages/admin/Login'))
 const ResetPassword = lazy(() => import('./pages/admin/ResetPassword'))
 const Dashboard     = lazy(() => import('./pages/admin/Dashboard'))
+const ChatPanel     = lazy(() => import('./pages/admin/ChatPanel'))
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'))
 const TermsOfService = lazy(() => import('./pages/TermsOfService'))
 const ReturnsPolicy = lazy(() => import('./pages/ReturnsPolicy'))
@@ -86,6 +87,11 @@ function App() {
           <Route path="/admin" element={
             <ProtectedRoute>
               <Dashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/chat" element={
+            <ProtectedRoute>
+              <ChatPanel />
             </ProtectedRoute>
           } />
         </Routes>
