@@ -1310,6 +1310,7 @@ const ReportsSection = ({ orders }) => {
     const [topCities, setTopCities] = useState([]);
     const [revenueBySource, setRevenueBySource] = useState([]);
     const [newVsReturning, setNewVsReturning] = useState(null);
+    const [funnelData, setFunnelData] = useState(null);
     const now = new Date();
 
     const startOfDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -1344,6 +1345,10 @@ const ReportsSection = ({ orders }) => {
 
         supabase.rpc('clientes_nuevos_vs_recurrentes', { p_dias: days })
             .then(({ data }) => setNewVsReturning(data?.[0] || null))
+            .catch(() => {});
+
+        supabase.rpc('embudo_whatsapp', { p_dias: days })
+            .then(({ data }) => setFunnelData(data?.[0] || null))
             .catch(() => {});
     }, [period]);
 
@@ -1384,6 +1389,7 @@ const ReportsSection = ({ orders }) => {
         };
     });
     const maxDayCount = Math.max(...ordersByDay.map(d => d.count), 1);
+    const maxDayRevenue = Math.max(...ordersByDay.map(d => d.revenue), 1);
 
     /* Top 5 products */
     const productCounts = {};
@@ -1424,6 +1430,23 @@ const ReportsSection = ({ orders }) => {
                             {REPORT_PERIOD_LABELS[p]}
                         </button>
                     ))}
+                    <button className="rpt-period-btn" onClick={() => {
+                        const headers = ['Fecha','Cliente','Teléfono','Producto','Monto','Estado','Método de pago','Ciudad','Fuente'];
+                        const rows = filtered.map(o => {
+                            const d = new Date(o.created_at);
+                            const fecha = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+                            return [fecha, o.customer_name||'', o.customer_phone||'', o.product_name||'', o.amount||0, o.status||'', o.payment_method||'', o.city||o.shipping_city||'', o.order_source||'web'];
+                        });
+                        const csv = [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+                        const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a'); a.href = url;
+                        a.download = `pedidos_auremgs_${new Date().toISOString().slice(0,10)}.csv`;
+                        a.click(); URL.revokeObjectURL(url);
+                    }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight:'0.3rem',verticalAlign:'middle'}}><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        Exportar CSV
+                    </button>
                 </div>
             </div>
 
@@ -1490,6 +1513,7 @@ const ReportsSection = ({ orders }) => {
                             <span className="rpt-activity-date">{d.label}</span>
                             <div className="rpt-activity-bar-wrap">
                                 <div className="rpt-activity-bar" style={{ width: `${(d.count / maxDayCount) * 100}%` }} />
+                                <div className="rpt-activity-bar" style={{ width: `${(d.revenue / maxDayRevenue) * 100}%`, background: 'var(--accent-gold, #b8860b)', height: '4px', marginTop: '2px', borderRadius: '2px' }} />
                             </div>
                             <span className="rpt-activity-count">{d.count} pedido{d.count !== 1 ? 's' : ''}</span>
                             <span className="rpt-activity-rev">${fmt(d.revenue)}</span>
@@ -1597,6 +1621,37 @@ const ReportsSection = ({ orders }) => {
                             <div className="rpt-kpi-value">{waAnalytics.tiempo_respuesta_min ? `${Math.round(waAnalytics.tiempo_respuesta_min)}m` : '—'}</div>
                             <div className="rpt-kpi-label">Tiempo respuesta</div>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Embudo de ventas WhatsApp */}
+            {funnelData && (
+                <div className="admin-card" style={{marginTop:'1.25rem'}}>
+                    <div className="admin-card-head">
+                        <h3 className="admin-card-title">Embudo de ventas WhatsApp</h3>
+                    </div>
+                    <div style={{padding:'0.75rem 1rem'}}>
+                        {[
+                            { label: 'Conversaciones', value: funnelData.conversaciones, color: '#10b981' },
+                            { label: 'Interesados', value: funnelData.interesados, color: '#3b82f6' },
+                            { label: 'Crearon pedido', value: funnelData.pedidos, color: '#8b5cf6' },
+                            { label: 'Pagaron', value: funnelData.pagados, color: '#b8860b' },
+                        ].map((step, i) => {
+                            const maxVal = funnelData.conversaciones || 1;
+                            const pct = maxVal > 0 ? Math.round((step.value / maxVal) * 100) : 0;
+                            return (
+                                <div key={i} style={{marginBottom: i < 3 ? '0.6rem' : 0}}>
+                                    <div style={{display:'flex', justifyContent:'space-between', fontSize:'0.82rem', marginBottom:'0.2rem', color:'var(--text-secondary, #888)'}}>
+                                        <span>{step.label}</span>
+                                        <span><strong style={{color:'var(--text-primary, #fff)'}}>{step.value}</strong> · {pct}%</span>
+                                    </div>
+                                    <div style={{height:'10px', background:'var(--bg-tertiary, #1a1a2e)', borderRadius:'5px', overflow:'hidden'}}>
+                                        <div style={{width: `${pct}%`, height:'100%', background: step.color, borderRadius:'5px', transition:'width 0.4s ease'}} />
+                                    </div>
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
             )}
