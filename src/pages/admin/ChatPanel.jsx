@@ -23,6 +23,18 @@ const isSameDay = (a, b) => {
 
 const truncate = (s, n = 50) => s && s.length > n ? s.slice(0, n) + '...' : s;
 
+/* ─── Sort helper: user before assistant when same timestamp ─── */
+const sortMessages = (msgs) => {
+    if (!msgs) return [];
+    return [...msgs].sort((a, b) => {
+        const t = new Date(a.created_at) - new Date(b.created_at);
+        if (t !== 0) return t;
+        if (a.role === 'user' && b.role === 'assistant') return -1;
+        if (a.role === 'assistant' && b.role === 'user') return 1;
+        return 0;
+    });
+};
+
 /* ─── Quick Replies ────────────────────────────────────────────── */
 const QUICK_REPLIES_DEFAULT = [
     { label: '📦 En camino', text: 'Tu pedido esta en camino, pronto lo recibiras!' },
@@ -106,7 +118,19 @@ const ChatPanel = () => {
     const imagePickerRef = useRef(null);
     const takeoverMapRef = useRef(takeoverMap);
     const searchInputRef = useRef(null);
+    const notifAudioRef = useRef(null);
+    const contactsRef = useRef(contacts);
+    const fetchContactsTimerRef = useRef(null);
+    const toastTimersRef = useRef([]);
     const navigate = useNavigate();
+
+    /* ─── Cached notification sound ───────────────────────────────── */
+    const playNotifSound = useCallback(() => {
+        if (localStorage.getItem('admin_sound_enabled') === 'false') return;
+        if (!notifAudioRef.current) notifAudioRef.current = new Audio('/assets/notificacion.mp3');
+        notifAudioRef.current.currentTime = 0;
+        notifAudioRef.current.play().catch(() => {});
+    }, []);
 
     /* ─── Auth ───────────────────────────────────────────────────── */
     useEffect(() => {
@@ -134,11 +158,12 @@ const ChatPanel = () => {
             }
         });
 
-        // Fetch customer names
+        // Fetch customer names + unread counts in parallel
         const phones = [...contactMap.keys()];
-        const { data: customers } = await supabase
-            .from('customers')
-            .select('phone, name');
+        const [{ data: customers }, { data: unreadData }] = await Promise.all([
+            supabase.from('customers').select('phone, name'),
+            supabase.from('whatsapp_conversaciones').select('phone_number').eq('is_read', false).eq('role', 'user'),
+        ]);
 
         const customerMap = new Map();
         if (customers) {
@@ -147,13 +172,6 @@ const ChatPanel = () => {
                 customerMap.set(c.phone, c.name);
             });
         }
-
-        // Count unread messages per phone_number
-        const { data: unreadData } = await supabase
-            .from('whatsapp_conversaciones')
-            .select('phone_number')
-            .eq('is_read', false)
-            .eq('role', 'user');
 
         const unreadMap = new Map();
         if (unreadData) {
@@ -217,6 +235,7 @@ const ChatPanel = () => {
     /* ─── Keep refs in sync ───────────────────────────────────── */
     useEffect(() => { takeoverMapRef.current = takeoverMap; }, [takeoverMap]);
     useEffect(() => { activeContactRef.current = activeContact; }, [activeContact]);
+    useEffect(() => { contactsRef.current = contacts; }, [contacts]);
 
     /* ─── Load takeover status ─────────────────────────────────── */
     const prevTakeoverRef = useRef({});
@@ -233,9 +252,7 @@ const ChatPanel = () => {
                 Object.keys(map).forEach(phone => {
                     if (!prev[phone]) {
                         // Nuevo takeover — sonido + notificación
-                        if (localStorage.getItem('admin_sound_enabled') !== 'false') {
-                            try { new Audio('/assets/notificacion.mp3').play().catch(() => {}); } catch (e) {}
-                        }
+                        playNotifSound();
                         if (document.hidden && Notification.permission === 'granted') {
                             try {
                                 new Notification('Takeover activado - Aurem Gs', {
@@ -264,18 +281,6 @@ const ChatPanel = () => {
         return () => { supabase.removeChannel(channel); };
     }, [session]);
 
-    /* ─── Sort helper: user before assistant when same timestamp ─── */
-    const sortMessages = (msgs) => {
-        if (!msgs) return [];
-        return [...msgs].sort((a, b) => {
-            const t = new Date(a.created_at) - new Date(b.created_at);
-            if (t !== 0) return t;
-            if (a.role === 'user' && b.role === 'assistant') return -1;
-            if (a.role === 'assistant' && b.role === 'user') return 1;
-            return 0;
-        });
-    };
-
     /* ─── Load messages for active contact ────────────────────────── */
     useEffect(() => {
         if (!activeContact) return;
@@ -284,7 +289,7 @@ const ChatPanel = () => {
             setLoadingMsgs(true);
             const { data } = await supabase
                 .from('whatsapp_conversaciones')
-                .select('*')
+                .select('id, phone_number, content, role, created_at, is_read, message_type, media_url')
                 .eq('phone_number', activeContact)
                 .order('created_at', { ascending: true })
                 .limit(200);
@@ -321,7 +326,7 @@ const ChatPanel = () => {
             .or(`customer_phone.eq.${norm},customer_phone.eq.${short},customer_phone.eq.${activeContact}`)
             .order('created_at', { ascending: false }).limit(10)
             .then(({ data }) => setContactOrders(data || []));
-    }, [activeContact, showContactInfo]);
+    }, [activeContact]);
 
     /* ─── Scroll to bottom on new messages ────────────────────────── */
     const prevMsgCountRef = useRef(0);
@@ -353,8 +358,8 @@ const ChatPanel = () => {
                     console.log('[Realtime] Nuevo mensaje:', newMsg.role, newMsg.phone_number);
 
                     // Play sound for incoming user messages
-                    if (newMsg.role === 'user' && localStorage.getItem('admin_sound_enabled') !== 'false') {
-                        try { new Audio('/assets/notificacion.mp3').play().catch(() => {}); } catch (e) {}
+                    if (newMsg.role === 'user') {
+                        playNotifSound();
                     }
 
                     // Desktop notification for user messages when tab is hidden
@@ -394,14 +399,16 @@ const ChatPanel = () => {
                         }
                     } else if (newMsg.role === 'user') {
                         // Toast for message from non-active contact
-                        const contactName = contacts.find(c => c.phone_number === newMsg.phone_number)?.customer_name || newMsg.phone_number;
+                        const contactName = contactsRef.current.find(c => c.phone_number === newMsg.phone_number)?.customer_name || newMsg.phone_number;
                         const toastId = `toast-${Date.now()}`;
                         setToasts(prev => [...prev.slice(-4), { id: toastId, name: contactName, text: truncate(newMsg.content, 50), phone: newMsg.phone_number }]);
-                        setTimeout(() => setToasts(prev => prev.filter(t => t.id !== toastId)), 5000);
+                        const toastTimer = setTimeout(() => setToasts(prev => prev.filter(t => t.id !== toastId)), 5000);
+                        toastTimersRef.current.push(toastTimer);
                     }
 
-                    // Refresh contacts list to update last message / unread counts
-                    fetchContactsRef.current(true);
+                    // Refresh contacts list (debounced to avoid flooding with rapid messages)
+                    clearTimeout(fetchContactsTimerRef.current);
+                    fetchContactsTimerRef.current = setTimeout(() => fetchContactsRef.current(true), 800);
                 }
             )
             .subscribe((status, err) => {
@@ -448,6 +455,9 @@ const ChatPanel = () => {
             supabase.removeChannel(channel);
             if (fallbackInterval) clearInterval(fallbackInterval);
             if (fallbackMsgInterval) clearInterval(fallbackMsgInterval);
+            clearTimeout(fetchContactsTimerRef.current);
+            toastTimersRef.current.forEach(t => clearTimeout(t));
+            toastTimersRef.current = [];
         };
     }, [session]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -988,7 +998,8 @@ const ChatPanel = () => {
                                                             <h5>{contactCustomer.name || 'Sin nombre'}</h5>
                                                             <p className="chat-info-phone">{activeContact}</p>
                                                             {contactCustomer.email && <p className="chat-info-email">{contactCustomer.email}</p>}
-                                                            <p className="chat-info-detail">Total gastado: ${contactOrders.filter(o => o.status === 'paid' || o.status === 'delivered').reduce((s, o) => s + Number(o.amount || 0), 0).toLocaleString('es-CO')}</p>
+                                                            {contactCustomer.city && <p className="chat-info-detail">Ciudad: {contactCustomer.city}</p>}
+                                                            <p className="chat-info-detail">Total gastado: ${contactOrders.filter(o => o.status === 'pagado' || o.status === 'entregado').reduce((s, o) => s + Number(o.amount || 0), 0).toLocaleString('es-CO')}</p>
                                                             {messages.length > 0 && <p className="chat-info-detail">Primer mensaje: {fmtDateFull(messages[0]?.created_at)}</p>}
                                                             <p className="chat-info-detail">Mensajes: {messages.length}</p>
                                                         </div>
@@ -1036,8 +1047,14 @@ const ChatPanel = () => {
                                                     </>
                                                 ) : (
                                                     <div className="chat-info-section">
-                                                        <p className="chat-info-empty">Cliente no registrado</p>
+                                                        <div className="chat-info-avatar">
+                                                            {contactOrders.length > 0 && contactOrders[0].customer_name ? contactOrders[0].customer_name[0].toUpperCase() : '#'}
+                                                        </div>
+                                                        <h5>{contactOrders.length > 0 && contactOrders[0].customer_name ? contactOrders[0].customer_name : 'Cliente no registrado'}</h5>
                                                         <p className="chat-info-phone">{activeContact}</p>
+                                                        {contactOrders.length > 0 && contactOrders[0].customer_email && contactOrders[0].customer_email !== 'noreply@auremgs.com' && (
+                                                            <p className="chat-info-email">{contactOrders[0].customer_email}</p>
+                                                        )}
                                                     </div>
                                                 )}
                                             </div>
