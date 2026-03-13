@@ -1305,6 +1305,11 @@ const calcMPNet = (amount) => {
 
 const ReportsSection = ({ orders }) => {
     const [period, setPeriod] = useState('30d');
+    const [waAnalytics, setWaAnalytics] = useState(null);
+    const [trendData, setTrendData] = useState(null);
+    const [topCities, setTopCities] = useState([]);
+    const [revenueBySource, setRevenueBySource] = useState([]);
+    const [newVsReturning, setNewVsReturning] = useState(null);
     const now = new Date();
 
     const startOfDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -1317,6 +1322,30 @@ const ReportsSection = ({ orders }) => {
         d.setDate(d.getDate() - days);
         return d;
     })();
+
+    useEffect(() => {
+        const days = period === 'todo' ? 3650 : parseInt(period);
+
+        supabase.rpc('analiticas_whatsapp', { p_dias: days })
+            .then(({ data }) => setWaAnalytics(data?.[0] || null))
+            .catch(() => {});
+
+        supabase.rpc('tendencia_comparativa')
+            .then(({ data }) => setTrendData(data?.[0] || null))
+            .catch(() => {});
+
+        supabase.rpc('top_ciudades_envio', { p_dias: days })
+            .then(({ data }) => setTopCities(data || []))
+            .catch(() => {});
+
+        supabase.rpc('revenue_por_fuente', { p_dias: days })
+            .then(({ data }) => setRevenueBySource(data || []))
+            .catch(() => {});
+
+        supabase.rpc('clientes_nuevos_vs_recurrentes', { p_dias: days })
+            .then(({ data }) => setNewVsReturning(data?.[0] || null))
+            .catch(() => {});
+    }, [period]);
 
     const filtered = orders.filter(o => new Date(o.created_at) >= periodStart);
     const paidFiltered = filtered.filter(o => REVENUE_STATUSES.includes(o.status));
@@ -1548,6 +1577,133 @@ const ReportsSection = ({ orders }) => {
                     </div>
                 </div>
             </div>
+
+            {/* WhatsApp Analytics */}
+            {waAnalytics && (
+                <div className="admin-card" style={{marginTop:'1.25rem'}}>
+                    <div className="admin-card-head">
+                        <h3 className="admin-card-title">WhatsApp Analytics</h3>
+                    </div>
+                    <div className="rpt-kpi-grid rpt-kpi-grid--3">
+                        <div className="rpt-kpi">
+                            <div className="rpt-kpi-value">{waAnalytics.total_conversaciones || 0}</div>
+                            <div className="rpt-kpi-label">Conversaciones</div>
+                        </div>
+                        <div className="rpt-kpi">
+                            <div className="rpt-kpi-value">{waAnalytics.tasa_conversion ? `${Math.round(waAnalytics.tasa_conversion)}%` : '0%'}</div>
+                            <div className="rpt-kpi-label">Tasa conversión</div>
+                        </div>
+                        <div className="rpt-kpi">
+                            <div className="rpt-kpi-value">{waAnalytics.tiempo_respuesta_min ? `${Math.round(waAnalytics.tiempo_respuesta_min)}m` : '—'}</div>
+                            <div className="rpt-kpi-label">Tiempo respuesta</div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Tendencia mes a mes */}
+            {trendData && (
+                <div className="admin-card" style={{marginTop:'1.25rem'}}>
+                    <div className="admin-card-head">
+                        <h3 className="admin-card-title">Tendencia mes vs mes anterior</h3>
+                    </div>
+                    <div className="rpt-kpi-grid rpt-kpi-grid--3">
+                        <div className="rpt-kpi">
+                            <div className="rpt-kpi-value">
+                                {trendData.pedidos_actual || 0}
+                                <span className={`rpt-trend ${(trendData.pedidos_actual || 0) >= (trendData.pedidos_anterior || 0) ? 'rpt-trend--up' : 'rpt-trend--down'}`}>
+                                    {(trendData.pedidos_actual || 0) >= (trendData.pedidos_anterior || 0) ? '↑' : '↓'} {trendData.pedidos_anterior || 0}
+                                </span>
+                            </div>
+                            <div className="rpt-kpi-label">Pedidos este mes</div>
+                        </div>
+                        <div className="rpt-kpi">
+                            <div className="rpt-kpi-value">
+                                ${fmt(trendData.revenue_actual || 0)}
+                                <span className={`rpt-trend ${(trendData.revenue_actual || 0) >= (trendData.revenue_anterior || 0) ? 'rpt-trend--up' : 'rpt-trend--down'}`}>
+                                    {(trendData.revenue_actual || 0) >= (trendData.revenue_anterior || 0) ? '↑' : '↓'}
+                                </span>
+                            </div>
+                            <div className="rpt-kpi-label">Revenue este mes</div>
+                        </div>
+                        <div className="rpt-kpi">
+                            <div className="rpt-kpi-value">
+                                ${fmt(trendData.ticket_promedio_actual || 0)}
+                            </div>
+                            <div className="rpt-kpi-label">Ticket promedio</div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Top ciudades de envío */}
+            {topCities.length > 0 && (
+                <div className="admin-card" style={{marginTop:'1.25rem'}}>
+                    <div className="admin-card-head">
+                        <h3 className="admin-card-title">Top ciudades de envío</h3>
+                    </div>
+                    <div className="admin-hbar-chart">
+                        {topCities.map((c, i) => (
+                            <div key={i} className="admin-hbar-row">
+                                <span className="admin-hbar-label">{c.ciudad || 'Sin especificar'}</span>
+                                <div className="admin-hbar-track">
+                                    <div className="admin-hbar" style={{ width: `${(c.total / (topCities[0]?.total || 1)) * 100}%`, background: '#f59e0b' }} />
+                                </div>
+                                <span className="admin-hbar-value">{c.total}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Revenue por fuente */}
+            {revenueBySource.length > 0 && (
+                <div className="admin-card" style={{marginTop:'1.25rem'}}>
+                    <div className="admin-card-head">
+                        <h3 className="admin-card-title">Revenue por fuente</h3>
+                    </div>
+                    <div className="admin-hbar-chart">
+                        {revenueBySource.map((r, i) => (
+                            <div key={i} className="admin-hbar-row">
+                                <span className="admin-hbar-label">{r.fuente || 'web'}</span>
+                                <div className="admin-hbar-track">
+                                    <div className="admin-hbar" style={{ width: `${(r.revenue / (revenueBySource[0]?.revenue || 1)) * 100}%`, background: '#6366f1' }} />
+                                </div>
+                                <span className="admin-hbar-value">${fmt(r.revenue || 0)}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Clientes nuevos vs recurrentes */}
+            {newVsReturning && (
+                <div className="admin-card" style={{marginTop:'1.25rem'}}>
+                    <div className="admin-card-head">
+                        <h3 className="admin-card-title">Clientes nuevos vs recurrentes</h3>
+                    </div>
+                    <div className="rpt-customers-bar">
+                        <div className="rpt-customers-bar-track">
+                            {(newVsReturning.nuevos || 0) + (newVsReturning.recurrentes || 0) > 0 && (
+                                <>
+                                    <div className="rpt-customers-bar-segment rpt-customers-bar--new"
+                                         style={{ width: `${((newVsReturning.nuevos || 0) / ((newVsReturning.nuevos || 0) + (newVsReturning.recurrentes || 0))) * 100}%` }}>
+                                        {newVsReturning.nuevos || 0}
+                                    </div>
+                                    <div className="rpt-customers-bar-segment rpt-customers-bar--returning"
+                                         style={{ width: `${((newVsReturning.recurrentes || 0) / ((newVsReturning.nuevos || 0) + (newVsReturning.recurrentes || 0))) * 100}%` }}>
+                                        {newVsReturning.recurrentes || 0}
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                        <div className="rpt-customers-legend">
+                            <span><span className="rpt-rev-dot" style={{background:'#10b981'}} /> Nuevos ({newVsReturning.nuevos || 0})</span>
+                            <span><span className="rpt-rev-dot" style={{background:'#3b82f6'}} /> Recurrentes ({newVsReturning.recurrentes || 0})</span>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

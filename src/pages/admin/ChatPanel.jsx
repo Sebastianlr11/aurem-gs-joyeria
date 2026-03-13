@@ -84,12 +84,21 @@ const ChatPanel = () => {
     const [sendingImage, setSendingImage] = useState(false);
     const [webhookMissing, setWebhookMissing] = useState(false);
     const [takeoverMap, setTakeoverMap] = useState({});
-    const [showContactInfo, setShowContactInfo] = useState(false);
+    const [showContactInfo, setShowContactInfo] = useState(() => window.innerWidth >= 1200);
     const [contactOrders, setContactOrders] = useState([]);
     const [contactCustomer, setContactCustomer] = useState(null);
     const [editingNotes, setEditingNotes] = useState(false);
     const [customerNotes, setCustomerNotes] = useState('');
     const [sendError, setSendError] = useState(null);
+    const [contactFilter, setContactFilter] = useState('todos');
+    const [pendingPhones, setPendingPhones] = useState(new Set());
+    const [msgSearchQuery, setMsgSearchQuery] = useState('');
+    const [msgSearchResults, setMsgSearchResults] = useState([]);
+    const [searchingMsgs, setSearchingMsgs] = useState(false);
+    const [showMsgSearch, setShowMsgSearch] = useState(false);
+    const [toasts, setToasts] = useState([]);
+    const [showExportMenu, setShowExportMenu] = useState(false);
+    const exportMenuRef = useRef(null);
     const [realtimeStatus, setRealtimeStatus] = useState('CONNECTING');
     const [soundEnabled, setSoundEnabled] = useState(() => localStorage.getItem('admin_sound_enabled') !== 'false');
     const quickReplies = useMemo(() => parseQuickReplies(), []);
@@ -184,6 +193,27 @@ const ChatPanel = () => {
         });
     }, [session]);
 
+    /* ─── Load pending order phones ──────────────────────────── */
+    useEffect(() => {
+        if (!session) return;
+        supabase.from('orders').select('customer_phone').eq('status', 'pendiente')
+            .then(({ data }) => {
+                if (data) setPendingPhones(new Set(data.map(o => normalizePhone(o.customer_phone)).filter(Boolean)));
+            });
+    }, [session]);
+
+    /* ─── Debounced message search ────────────────────────────── */
+    useEffect(() => {
+        if (!msgSearchQuery.trim()) { setMsgSearchResults([]); return; }
+        const timer = setTimeout(async () => {
+            setSearchingMsgs(true);
+            const { data } = await supabase.rpc('buscar_conversaciones', { p_query: msgSearchQuery.trim() });
+            setMsgSearchResults(data || []);
+            setSearchingMsgs(false);
+        }, 400);
+        return () => clearTimeout(timer);
+    }, [msgSearchQuery]);
+
     /* ─── Keep refs in sync ───────────────────────────────────── */
     useEffect(() => { takeoverMapRef.current = takeoverMap; }, [takeoverMap]);
     useEffect(() => { activeContactRef.current = activeContact; }, [activeContact]);
@@ -270,13 +300,12 @@ const ChatPanel = () => {
             }
         };
         load();
-        setShowContactInfo(false);
         return () => { cancelled = true; };
     }, [activeContact]);
 
     /* ─── Load contact info panel ──────────────────────────────── */
     useEffect(() => {
-        if (!activeContact || !showContactInfo) return;
+        if (!activeContact) return;
         // Customer data — search with normalized phone variants
         const norm = normalizePhone(activeContact);
         const short = norm.startsWith('57') ? norm.slice(2) : norm;
@@ -306,6 +335,9 @@ const ChatPanel = () => {
     }, [messages.length]);
 
     /* ─── Supabase Realtime subscription ──────────────────────────── */
+    const fetchContactsRef = useRef(fetchContacts);
+    useEffect(() => { fetchContactsRef.current = fetchContacts; }, [fetchContacts]);
+
     useEffect(() => {
         if (!session) return;
         let fallbackInterval = null;
@@ -360,10 +392,16 @@ const ChatPanel = () => {
                                 .eq('id', newMsg.id)
                                 .then(() => {});
                         }
+                    } else if (newMsg.role === 'user') {
+                        // Toast for message from non-active contact
+                        const contactName = contacts.find(c => c.phone_number === newMsg.phone_number)?.customer_name || newMsg.phone_number;
+                        const toastId = `toast-${Date.now()}`;
+                        setToasts(prev => [...prev.slice(-4), { id: toastId, name: contactName, text: truncate(newMsg.content, 50), phone: newMsg.phone_number }]);
+                        setTimeout(() => setToasts(prev => prev.filter(t => t.id !== toastId)), 5000);
                     }
 
                     // Refresh contacts list to update last message / unread counts
-                    fetchContacts(true);
+                    fetchContactsRef.current(true);
                 }
             )
             .subscribe((status, err) => {
@@ -374,7 +412,7 @@ const ChatPanel = () => {
                 if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
                     console.warn('[Realtime] Desconectado, activando polling de respaldo');
                     if (!fallbackInterval) {
-                        fallbackInterval = setInterval(() => fetchContacts(true), 10000);
+                        fallbackInterval = setInterval(() => fetchContactsRef.current(true), 10000);
                     }
                     if (!fallbackMsgInterval) {
                         fallbackMsgInterval = setInterval(() => {
@@ -411,7 +449,7 @@ const ChatPanel = () => {
             if (fallbackInterval) clearInterval(fallbackInterval);
             if (fallbackMsgInterval) clearInterval(fallbackMsgInterval);
         };
-    }, [session, fetchContacts]);
+    }, [session]); // eslint-disable-line react-hooks/exhaustive-deps
 
     /* ─── Webhook URLs ─────────────────────────────────────────────── */
     const MANUAL_WEBHOOK = 'http://localhost:5678/webhook/respuesta-manual-admin';
@@ -539,7 +577,10 @@ const ChatPanel = () => {
                 .eq('is_active', true);
         } else {
             await supabase.from('chat_takeover')
-                .insert({ phone_number: activeContact, admin_email: session?.user?.email, is_active: true });
+                .upsert(
+                    { phone_number: activeContact, admin_email: session?.user?.email, is_active: true, started_at: new Date().toISOString(), ended_at: null },
+                    { onConflict: 'phone_number' }
+                );
         }
     };
 
@@ -568,6 +609,27 @@ const ChatPanel = () => {
         URL.revokeObjectURL(url);
     };
 
+    /* ─── Export CSV ──────────────────────────────────────────────── */
+    const handleExportCSV = () => {
+        if (!messages.length) return;
+        const header = 'Fecha,Hora,Remitente,Mensaje';
+        const rows = messages.map(m => {
+            const d = new Date(m.created_at);
+            const date = d.toLocaleDateString('es-CO');
+            const time = d.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+            const sender = m.role === 'user' ? 'Cliente' : 'Valentina';
+            const content = `"${(m.content || '').replace(/"/g, '""')}"`;
+            return `${date},${time},${sender},${content}`;
+        });
+        const blob = new Blob([header + '\n' + rows.join('\n')], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `chat_${activeContact}_${new Date().toISOString().slice(0,10)}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
     /* ─── Close panels on outside click ─────────────────────────── */
     useEffect(() => {
         const handleClickOutside = (e) => {
@@ -577,6 +639,9 @@ const ChatPanel = () => {
             if (imagePickerRef.current && !imagePickerRef.current.contains(e.target)) {
                 setShowImagePicker(false);
                 setSelectedProduct(null);
+            }
+            if (exportMenuRef.current && !exportMenuRef.current.contains(e.target)) {
+                setShowExportMenu(false);
             }
         };
         document.addEventListener('mousedown', handleClickOutside);
@@ -601,6 +666,8 @@ const ChatPanel = () => {
             }
             // Escape → close panels cascade
             if (e.key === 'Escape') {
+                if (showMsgSearch) { setShowMsgSearch(false); setMsgSearchQuery(''); setMsgSearchResults([]); return; }
+                if (showExportMenu) { setShowExportMenu(false); return; }
                 if (showContactInfo) { setShowContactInfo(false); return; }
                 if (showQuickReplies) { setShowQuickReplies(false); return; }
                 if (showImagePicker) { setShowImagePicker(false); setSelectedProduct(null); return; }
@@ -609,7 +676,7 @@ const ChatPanel = () => {
         };
         document.addEventListener('keydown', handleGlobalKeyDown);
         return () => document.removeEventListener('keydown', handleGlobalKeyDown);
-    }, [showContactInfo, showQuickReplies, showImagePicker, activeContact]);
+    }, [showContactInfo, showQuickReplies, showImagePicker, activeContact, showMsgSearch, showExportMenu]);
 
     /* ─── Sidebar nav ─────────────────────────────────────────────── */
     const handleNavClick = (id) => {
@@ -625,14 +692,24 @@ const ChatPanel = () => {
                 || c.phone_number.includes(q)
                 || (c.last_message && c.last_message.toLowerCase().includes(q));
         });
+        // Apply contact filter
+        let result = filtered;
+        if (contactFilter === 'hoy') {
+            const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+            result = result.filter(c => new Date(c.last_time) >= todayStart);
+        } else if (contactFilter === 'takeover') {
+            result = result.filter(c => !!takeoverMap[c.phone_number]);
+        } else if (contactFilter === 'pendiente') {
+            result = result.filter(c => pendingPhones.has(normalizePhone(c.phone_number)));
+        }
         // Takeover contacts always appear first
-        return filtered.sort((a, b) => {
+        return result.sort((a, b) => {
             const aTakeover = takeoverMap[a.phone_number] ? 1 : 0;
             const bTakeover = takeoverMap[b.phone_number] ? 1 : 0;
             if (aTakeover !== bTakeover) return bTakeover - aTakeover;
             return new Date(b.last_time) - new Date(a.last_time);
         });
-    }, [contacts, searchQuery, takeoverMap]);
+    }, [contacts, searchQuery, takeoverMap, contactFilter, pendingPhones]);
 
     /* ─── Select contact ──────────────────────────────────────────── */
     const selectContact = (phone) => {
@@ -699,6 +776,14 @@ const ChatPanel = () => {
                                 value={searchQuery}
                                 onChange={e => setSearchQuery(e.target.value)}
                             />
+                            <div className="chat-filter-chips">
+                                {['todos', 'hoy', 'takeover', 'pendiente'].map(f => (
+                                    <button key={f} className={`chat-filter-chip${contactFilter === f ? ' chat-filter-chip--active' : ''}`}
+                                            onClick={() => setContactFilter(f)}>
+                                        {f === 'todos' ? 'Todos' : f === 'hoy' ? 'Hoy' : f === 'takeover' ? 'Manual' : 'Pendiente'}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
                         <div className="chat-contacts-list">
                             {loading ? (
@@ -715,7 +800,9 @@ const ChatPanel = () => {
                                         onClick={() => selectContact(c.phone_number)}
                                     >
                                         <div className="chat-contact-avatar">
-                                            {c.customer_name ? c.customer_name[0].toUpperCase() : '#'}
+                                            {c.customer_name ? c.customer_name[0].toUpperCase() : (
+                                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                            )}
                                             {cTakeover && <span className="chat-contact-takeover-dot" />}
                                         </div>
                                         <div className="chat-contact-info">
@@ -756,7 +843,9 @@ const ChatPanel = () => {
                                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
                                     </button>
                                     <div className="chat-conv-header-avatar">
-                                        {activeContactData?.customer_name ? activeContactData.customer_name[0].toUpperCase() : '#'}
+                                        {activeContactData?.customer_name ? activeContactData.customer_name[0].toUpperCase() : (
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                        )}
                                     </div>
                                     <div className="chat-conv-header-info">
                                         <div className="chat-conv-header-name">
@@ -770,6 +859,10 @@ const ChatPanel = () => {
                                         ) : null}
                                     </div>
                                     <div className="chat-conv-header-actions">
+                                        <button className={`chat-header-action-btn ${showMsgSearch ? 'chat-header-action-btn--active' : ''}`}
+                                                onClick={() => setShowMsgSearch(!showMsgSearch)} title="Buscar en mensajes">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                                        </button>
                                         <button
                                             className={`chat-takeover-btn ${isTakeover ? 'chat-takeover-btn--active' : ''}`}
                                             onClick={handleToggleTakeover}
@@ -781,9 +874,17 @@ const ChatPanel = () => {
                                                 <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Tomar control</>
                                             )}
                                         </button>
-                                        <button className="chat-header-action-btn" onClick={handleExportChat} title="Exportar chat">
-                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                                        </button>
+                                        <div className="chat-export-dropdown" ref={exportMenuRef} style={{position:'relative'}}>
+                                            <button className="chat-header-action-btn" onClick={() => setShowExportMenu(!showExportMenu)} title="Exportar chat">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                                            </button>
+                                            {showExportMenu && (
+                                                <div className="chat-export-menu">
+                                                    <button onClick={() => { handleExportChat(); setShowExportMenu(false); }}>Exportar TXT</button>
+                                                    <button onClick={() => { handleExportCSV(); setShowExportMenu(false); }}>Exportar CSV</button>
+                                                </div>
+                                            )}
+                                        </div>
                                         <button
                                             className={`chat-header-action-btn ${showContactInfo ? 'chat-header-action-btn--active' : ''}`}
                                             onClick={() => setShowContactInfo(!showContactInfo)}
@@ -793,6 +894,31 @@ const ChatPanel = () => {
                                         </button>
                                     </div>
                                 </div>
+
+                                {/* Message search bar */}
+                                {showMsgSearch && (
+                                    <div className="chat-msg-search-bar">
+                                        <input type="text" className="chat-msg-search-input" placeholder="Buscar en mensajes..."
+                                               value={msgSearchQuery} onChange={e => setMsgSearchQuery(e.target.value)} autoFocus />
+                                        {searchingMsgs && <span className="chat-msg-search-spinner" />}
+                                        {msgSearchResults.length > 0 && (
+                                            <div className="chat-msg-search-results">
+                                                {msgSearchResults.slice(0, 8).map((r, i) => (
+                                                    <button key={i} className="chat-msg-search-result" onClick={() => {
+                                                        setActiveContact(r.phone_number);
+                                                        setShowMsgSearch(false);
+                                                        setMsgSearchQuery('');
+                                                        setMsgSearchResults([]);
+                                                    }}>
+                                                        <span className="chat-msg-search-phone">{r.phone_number}</span>
+                                                        <span className="chat-msg-search-text">{truncate(r.content, 60)}</span>
+                                                        <span className="chat-msg-search-time">{fmtDate(r.created_at)}</span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
 
                                 {/* Takeover banner */}
                                 {isTakeover && (
@@ -851,6 +977,9 @@ const ChatPanel = () => {
                                                             <h5>{contactCustomer.name || 'Sin nombre'}</h5>
                                                             <p className="chat-info-phone">{activeContact}</p>
                                                             {contactCustomer.email && <p className="chat-info-email">{contactCustomer.email}</p>}
+                                                            <p className="chat-info-detail">Total gastado: ${contactOrders.filter(o => o.status === 'paid' || o.status === 'delivered').reduce((s, o) => s + Number(o.amount || 0), 0).toLocaleString('es-CO')}</p>
+                                                            {messages.length > 0 && <p className="chat-info-detail">Primer mensaje: {fmtDateFull(messages[0]?.created_at)}</p>}
+                                                            <p className="chat-info-detail">Mensajes: {messages.length}</p>
                                                         </div>
                                                         <div className="chat-info-section">
                                                             <h6>Notas</h6>
@@ -1018,6 +1147,17 @@ const ChatPanel = () => {
                             </>
                         )}
                     </div>
+                    {/* Toast notifications */}
+                    {toasts.length > 0 && (
+                        <div className="chat-toast-container">
+                            {toasts.map(t => (
+                                <div key={t.id} className="chat-toast" onClick={() => { selectContact(t.phone); setToasts(prev => prev.filter(x => x.id !== t.id)); }}>
+                                    <strong>{t.name}</strong>
+                                    <span>{t.text}</span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </main>
         </div>
