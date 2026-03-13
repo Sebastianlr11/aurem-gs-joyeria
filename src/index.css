@@ -7807,7 +7807,7 @@ button {
   line-height: 1;
 }
 
-/* ─── Takeover dot on avatar ───────────────────────────────────── */
+/* ─── Takeover indicators ─────────────────────────────────────── */
 .chat-contact-avatar {
   position: relative;
 }
@@ -7820,6 +7820,70 @@ button {
   border-radius: 50%;
   background: #f59e0b;
   border: 2px solid #fff;
+  animation: rtPulse 1.5s ease-in-out infinite;
+}
+.chat-contact-item--takeover {
+  background: #fffbeb;
+  border-left: 3px solid #f59e0b;
+}
+.chat-contact-item--takeover:hover {
+  background: #fef3c7;
+}
+.chat-contact-item--takeover.chat-contact-item--active {
+  background: #fef3c7;
+}
+.chat-contact-item--takeover.chat-contact-item--active::before {
+  background: linear-gradient(180deg, #f59e0b, #d97706);
+}
+.chat-takeover-badge {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  background: #f59e0b;
+  color: #fff;
+  line-height: 1.4;
+  flex-shrink: 0;
+  animation: chatBadgePop 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ─── Takeover banner in chat ─────────────────────────────────── */
+.chat-takeover-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #fffbeb, #fef3c7);
+  border-bottom: 1px solid #fde68a;
+  color: #92400e;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  animation: chatFadeIn 0.3s ease-out;
+}
+.chat-takeover-banner svg {
+  flex-shrink: 0;
+  stroke: #f59e0b;
+}
+.chat-takeover-banner span {
+  flex: 1;
+}
+.chat-takeover-banner-end {
+  padding: 5px 12px;
+  border-radius: 6px;
+  border: 1px solid #f59e0b;
+  background: #fff;
+  color: #92400e;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.chat-takeover-banner-end:hover {
+  background: #f59e0b;
+  color: #fff;
 }
 
 /* ─── Chat header actions ──────────────────────────────────────── */
@@ -7859,24 +7923,37 @@ button {
 
 /* ─── Takeover button ──────────────────────────────────────────── */
 .chat-takeover-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 15px;
   border: 2px solid #25D366;
   background: #ecfdf5;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.9rem;
-  transition: all 0.2s;
+  gap: 4px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #166534;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
 }
 .chat-takeover-btn:hover {
-  transform: scale(1.1);
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(37, 211, 102, 0.2);
+}
+.chat-takeover-btn:active {
+  transform: scale(0.97);
 }
 .chat-takeover-btn--active {
   border-color: #f59e0b;
   background: #fffbeb;
+  color: #92400e;
+  animation: rtPulse 2s ease-in-out infinite;
+}
+.chat-takeover-btn--active:hover {
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.2);
 }
 
 /* ─── Mode badge ───────────────────────────────────────────────── */

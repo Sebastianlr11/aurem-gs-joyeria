@@ -189,6 +189,7 @@ const ChatPanel = () => {
     useEffect(() => { activeContactRef.current = activeContact; }, [activeContact]);
 
     /* ─── Load takeover status ─────────────────────────────────── */
+    const prevTakeoverRef = useRef({});
     useEffect(() => {
         if (!session) return;
         const fetchTakeover = async () => {
@@ -196,6 +197,26 @@ const ChatPanel = () => {
             if (data) {
                 const map = {};
                 data.forEach(t => { map[t.phone_number] = t; });
+
+                // Detectar nuevos takeovers para alerta
+                const prev = prevTakeoverRef.current;
+                Object.keys(map).forEach(phone => {
+                    if (!prev[phone]) {
+                        // Nuevo takeover — sonido + notificación
+                        if (localStorage.getItem('admin_sound_enabled') !== 'false') {
+                            try { new Audio('/assets/notificacion.mp3').play().catch(() => {}); } catch (e) {}
+                        }
+                        if (document.hidden && Notification.permission === 'granted') {
+                            try {
+                                new Notification('Takeover activado - Aurem Gs', {
+                                    body: `El chat ${phone} necesita atención manual`,
+                                    icon: '/assets/hero1.png',
+                                });
+                            } catch (e) {}
+                        }
+                    }
+                });
+                prevTakeoverRef.current = map;
                 setTakeoverMap(map);
             }
         };
@@ -392,6 +413,9 @@ const ChatPanel = () => {
         };
     }, [session, fetchContacts]);
 
+    /* ─── Webhook URLs ─────────────────────────────────────────────── */
+    const MANUAL_WEBHOOK = 'http://localhost:5678/webhook/respuesta-manual-admin';
+
     /* ─── Send manual message (optimistic UI) ────────────────────── */
     const handleSend = async () => {
         if (!newMessage.trim() || !activeContact || sending) return;
@@ -399,12 +423,16 @@ const ChatPanel = () => {
         setSendError(null);
         const msg = newMessage.trim();
         const tempId = `temp-${Date.now()}`;
+        const isManual = !!takeoverMapRef.current[activeContact];
 
-        const webhookUrl = localStorage.getItem('admin_chat_webhook_url');
-        if (!webhookUrl) {
-            setWebhookMissing(true);
-            setSending(false);
-            return;
+        // Para modo normal, necesita webhook configurado
+        if (!isManual) {
+            const webhookUrl = localStorage.getItem('admin_chat_webhook_url');
+            if (!webhookUrl) {
+                setWebhookMissing(true);
+                setSending(false);
+                return;
+            }
         }
 
         // Optimistic: show message immediately and clear input
@@ -419,13 +447,22 @@ const ChatPanel = () => {
         setNewMessage('');
 
         try {
-            // 1. Fire-and-forget to n8n (sends WhatsApp via Meta API)
-            fetch(webhookUrl, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'text/plain' },
-                body: JSON.stringify({ phone: activeContact, message: msg }),
-            }).catch(() => {});
+            // 1. Enviar via webhook correspondiente
+            const webhookUrl = isManual
+                ? MANUAL_WEBHOOK
+                : localStorage.getItem('admin_chat_webhook_url');
+
+            if (webhookUrl) {
+                const body = isManual
+                    ? { phone_number: activeContact, message: msg }
+                    : { phone: activeContact, message: msg };
+                fetch(webhookUrl, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify(body),
+                }).catch(() => {});
+            }
 
             // 2. Save to Supabase
             const { data, error } = await supabase.from('whatsapp_conversaciones').insert({
@@ -436,11 +473,9 @@ const ChatPanel = () => {
 
             if (error) {
                 console.error('Error guardando mensaje:', error);
-                // Mark optimistic message as failed
                 setMessages(prev => prev.map(m => m.id === tempId ? { ...m, _failed: true } : m));
                 setSendError('Error al guardar mensaje en base de datos.');
             } else if (data) {
-                // Replace temp with real (Realtime may have already done this)
                 setMessages(prev => {
                     const hasReal = prev.some(m => m.id === data.id);
                     if (hasReal) return prev.filter(m => m.id !== tempId);
@@ -581,14 +616,23 @@ const ChatPanel = () => {
         navigate('/admin');
     };
 
-    /* ─── Filter contacts ─────────────────────────────────────────── */
-    const filteredContacts = contacts.filter(c => {
-        if (!searchQuery) return true;
-        const q = searchQuery.toLowerCase();
-        return (c.customer_name && c.customer_name.toLowerCase().includes(q))
-            || c.phone_number.includes(q)
-            || (c.last_message && c.last_message.toLowerCase().includes(q));
-    });
+    /* ─── Filter & sort contacts (takeover first) ───────────────── */
+    const filteredContacts = useMemo(() => {
+        const filtered = contacts.filter(c => {
+            if (!searchQuery) return true;
+            const q = searchQuery.toLowerCase();
+            return (c.customer_name && c.customer_name.toLowerCase().includes(q))
+                || c.phone_number.includes(q)
+                || (c.last_message && c.last_message.toLowerCase().includes(q));
+        });
+        // Takeover contacts always appear first
+        return filtered.sort((a, b) => {
+            const aTakeover = takeoverMap[a.phone_number] ? 1 : 0;
+            const bTakeover = takeoverMap[b.phone_number] ? 1 : 0;
+            if (aTakeover !== bTakeover) return bTakeover - aTakeover;
+            return new Date(b.last_time) - new Date(a.last_time);
+        });
+    }, [contacts, searchQuery, takeoverMap]);
 
     /* ─── Select contact ──────────────────────────────────────────── */
     const selectContact = (phone) => {
@@ -662,21 +706,24 @@ const ChatPanel = () => {
                             ) : filteredContacts.length === 0 ? (
                                 <div className="chat-loading">No hay conversaciones</div>
                             ) : (
-                                filteredContacts.map(c => (
+                                filteredContacts.map(c => {
+                                    const cTakeover = !!takeoverMap[c.phone_number];
+                                    return (
                                     <button
                                         key={c.phone_number}
-                                        className={`chat-contact-item ${activeContact === c.phone_number ? 'chat-contact-item--active' : ''}`}
+                                        className={`chat-contact-item ${activeContact === c.phone_number ? 'chat-contact-item--active' : ''} ${cTakeover ? 'chat-contact-item--takeover' : ''}`}
                                         onClick={() => selectContact(c.phone_number)}
                                     >
                                         <div className="chat-contact-avatar">
                                             {c.customer_name ? c.customer_name[0].toUpperCase() : '#'}
-                                            {takeoverMap[c.phone_number] && <span className="chat-contact-takeover-dot" />}
+                                            {cTakeover && <span className="chat-contact-takeover-dot" />}
                                         </div>
                                         <div className="chat-contact-info">
                                             <div className="chat-contact-top">
                                                 <span className="chat-contact-name">
                                                     {c.customer_name || c.phone_number}
                                                 </span>
+                                                {cTakeover && <span className="chat-takeover-badge">MANUAL</span>}
                                                 <span className="chat-contact-time">{fmtDate(c.last_time)}</span>
                                             </div>
                                             <div className="chat-contact-preview">
@@ -688,7 +735,8 @@ const ChatPanel = () => {
                                             <span className="chat-unread-badge">{c.unread}</span>
                                         )}
                                     </button>
-                                ))
+                                    );
+                                })
                             )}
                         </div>
                     </div>
@@ -725,9 +773,13 @@ const ChatPanel = () => {
                                         <button
                                             className={`chat-takeover-btn ${isTakeover ? 'chat-takeover-btn--active' : ''}`}
                                             onClick={handleToggleTakeover}
-                                            title={isTakeover ? 'Devolver al agente' : 'Tomar control'}
+                                            title={isTakeover ? 'Devolver al agente IA' : 'Tomar control manual'}
                                         >
-                                            {isTakeover ? '🤖' : '🙋'}
+                                            {isTakeover ? (
+                                                <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a4 4 0 014 4c0 1.95-2 4-4 6-2-2-4-4.05-4-6a4 4 0 014-4z"/><path d="M4.93 13.5a8 8 0 0014.14 0"/><path d="M12 18v4"/></svg> Devolver a IA</>
+                                            ) : (
+                                                <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Tomar control</>
+                                            )}
                                         </button>
                                         <button className="chat-header-action-btn" onClick={handleExportChat} title="Exportar chat">
                                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -741,6 +793,15 @@ const ChatPanel = () => {
                                         </button>
                                     </div>
                                 </div>
+
+                                {/* Takeover banner */}
+                                {isTakeover && (
+                                    <div className="chat-takeover-banner">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                        <span>Modo manual activo — Valentina no responde en este chat. Tus mensajes se envían directamente al cliente.</span>
+                                        <button className="chat-takeover-banner-end" onClick={handleToggleTakeover}>Devolver a IA</button>
+                                    </div>
+                                )}
 
                                 <div className="chat-conv-body">
                                     {/* Messages */}
