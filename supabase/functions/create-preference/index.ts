@@ -39,6 +39,26 @@ Deno.serve(async (req: Request) => {
     const combinedName = productItems.map(i => i.name).join(' + ')
     const firstProductId = productItems[0].id
 
+    // Cancelar pedidos pendientes duplicados del mismo cliente + producto
+    // (ej: cliente cambia de MercadoPago a contraentrega)
+    if (buyer.phone) {
+      const { error: cancelError } = await supabase
+        .from('orders')
+        .update({ status: 'cancelado' })
+        .eq('status', 'pendiente')
+        .eq('product_name', combinedName)
+        .eq('customer_phone', buyer.phone)
+      if (cancelError) console.warn('Error cancelando duplicados:', cancelError)
+    } else if (buyer.email) {
+      const { error: cancelError } = await supabase
+        .from('orders')
+        .update({ status: 'cancelado' })
+        .eq('status', 'pendiente')
+        .eq('product_name', combinedName)
+        .eq('customer_email', buyer.email)
+      if (cancelError) console.warn('Error cancelando duplicados:', cancelError)
+    }
+
     // Insertar una sola orden con todos los productos
     const { data: order, error: orderError } = await supabase
       .from('orders')
