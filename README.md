@@ -1,73 +1,100 @@
-# React + TypeScript + Vite
+# 💎 Aurem GS — E-commerce de Joyeria Artesanal
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Plataforma e-commerce completa para una joyeria artesanal. Incluye catalogo de productos, carrito de compras, pasarela de pagos con Mercado Pago, guia de tallas, y un panel de administracion con dashboard, gestion de pedidos y chat en tiempo real con clientes via WhatsApp.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## ✨ Features
 
-## React Compiler
+- 🛍️ **Catalogo de productos** — Colecciones, categorias, paginas de producto con galeria de imagenes
+- 🛒 **Carrito de compras** — Agregar, eliminar, seleccionar tallas y cantidades
+- 💳 **Pagos con Mercado Pago** — Checkout integrado con SDK oficial
+- 📏 **Guia de tallas de anillos** — Herramienta interactiva para el cliente
+- 📱 **Diseño responsive** — Optimizado para movil y escritorio
+- 🎨 **Animaciones fluidas** — Transiciones y efectos con Framer Motion
+- 🔐 **Panel de administracion** — Login protegido con autenticacion Supabase
+- 📊 **Dashboard** — Metricas de ventas, pedidos y clientes
+- 💬 **Chat en tiempo real** — Comunicacion directa con clientes de WhatsApp
+- 📦 **Gestion de pedidos** — Estados, tracking, notificaciones
+- 📄 **Paginas legales** — Politica de privacidad, devoluciones, terminos de servicio
+- ❓ **FAQ y contacto** — Seccion de preguntas frecuentes y formulario
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the ESLint configuration
+## 🛠️ Stack
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+![React](https://img.shields.io/badge/React_19-61DAFB?style=flat-square&logo=react&logoColor=black)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-646CFF?style=flat-square&logo=vite&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)
+![Framer Motion](https://img.shields.io/badge/Framer_Motion-0055FF?style=flat-square&logo=framer&logoColor=white)
+![Supabase](https://img.shields.io/badge/Supabase-3FCF8E?style=flat-square&logo=supabase&logoColor=white)
+![Mercado Pago](https://img.shields.io/badge/Mercado_Pago-00B1EA?style=flat-square&logo=mercadopago&logoColor=white)
+![React Router](https://img.shields.io/badge/React_Router-CA4245?style=flat-square&logo=reactrouter&logoColor=white)
+![Vercel](https://img.shields.io/badge/Vercel-000000?style=flat-square&logo=vercel&logoColor=white)
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+---
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## 📁 Estructura del Proyecto
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```
+src/
+├── pages/
+│   ├── Home.jsx              # Landing page
+│   ├── Catalog.jsx           # Catalogo de productos
+│   ├── ProductPage.jsx       # Detalle de producto
+│   ├── Confirmacion.jsx      # Confirmacion de compra
+│   ├── RingSizeGuide.jsx     # Guia de tallas
+│   ├── PrivacyPolicy.jsx     # Politica de privacidad
+│   ├── ReturnsPolicy.jsx     # Politica de devoluciones
+│   ├── TermsOfService.jsx    # Terminos de servicio
+│   └── admin/
+│       ├── Login.jsx         # Autenticacion admin
+│       ├── Dashboard.jsx     # Metricas y reportes
+│       └── ChatPanel.jsx     # Chat WhatsApp en tiempo real
+├── components/
+│   ├── Hero.jsx              # Banner principal
+│   ├── Navbar.jsx            # Navegacion
+│   ├── Footer.jsx            # Pie de pagina
+│   ├── Collections.jsx       # Colecciones destacadas
+│   ├── Contact.jsx           # Formulario de contacto
+│   ├── Reviews.jsx           # Resenas de clientes
+│   ├── Faq.jsx               # Preguntas frecuentes
+│   └── WhatsAppButton.jsx    # Boton flotante de WhatsApp
+└── lib/                      # Utilidades y configuracion
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+---
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## 🚀 Instalacion
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+# Clonar el repositorio
+git clone https://github.com/Sebastianlr11/aurem-gs-joyeria.git
+cd aurem-gs-joyeria
+
+# Instalar dependencias
+npm install
+
+# Configurar variables de entorno
+cp .env.example .env
+
+# Iniciar en desarrollo
+npm run dev
 ```
+
+---
+
+## 🔑 Variables de Entorno
+
+```env
+VITE_SUPABASE_URL=
+VITE_SUPABASE_ANON_KEY=
+VITE_MERCADOPAGO_PUBLIC_KEY=
+```
+
+---
+
+## 📄 Licencia
+
+MIT
