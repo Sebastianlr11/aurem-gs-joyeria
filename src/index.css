@@ -2760,26 +2760,46 @@ button {
   position: fixed;
   inset: 0;
   z-index: 9999;
-  background: rgba(0,0,0,0.92);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: rgba(10, 10, 10, 0.55);
+  backdrop-filter: blur(28px) saturate(1.4);
+  -webkit-backdrop-filter: blur(28px) saturate(1.4);
   display: flex;
   align-items: center;
   justify-content: center;
-  animation: lightboxFadeIn 0.25s ease;
+  animation: lbOpen 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
-@keyframes lightboxFadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+.pg-lightbox.lb-closing {
+  animation: lbClose 0.3s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+@keyframes lbOpen {
+  from { opacity: 0; backdrop-filter: blur(0px); -webkit-backdrop-filter: blur(0px); }
+  to   { opacity: 1; backdrop-filter: blur(28px); -webkit-backdrop-filter: blur(28px); }
+}
+@keyframes lbClose {
+  from { opacity: 1; }
+  to   { opacity: 0; }
 }
 .pg-lightbox-img {
-  max-width: 90vw;
-  max-height: 85vh;
+  max-width: 92vw;
+  max-height: 88vh;
   object-fit: contain;
-  border-radius: 12px;
+  border-radius: 16px;
+  box-shadow: 0 20px 80px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.06);
   transition: opacity 0.22s ease;
   user-select: none;
   -webkit-user-select: none;
+  animation: lbImgIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) 0.05s both;
+}
+.pg-lightbox.lb-closing .pg-lightbox-img {
+  animation: lbImgOut 0.25s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+@keyframes lbImgIn {
+  from { opacity: 0; transform: scale(0.88) translateY(20px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes lbImgOut {
+  from { opacity: 1; transform: scale(1); }
+  to   { opacity: 0; transform: scale(0.92); }
 }
 .pg-lightbox-close {
   position: absolute;
@@ -2788,51 +2808,71 @@ button {
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  border: none;
-  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.08);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   color: #fff;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.18s ease;
+  transition: all 0.22s ease;
   z-index: 10;
+  animation: lbBtnIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both;
 }
 .pg-lightbox-close:hover {
-  background: rgba(255,255,255,0.25);
+  background: rgba(255,255,255,0.18);
+  border-color: rgba(255,255,255,0.25);
+  transform: scale(1.08);
 }
 .pg-lightbox-nav {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  width: 48px;
-  height: 48px;
+  width: 50px;
+  height: 50px;
   border-radius: 50%;
-  border: none;
-  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.08);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   color: #fff;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.18s ease, transform 0.18s ease;
+  transition: all 0.22s ease;
   z-index: 10;
+  animation: lbBtnIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both;
+}
+@keyframes lbBtnIn {
+  from { opacity: 0; transform: translateY(-50%) scale(0.7); }
+  to   { opacity: 1; transform: translateY(-50%) scale(1); }
 }
 .pg-lightbox-nav:hover {
-  background: rgba(255,255,255,0.25);
-  transform: translateY(-50%) scale(1.08);
+  background: rgba(255,255,255,0.18);
+  border-color: rgba(255,255,255,0.25);
+  transform: translateY(-50%) scale(1.1);
 }
-.pg-lightbox-nav--prev { left: 1rem; }
-.pg-lightbox-nav--next { right: 1rem; }
+.pg-lightbox-nav--prev { left: 1.2rem; }
+.pg-lightbox-nav--next { right: 1.2rem; }
 .pg-lightbox-counter {
   position: absolute;
   bottom: 1.5rem;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   font-weight: 600;
-  color: rgba(255,255,255,0.6);
-  letter-spacing: 0.08em;
+  color: rgba(255,255,255,0.5);
+  letter-spacing: 0.1em;
+  background: rgba(0,0,0,0.25);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding: 0.35rem 0.9rem;
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.08);
+  animation: lbBtnIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) 0.25s both;
 }
 
 /* Info column */

@@ -394,6 +394,7 @@ const Gallery = ({ images, badges }) => {
     const [activeIdx, setActiveIdx] = useState(0);
     const [fading, setFading] = useState(false);
     const [lightbox, setLightbox] = useState(false);
+    const [lbClosing, setLbClosing] = useState(false);
 
     const goTo = (idx) => {
         if (idx === activeIdx) return;
@@ -404,11 +405,16 @@ const Gallery = ({ images, badges }) => {
     const prev = () => goTo((activeIdx - 1 + images.length) % images.length);
     const next = () => goTo((activeIdx + 1) % images.length);
 
+    const closeLightbox = () => {
+        setLbClosing(true);
+        setTimeout(() => { setLightbox(false); setLbClosing(false); }, 280);
+    };
+
     useEffect(() => {
         if (!lightbox) return;
         document.body.style.overflow = 'hidden';
         const onKey = (e) => {
-            if (e.key === 'Escape') setLightbox(false);
+            if (e.key === 'Escape') closeLightbox();
             if (e.key === 'ArrowLeft') prev();
             if (e.key === 'ArrowRight') next();
         };
@@ -474,8 +480,8 @@ const Gallery = ({ images, badges }) => {
 
             {/* Lightbox modal */}
             {lightbox && (
-                <div className="pg-lightbox" onClick={() => setLightbox(false)}>
-                    <button className="pg-lightbox-close" onClick={() => setLightbox(false)} aria-label="Cerrar">
+                <div className={`pg-lightbox${lbClosing ? ' lb-closing' : ''}`} onClick={closeLightbox}>
+                    <button className="pg-lightbox-close" onClick={closeLightbox} aria-label="Cerrar">
                         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                             <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                         </svg>
