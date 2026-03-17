@@ -5,7 +5,7 @@ import AdminSidebar from './AdminSidebar';
 import { NAV } from './adminNav.jsx';
 
 /* ─── Constants ──────────────────────────────────────────────────── */
-const CATEGORIES = ['Anillos', 'Collares', 'Aretes', 'Pulseras'];
+const CATEGORIES = ['Anillos', 'Collares', 'Aretes', 'Pulseras', 'Dijes'];
 const ORDER_STATUSES = ['pendiente', 'pagado', 'procesando', 'enviado', 'entregado', 'cancelado'];
 const STATUS_META = {
     pendiente:  { label: 'Pendiente',   cls: 'badge--yellow' },

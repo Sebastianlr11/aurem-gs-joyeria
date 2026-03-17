@@ -1,6 +1,6 @@
 import React from 'react';
 
-const categories = ['Todos', 'Anillos', 'Collares', 'Aretes', 'Pulseras'];
+const categories = ['Todos', 'Anillos', 'Collares', 'Aretes', 'Pulseras', 'Dijes'];
 
 const FilterBar = ({ active, onChange }) => {
     return (
