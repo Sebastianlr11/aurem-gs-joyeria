@@ -393,6 +393,7 @@ const Skeleton = () => (
 const Gallery = ({ images, badges }) => {
     const [activeIdx, setActiveIdx] = useState(0);
     const [fading, setFading] = useState(false);
+    const [lightbox, setLightbox] = useState(false);
 
     const goTo = (idx) => {
         if (idx === activeIdx) return;
@@ -402,6 +403,18 @@ const Gallery = ({ images, badges }) => {
 
     const prev = () => goTo((activeIdx - 1 + images.length) % images.length);
     const next = () => goTo((activeIdx + 1) % images.length);
+
+    useEffect(() => {
+        if (!lightbox) return;
+        document.body.style.overflow = 'hidden';
+        const onKey = (e) => {
+            if (e.key === 'Escape') setLightbox(false);
+            if (e.key === 'ArrowLeft') prev();
+            if (e.key === 'ArrowRight') next();
+        };
+        window.addEventListener('keydown', onKey);
+        return () => { document.body.style.overflow = ''; window.removeEventListener('keydown', onKey); };
+    }, [lightbox, activeIdx]);
 
     if (images.length === 0) {
         return (
@@ -415,48 +428,85 @@ const Gallery = ({ images, badges }) => {
     }
 
     return (
-        <div className="pg-gallery hero-anim" style={{ '--hero-delay': '0s' }}>
-            <div className="pg-gallery-main">
-                <img
-                    src={images[activeIdx]}
-                    alt={`Imagen ${activeIdx + 1}`}
-                    style={{ opacity: fading ? 0 : 1, transition: 'opacity 0.22s ease' }}
-                />
-                {badges}
+        <>
+            <div className="pg-gallery hero-anim" style={{ '--hero-delay': '0s' }}>
+                <div className="pg-gallery-main" onClick={() => setLightbox(true)} style={{ cursor: 'zoom-in' }}>
+                    <img
+                        src={images[activeIdx]}
+                        alt={`Imagen ${activeIdx + 1}`}
+                        style={{ opacity: fading ? 0 : 1, transition: 'opacity 0.22s ease' }}
+                    />
+                    {badges}
+                    {images.length > 1 && (
+                        <>
+                            <button className="pg-gallery-nav pg-gallery-nav--prev" onClick={(e) => { e.stopPropagation(); prev(); }} aria-label="Anterior">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <polyline points="15 18 9 12 15 6" />
+                                </svg>
+                            </button>
+                            <button className="pg-gallery-nav pg-gallery-nav--next" onClick={(e) => { e.stopPropagation(); next(); }} aria-label="Siguiente">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <polyline points="9 18 15 12 9 6" />
+                                </svg>
+                            </button>
+                        </>
+                    )}
+                </div>
+
                 {images.length > 1 && (
-                    <>
-                        <button className="pg-gallery-nav pg-gallery-nav--prev" onClick={prev} aria-label="Anterior">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                <polyline points="15 18 9 12 15 6" />
-                            </svg>
-                        </button>
-                        <button className="pg-gallery-nav pg-gallery-nav--next" onClick={next} aria-label="Siguiente">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                <polyline points="9 18 15 12 9 6" />
-                            </svg>
-                        </button>
-                    </>
+                    <div className="pg-gallery-footer">
+                        <div className="pg-gallery-thumbs">
+                            {images.map((url, i) => (
+                                <button
+                                    key={i}
+                                    className={`pg-gallery-thumb ${i === activeIdx ? 'pg-gallery-thumb--active' : ''}`}
+                                    onClick={() => goTo(i)}
+                                    aria-label={`Imagen ${i + 1}`}
+                                >
+                                    <img src={url} alt="" />
+                                </button>
+                            ))}
+                        </div>
+                        <span className="pg-gallery-counter">{activeIdx + 1} / {images.length}</span>
+                    </div>
                 )}
             </div>
 
-            {images.length > 1 && (
-                <div className="pg-gallery-footer">
-                    <div className="pg-gallery-thumbs">
-                        {images.map((url, i) => (
-                            <button
-                                key={i}
-                                className={`pg-gallery-thumb ${i === activeIdx ? 'pg-gallery-thumb--active' : ''}`}
-                                onClick={() => goTo(i)}
-                                aria-label={`Imagen ${i + 1}`}
-                            >
-                                <img src={url} alt="" />
+            {/* Lightbox modal */}
+            {lightbox && (
+                <div className="pg-lightbox" onClick={() => setLightbox(false)}>
+                    <button className="pg-lightbox-close" onClick={() => setLightbox(false)} aria-label="Cerrar">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                    </button>
+
+                    <img
+                        className="pg-lightbox-img"
+                        src={images[activeIdx]}
+                        alt={`Imagen ${activeIdx + 1}`}
+                        onClick={(e) => e.stopPropagation()}
+                        style={{ opacity: fading ? 0 : 1 }}
+                    />
+
+                    {images.length > 1 && (
+                        <>
+                            <button className="pg-lightbox-nav pg-lightbox-nav--prev" onClick={(e) => { e.stopPropagation(); prev(); }} aria-label="Anterior">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <polyline points="15 18 9 12 15 6" />
+                                </svg>
                             </button>
-                        ))}
-                    </div>
-                    <span className="pg-gallery-counter">{activeIdx + 1} / {images.length}</span>
+                            <button className="pg-lightbox-nav pg-lightbox-nav--next" onClick={(e) => { e.stopPropagation(); next(); }} aria-label="Siguiente">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <polyline points="9 18 15 12 9 6" />
+                                </svg>
+                            </button>
+                            <div className="pg-lightbox-counter">{activeIdx + 1} / {images.length}</div>
+                        </>
+                    )}
                 </div>
             )}
-        </div>
+        </>
     );
 };
 

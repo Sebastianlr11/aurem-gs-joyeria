@@ -2755,6 +2755,86 @@ button {
   flex-shrink: 0;
 }
 
+/* Lightbox */
+.pg-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0,0,0,0.92);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: lightboxFadeIn 0.25s ease;
+}
+@keyframes lightboxFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.pg-lightbox-img {
+  max-width: 90vw;
+  max-height: 85vh;
+  object-fit: contain;
+  border-radius: 12px;
+  transition: opacity 0.22s ease;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.pg-lightbox-close {
+  position: absolute;
+  top: 1.2rem;
+  right: 1.2rem;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255,255,255,0.12);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.18s ease;
+  z-index: 10;
+}
+.pg-lightbox-close:hover {
+  background: rgba(255,255,255,0.25);
+}
+.pg-lightbox-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255,255,255,0.12);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.18s ease, transform 0.18s ease;
+  z-index: 10;
+}
+.pg-lightbox-nav:hover {
+  background: rgba(255,255,255,0.25);
+  transform: translateY(-50%) scale(1.08);
+}
+.pg-lightbox-nav--prev { left: 1rem; }
+.pg-lightbox-nav--next { right: 1rem; }
+.pg-lightbox-counter {
+  position: absolute;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: rgba(255,255,255,0.6);
+  letter-spacing: 0.08em;
+}
+
 /* Info column */
 .product-page-info {
   padding-top: 1rem;
