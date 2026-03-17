@@ -3290,9 +3290,10 @@ button {
 
   .pg-gallery {
     position: static;
-    height: 72vw;
-    min-height: 280px;
-    max-height: 420px;
+    aspect-ratio: 9 / 16;
+    height: auto;
+    min-height: unset;
+    max-height: 75vh;
     border-radius: 16px;
   }
 
