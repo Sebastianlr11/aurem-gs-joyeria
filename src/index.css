@@ -2211,6 +2211,8 @@ button {
               box-shadow 0.45s cubic-bezier(0.16,1,0.3,1),
               border-color 0.3s;
   cursor: pointer;
+  display: flex;
+  flex-direction: column;
 }
 
 .product-card:hover {
@@ -2361,6 +2363,7 @@ button {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+  flex: 1;
 }
 
 .product-card-category {
@@ -2416,7 +2419,8 @@ button {
 .product-card-actions {
   display: flex;
   gap: 0.5rem;
-  margin-top: 1rem;
+  margin-top: auto;
+  padding-top: 1rem;
 }
 
 .product-card-btn {
