@@ -2016,7 +2016,8 @@ const SettingsSection = () => {
             },
             body: JSON.stringify(body),
         });
-        return await res.json();
+        const text = await res.text();
+        try { return JSON.parse(text); } catch { return { error: text || `Error del servidor (${res.status})` }; }
     };
 
     const fetchAdminUsers = async () => {
@@ -2120,7 +2121,7 @@ const SettingsSection = () => {
                 fetchAdminUsers();
             }
         } catch (e) {
-            setAdminResult({ type: 'error', msg: e.message });
+            setAdminResult({ type: 'error', msg: `Error de conexión: ${e.message}` });
         }
         setAdminCreating(false);
     };
