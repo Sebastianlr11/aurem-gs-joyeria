@@ -586,12 +586,13 @@ const DashboardHome = ({ products, orders, customers, waStats, onNavigate }) => 
     }, 0);
     const paidMPNet    = paidMPGross - paidMPFees;
 
-    // Ingresos pagados COD ya entregados
-    const paidCODOrders = ordersMonth.filter(o => o.status === 'entregado' && isCOD(o));
+    // Ingresos pagados COD (pagado, enviado o entregado = ya se cobró)
+    const COD_PAID = ['pagado', 'enviado', 'entregado'];
+    const paidCODOrders = ordersMonth.filter(o => COD_PAID.includes(o.status) && isCOD(o));
     const paidCODTotal  = paidCODOrders.reduce((s, o) => s + Number(o.amount), 0);
 
-    // Ingresos pendientes: contraentrega aún no entregados
-    const pendingCODOrders = ordersMonth.filter(o => isCOD(o) && o.status !== 'entregado' && o.status !== 'cancelado');
+    // Ingresos pendientes: contraentrega aún no cobrados (pendiente o procesando)
+    const pendingCODOrders = ordersMonth.filter(o => isCOD(o) && !COD_PAID.includes(o.status) && o.status !== 'cancelado');
     const pendingCODTotal  = pendingCODOrders.reduce((s, o) => s + Number(o.amount), 0);
 
     const totalRevenue = paidMPNet + paidCODTotal;
