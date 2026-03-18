@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import AdminSidebar from './AdminSidebar';
 import { NAV } from './adminNav.jsx';
@@ -2400,8 +2400,9 @@ const SettingsSection = () => {
    MAIN DASHBOARD
 ═══════════════════════════════════════════════════════════════════ */
 const Dashboard = () => {
+    const [searchParams, setSearchParams] = useSearchParams();
     const [session, setSession]     = useState(null);
-    const [section, setSection]     = useState('dashboard');
+    const [section, setSection]     = useState(() => searchParams.get('tab') || 'dashboard');
     const [products, setProducts]   = useState([]);
     const [orders, setOrders]       = useState([]);
     const [customers, setCustomers] = useState([]);

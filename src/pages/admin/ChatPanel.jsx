@@ -826,7 +826,7 @@ const ChatPanel = () => {
 
     /* ─── Sidebar nav ─────────────────────────────────────────────── */
     const handleNavClick = (id) => {
-        navigate('/admin');
+        navigate(`/admin?tab=${id}`);
     };
 
     /* ─── Filter & sort contacts (takeover first) ───────────────── */
