@@ -9420,6 +9420,251 @@ button {
 .chat-export-menu button:not(:last-child) {
   border-bottom: 1px solid #f0f0f0;
 }
+.chat-export-menu-danger {
+  color: #ef4444 !important;
+}
+.chat-export-menu-danger:hover {
+  background: #fff5f5 !important;
+  color: #dc2626 !important;
+}
+
+/* ─── Chat: delivery status checkmarks ─────────────────────────── */
+.chat-delivery-status {
+  margin-left: 4px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  opacity: 0.7;
+}
+.chat-delivery-status--sending { color: #9ca3af; }
+.chat-delivery-status--sent    { color: #9ca3af; }
+.chat-delivery-status--delivered { color: #6b7280; }
+.chat-delivery-status--read    { color: #3b82f6; }
+.chat-delivery-status--failed  { color: #ef4444; }
+
+/* ─── Chat: clickable image bubbles ─────────────────────────────── */
+.chat-bubble-image--clickable {
+  cursor: zoom-in;
+  transition: opacity 0.2s;
+}
+.chat-bubble-image--clickable:hover { opacity: 0.88; }
+
+/* ─── Chat: header resolved button ─────────────────────────────── */
+.chat-header-action-btn--resolved {
+  color: #16a34a !important;
+  background: rgba(22, 163, 74, 0.1) !important;
+}
+
+/* ─── Chat: contact tags (list + info panel) ────────────────────── */
+.chat-contact-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 5px;
+}
+.chat-tag-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 7px;
+  border-radius: 20px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  background: color-mix(in srgb, var(--tag-color) 18%, transparent);
+  color: var(--tag-color);
+  border: 1px solid color-mix(in srgb, var(--tag-color) 35%, transparent);
+  white-space: nowrap;
+  line-height: 1.4;
+}
+.chat-tag-pill--removable {
+  gap: 5px;
+}
+.chat-tag-remove {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--tag-color);
+  font-size: 0.85rem;
+  line-height: 1;
+  padding: 0;
+  opacity: 0.7;
+  flex-shrink: 0;
+}
+.chat-tag-remove:hover { opacity: 1; }
+
+/* ─── Chat: tag picker in info panel ────────────────────────────── */
+.chat-info-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 4px 0;
+}
+.chat-tag-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 2px;
+}
+.chat-tag-add-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  border: 1px dashed color-mix(in srgb, var(--tag-color) 50%, transparent);
+  background: none;
+  color: color-mix(in srgb, var(--tag-color) 70%, #555);
+  cursor: pointer;
+  transition: all 0.18s;
+}
+.chat-tag-add-btn:hover {
+  background: color-mix(in srgb, var(--tag-color) 12%, transparent);
+  border-style: solid;
+}
+
+/* ─── Chat: resolved dot on avatar ─────────────────────────────── */
+.chat-contact-resolved-dot {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #16a34a;
+  color: #fff;
+  font-size: 0.55rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  border: 2px solid #111113;
+}
+
+/* ─── Chat: unread contact name bold ───────────────────────────── */
+.chat-contact-item--unread .chat-contact-preview {
+  color: #aaa;
+}
+.chat-contact-name--unread {
+  font-weight: 800;
+  color: #fff;
+}
+
+/* ─── Chat: filter chips scrollable ────────────────────────────── */
+.chat-filter-chips {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding-bottom: 2px;
+}
+.chat-filter-chips::-webkit-scrollbar { display: none; }
+
+/* ─── Chat: empty state improved ───────────────────────────────── */
+.chat-empty-state-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: rgba(212, 175, 55, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid rgba(212, 175, 55, 0.2);
+}
+.chat-empty-state-icon svg {
+  stroke: #D4AF37;
+  opacity: 0.7;
+}
+.chat-empty-state-sub {
+  font-size: 0.8rem;
+  color: #bbb;
+  margin-top: -10px;
+  text-align: center;
+  max-width: 220px;
+}
+
+/* ─── Chat: archive/delete confirm modal ───────────────────────── */
+.chat-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0,0,0,0.45);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeInQuick 0.18s ease both;
+}
+@keyframes fadeInQuick { from { opacity: 0; } to { opacity: 1; } }
+.chat-confirm-modal {
+  background: #fff;
+  border-radius: 16px;
+  padding: 28px 32px;
+  max-width: 380px;
+  width: 90%;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+  animation: slideUpQuick 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes slideUpQuick { from { transform: translateY(16px); opacity: 0; } to { transform: none; opacity: 1; } }
+.chat-confirm-modal h4 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #111;
+  margin: 0 0 10px;
+}
+.chat-confirm-modal p {
+  font-size: 0.85rem;
+  color: #666;
+  margin: 0 0 20px;
+  line-height: 1.5;
+}
+.chat-confirm-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+.chat-confirm-btn {
+  padding: 9px 20px;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.18s;
+}
+.chat-confirm-btn--cancel { background: #f3f4f6; color: #555; }
+.chat-confirm-btn--cancel:hover { background: #e5e7eb; }
+.chat-confirm-btn--primary { background: #D4AF37; color: #fff; }
+.chat-confirm-btn--primary:hover { background: #b8960f; }
+.chat-confirm-btn--danger { background: #ef4444; color: #fff; }
+.chat-confirm-btn--danger:hover { background: #dc2626; }
+
+/* ─── Sidebar: unread badges ────────────────────────────────────── */
+.admin-nav-unread-badge {
+  margin-left: auto;
+  background: #ef4444;
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 20px;
+  min-width: 18px;
+  text-align: center;
+}
+.admin-mobile-unread-badge {
+  position: absolute;
+  top: 4px;
+  right: 8px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 0.6rem;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 20px;
+  min-width: 16px;
+  text-align: center;
+}
 
 /* ─── Reports: trend indicators ────────────────────────────────── */
 .rpt-trend {

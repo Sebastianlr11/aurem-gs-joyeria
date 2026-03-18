@@ -5,7 +5,7 @@ import { NAV } from './adminNav.jsx';
 
 const BOTTOM_BAR_IDS = ['dashboard', 'orders', 'chat', 'products'];
 
-const AdminSidebar = ({ session, activeId, onNavClick }) => {
+const AdminSidebar = ({ session, activeId, onNavClick, chatUnread = 0 }) => {
     const navigate = useNavigate();
     const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -58,6 +58,9 @@ const AdminSidebar = ({ session, activeId, onNavClick }) => {
                         >
                             <span className="admin-nav-icon">{item.icon}</span>
                             {item.label}
+                            {item.id === 'chat' && chatUnread > 0 && (
+                                <span className="admin-nav-unread-badge">{chatUnread > 99 ? '99+' : chatUnread}</span>
+                            )}
                         </button>
                     ))}
                 </nav>
@@ -84,9 +87,13 @@ const AdminSidebar = ({ session, activeId, onNavClick }) => {
                         key={item.id}
                         className={`admin-mobile-bar-btn ${activeId === item.id ? 'admin-mobile-bar-btn--active' : ''}`}
                         onClick={() => handleMobileNav(item)}
+                        style={{ position: 'relative' }}
                     >
                         <span className="admin-mobile-bar-icon">{item.icon}</span>
                         <span className="admin-mobile-bar-label">{item.label}</span>
+                        {item.id === 'chat' && chatUnread > 0 && (
+                            <span className="admin-mobile-unread-badge">{chatUnread > 99 ? '99+' : chatUnread}</span>
+                        )}
                     </button>
                 ))}
                 <button

@@ -45,6 +45,14 @@ const QUICK_REPLIES_DEFAULT = [
     { label: '⏳ Entrega', text: 'El tiempo de entrega es de 2-3 dias habiles en Bogota, 3-5 en otras ciudades.' },
 ];
 
+const PRESET_TAGS = [
+    { label: 'Interesado', color: '#3b82f6' },
+    { label: 'Cliente', color: '#10b981' },
+    { label: 'Seguimiento', color: '#f59e0b' },
+    { label: 'VIP', color: '#D4AF37' },
+    { label: 'Mayorista', color: '#8b5cf6' },
+];
+
 const parseQuickReplies = () => {
     const raw = localStorage.getItem('admin_quick_replies');
     if (!raw) return QUICK_REPLIES_DEFAULT;
@@ -110,6 +118,11 @@ const ChatPanel = () => {
     const [showMsgSearch, setShowMsgSearch] = useState(false);
     const [toasts, setToasts] = useState([]);
     const [showExportMenu, setShowExportMenu] = useState(false);
+    const [statusMap, setStatusMap] = useState({});   // { [phone]: { is_resolved, is_archived } }
+    const [tagsMap, setTagsMap] = useState({});        // { [phone]: [{ id, tag_name, color }] }
+    const [lightboxImg, setLightboxImg] = useState(null);
+    const [lightboxClosing, setLightboxClosing] = useState(false);
+    const [confirmArchive, setConfirmArchive] = useState(null); // phone to archive/delete
     const exportMenuRef = useRef(null);
     const [realtimeStatus, setRealtimeStatus] = useState('CONNECTING');
     const [soundEnabled, setSoundEnabled] = useState(() => localStorage.getItem('admin_sound_enabled') !== 'false');
@@ -202,6 +215,31 @@ const ChatPanel = () => {
     useEffect(() => {
         if (session) fetchContacts();
     }, [session, fetchContacts]);
+
+    /* ─── Load chat_status and contact_tags ──────────────────── */
+    useEffect(() => {
+        if (!session) return;
+        const fetchStatusAndTags = async () => {
+            const [{ data: statusData }, { data: tagsData }] = await Promise.all([
+                supabase.from('chat_status').select('phone_number, is_resolved, is_archived'),
+                supabase.from('contact_tags').select('id, phone_number, tag_name, color'),
+            ]);
+            if (statusData) {
+                const map = {};
+                statusData.forEach(s => { map[s.phone_number] = s; });
+                setStatusMap(map);
+            }
+            if (tagsData) {
+                const map = {};
+                tagsData.forEach(t => {
+                    if (!map[t.phone_number]) map[t.phone_number] = [];
+                    map[t.phone_number].push(t);
+                });
+                setTagsMap(map);
+            }
+        };
+        fetchStatusAndTags();
+    }, [session]);
 
     /* ─── Load products for image picker ───────────────────────── */
     useEffect(() => {
@@ -370,6 +408,21 @@ const ChatPanel = () => {
                                 icon: '/assets/hero1.png',
                             });
                         } catch (e) {}
+                    }
+
+                    // Auto-unarchive if new message from archived contact
+                    if (newMsg.role === 'user') {
+                        setStatusMap(prev => {
+                            if (prev[newMsg.phone_number]?.is_archived) {
+                                supabase.from('chat_status').upsert({
+                                    phone_number: newMsg.phone_number,
+                                    is_archived: false,
+                                    updated_at: new Date().toISOString(),
+                                }, { onConflict: 'phone_number' }).then(() => {});
+                                return { ...prev, [newMsg.phone_number]: { ...prev[newMsg.phone_number], is_archived: false } };
+                            }
+                            return prev;
+                        });
                     }
 
                     // If message belongs to active contact, add to messages (dedup by id)
@@ -613,6 +666,76 @@ const ChatPanel = () => {
         setEditingNotes(false);
     };
 
+    /* ─── Toggle resolved ───────────────────────────────────────── */
+    const handleToggleResolved = async (phone) => {
+        if (!phone) return;
+        const current = statusMap[phone];
+        const newVal = !(current?.is_resolved);
+        await supabase.from('chat_status').upsert({
+            phone_number: phone,
+            is_resolved: newVal,
+            resolved_at: newVal ? new Date().toISOString() : null,
+            updated_at: new Date().toISOString(),
+        }, { onConflict: 'phone_number' });
+        setStatusMap(prev => ({ ...prev, [phone]: { ...prev[phone], is_resolved: newVal } }));
+    };
+
+    /* ─── Archive conversation ───────────────────────────────────── */
+    const handleArchive = async (phone) => {
+        if (!phone) return;
+        await supabase.from('chat_status').upsert({
+            phone_number: phone,
+            is_archived: true,
+            archived_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+        }, { onConflict: 'phone_number' });
+        setStatusMap(prev => ({ ...prev, [phone]: { ...prev[phone], is_archived: true } }));
+        setConfirmArchive(null);
+        if (activeContact === phone) { setActiveContact(null); setMobileShowChat(false); }
+    };
+
+    /* ─── Delete conversation (hard delete) ─────────────────────── */
+    const handleDeleteConversation = async (phone) => {
+        if (!phone) return;
+        await supabase.from('whatsapp_conversaciones').delete().eq('phone_number', phone);
+        await supabase.from('chat_status').delete().eq('phone_number', phone);
+        setContacts(prev => prev.filter(c => c.phone_number !== phone));
+        setStatusMap(prev => { const n = {...prev}; delete n[phone]; return n; });
+        setConfirmArchive(null);
+        if (activeContact === phone) { setActiveContact(null); setMobileShowChat(false); }
+    };
+
+    /* ─── Add tag ────────────────────────────────────────────────── */
+    const handleAddTag = async (phone, tagName, color) => {
+        if (!phone || !tagName) return;
+        const { data } = await supabase.from('contact_tags')
+            .upsert({ phone_number: phone, tag_name: tagName, color }, { onConflict: 'phone_number,tag_name' })
+            .select().single();
+        if (data) {
+            setTagsMap(prev => {
+                const existing = (prev[phone] || []).filter(t => t.tag_name !== tagName);
+                return { ...prev, [phone]: [...existing, data] };
+            });
+        }
+    };
+
+    /* ─── Remove tag ─────────────────────────────────────────────── */
+    const handleRemoveTag = async (phone, tagId) => {
+        if (!phone || !tagId) return;
+        await supabase.from('contact_tags').delete().eq('id', tagId);
+        setTagsMap(prev => ({
+            ...prev,
+            [phone]: (prev[phone] || []).filter(t => t.id !== tagId),
+        }));
+    };
+
+    /* ─── Lightbox ───────────────────────────────────────────────── */
+    const openLightbox = (url) => { setLightboxImg(url); setLightboxClosing(false); };
+    const closeLightbox = () => {
+        setLightboxClosing(true);
+        setTimeout(() => { setLightboxImg(null); setLightboxClosing(false); }, 300);
+    };
+
     /* ─── Export conversation ───────────────────────────────────── */
     const handleExportChat = () => {
         if (!messages.length) return;
@@ -687,6 +810,8 @@ const ChatPanel = () => {
             }
             // Escape → close panels cascade
             if (e.key === 'Escape') {
+                if (lightboxImg) { closeLightbox(); return; }
+                if (confirmArchive) { setConfirmArchive(null); return; }
                 if (showMsgSearch) { setShowMsgSearch(false); setMsgSearchQuery(''); setMsgSearchResults([]); return; }
                 if (showExportMenu) { setShowExportMenu(false); return; }
                 if (showContactInfo) { setShowContactInfo(false); return; }
@@ -697,7 +822,7 @@ const ChatPanel = () => {
         };
         document.addEventListener('keydown', handleGlobalKeyDown);
         return () => document.removeEventListener('keydown', handleGlobalKeyDown);
-    }, [showContactInfo, showQuickReplies, showImagePicker, activeContact, showMsgSearch, showExportMenu]);
+    }, [showContactInfo, showQuickReplies, showImagePicker, activeContact, showMsgSearch, showExportMenu, lightboxImg, confirmArchive]); // eslint-disable-line react-hooks/exhaustive-deps
 
     /* ─── Sidebar nav ─────────────────────────────────────────────── */
     const handleNavClick = (id) => {
@@ -706,7 +831,13 @@ const ChatPanel = () => {
 
     /* ─── Filter & sort contacts (takeover first) ───────────────── */
     const filteredContacts = useMemo(() => {
+        const now = Date.now();
         const filtered = contacts.filter(c => {
+            // Exclude archived unless filter = 'archivado'
+            const isArchived = statusMap[c.phone_number]?.is_archived;
+            if (contactFilter !== 'archivado' && isArchived) return false;
+            if (contactFilter === 'archivado' && !isArchived) return false;
+
             if (!searchQuery) return true;
             const q = searchQuery.toLowerCase();
             return (c.customer_name && c.customer_name.toLowerCase().includes(q))
@@ -722,6 +853,13 @@ const ChatPanel = () => {
             result = result.filter(c => !!takeoverMap[c.phone_number]);
         } else if (contactFilter === 'pendiente') {
             result = result.filter(c => pendingPhones.has(normalizePhone(c.phone_number)));
+        } else if (contactFilter === 'no_leidos') {
+            result = result.filter(c => (c.unread || 0) > 0);
+        } else if (contactFilter === 'sin_responder') {
+            // Last message from user more than 24h ago
+            result = result.filter(c => c.last_role === 'user' && (now - new Date(c.last_time)) > 86400000);
+        } else if (contactFilter === 'resuelto') {
+            result = result.filter(c => !!statusMap[c.phone_number]?.is_resolved);
         }
         // Takeover contacts always appear first
         return result.sort((a, b) => {
@@ -730,7 +868,7 @@ const ChatPanel = () => {
             if (aTakeover !== bTakeover) return bTakeover - aTakeover;
             return new Date(b.last_time) - new Date(a.last_time);
         });
-    }, [contacts, searchQuery, takeoverMap, contactFilter, pendingPhones]);
+    }, [contacts, searchQuery, takeoverMap, contactFilter, pendingPhones, statusMap]);
 
     /* ─── Select contact ──────────────────────────────────────────── */
     const selectContact = (phone) => {
@@ -751,8 +889,9 @@ const ChatPanel = () => {
     const totalUnread = totalUnreadMemo;
 
     return (
+        <>
         <div className="admin-layout">
-            <AdminSidebar session={session} activeId="chat" onNavClick={handleNavClick} />
+            <AdminSidebar session={session} activeId="chat" onNavClick={handleNavClick} chatUnread={totalUnreadMemo} />
 
             <main className="admin-content">
                 <header className="admin-topbar">
@@ -798,10 +937,19 @@ const ChatPanel = () => {
                                 onChange={e => setSearchQuery(e.target.value)}
                             />
                             <div className="chat-filter-chips">
-                                {['todos', 'hoy', 'takeover', 'pendiente'].map(f => (
+                                {[
+                                    ['todos', 'Todos'],
+                                    ['hoy', 'Hoy'],
+                                    ['no_leidos', 'No leídos'],
+                                    ['sin_responder', '+24h'],
+                                    ['takeover', 'Manual'],
+                                    ['pendiente', 'Pedido'],
+                                    ['resuelto', 'Resuelto'],
+                                    ['archivado', 'Archivados'],
+                                ].map(([f, label]) => (
                                     <button key={f} className={`chat-filter-chip${contactFilter === f ? ' chat-filter-chip--active' : ''}`}
                                             onClick={() => setContactFilter(f)}>
-                                        {f === 'todos' ? 'Todos' : f === 'hoy' ? 'Hoy' : f === 'takeover' ? 'Manual' : 'Pendiente'}
+                                        {label}
                                     </button>
                                 ))}
                             </div>
@@ -814,10 +962,12 @@ const ChatPanel = () => {
                             ) : (
                                 filteredContacts.map(c => {
                                     const cTakeover = !!takeoverMap[c.phone_number];
+                                    const cResolved = !!statusMap[c.phone_number]?.is_resolved;
+                                    const cTags = tagsMap[c.phone_number] || [];
                                     return (
                                     <button
                                         key={c.phone_number}
-                                        className={`chat-contact-item ${activeContact === c.phone_number ? 'chat-contact-item--active' : ''} ${cTakeover ? 'chat-contact-item--takeover' : ''}`}
+                                        className={`chat-contact-item ${activeContact === c.phone_number ? 'chat-contact-item--active' : ''} ${cTakeover ? 'chat-contact-item--takeover' : ''} ${(c.unread || 0) > 0 ? 'chat-contact-item--unread' : ''}`}
                                         onClick={() => selectContact(c.phone_number)}
                                     >
                                         <div className="chat-contact-avatar">
@@ -825,10 +975,11 @@ const ChatPanel = () => {
                                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                                             )}
                                             {cTakeover && <span className="chat-contact-takeover-dot" />}
+                                            {cResolved && !cTakeover && <span className="chat-contact-resolved-dot" title="Resuelto">✓</span>}
                                         </div>
                                         <div className="chat-contact-info">
                                             <div className="chat-contact-top">
-                                                <span className="chat-contact-name">
+                                                <span className={`chat-contact-name ${(c.unread || 0) > 0 ? 'chat-contact-name--unread' : ''}`}>
                                                     {c.customer_name || c.phone_number}
                                                 </span>
                                                 {cTakeover && <span className="chat-takeover-badge">MANUAL</span>}
@@ -838,6 +989,13 @@ const ChatPanel = () => {
                                                 <span>{c.last_role === 'assistant' ? 'Valentina: ' : ''}</span>
                                                 <span>{truncate(c.last_message, 45)}</span>
                                             </div>
+                                            {cTags.length > 0 && (
+                                                <div className="chat-contact-tags">
+                                                    {cTags.slice(0, 3).map(t => (
+                                                        <span key={t.id} className="chat-tag-pill" style={{ '--tag-color': t.color }}>{t.tag_name}</span>
+                                                    ))}
+                                                </div>
+                                            )}
                                         </div>
                                         {(c.unread || 0) > 0 && (
                                             <span className="chat-unread-badge">{c.unread}</span>
@@ -853,8 +1011,11 @@ const ChatPanel = () => {
                     <div className={`chat-conversation ${!mobileShowChat ? 'chat-conversation--hidden-mobile' : ''}`}>
                         {!activeContact ? (
                             <div className="chat-empty-state">
-                                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#ccc" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-                                <p>Selecciona una conversacion para verla</p>
+                                <div className="chat-empty-state-icon">
+                                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+                                </div>
+                                <p>Selecciona una conversación</p>
+                                <span className="chat-empty-state-sub">Elige un contacto de la lista para ver sus mensajes</span>
                             </div>
                         ) : (
                             <>
@@ -885,6 +1046,20 @@ const ChatPanel = () => {
                                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                                         </button>
                                         <button
+                                            className={`chat-header-action-btn ${statusMap[activeContact]?.is_resolved ? 'chat-header-action-btn--resolved' : ''}`}
+                                            onClick={() => handleToggleResolved(activeContact)}
+                                            title={statusMap[activeContact]?.is_resolved ? 'Marcar como no resuelto' : 'Marcar como resuelto'}
+                                        >
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                        </button>
+                                        <button
+                                            className="chat-header-action-btn"
+                                            onClick={() => setConfirmArchive(activeContact)}
+                                            title="Archivar conversación"
+                                        >
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+                                        </button>
+                                        <button
                                             className={`chat-takeover-btn ${isTakeover ? 'chat-takeover-btn--active' : ''}`}
                                             onClick={handleToggleTakeover}
                                             title={isTakeover ? 'Devolver al agente IA' : 'Tomar control manual'}
@@ -903,6 +1078,7 @@ const ChatPanel = () => {
                                                 <div className="chat-export-menu">
                                                     <button onClick={() => { handleExportChat(); setShowExportMenu(false); }}>Exportar TXT</button>
                                                     <button onClick={() => { handleExportCSV(); setShowExportMenu(false); }}>Exportar CSV</button>
+                                                    <button className="chat-export-menu-danger" onClick={() => { setConfirmArchive('delete:' + activeContact); setShowExportMenu(false); }}>Eliminar conversación</button>
                                                 </div>
                                             )}
                                         </div>
@@ -967,11 +1143,20 @@ const ChatPanel = () => {
                                                         ) : null}
                                                         <div className={`chat-bubble chat-bubble--${msg.role || 'user'}${msg._failed ? ' chat-bubble--error' : ''}`}>
                                                             {msg.message_type === 'image' && msg.media_url ? (
-                                                                <img src={msg.media_url} alt="" className="chat-bubble-image" />
+                                                                <img src={msg.media_url} alt="" className="chat-bubble-image chat-bubble-image--clickable" onClick={() => openLightbox(msg.media_url)} />
                                                             ) : null}
-                                                            <div className="chat-bubble-content"><span>{msg.content || ''}</span></div>
+                                                            {msg.content ? <div className="chat-bubble-content"><span>{msg.content}</span></div> : null}
                                                             <div className="chat-bubble-time">
-                                                                {msg._failed ? <span style={{ color: '#ef4444' }}>Error al enviar</span> : <span>{fmtTime(msg.created_at)}</span>}
+                                                                {msg._failed ? <span style={{ color: '#ef4444' }}>Error al enviar</span> : (
+                                                                    <>
+                                                                        <span>{fmtTime(msg.created_at)}</span>
+                                                                        {msg.role === 'assistant' && (
+                                                                            <span className={`chat-delivery-status chat-delivery-status--${msg.delivery_status || (String(msg.id).startsWith('temp-') ? 'sending' : 'sent')}`}>
+                                                                                {msg.delivery_status === 'read' ? '✓✓' : msg.delivery_status === 'delivered' ? '✓✓' : '✓'}
+                                                                            </span>
+                                                                        )}
+                                                                    </>
+                                                                )}
                                                             </div>
                                                         </div>
                                                     </React.Fragment>
@@ -1043,6 +1228,29 @@ const ChatPanel = () => {
                                                             {isTakeover ? 'Manual' : 'IA'}
                                                         </span>
                                                         <span className="chat-info-stat-label">Modo</span>
+                                                    </div>
+                                                </div>
+
+                                                {/* ── Tags ── */}
+                                                <div className="chat-info-section">
+                                                    <div className="chat-info-section-head">
+                                                        <h6>Etiquetas</h6>
+                                                    </div>
+                                                    <div className="chat-info-tags">
+                                                        {(tagsMap[activeContact] || []).map(t => (
+                                                            <span key={t.id} className="chat-tag-pill chat-tag-pill--removable" style={{ '--tag-color': t.color }}>
+                                                                {t.tag_name}
+                                                                <button className="chat-tag-remove" onClick={() => handleRemoveTag(activeContact, t.id)}>×</button>
+                                                            </span>
+                                                        ))}
+                                                        <div className="chat-tag-picker">
+                                                            {PRESET_TAGS.filter(pt => !(tagsMap[activeContact] || []).some(t => t.tag_name === pt.label)).map(pt => (
+                                                                <button key={pt.label} className="chat-tag-add-btn" style={{ '--tag-color': pt.color }}
+                                                                        onClick={() => handleAddTag(activeContact, pt.label, pt.color)}>
+                                                                    + {pt.label}
+                                                                </button>
+                                                            ))}
+                                                        </div>
                                                     </div>
                                                 </div>
 
@@ -1152,7 +1360,11 @@ const ChatPanel = () => {
                                         {showQuickReplies && (
                                             <div className="chat-quick-replies" ref={quickRepliesRef}>
                                                 {quickReplies.map((qr, i) => (
-                                                    <button key={i} className="chat-quick-reply-btn" onClick={() => { setNewMessage(qr.text); setShowQuickReplies(false); }}>
+                                                    <button key={i} className="chat-quick-reply-btn" onClick={() => {
+                                                        const nombre = activeContactData?.customer_name || '';
+                                                        setNewMessage(qr.text.replace(/\{\{nombre\}\}/gi, nombre));
+                                                        setShowQuickReplies(false);
+                                                    }}>
                                                         {qr.label}
                                                     </button>
                                                 ))}
@@ -1260,6 +1472,33 @@ const ChatPanel = () => {
                             </>
                         )}
                     </div>
+                    {/* Archive / Delete confirm modal */}
+                    {confirmArchive && (
+                        <div className="chat-confirm-overlay" onClick={() => setConfirmArchive(null)}>
+                            <div className="chat-confirm-modal" onClick={e => e.stopPropagation()}>
+                                {confirmArchive.startsWith('delete:') ? (
+                                    <>
+                                        <h4>¿Eliminar conversación?</h4>
+                                        <p>Esta acción es permanente y no se puede deshacer.</p>
+                                        <div className="chat-confirm-actions">
+                                            <button className="chat-confirm-btn chat-confirm-btn--cancel" onClick={() => setConfirmArchive(null)}>Cancelar</button>
+                                            <button className="chat-confirm-btn chat-confirm-btn--danger" onClick={() => handleDeleteConversation(confirmArchive.slice(7))}>Eliminar</button>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <>
+                                        <h4>¿Archivar conversación?</h4>
+                                        <p>El contacto desaparecerá de la lista. Volverá automáticamente si envía un nuevo mensaje.</p>
+                                        <div className="chat-confirm-actions">
+                                            <button className="chat-confirm-btn chat-confirm-btn--cancel" onClick={() => setConfirmArchive(null)}>Cancelar</button>
+                                            <button className="chat-confirm-btn chat-confirm-btn--primary" onClick={() => handleArchive(confirmArchive)}>Archivar</button>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Toast notifications */}
                     {toasts.length > 0 && (
                         <div className="chat-toast-container">
@@ -1274,6 +1513,17 @@ const ChatPanel = () => {
                 </div>
             </main>
         </div>
+
+        {/* Lightbox */}
+        {lightboxImg && (
+            <div className={`pg-lightbox ${lightboxClosing ? 'lb-closing' : ''}`} onClick={closeLightbox}>
+                <button className="pg-lightbox-close" onClick={closeLightbox} aria-label="Cerrar">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+                <img className="pg-lightbox-img" src={lightboxImg} alt="" onClick={e => e.stopPropagation()} />
+            </div>
+        )}
+        </>
     );
 };
 
