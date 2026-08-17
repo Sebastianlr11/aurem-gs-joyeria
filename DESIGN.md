@@ -579,8 +579,13 @@ foto del hero. Es la versión circular del punzón, no un elemento nuevo.
 
 Dos cosas que el sistema da por buenas y todavía no lo son:
 
-⚠️ **El precio del hero es inventado.** `Piezas desde $380.000 COP` lo generó la
-herramienta de diseño, no el negocio. **No se publica sin confirmarlo.**
+⚠️ **Falta el precio del hero.** El diseño contempla un "desde $X" bajo los CTA
+y **el requisito del primer viewport lo da por presente**. La línea se quitó
+antes de publicar el 2026-08-17, porque el número que traía el diseño
+—`$380.000 COP`— lo había generado la herramienta y no el negocio. **Cuando
+exista el precio real de entrada, vuelve al mismo sitio**, en Mulish 700 a
+0,875rem, entre los botones y la línea de pelo. El componente `hero-price` sigue
+definido en el CSS a la espera.
 
 ⚠️ **Las nueve fotos son de relleno.** Vienen del diseño y encajan con la
 dirección —mármol cálido, luz de ventana, oro—, pero no muestran el inventario

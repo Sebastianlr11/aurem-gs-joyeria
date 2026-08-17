@@ -73,10 +73,6 @@ const Hero = () => {
                             </a>
                         </div>
 
-                        <p className="hero-price hero-anim" style={{ '--hero-delay': '0.72s' }}>
-                            Piezas desde $380.000 COP
-                        </p>
-
                         <div className="hero-rule" />
 
                         <div className="hero-marks hero-anim" style={{ '--hero-delay': '0.82s' }}>
