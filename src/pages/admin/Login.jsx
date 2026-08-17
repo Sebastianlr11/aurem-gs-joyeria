@@ -148,7 +148,7 @@ const Login = () => {
                             </h2>
                         ) : (
                             <h2 className="admin-login-welcome">
-                                Bienvenida de
+                                Bienvenido de
                                 <em>vuelta.</em>
                             </h2>
                         )}
