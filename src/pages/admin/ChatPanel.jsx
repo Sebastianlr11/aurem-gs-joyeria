@@ -936,7 +936,7 @@ const ChatPanel = () => {
                                 value={searchQuery}
                                 onChange={e => setSearchQuery(e.target.value)}
                             />
-                            <div className="chat-filter-chips">
+                            <div className="riel" role="group" aria-label="Filtrar conversaciones">
                                 {[
                                     ['todos', 'Todos'],
                                     ['hoy', 'Hoy'],
@@ -947,9 +947,11 @@ const ChatPanel = () => {
                                     ['resuelto', 'Resuelto'],
                                     ['archivado', 'Archivados'],
                                 ].map(([f, label]) => (
-                                    <button key={f} className={`chat-filter-chip${contactFilter === f ? ' chat-filter-chip--active' : ''}`}
+                                    <button key={f} type="button"
+                                            className={`riel-btn${contactFilter === f ? ' riel-btn--on' : ''}`}
+                                            aria-pressed={contactFilter === f}
                                             onClick={() => setContactFilter(f)}>
-                                        {label}
+                                        <span>{label}</span>
                                     </button>
                                 ))}
                             </div>

@@ -2147,10 +2147,12 @@ textarea:focus-visible {
   padding-top: 0;
 }
 
-/* Riel segmentado de filtros: una sola fila, una sola activa.
+/* RIEL SEGMENTADO — componente compartido de filtros.
+   Una sola fila, una sola activa. Se usa en el catálogo, en Productos,
+   Pedidos, Conversaciones e Informes del panel.
    Arena con filete de pelo; la activa sube a blanco con filete de oro al
    35 %. Ninguna sombra, ningún desplazamiento al pasar el cursor. */
-.catalogo-riel {
+.riel {
   display: inline-flex;
   gap: 4px;
   padding: 4px;
@@ -2163,9 +2165,9 @@ textarea:focus-visible {
   -webkit-overflow-scrolling: touch;
 }
 
-.catalogo-riel::-webkit-scrollbar { display: none; }
+.riel::-webkit-scrollbar { display: none; }
 
-.catalogo-riel-btn {
+.riel-btn {
   display: inline-flex;
   align-items: center;
   gap: 9px;
@@ -2185,10 +2187,10 @@ textarea:focus-visible {
   transition: background 0.3s var(--ease), color 0.3s var(--ease), border-color 0.3s var(--ease);
 }
 
-.catalogo-riel-btn:hover:not(:disabled) { color: var(--ink); }
+.riel-btn:hover:not(:disabled) { color: var(--ink); }
 
-.catalogo-riel-btn--on,
-.catalogo-riel-btn--on:hover {
+.riel-btn--on,
+.riel-btn--on:hover {
   background: var(--bg-color);
   border-color: rgba(168, 134, 63, 0.35);
   color: var(--ink);
@@ -2196,11 +2198,11 @@ textarea:focus-visible {
 
 /* Categoría en cero: el conteo ya lo dice, así que la etiqueta se mantiene
    legible y sólo se le quita el toque. */
-.catalogo-riel-btn--vacia {
+.riel-btn--vacia {
   cursor: default;
 }
 
-.catalogo-riel-n {
+.riel-n {
   font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -2209,7 +2211,7 @@ textarea:focus-visible {
   transition: color 0.3s var(--ease);
 }
 
-.catalogo-riel-btn--on .catalogo-riel-n { color: var(--oro-ink); }
+.riel-btn--on .riel-n { color: var(--oro-ink); }
 
 .catalogo-herramientas {
   display: flex;
@@ -5626,13 +5628,12 @@ textarea:focus-visible {
   flex-wrap: wrap;
 }
 
-.admin-filters { display: flex; gap: 0.4rem; flex-wrap: wrap; }
-
-/* Active filter in admin context */
-.admin-filters .filter-btn--active {
-  background: #0c1220;
-  border-color: #0c1220;
-  color: #fff;
+/* Los filtros de Pedidos son dos rieles: estado y canal. */
+.admin-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  min-width: 0;
 }
 
 .admin-search-wrap {
@@ -10739,34 +10740,6 @@ textarea:focus-visible {
 }
 
 /* ─── Filter chips ─────────────────────────────────────────────── */
-.chat-filter-chips {
-  display: flex;
-  gap: 6px;
-  padding-top: 10px;
-  flex-wrap: wrap;
-}
-.chat-filter-chip {
-  padding: 5px 12px;
-  border-radius: 20px;
-  border: 1px solid rgba(255,255,255,0.1);
-  background: rgba(255,255,255,0.04);
-  color: #999;
-  font-size: 0.72rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.chat-filter-chip:hover {
-  background: rgba(255,255,255,0.08);
-  color: #ccc;
-  border-color: rgba(255,255,255,0.15);
-}
-.chat-filter-chip--active {
-  background: rgba(212, 175, 55, 0.15);
-  color: #D4AF37;
-  border-color: rgba(212, 175, 55, 0.3);
-}
-
 /* ─── Message search bar ───────────────────────────────────────── */
 .chat-msg-search-bar {
   display: flex;
@@ -11053,17 +11026,6 @@ textarea:focus-visible {
 }
 
 /* ─── Chat: filter chips scrollable ────────────────────────────── */
-.chat-filter-chips {
-  display: flex;
-  gap: 6px;
-  margin-top: 10px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-  padding-bottom: 2px;
-}
-.chat-filter-chips::-webkit-scrollbar { display: none; }
-
 /* ─── Chat: empty state improved ───────────────────────────────── */
 .chat-empty-state-icon {
   width: 80px;
@@ -11978,47 +11940,6 @@ textarea:focus-visible {
   border-bottom: 1px solid var(--hairline);
 }
 
-.prod-chips {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.prod-chip {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 0.4rem;
-  height: 36px;
-  padding: 0 0.95rem;
-  border-radius: 100px;
-  border: 1px solid var(--hairline);
-  background: var(--bg-color);
-  color: var(--text-secondary);
-  font-family: inherit;
-  font-size: 0.82rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s var(--ease);
-}
-
-.prod-chip:hover {
-  border-color: var(--oro-hairline);
-  color: var(--ink);
-}
-
-.prod-chip--on {
-  background: var(--ink);
-  border-color: var(--ink);
-  color: var(--bg-marfil);
-}
-
-.prod-chip-n {
-  font-size: 0.68rem;
-  font-weight: 700;
-  opacity: 0.55;
-}
-
 .prod-herramientas {
   display: flex;
   align-items: center;
@@ -12527,16 +12448,6 @@ textarea:focus-visible {
     gap: 1rem;
   }
 
-  .prod-chips {
-    width: 100%;
-    overflow-x: auto;
-    flex-wrap: nowrap;
-  }
-
-  .prod-chip {
-    white-space: nowrap;
-  }
-
   .prod-herramientas {
     width: 100%;
   }
@@ -12603,7 +12514,6 @@ textarea:focus-visible {
   outline: none;
 }
 
-.chat-filter-chips button,
 .chat-quick-reply-btn,
 .chat-tag-add-btn {
   border-radius: 100px;
@@ -12615,19 +12525,12 @@ textarea:focus-visible {
   transition: all 0.3s var(--ease);
 }
 
-.chat-filter-chips button:hover,
 .chat-quick-reply-btn:hover,
 .chat-tag-add-btn:hover {
   border-color: var(--oro-hairline);
   background: var(--bg-arena);
 }
 
-.chat-filter-chips button.active,
-.chat-filter-chips button[aria-pressed='true'] {
-  background: var(--ink);
-  border-color: var(--ink);
-  color: var(--bg-marfil);
-}
 
 /* Fila de contacto */
 .chat-contact-item {
@@ -13088,17 +12991,6 @@ textarea:focus-visible {
 .inf-sub { font-size: 0.86rem; color: var(--text-secondary); }
 
 .inf-head-acciones { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
-.inf-rangos {
-  display: flex; align-items: center; gap: 4px; padding: 4px;
-  background: var(--bg-color); border: 1px solid var(--hairline); border-radius: 100px;
-}
-.inf-rango {
-  border: 0; cursor: pointer; font-family: inherit; font-size: 0.78rem; font-weight: 700;
-  padding: 0.56rem 1.125rem; border-radius: 100px; background: transparent;
-  color: var(--text-secondary); transition: all 0.3s var(--ease);
-}
-.inf-rango--on { background: var(--ink); color: var(--bg-marfil); }
-
 /* Ingreso neto */
 .inf-fila-principal {
   display: grid; grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr);
@@ -13298,6 +13190,14 @@ textarea:focus-visible {
 
 @media (max-width: 768px) {
   /* El riel se desliza; la fila no se rompe. */
-  .catalogo-riel { display: flex; }
-  .catalogo-riel-btn { min-height: 44px; padding: 0 16px; }
+  .riel { display: flex; }
+  .riel-btn { min-height: 44px; padding: 0 16px; }
+}
+
+/* El riel en la cabecera de la bandeja: cabe a lo ancho de la columna y
+   se desliza, como en móvil. */
+.chat-contacts-header .riel {
+  display: flex;
+  margin-top: 10px;
+  width: 100%;
 }
