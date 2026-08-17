@@ -981,16 +981,21 @@ const ProductsSection = ({ products, loading, onRefresh }) => {
 
             <div className="prod-panel">
                 <div className="prod-toolbar">
-                    <div className="prod-chips">
+                    <div className="riel" role="group" aria-label="Categorías">
                         {['Todos', ...CATEGORIES].map(c => {
                             const n = c === 'Todos' ? products.length : products.filter(p => p.category === c).length;
+                            const vacia = n === 0;
                             return (
                                 <button
                                     key={c}
-                                    className={`prod-chip ${filterCat === c ? 'prod-chip--on' : ''}`}
-                                    onClick={() => setFilterAndReset(c)}
+                                    type="button"
+                                    className={`riel-btn ${filterCat === c ? 'riel-btn--on' : ''} ${vacia ? 'riel-btn--vacia' : ''}`}
+                                    aria-pressed={filterCat === c}
+                                    disabled={vacia}
+                                    onClick={vacia ? undefined : () => setFilterAndReset(c)}
                                 >
-                                    {c}<span className="prod-chip-n">{n}</span>
+                                    <span>{c}</span>
+                                    <span className="riel-n">{n}</span>
                                 </button>
                             );
                         })}
@@ -1287,18 +1292,33 @@ const OrdersSection = ({ orders, products, loading, onRefresh }) => {
 
             <div className="admin-card">
                 <div className="admin-toolbar">
-                    <div className="admin-filters" style={{ flexWrap: 'wrap', gap: '0.35rem' }}>
-                        {['Todos', ...ORDER_STATUSES].map(s => (
-                            <button key={s} className={`filter-btn ${filterStatus === s ? 'filter-btn--active' : ''}`} onClick={() => setFilterStatusAndReset(s)}>
-                                {s === 'Todos' ? 'Todos' : STATUS_META[s].label}
-                            </button>
-                        ))}
-                        <span style={{ width: '1px', height: '20px', background: '#e0e0e0', margin: '0 0.25rem' }} />
-                        {['Todos', ...Object.keys(SOURCE_META)].map(s => (
-                            <button key={`src-${s}`} className={`filter-btn ${filterSource === s ? 'filter-btn--active' : ''}`} onClick={() => setFilterSourceAndReset(s)}>
-                                {s === 'Todos' ? 'Todos canales' : SOURCE_META[s].label}
-                            </button>
-                        ))}
+                    <div className="admin-filters">
+                        <div className="riel" role="group" aria-label="Estado del pedido">
+                            {['Todos', ...ORDER_STATUSES].map(s => (
+                                <button
+                                    key={s}
+                                    type="button"
+                                    className={`riel-btn ${filterStatus === s ? 'riel-btn--on' : ''}`}
+                                    aria-pressed={filterStatus === s}
+                                    onClick={() => setFilterStatusAndReset(s)}
+                                >
+                                    <span>{s === 'Todos' ? 'Todos' : STATUS_META[s].label}</span>
+                                </button>
+                            ))}
+                        </div>
+                        <div className="riel" role="group" aria-label="Canal de origen">
+                            {['Todos', ...Object.keys(SOURCE_META)].map(s => (
+                                <button
+                                    key={`src-${s}`}
+                                    type="button"
+                                    className={`riel-btn ${filterSource === s ? 'riel-btn--on' : ''}`}
+                                    aria-pressed={filterSource === s}
+                                    onClick={() => setFilterSourceAndReset(s)}
+                                >
+                                    <span>{s === 'Todos' ? 'Todos los canales' : SOURCE_META[s].label}</span>
+                                </button>
+                            ))}
+                        </div>
                     </div>
                     <div className="admin-search-wrap">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -1841,14 +1861,16 @@ const ReportsSection = ({ orders, products = [], onNavigate }) => {
                 </div>
 
                 <div className="inf-head-acciones">
-                    <div className="inf-rangos">
+                    <div className="riel" role="group" aria-label="Periodo del informe">
                         {[['7d', '7 días'], ['14d', '14 días'], ['30d', '30 días'], ['90d', '90 días'], ['todo', 'Todo']].map(([v, l]) => (
                             <button
                                 key={v}
-                                className={`inf-rango ${period === v ? 'inf-rango--on' : ''}`}
+                                type="button"
+                                className={`riel-btn ${period === v ? 'riel-btn--on' : ''}`}
+                                aria-pressed={period === v}
                                 onClick={() => setPeriod(v)}
                             >
-                                {l}
+                                <span>{l}</span>
                             </button>
                         ))}
                     </div>

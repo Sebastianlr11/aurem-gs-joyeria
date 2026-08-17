@@ -105,7 +105,7 @@ const Catalog = () => {
                     {/* Riel segmentado: una sola fila, una sola activa. Las categorías
                         sin piezas conservan su etiqueta —el conteo ya lo dice— pero
                         se les quita el toque. */}
-                    <div className="catalogo-riel" role="group" aria-label="Categorías">
+                    <div className="riel" role="group" aria-label="Categorías">
                         {CATEGORIAS.map(c => {
                             const n = conteoPorCategoria[c] ?? 0;
                             const vacia = n === 0;
@@ -113,13 +113,13 @@ const Catalog = () => {
                                 <button
                                     key={c}
                                     type="button"
-                                    className={`catalogo-riel-btn ${categoria === c ? 'catalogo-riel-btn--on' : ''} ${vacia ? 'catalogo-riel-btn--vacia' : ''}`}
+                                    className={`riel-btn ${categoria === c ? 'riel-btn--on' : ''} ${vacia ? 'riel-btn--vacia' : ''}`}
                                     aria-pressed={categoria === c}
                                     disabled={vacia}
                                     onClick={vacia ? undefined : () => { setCategoria(c); setPagina(1); }}
                                 >
                                     <span>{c}</span>
-                                    <span className="catalogo-riel-n">{n}</span>
+                                    <span className="riel-n">{n}</span>
                                 </button>
                             );
                         })}
@@ -154,12 +154,12 @@ const Catalog = () => {
 
                 <div className="container catalogo-filtros-fila catalogo-filtros-fila--precio">
                     <span className="catalogo-precio-label">Precio</span>
-                    <div className="catalogo-riel" role="group" aria-label="Rango de precio">
+                    <div className="riel" role="group" aria-label="Rango de precio">
                         {RANGOS.map((r, i) => (
                             <button
                                 key={r.label}
                                 type="button"
-                                className={`catalogo-riel-btn ${rango === i ? 'catalogo-riel-btn--on' : ''}`}
+                                className={`riel-btn ${rango === i ? 'riel-btn--on' : ''}`}
                                 aria-pressed={rango === i}
                                 onClick={() => { setRango(i); setPagina(1); }}
                             >
