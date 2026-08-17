@@ -1616,7 +1616,7 @@ const calcMPNet = (amount) => {
     return amount - Math.ceil(base * (1 + MP_IVA) + amount * MP_RETE_FUENTE + amount * MP_RETE_ICA);
 };
 
-const ReportsSection = ({ orders }) => {
+const ReportsSection = ({ orders, products = [], onNavigate }) => {
     const [period, setPeriod] = useState('30d');
     const [waAnalytics, setWaAnalytics] = useState(null);
     const [trendData, setTrendData] = useState(null);
@@ -1668,6 +1668,15 @@ const ReportsSection = ({ orders }) => {
     const filtered = orders.filter(o => new Date(o.created_at) >= periodStart);
     const paidFiltered = filtered.filter(o => REVENUE_STATUSES.includes(o.status));
 
+    /* Mismo tramo, inmediatamente anterior, para poder comparar */
+    const periodDays = period === 'todo' ? null : parseInt(period);
+    const prevStart = periodDays ? new Date(new Date(periodStart).setDate(periodStart.getDate() - periodDays)) : null;
+    const prevFiltered = periodDays
+        ? orders.filter(o => { const d = new Date(o.created_at); return d >= prevStart && d < periodStart; })
+        : [];
+    const prevPaid = prevFiltered.filter(o => REVENUE_STATUSES.includes(o.status));
+    const hayComparacion = periodDays && prevFiltered.length > 0;
+
     /* Revenue breakdown */
     const grossTotal = paidFiltered.reduce((s, o) => s + Number(o.amount), 0);
     const mpOrders = paidFiltered.filter(o => !isCOD(o));
@@ -1678,8 +1687,13 @@ const ReportsSection = ({ orders }) => {
     const codTotal = codOrders.reduce((s, o) => s + Number(o.amount), 0);
     const netTotal = mpNet + codTotal;
 
+    const prevNetTotal = prevPaid.reduce((s, o) => s + (isCOD(o) ? Number(o.amount) : calcMPNet(Number(o.amount))), 0);
+
     /* Avg order value */
     const avgOrder = paidFiltered.length ? Math.round(grossTotal / paidFiltered.length) : 0;
+    const prevGross = prevPaid.reduce((s, o) => s + Number(o.amount), 0);
+    const prevAvgOrder = prevPaid.length ? Math.round(prevGross / prevPaid.length) : 0;
+    const prevPayRate = prevFiltered.length ? Math.round((prevPaid.length / prevFiltered.length) * 100) : 0;
 
     /* Conversion rate */
     const conversionRate = filtered.length ? Math.round((paidFiltered.length / filtered.length) * 100) : 0;
@@ -1702,7 +1716,10 @@ const ReportsSection = ({ orders }) => {
         };
     });
     const maxDayCount = Math.max(...ordersByDay.map(d => d.count), 1);
-    const maxDayRevenue = Math.max(...ordersByDay.map(d => d.revenue), 1);
+    /* Cuatro marcas de fecha repartidas a lo largo del eje */
+    const ejeFechas = [0, 1, 2, 3]
+        .map(i => ordersByDay[Math.round((i / 3) * (ordersByDay.length - 1))]?.label)
+        .filter((l, i, a) => l && a.indexOf(l) === i);
 
     /* Top 5 products */
     const productCounts = {};
@@ -1711,8 +1728,6 @@ const ReportsSection = ({ orders }) => {
         productCounts[o.product_name] = (productCounts[o.product_name] || 0) + 1;
         if (REVENUE_STATUSES.includes(o.status)) productRevenue[o.product_name] = (productRevenue[o.product_name] || 0) + Number(o.amount);
     });
-    const top5Products = Object.entries(productCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
-    const maxProductCount = top5Products.length ? top5Products[0][1] : 1;
 
     /* Orders by status */
     const statusCounts = {};
@@ -1730,347 +1745,519 @@ const ReportsSection = ({ orders }) => {
     const paymentEntries = Object.entries(paymentCounts).sort((a, b) => b[1] - a[1]);
     const maxPaymentCount = paymentEntries.length ? paymentEntries[0][1] : 1;
 
+    /* Ingresos por canal, para acompañar el conteo */
+    const sourceRevenue = {};
+    paidFiltered.forEach(o => {
+        const src = o.order_source || 'web';
+        sourceRevenue[src] = (sourceRevenue[src] || 0) + Number(o.amount);
+    });
+
+    /* Piezas más vendidas, ordenadas por ingreso real cobrado.
+       La miniatura sale del producto del catálogo: primero por id, y si el
+       pedido es viejo y no lo trae, por nombre exacto. */
+    const productoPorId = {};
+    const productoPorNombre = {};
+    products.forEach(p => { productoPorId[p.id] = p; productoPorNombre[p.name] = p; });
+    const idPorNombre = {};
+    filtered.forEach(o => { if (o.product_id && !idPorNombre[o.product_name]) idPorNombre[o.product_name] = o.product_id; });
+
+    const topPiezas = Object.entries(productRevenue)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([nombre, ingreso]) => ({
+            nombre,
+            ingreso,
+            unidades: productCounts[nombre] || 0,
+            imagen: (productoPorId[idPorNombre[nombre]] || productoPorNombre[nombre])?.image_url || null,
+        }));
+    const maxPieza = topPiezas.length ? topPiezas[0].ingreso : 1;
+
+    const totalEstados = Object.values(statusCounts).reduce((s, n) => s + n, 0) || 1;
+    const estadosOrden = ORDER_STATUSES.filter(s => statusCounts[s]);
+    const TONO_ESTADO = {
+        pendiente: '#F2EAE0',
+        pagado: 'rgba(168,134,63,.45)',
+        procesando: '#A8863F',
+        enviado: '#6B615A',
+        entregado: '#1C1714',
+        cancelado: '#FFFFFF',
+    };
+
+    const porDespachar = filtered.filter(o => o.status === 'pagado' || o.status === 'procesando').length;
+    const sinPago = filtered.filter(o => o.status === 'pendiente').length;
+
+    const rangoRotulo = period === 'todo'
+        ? 'Todo el histórico'
+        : `Últimos ${parseInt(period)} días`;
+
+    /* Rótulo del rango con las fechas reales y la hora de corte */
+    const fmtCorto = d => d.toLocaleDateString('es-CO', { day: 'numeric', month: 'long' });
+    const rangoFechas = period === 'todo'
+        ? (orders.length ? `Desde el ${fmtCorto(new Date(orders[orders.length - 1].created_at))} de ${new Date(orders[orders.length - 1].created_at).getFullYear()}` : 'Todo el histórico')
+        : `${fmtCorto(periodStart)} al ${fmtCorto(now)} de ${now.getFullYear()}`;
+    const horaCorte = now.toLocaleTimeString('es-CO', { hour: 'numeric', minute: '2-digit' });
+
+    /* Comparaciones contra el tramo anterior. Devuelven null cuando no hay
+       con qué comparar, para no mostrar un "+100 %" que no significa nada. */
+    const signo = n => (n > 0 ? '+' : n < 0 ? '−' : '');
+    const compNum = (act, ant) => (hayComparacion ? `${signo(act - ant)}${Math.abs(act - ant)} frente al periodo anterior` : null);
+    const compPP = (act, ant) => (hayComparacion ? `${signo(act - ant)}${Math.abs(act - ant)} pp frente al periodo anterior` : null);
+    const compPesos = (act, ant) => (hayComparacion ? `${signo(act - ant)}$${fmt(Math.abs(act - ant))} frente al periodo anterior` : null);
+    const variacionNeto = hayComparacion && prevNetTotal > 0
+        ? ((netTotal - prevNetTotal) / prevNetTotal) * 100
+        : null;
+
+    const exportarCSV = () => {
+        const filas = [
+            ['Fecha', 'Cliente', 'Producto', 'Monto', 'Estado', 'Método de pago', 'Origen', 'Ciudad'],
+            ...filtered.map(o => [
+                fmtDate(o.created_at), o.customer_name, o.product_name, o.amount,
+                STATUS_META[o.status]?.label || o.status,
+                o.payment_method || '', o.order_source || 'web', o.shipping_city || '',
+            ]),
+        ];
+        const csv = filas.map(f => f.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+        const url = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' }));
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `informe-aurem-${new Date().toISOString().slice(0, 10)}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
     return (
-        <div className="admin-section">
-            <div className="admin-section-head">
-                <div>
-                    <h1 className="admin-section-title">Informes</h1>
-                    <p className="admin-section-sub">Análisis de ventas y rendimiento</p>
+        <div className="inf">
+
+            <header className="inf-head">
+                <div className="inf-head-texto">
+                    <span className="eyebrow">Panel interno</span>
+                    <h1 className="inf-titulo">
+                        Informes de
+                        <em>ventas y rendimiento.</em>
+                    </h1>
+                    <p className="inf-sub">
+                        {rangoFechas} · {filtered.length} pedido{filtered.length !== 1 ? 's' : ''} · datos cerrados hoy a las {horaCorte}
+                    </p>
                 </div>
-                <div className="rpt-period-selector">
-                    {REPORT_PERIODS.map(p => (
-                        <button key={p} className={`rpt-period-btn${period === p ? ' rpt-period-btn--active' : ''}`} onClick={() => setPeriod(p)}>
-                            {REPORT_PERIOD_LABELS[p]}
-                        </button>
-                    ))}
-                    <button className="rpt-period-btn" onClick={() => {
-                        const headers = ['Fecha','Cliente','Teléfono','Producto','Monto','Estado','Método de pago','Ciudad','Fuente'];
-                        const rows = filtered.map(o => {
-                            const d = new Date(o.created_at);
-                            const fecha = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
-                            return [fecha, o.customer_name||'', o.customer_phone||'', o.product_name||'', o.amount||0, o.status||'', o.payment_method||'', o.city||o.shipping_city||'', o.order_source||'web'];
-                        });
-                        const csv = [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
-                        const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement('a'); a.href = url;
-                        a.download = `pedidos_auremgs_${new Date().toISOString().slice(0,10)}.csv`;
-                        a.click(); URL.revokeObjectURL(url);
-                    }}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight:'0.3rem',verticalAlign:'middle'}}><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+
+                <div className="inf-head-acciones">
+                    <div className="inf-rangos">
+                        {[['7d', '7 días'], ['14d', '14 días'], ['30d', '30 días'], ['90d', '90 días'], ['todo', 'Todo']].map(([v, l]) => (
+                            <button
+                                key={v}
+                                className={`inf-rango ${period === v ? 'inf-rango--on' : ''}`}
+                                onClick={() => setPeriod(v)}
+                            >
+                                {l}
+                            </button>
+                        ))}
+                    </div>
+                    <button className="prod-btn-linea" onClick={exportarCSV} disabled={filtered.length === 0}>
                         Exportar CSV
                     </button>
                 </div>
-            </div>
+            </header>
 
-            {/* Revenue hero */}
-            <div className="rpt-revenue-hero">
-                <div className="rpt-revenue-main">
-                    <div className="rpt-revenue-main-top">
-                        <div className="rpt-revenue-main-icon">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+            <section className="inf-fila-principal">
+                <article className="inf-neto">
+                    <div className="inf-neto-top">
+                        <div className="inf-neto-cifra">
+                            <span className="inf-neto-label">Ingreso neto</span>
+                            <div className="inf-neto-valor-fila">
+                                <span className="inf-neto-valor">${fmt(netTotal)}</span>
+                                <span className="inf-neto-moneda">COP</span>
+                            </div>
+                            <p className="inf-neto-sub">
+                                De ${fmt(grossTotal)} facturados · ya descontadas las comisiones
+                            </p>
+                            {variacionNeto !== null && (
+                                <p className="inf-neto-comp">
+                                    <strong className={variacionNeto >= 0 ? 'inf-alza' : 'inf-baja'}>
+                                        {signo(variacionNeto)}{Math.abs(variacionNeto).toFixed(1).replace('.', ',')} %
+                                    </strong>
+                                    <span>frente a los {periodDays} días anteriores (${fmt(prevNetTotal)})</span>
+                                </p>
+                            )}
                         </div>
-                        <span className="rpt-revenue-main-label">Ingreso neto</span>
+                        <span className="punzon punzon--dark">Cobrado</span>
                     </div>
-                    <div className="rpt-revenue-main-amount">${fmt(netTotal)}</div>
-                    <div className="rpt-revenue-main-sub">de ${fmt(grossTotal)} bruto</div>
-                    <div className="rpt-revenue-breakdown">
-                        <div className="rpt-rev-item">
-                            <span className="rpt-rev-dot" style={{background:'#3b82f6'}}></span>
-                            <span>MercadoPago neto</span>
+
+                    <div className="inf-neto-desglose">
+                        <div className="inf-neto-linea">
+                            <span>
+                                <span className="inf-barra inf-barra--oro" />
+                                Mercado Pago
+                                <span className="inf-neto-meta">{mpOrders.length} pedido{mpOrders.length !== 1 ? 's' : ''}</span>
+                            </span>
                             <strong>${fmt(mpNet)}</strong>
                         </div>
-                        <div className="rpt-rev-item">
-                            <span className="rpt-rev-dot" style={{background:'#ef4444'}}></span>
-                            <span>Comisiones MP</span>
-                            <strong>-${fmt(mpFees)}</strong>
+                        <div className="inf-neto-linea">
+                            <span>
+                                <span className="inf-barra inf-barra--tenue" />
+                                Comisiones Mercado Pago
+                                <span className="inf-neto-meta">descontadas</span>
+                            </span>
+                            <strong>−${fmt(mpFees)}</strong>
                         </div>
-                        <div className="rpt-rev-item">
-                            <span className="rpt-rev-dot" style={{background:'var(--accent-gold)'}}></span>
-                            <span>Contraentrega</span>
+                        <div className="inf-neto-linea">
+                            <span>
+                                <span className="inf-barra inf-barra--blanco" />
+                                Contra entrega
+                                <span className="inf-neto-meta">{codOrders.length} pedido{codOrders.length !== 1 ? 's' : ''}</span>
+                            </span>
                             <strong>${fmt(codTotal)}</strong>
                         </div>
                     </div>
-                </div>
-                <div className="rpt-kpi-grid">
-                    <div className="rpt-kpi">
-                        <div className="rpt-kpi-value">{filtered.length}</div>
-                        <div className="rpt-kpi-label">Pedidos</div>
-                    </div>
-                    <div className="rpt-kpi">
-                        <div className="rpt-kpi-value">{paidFiltered.length}</div>
-                        <div className="rpt-kpi-label">Pagados</div>
-                    </div>
-                    <div className="rpt-kpi">
-                        <div className="rpt-kpi-value">${fmt(avgOrder)}</div>
-                        <div className="rpt-kpi-label">Ticket promedio</div>
-                    </div>
-                    <div className="rpt-kpi">
-                        <div className="rpt-kpi-value">{conversionRate}%</div>
-                        <div className="rpt-kpi-label">Conversión</div>
-                    </div>
-                </div>
-            </div>
+                </article>
 
-            {/* Activity: orders by day */}
-            <div className="admin-card" style={{marginBottom:'1.25rem'}}>
-                <div className="admin-card-head">
-                    <h3 className="admin-card-title">Actividad diaria</h3>
-                    <span className="rpt-chart-legend">Últimos {numDays} días</span>
+                <article className="inf-kpis">
+                    <div className="inf-kpi">
+                        <span className="inf-kpi-l">Pedidos</span>
+                        <span className="inf-kpi-v">{filtered.length}</span>
+                        <span className="inf-kpi-s">{paidFiltered.length} cobrados, {codOrders.length} contra entrega</span>
+                        {compNum(filtered.length, prevFiltered.length) && (
+                            <span className="inf-kpi-comp">{compNum(filtered.length, prevFiltered.length)}</span>
+                        )}
+                    </div>
+                    <div className="inf-kpi">
+                        <span className="inf-kpi-l">Tasa de pago</span>
+                        <span className="inf-kpi-v">{conversionRate} %</span>
+                        <span className="inf-kpi-s">{paidFiltered.length} de {filtered.length} pedidos cobrados</span>
+                        {compPP(conversionRate, prevPayRate) && (
+                            <span className="inf-kpi-comp">{compPP(conversionRate, prevPayRate)}</span>
+                        )}
+                    </div>
+                    <div className="inf-kpi">
+                        <span className="inf-kpi-l">Ticket promedio</span>
+                        <span className="inf-kpi-v">${fmt(avgOrder)}</span>
+                        <span className="inf-kpi-s">Sobre ${fmt(grossTotal)} facturados</span>
+                        {compPesos(avgOrder, prevAvgOrder) && (
+                            <span className="inf-kpi-comp">{compPesos(avgOrder, prevAvgOrder)}</span>
+                        )}
+                    </div>
+                    <div className="inf-kpi">
+                        <span className="inf-kpi-l">Por atender</span>
+                        <span className="inf-kpi-v">{sinPago + porDespachar}</span>
+                        <span className="inf-kpi-s">{sinPago} sin pago · {porDespachar} por despachar</span>
+                    </div>
+                </article>
+            </section>
+
+            <section className="inf-panel">
+                <div className="inf-panel-head">
+                    <div>
+                        <h2 className="inf-panel-titulo">Actividad diaria</h2>
+                        <p className="inf-panel-sub">
+                            Pedidos por día · promedio de {(filtered.length / ordersByDay.length).toFixed(1).replace('.', ',')} al día
+                        </p>
+                    </div>
+                    <span className="inf-leyenda"><span className="inf-leyenda-cuadro" />Pedidos</span>
                 </div>
-                <div className="rpt-activity">
-                    {ordersByDay.filter(d => d.count > 0).length === 0
-                        ? <p className="admin-empty-text">Sin pedidos en este período</p>
-                        : ordersByDay.filter(d => d.count > 0).reverse().map((d, i) => (
-                        <div key={i} className="rpt-activity-row">
-                            <span className="rpt-activity-date">{d.label}</span>
-                            <div className="rpt-activity-bar-wrap">
-                                <div className="rpt-activity-bar" style={{ width: `${(d.count / maxDayCount) * 100}%` }} />
-                                <div className="rpt-activity-bar" style={{ width: `${(d.revenue / maxDayRevenue) * 100}%`, background: 'var(--accent-gold, #b8860b)', height: '4px', marginTop: '2px', borderRadius: '2px' }} />
-                            </div>
-                            <span className="rpt-activity-count">{d.count} pedido{d.count !== 1 ? 's' : ''}</span>
-                            <span className="rpt-activity-rev">${fmt(d.revenue)}</span>
+
+                <div className="inf-grafica">
+                    {ordersByDay.map((d, i) => (
+                        <div
+                            key={i}
+                            className="inf-grafica-col"
+                            title={`${d.label} · ${d.count} pedido${d.count !== 1 ? 's' : ''}`}
+                        >
+                            <div
+                                className={`inf-grafica-barra ${d.count === 0 ? 'inf-grafica-barra--cero' : ''}`}
+                                style={{
+                                    height: d.count === 0 ? '2px' : `${Math.round((d.count / maxDayCount) * 100)}%`,
+                                    opacity: d.count === 0 ? 1 : 0.55 + 0.45 * (d.count / maxDayCount),
+                                }}
+                            />
                         </div>
                     ))}
                 </div>
-            </div>
+                <div className="inf-grafica-pie">
+                    {ejeFechas.map((l, i) => <span key={i}>{l}</span>)}
+                </div>
+            </section>
 
-            <div className="admin-reports-grid">
-                {/* Top 5 products */}
-                <div className="admin-card">
-                    <div className="admin-card-head">
-                        <h3 className="admin-card-title">Top 5 productos</h3>
+            <section className="inf-dos">
+                <article className="inf-panel">
+                    <div className="inf-panel-head">
+                        <h2 className="inf-panel-titulo">Piezas más vendidas</h2>
+                        <span className="inf-panel-tag">Por ingresos</span>
                     </div>
-                    <div className="rpt-product-list">
-                        {top5Products.map(([name, count], i) => (
-                            <div key={i} className="rpt-product-row">
-                                <span className="rpt-product-rank">#{i + 1}</span>
-                                <div className="rpt-product-info">
-                                    <span className="rpt-product-name" title={name}>{name.length > 28 ? name.slice(0, 28) + '…' : name}</span>
-                                    <div className="rpt-product-bar-wrap">
-                                        <div className="rpt-product-bar" style={{ width: `${(count / maxProductCount) * 100}%` }} />
-                                    </div>
-                                </div>
-                                <div className="rpt-product-stats">
-                                    <strong>{count}</strong>
-                                    <span>${fmt(productRevenue[name] || 0)}</span>
-                                </div>
+                    {topPiezas.length === 0 ? (
+                        <p className="inf-vacio">Todavía no hay ventas en este periodo.</p>
+                    ) : topPiezas.map(p => (
+                        <div key={p.nombre} className="inf-pieza">
+                            <div className="inf-pieza-thumb">
+                                {p.imagen ? <img src={p.imagen} alt="" loading="lazy" /> : <span>✦</span>}
                             </div>
-                        ))}
-                        {top5Products.length === 0 && <p className="admin-empty-text">Sin datos</p>}
-                    </div>
-                </div>
-
-                {/* Status breakdown */}
-                <div className="admin-card">
-                    <div className="admin-card-head">
-                        <h3 className="admin-card-title">Estado de pedidos</h3>
-                    </div>
-                    <div className="rpt-status-grid">
-                        {ORDER_STATUSES.map(s => (
-                            <div key={s} className="rpt-status-item">
-                                <div className="rpt-status-count">{statusCounts[s] || 0}</div>
-                                <StatusBadge status={s} />
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Orders by source */}
-                <div className="admin-card">
-                    <div className="admin-card-head">
-                        <h3 className="admin-card-title">Pedidos por canal</h3>
-                    </div>
-                    <div className="admin-hbar-chart">
-                        {sourceEntries.map(([src, count], i) => (
-                            <div key={i} className="admin-hbar-row">
-                                <span className="admin-hbar-label"><SourceBadge source={src} /></span>
-                                <div className="admin-hbar-track">
-                                    <div className="admin-hbar" style={{ width: `${(count / maxSourceCount) * 100}%`, background: '#10b981' }} />
+                            <div className="inf-pieza-cuerpo">
+                                <div className="inf-pieza-fila">
+                                    <span className="inf-pieza-nombre">{p.nombre}</span>
+                                    <span className="inf-pieza-ingreso">${fmt(p.ingreso)}</span>
                                 </div>
-                                <span className="admin-hbar-value">{count}</span>
-                            </div>
-                        ))}
-                        {sourceEntries.length === 0 && <p className="admin-empty-text">Sin datos</p>}
-                    </div>
-                </div>
-
-                {/* Orders by payment method */}
-                <div className="admin-card">
-                    <div className="admin-card-head">
-                        <h3 className="admin-card-title">Métodos de pago</h3>
-                    </div>
-                    <div className="admin-hbar-chart">
-                        {paymentEntries.map(([pm, count], i) => (
-                            <div key={i} className="admin-hbar-row">
-                                <span className="admin-hbar-label">{pm}</span>
-                                <div className="admin-hbar-track">
-                                    <div className="admin-hbar" style={{ width: `${(count / maxPaymentCount) * 100}%`, background: '#8b5cf6' }} />
+                                <div className="inf-pista">
+                                    <div className="inf-pista-fill" style={{ width: `${Math.round((p.ingreso / maxPieza) * 100)}%` }} />
                                 </div>
-                                <span className="admin-hbar-value">{count}</span>
-                            </div>
-                        ))}
-                        {paymentEntries.length === 0 && <p className="admin-empty-text">Sin datos</p>}
-                    </div>
-                </div>
-            </div>
-
-            {/* WhatsApp Analytics */}
-            {waAnalytics && (
-                <div className="admin-card" style={{marginTop:'1.25rem'}}>
-                    <div className="admin-card-head">
-                        <h3 className="admin-card-title">WhatsApp Analytics</h3>
-                    </div>
-                    <div className="rpt-kpi-grid rpt-kpi-grid--3">
-                        <div className="rpt-kpi">
-                            <div className="rpt-kpi-value">{waAnalytics.total_conversaciones || 0}</div>
-                            <div className="rpt-kpi-label">Conversaciones</div>
-                        </div>
-                        <div className="rpt-kpi">
-                            <div className="rpt-kpi-value">{waAnalytics.tasa_conversion ? `${Math.round(waAnalytics.tasa_conversion)}%` : '0%'}</div>
-                            <div className="rpt-kpi-label">Tasa conversión</div>
-                        </div>
-                        <div className="rpt-kpi">
-                            <div className="rpt-kpi-value">{waAnalytics.tiempo_respuesta_min ? `${Math.round(waAnalytics.tiempo_respuesta_min)}m` : '—'}</div>
-                            <div className="rpt-kpi-label">Tiempo respuesta</div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Embudo de ventas WhatsApp */}
-            {funnelData && (
-                <div className="admin-card" style={{marginTop:'1.25rem'}}>
-                    <div className="admin-card-head">
-                        <h3 className="admin-card-title">Embudo de ventas WhatsApp</h3>
-                    </div>
-                    <div style={{padding:'0.75rem 1rem'}}>
-                        {[
-                            { label: 'Conversaciones', value: funnelData.conversaciones, color: '#10b981' },
-                            { label: 'Interesados', value: funnelData.interesados, color: '#3b82f6' },
-                            { label: 'Crearon pedido', value: funnelData.pedidos, color: '#8b5cf6' },
-                            { label: 'Pagaron', value: funnelData.pagados, color: '#b8860b' },
-                        ].map((step, i) => {
-                            const maxVal = funnelData.conversaciones || 1;
-                            const pct = maxVal > 0 ? Math.round((step.value / maxVal) * 100) : 0;
-                            return (
-                                <div key={i} style={{marginBottom: i < 3 ? '0.6rem' : 0}}>
-                                    <div style={{display:'flex', justifyContent:'space-between', fontSize:'0.82rem', marginBottom:'0.2rem', color:'var(--text-secondary, #888)'}}>
-                                        <span>{step.label}</span>
-                                        <span><strong style={{color:'var(--text-primary, #fff)'}}>{step.value}</strong> · {pct}%</span>
-                                    </div>
-                                    <div style={{height:'10px', background:'var(--bg-tertiary, #1a1a2e)', borderRadius:'5px', overflow:'hidden'}}>
-                                        <div style={{width: `${pct}%`, height:'100%', background: step.color, borderRadius:'5px', transition:'width 0.4s ease'}} />
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-            )}
-
-            {/* Tendencia mes a mes */}
-            {trendData && (
-                <div className="admin-card" style={{marginTop:'1.25rem'}}>
-                    <div className="admin-card-head">
-                        <h3 className="admin-card-title">Tendencia mes vs mes anterior</h3>
-                    </div>
-                    <div className="rpt-kpi-grid rpt-kpi-grid--3">
-                        <div className="rpt-kpi">
-                            <div className="rpt-kpi-value">
-                                {trendData.pedidos_actual || 0}
-                                <span className={`rpt-trend ${(trendData.pedidos_actual || 0) >= (trendData.pedidos_anterior || 0) ? 'rpt-trend--up' : 'rpt-trend--down'}`}>
-                                    {(trendData.pedidos_actual || 0) >= (trendData.pedidos_anterior || 0) ? '↑' : '↓'} {trendData.pedidos_anterior || 0}
+                                <span className="inf-pieza-meta">
+                                    {p.unidades} unidad{p.unidades !== 1 ? 'es' : ''} vendida{p.unidades !== 1 ? 's' : ''}
                                 </span>
                             </div>
-                            <div className="rpt-kpi-label">Pedidos este mes</div>
                         </div>
-                        <div className="rpt-kpi">
-                            <div className="rpt-kpi-value">
-                                ${fmt(trendData.revenue_actual || 0)}
-                                <span className={`rpt-trend ${(trendData.revenue_actual || 0) >= (trendData.revenue_anterior || 0) ? 'rpt-trend--up' : 'rpt-trend--down'}`}>
-                                    {(trendData.revenue_actual || 0) >= (trendData.revenue_anterior || 0) ? '↑' : '↓'}
-                                </span>
-                            </div>
-                            <div className="rpt-kpi-label">Revenue este mes</div>
-                        </div>
-                        <div className="rpt-kpi">
-                            <div className="rpt-kpi-value">
-                                ${fmt(trendData.ticket_promedio_actual || 0)}
-                            </div>
-                            <div className="rpt-kpi-label">Ticket promedio</div>
-                        </div>
-                    </div>
-                </div>
-            )}
+                    ))}
+                </article>
 
-            {/* Top ciudades de envío */}
-            {topCities.length > 0 && (
-                <div className="admin-card" style={{marginTop:'1.25rem'}}>
-                    <div className="admin-card-head">
-                        <h3 className="admin-card-title">Top ciudades de envío</h3>
+                <article className="inf-panel">
+                    <div className="inf-panel-head">
+                        <h2 className="inf-panel-titulo">Estado de pedidos</h2>
+                        <span className="inf-panel-sub">{filtered.length} en total</span>
                     </div>
-                    <div className="admin-hbar-chart">
-                        {topCities.map((c, i) => (
-                            <div key={i} className="admin-hbar-row">
-                                <span className="admin-hbar-label">{c.ciudad || 'Sin especificar'}</span>
-                                <div className="admin-hbar-track">
-                                    <div className="admin-hbar" style={{ width: `${(c.total / (topCities[0]?.total || 1)) * 100}%`, background: '#f59e0b' }} />
-                                </div>
-                                <span className="admin-hbar-value">{c.total}</span>
+
+                    <div className="inf-estados-barra">
+                        {estadosOrden.map(s => (
+                            <div
+                                key={s}
+                                style={{
+                                    width: `${(statusCounts[s] / totalEstados) * 100}%`,
+                                    background: TONO_ESTADO[s] || 'var(--hairline)',
+                                }}
+                            />
+                        ))}
+                    </div>
+
+                    <div className="inf-estados-lista">
+                        {estadosOrden.map(s => (
+                            <div key={s} className="inf-estado">
+                                <span className="inf-estado-punto" style={{ background: TONO_ESTADO[s] }} />
+                                <span className="inf-estado-l">{STATUS_META[s]?.label || s}</span>
+                                <span className="inf-estado-n">{statusCounts[s]}</span>
+                                <span className="inf-estado-pct">{Math.round((statusCounts[s] / totalEstados) * 100)} %</span>
                             </div>
                         ))}
                     </div>
-                </div>
-            )}
 
-            {/* Revenue por fuente */}
-            {revenueBySource.length > 0 && (
-                <div className="admin-card" style={{marginTop:'1.25rem'}}>
-                    <div className="admin-card-head">
-                        <h3 className="admin-card-title">Revenue por fuente</h3>
-                    </div>
-                    <div className="admin-hbar-chart">
-                        {revenueBySource.map((r, i) => (
-                            <div key={i} className="admin-hbar-row">
-                                <span className="admin-hbar-label">{r.fuente || 'web'}</span>
-                                <div className="admin-hbar-track">
-                                    <div className="admin-hbar" style={{ width: `${(r.revenue / (revenueBySource[0]?.revenue || 1)) * 100}%`, background: '#6366f1' }} />
-                                </div>
-                                <span className="admin-hbar-value">${fmt(r.revenue || 0)}</span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
-
-            {/* Clientes nuevos vs recurrentes */}
-            {newVsReturning && (
-                <div className="admin-card" style={{marginTop:'1.25rem'}}>
-                    <div className="admin-card-head">
-                        <h3 className="admin-card-title">Clientes nuevos vs recurrentes</h3>
-                    </div>
-                    <div className="rpt-customers-bar">
-                        <div className="rpt-customers-bar-track">
-                            {(newVsReturning.nuevos || 0) + (newVsReturning.recurrentes || 0) > 0 && (
-                                <>
-                                    <div className="rpt-customers-bar-segment rpt-customers-bar--new"
-                                         style={{ width: `${((newVsReturning.nuevos || 0) / ((newVsReturning.nuevos || 0) + (newVsReturning.recurrentes || 0))) * 100}%` }}>
-                                        {newVsReturning.nuevos || 0}
-                                    </div>
-                                    <div className="rpt-customers-bar-segment rpt-customers-bar--returning"
-                                         style={{ width: `${((newVsReturning.recurrentes || 0) / ((newVsReturning.nuevos || 0) + (newVsReturning.recurrentes || 0))) * 100}%` }}>
-                                        {newVsReturning.recurrentes || 0}
-                                    </div>
-                                </>
+                    {(sinPago + porDespachar) > 0 && (
+                        <div className="inf-aviso">
+                            <span>
+                                {sinPago + porDespachar} pedido{(sinPago + porDespachar) !== 1 ? 's' : ''} espera{(sinPago + porDespachar) !== 1 ? 'n' : ''} acción tuya:
+                                {' '}{sinPago} sin pago y {porDespachar} por despachar.
+                            </span>
+                            {onNavigate && (
+                                <button className="inf-aviso-link" onClick={() => onNavigate('orders')}>Ver pedidos →</button>
                             )}
                         </div>
-                        <div className="rpt-customers-legend">
-                            <span><span className="rpt-rev-dot" style={{background:'#10b981'}} /> Nuevos ({newVsReturning.nuevos || 0})</span>
-                            <span><span className="rpt-rev-dot" style={{background:'#3b82f6'}} /> Recurrentes ({newVsReturning.recurrentes || 0})</span>
-                        </div>
+                    )}
+                </article>
+            </section>
+
+            <section className="inf-dos">
+                <article className="inf-panel">
+                    <div className="inf-panel-head">
+                        <h2 className="inf-panel-titulo">Pedidos por canal</h2>
+                        <span className="inf-panel-sub">De dónde llegan</span>
                     </div>
-                </div>
+                    {sourceEntries.length === 0 ? (
+                        <p className="inf-vacio">Sin pedidos en este periodo.</p>
+                    ) : sourceEntries.map(([src, n]) => (
+                        <div key={src} className="inf-canal">
+                            <div className="inf-pieza-fila">
+                                <span className="inf-canal-l">{SOURCE_META[src]?.label || src}</span>
+                                <span className="inf-canal-meta">{n} · ${fmt(sourceRevenue[src] || 0)}</span>
+                            </div>
+                            <div className="inf-pista inf-pista--alta">
+                                <div className="inf-pista-fill inf-pista-fill--ink" style={{ width: `${Math.round((n / maxSourceCount) * 100)}%` }} />
+                            </div>
+                        </div>
+                    ))}
+                </article>
+
+                <article className="inf-panel">
+                    <div className="inf-panel-head">
+                        <h2 className="inf-panel-titulo">Métodos de pago</h2>
+                        <span className="inf-panel-sub">{filtered.length} pedido{filtered.length !== 1 ? 's' : ''}</span>
+                    </div>
+                    {paymentEntries.length === 0 ? (
+                        <p className="inf-vacio">Sin pedidos en este periodo.</p>
+                    ) : paymentEntries.map(([pm, n]) => {
+                        const monto = filtered
+                            .filter(o => (o.payment_method || 'Sin especificar') === pm)
+                            .reduce((s, o) => s + Number(o.amount), 0);
+                        return (
+                            <div key={pm} className="inf-canal">
+                                <div className="inf-pieza-fila">
+                                    <span className="inf-canal-l">{pm}</span>
+                                    <span className="inf-pieza-ingreso">${fmt(monto)}</span>
+                                </div>
+                                <div className="inf-pista">
+                                    <div className="inf-pista-fill" style={{ width: `${Math.round((n / maxPaymentCount) * 100)}%` }} />
+                                </div>
+                                <span className="inf-pieza-meta">{n} pedido{n !== 1 ? 's' : ''}</span>
+                            </div>
+                        );
+                    })}
+                </article>
+            </section>
+
+            {(waAnalytics || funnelData) && (
+                <section className="inf-panel">
+                    <div className="inf-panel-head">
+                        <div>
+                            <h2 className="inf-panel-titulo">WhatsApp</h2>
+                            <p className="inf-panel-sub">De la conversación a la venta</p>
+                        </div>
+                        <span className="inf-panel-tag">{rangoRotulo}</span>
+                    </div>
+
+                    {waAnalytics && (
+                        <div className="inf-trio">
+                            <div className="inf-kpi">
+                                <span className="inf-kpi-l">Conversaciones</span>
+                                <span className="inf-kpi-v">{waAnalytics.total_conversaciones || 0}</span>
+                            </div>
+                            <div className="inf-kpi">
+                                <span className="inf-kpi-l">Terminan en venta</span>
+                                <span className="inf-kpi-v">{waAnalytics.tasa_conversion ? `${Math.round(waAnalytics.tasa_conversion)} %` : '0 %'}</span>
+                            </div>
+                            <div className="inf-kpi">
+                                <span className="inf-kpi-l">Tiempo de respuesta</span>
+                                <span className="inf-kpi-v">{waAnalytics.tiempo_respuesta_min ? `${Math.round(waAnalytics.tiempo_respuesta_min)} min` : '—'}</span>
+                            </div>
+                        </div>
+                    )}
+
+                    {funnelData && (
+                        <div className="inf-embudo">
+                            {[
+                                ['Conversaciones', funnelData.conversaciones],
+                                ['Interesadas', funnelData.interesados],
+                                ['Crearon pedido', funnelData.pedidos],
+                                ['Pagaron', funnelData.pagados],
+                            ].map(([l, v], i, arr) => {
+                                const base = funnelData.conversaciones || 1;
+                                const pct = Math.round(((v || 0) / base) * 100);
+                                return (
+                                    <div key={l} className="inf-canal" style={i === arr.length - 1 ? { borderBottom: 0 } : undefined}>
+                                        <div className="inf-pieza-fila">
+                                            <span className="inf-canal-l">{l}</span>
+                                            <span className="inf-canal-meta">{v || 0} · {pct} %</span>
+                                        </div>
+                                        <div className="inf-pista inf-pista--alta">
+                                            <div className="inf-pista-fill inf-pista-fill--ink" style={{ width: `${pct}%` }} />
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </section>
+            )}
+
+            {(trendData || newVsReturning) && (
+                <section className="inf-dos">
+                    {trendData && (
+                        <article className="inf-panel">
+                            <div className="inf-panel-head">
+                                <h2 className="inf-panel-titulo">Este mes vs. el anterior</h2>
+                                <span className="inf-panel-sub">Mes calendario</span>
+                            </div>
+                            <div className="inf-comparas">
+                                {[
+                                    ['Pedidos', trendData.pedidos_actual || 0, trendData.pedidos_anterior || 0, false],
+                                    ['Facturado', trendData.revenue_actual || 0, trendData.revenue_anterior || 0, true],
+                                ].map(([l, act, ant, money]) => (
+                                    <div key={l} className="inf-compara">
+                                        <span className="inf-kpi-l">{l}</span>
+                                        <span className="inf-kpi-v">{money ? `$${fmt(act)}` : act}</span>
+                                        <span className="inf-kpi-s">
+                                            {act >= ant ? '↑' : '↓'} el mes pasado: {money ? `$${fmt(ant)}` : ant}
+                                        </span>
+                                    </div>
+                                ))}
+                                <div className="inf-compara">
+                                    <span className="inf-kpi-l">Ticket promedio</span>
+                                    <span className="inf-kpi-v">${fmt(trendData.ticket_promedio_actual || 0)}</span>
+                                    <span className="inf-kpi-s">Este mes</span>
+                                </div>
+                            </div>
+                        </article>
+                    )}
+
+                    {newVsReturning && (
+                        <article className="inf-panel">
+                            <div className="inf-panel-head">
+                                <h2 className="inf-panel-titulo">Clientas</h2>
+                                <span className="inf-panel-sub">Nuevas y que vuelven</span>
+                            </div>
+                            {(() => {
+                                const nuevas = newVsReturning.nuevos || 0;
+                                const vuelven = newVsReturning.recurrentes || 0;
+                                const tot = nuevas + vuelven || 1;
+                                return (
+                                    <>
+                                        <div className="inf-estados-barra">
+                                            <div style={{ width: `${(nuevas / tot) * 100}%`, background: 'var(--ink)' }} />
+                                            <div style={{ width: `${(vuelven / tot) * 100}%`, background: 'var(--oro)' }} />
+                                        </div>
+                                        <div className="inf-estado">
+                                            <span className="inf-estado-punto" style={{ background: 'var(--ink)' }} />
+                                            <span className="inf-estado-l">Compran por primera vez</span>
+                                            <span className="inf-estado-n">{nuevas}</span>
+                                            <span className="inf-estado-pct">{Math.round((nuevas / tot) * 100)} %</span>
+                                        </div>
+                                        <div className="inf-estado">
+                                            <span className="inf-estado-punto" style={{ background: 'var(--oro)' }} />
+                                            <span className="inf-estado-l">Ya habían comprado</span>
+                                            <span className="inf-estado-n">{vuelven}</span>
+                                            <span className="inf-estado-pct">{Math.round((vuelven / tot) * 100)} %</span>
+                                        </div>
+                                    </>
+                                );
+                            })()}
+                        </article>
+                    )}
+                </section>
+            )}
+
+            {(topCities.length > 0 || revenueBySource.length > 0) && (
+                <section className="inf-dos">
+                    {topCities.length > 0 && (
+                        <article className="inf-panel">
+                            <div className="inf-panel-head">
+                                <h2 className="inf-panel-titulo">A dónde enviamos</h2>
+                                <span className="inf-panel-sub">Ciudades</span>
+                            </div>
+                            {topCities.map((c, i) => (
+                                <div key={i} className="inf-canal">
+                                    <div className="inf-pieza-fila">
+                                        <span className="inf-canal-l">{c.ciudad || 'Sin especificar'}</span>
+                                        <span className="inf-canal-meta">{c.total} envío{c.total !== 1 ? 's' : ''}</span>
+                                    </div>
+                                    <div className="inf-pista inf-pista--alta">
+                                        <div className="inf-pista-fill inf-pista-fill--ink" style={{ width: `${(c.total / (topCities[0]?.total || 1)) * 100}%` }} />
+                                    </div>
+                                </div>
+                            ))}
+                        </article>
+                    )}
+
+                    {revenueBySource.length > 0 && (
+                        <article className="inf-panel">
+                            <div className="inf-panel-head">
+                                <h2 className="inf-panel-titulo">Ingresos por fuente</h2>
+                                <span className="inf-panel-sub">Dónde se cobra más</span>
+                            </div>
+                            {revenueBySource.map((r, i) => (
+                                <div key={i} className="inf-canal">
+                                    <div className="inf-pieza-fila">
+                                        <span className="inf-canal-l">{SOURCE_META[r.fuente]?.label || r.fuente || 'Web'}</span>
+                                        <span className="inf-pieza-ingreso">${fmt(r.revenue || 0)}</span>
+                                    </div>
+                                    <div className="inf-pista">
+                                        <div className="inf-pista-fill" style={{ width: `${((r.revenue || 0) / (revenueBySource[0]?.revenue || 1)) * 100}%` }} />
+                                    </div>
+                                </div>
+                            ))}
+                        </article>
+                    )}
+                </section>
             )}
         </div>
     );
@@ -2845,7 +3032,7 @@ const Dashboard = () => {
                         <CustomersSection customers={customers} loading={loadingC} onRefresh={fetchCustomers} />
                     )}
                     {section === 'reports' && (
-                        <ReportsSection orders={orders} />
+                        <ReportsSection orders={orders} products={products} onNavigate={irA} />
                     )}
                     {section === 'notes' && (
                         <NotesSection />
