@@ -102,19 +102,27 @@ const Catalog = () => {
 
             <div className="catalogo-filtros">
                 <div className="container catalogo-filtros-fila">
-                    <div className="catalogo-chips">
-                        {CATEGORIAS.map(c => (
-                            <button
-                                key={c}
-                                className={`catalogo-chip ${categoria === c ? 'catalogo-chip--on' : ''}`}
-                                onClick={() => { setCategoria(c); setPagina(1); }}
-                            >
-                                {c}
-                                <span className="catalogo-chip-n">
-                                    {String(conteoPorCategoria[c] ?? 0).padStart(2, '0')}
-                                </span>
-                            </button>
-                        ))}
+                    {/* Riel segmentado: una sola fila, una sola activa. Las categorías
+                        sin piezas conservan su etiqueta —el conteo ya lo dice— pero
+                        se les quita el toque. */}
+                    <div className="catalogo-riel" role="group" aria-label="Categorías">
+                        {CATEGORIAS.map(c => {
+                            const n = conteoPorCategoria[c] ?? 0;
+                            const vacia = n === 0;
+                            return (
+                                <button
+                                    key={c}
+                                    type="button"
+                                    className={`catalogo-riel-btn ${categoria === c ? 'catalogo-riel-btn--on' : ''} ${vacia ? 'catalogo-riel-btn--vacia' : ''}`}
+                                    aria-pressed={categoria === c}
+                                    disabled={vacia}
+                                    onClick={vacia ? undefined : () => { setCategoria(c); setPagina(1); }}
+                                >
+                                    <span>{c}</span>
+                                    <span className="catalogo-riel-n">{n}</span>
+                                </button>
+                            );
+                        })}
                     </div>
 
                     <div className="catalogo-herramientas">
@@ -146,14 +154,16 @@ const Catalog = () => {
 
                 <div className="container catalogo-filtros-fila catalogo-filtros-fila--precio">
                     <span className="catalogo-precio-label">Precio</span>
-                    <div className="catalogo-chips">
+                    <div className="catalogo-riel" role="group" aria-label="Rango de precio">
                         {RANGOS.map((r, i) => (
                             <button
                                 key={r.label}
-                                className={`catalogo-chip catalogo-chip--suave ${rango === i ? 'catalogo-chip--suave-on' : ''}`}
+                                type="button"
+                                className={`catalogo-riel-btn ${rango === i ? 'catalogo-riel-btn--on' : ''}`}
+                                aria-pressed={rango === i}
                                 onClick={() => { setRango(i); setPagina(1); }}
                             >
-                                {r.label}
+                                <span>{r.label}</span>
                             </button>
                         ))}
                     </div>
