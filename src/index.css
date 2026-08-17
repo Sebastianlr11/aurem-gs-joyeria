@@ -10185,23 +10185,6 @@ textarea:focus-visible {
   letter-spacing: 0.05em;
   font-weight: 500;
 }
-.chat-info-stat-badge {
-  display: inline-block;
-  padding: 3px 10px;
-  border-radius: 20px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  margin: 0 auto;
-}
-.chat-info-stat-badge--ai {
-  background: #dcfce7;
-  color: #166534;
-}
-.chat-info-stat-badge--manual {
-  background: #fef3c7;
-  color: #92400e;
-}
-
 /* ── Sections ── */
 .chat-info-section {
   display: flex;
@@ -12951,4 +12934,102 @@ textarea:focus-visible {
   display: flex;
   margin-top: 10px;
   width: 100%;
+}
+
+/* ================================================================
+   CONVERSACIONES · ficha del contacto — adaptación del Panel CRM
+   Se toma la estructura del diseño (identidad centrada, estado a la
+   vista, estadísticas) en el lenguaje de la marca: sin degradados,
+   sin sombras, radio de 2px y el círculo sólo en lo que es retrato.
+   ================================================================ */
+.chat-contacts-titulo {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 12px;
+}
+
+.chat-contacts-titulo h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.35rem;
+  letter-spacing: 0.01em;
+  color: var(--ink);
+}
+
+.chat-info-profile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1.5rem 1.25rem;
+  background: var(--bg-marfil);
+  border: 1px solid var(--hairline);
+  border-radius: 2px;
+}
+
+.chat-info-avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 100px;
+  background: var(--bg-arena);
+  border: 1px solid var(--oro-hairline);
+  color: var(--oro-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.9rem;
+  flex-shrink: 0;
+}
+
+.chat-info-identity {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  text-align: center;
+}
+
+.chat-info-identity h5 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.1rem;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.chat-info-profile .chat-info-phone {
+  font-size: 0.78rem;
+  letter-spacing: 0.03em;
+  color: var(--text-secondary);
+}
+
+/* Quién lleva la conversación, a la vista y no escondido en la rejilla */
+.chat-info-modo {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 14px;
+  border-radius: 100px;
+  border: 1px solid var(--hairline);
+  background: var(--bg-color);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.chat-info-modo--manual {
+  border-color: var(--oro-hairline);
+  background: var(--bg-arena);
+  color: var(--oro-ink);
 }

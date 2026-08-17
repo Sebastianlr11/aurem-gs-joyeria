@@ -15,6 +15,15 @@ const normalizePhone = (p) => {
 const fmtTime = (d) => new Date(d).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
 const fmtDate = (d) => new Date(d).toLocaleDateString('es-CO', { day: '2-digit', month: 'short' });
 const fmtDateFull = (d) => new Date(d).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
+/* Cuánto hace del último mensaje, en corto: "Hoy", "Ayer", "3 d", "5 sem". */
+const fmtDesde = (d) => {
+    const dias = Math.floor((Date.now() - new Date(d)) / 86400000);
+    if (dias <= 0) return 'Hoy';
+    if (dias === 1) return 'Ayer';
+    if (dias < 7) return `${dias} d`;
+    if (dias < 60) return `${Math.floor(dias / 7)} sem`;
+    return `${Math.floor(dias / 30)} m`;
+};
 
 const isSameDay = (a, b) => {
     const da = new Date(a), db = new Date(b);
@@ -870,6 +879,13 @@ const ChatPanel = () => {
         });
     }, [contacts, searchQuery, takeoverMap, contactFilter, pendingPhones, statusMap]);
 
+    /* Cuántas conversaciones esperan respuesta: el último mensaje es de la
+       clienta y la conversación no está archivada ni resuelta. */
+    const esperanRespuesta = useMemo(() => contacts.filter(c => {
+        const s = statusMap[c.phone_number];
+        return c.last_role === 'user' && !s?.is_archived && !s?.is_resolved;
+    }).length, [contacts, statusMap]);
+
     /* ─── Select contact ──────────────────────────────────────────── */
     const selectContact = (phone) => {
         setActiveContact(phone);
@@ -928,6 +944,14 @@ const ChatPanel = () => {
                     {/* Contact list */}
                     <div className={`chat-contacts ${mobileShowChat ? 'chat-contacts--hidden-mobile' : ''}`}>
                         <div className="chat-contacts-header">
+                            <div className="chat-contacts-titulo">
+                                <h2>Chats</h2>
+                                {esperanRespuesta > 0 && (
+                                    <span className="punzon">
+                                        {esperanRespuesta} espera{esperanRespuesta !== 1 ? 'n' : ''}
+                                    </span>
+                                )}
+                            </div>
                             <input
                                 ref={searchInputRef}
                                 type="text"
@@ -1187,8 +1211,14 @@ const ChatPanel = () => {
                                                     </div>
                                                     <div className="chat-info-identity">
                                                         <h5>{contactCustomer?.name || (contactOrders.length > 0 && contactOrders[0].customer_name) || 'Sin nombre'}</h5>
-                                                        <span className="chat-info-phone">{activeContact}</span>
+                                                        <span className="chat-info-phone">
+                                                            {activeContact}
+                                                            {contactOrders.length > 1 && ' · Clienta que vuelve'}
+                                                        </span>
                                                     </div>
+                                                    <span className={`chat-info-modo ${isTakeover ? 'chat-info-modo--manual' : ''}`}>
+                                                        {isTakeover ? 'La llevas tú' : 'Atendida por la IA'}
+                                                    </span>
                                                 </div>
 
                                                 {/* ── Meta pills ── */}
@@ -1226,10 +1256,10 @@ const ChatPanel = () => {
                                                         <span className="chat-info-stat-label">Mensajes</span>
                                                     </div>
                                                     <div className="chat-info-stat">
-                                                        <span className={`chat-info-stat-badge ${isTakeover ? 'chat-info-stat-badge--manual' : 'chat-info-stat-badge--ai'}`}>
-                                                            {isTakeover ? 'Manual' : 'IA'}
+                                                        <span className="chat-info-stat-value">
+                                                            {messages.length > 0 ? fmtDesde(messages[messages.length - 1].created_at) : '—'}
                                                         </span>
-                                                        <span className="chat-info-stat-label">Modo</span>
+                                                        <span className="chat-info-stat-label">Último mensaje</span>
                                                     </div>
                                                 </div>
 
