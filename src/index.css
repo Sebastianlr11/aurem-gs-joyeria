@@ -12381,12 +12381,32 @@ textarea:focus-visible {
   text-transform: uppercase;
 }
 
+/* La burbuja es la excepción al radio de 2px: una conversación pide
+   esquinas blandas. Se redondean tres y se deja en punta la del lado de
+   quien habla, que es lo que da la sensación de "cola". */
 .chat-bubble {
-  border-radius: 2px;
+  border-radius: 16px;
   border: 1px solid var(--hairline);
   background: var(--bg-color);
   color: var(--ink);
   line-height: 1.6;
+  /* Ni la burbuja más larga pasa de una línea cómoda de leer. */
+  max-width: min(62%, 62ch);
+}
+
+.chat-bubble--user { border-bottom-left-radius: 5px; }
+
+.chat-bubble--assistant,
+.chat-bubble--admin,
+.chat-bubble--error { border-bottom-right-radius: 5px; }
+
+/* Cuando cambia quien habla, se abre un poco el aire; los mensajes
+   seguidos de la misma persona se quedan juntos, como un párrafo. */
+.chat-bubble--user + .chat-bubble--assistant,
+.chat-bubble--user + .chat-bubble--admin,
+.chat-bubble--assistant + .chat-bubble--user,
+.chat-bubble--admin + .chat-bubble--user {
+  margin-top: 12px;
 }
 
 .chat-bubble--assistant,
@@ -13109,3 +13129,48 @@ textarea:focus-visible {
 .chat-info-order-bottom { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 0; }
 .chat-info-order-status { font-size: 0.68rem; font-weight: 700; color: var(--oro-ink); white-space: nowrap; }
 .chat-info-order-date { font-size: 0.7rem; color: var(--text-muted); }
+
+/* El acuse de entrega. Sólo el leído se distingue en oro; el resto se
+   queda en el mismo tono discreto que la hora. */
+.chat-delivery-status {
+  margin-left: 5px;
+  font-size: 0.7rem;
+  letter-spacing: -0.06em;
+  cursor: default;
+}
+
+.chat-bubble--assistant .chat-delivery-status--read,
+.chat-bubble--admin .chat-delivery-status--read {
+  color: var(--oro-luz);
+}
+
+.chat-delivery-status--sending { opacity: 0.5; }
+
+/* El separador del día, en el lenguaje de la marca */
+.chat-date-separator {
+  text-align: center;
+  margin: 18px 0 6px;
+}
+
+.chat-date-separator span {
+  display: inline-block;
+  padding: 4px 14px;
+  border-radius: 100px;
+  background: var(--bg-arena);
+  border: 1px solid var(--hairline);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+/* Enviado y entregado acompañan a la hora; el gris del panel viejo
+   desentonaba sobre el cacao. */
+.chat-bubble--assistant .chat-delivery-status--sent,
+.chat-bubble--assistant .chat-delivery-status--delivered,
+.chat-bubble--admin .chat-delivery-status--sent,
+.chat-bubble--admin .chat-delivery-status--delivered {
+  color: rgba(255, 255, 255, 0.5);
+}

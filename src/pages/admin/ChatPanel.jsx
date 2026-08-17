@@ -25,6 +25,29 @@ const STATUS_PEDIDO = {
     pendiente: 'Pago pendiente', pagado: 'Pagado', procesando: 'Procesando',
     enviado: 'Enviado', entregado: 'Entregado', cancelado: 'Cancelado',
 };
+/* El separador del hilo: "Hoy", "Ayer", el día de la semana si es de
+   este año, y la fecha completa si es más viejo. */
+/* Qué significa cada acuse al pasar el cursor. */
+const ACUSE = {
+    sending: 'Enviando…',
+    sent: 'Enviado a WhatsApp',
+    delivered: 'Entregado en el teléfono',
+    read: 'Leído por la clienta',
+    failed: 'No se pudo enviar',
+};
+const fmtSeparador = (d) => {
+    const f = new Date(d);
+    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+    const dia = new Date(f); dia.setHours(0, 0, 0, 0);
+    const dias = Math.round((hoy - dia) / 86400000);
+    if (dias === 0) return 'Hoy';
+    if (dias === 1) return 'Ayer';
+    if (dias < 7) return f.toLocaleDateString('es-CO', { weekday: 'long' });
+    if (f.getFullYear() === hoy.getFullYear()) {
+        return f.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' });
+    }
+    return f.toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' });
+};
 const fmtDateFull = (d) => new Date(d).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
 /* Cuánto hace del último mensaje, en corto: "Hoy", "Ayer", "3 d", "5 sem". */
 const fmtDesde = (d) => {
@@ -1182,11 +1205,17 @@ const ChatPanel = () => {
                                         ) : (
                                             messages.map((msg, i) => {
                                                 const showDate = i === 0 || !isSameDay(messages[i - 1]?.created_at, msg.created_at);
+                                                /* La hora sólo en el último mensaje de una tanda seguida
+                                                   del mismo minuto: el hilo se lee mucho más limpio. */
+                                                const sig = messages[i + 1];
+                                                const showTime = !sig
+                                                    || (sig.role || 'user') !== (msg.role || 'user')
+                                                    || fmtTime(sig.created_at) !== fmtTime(msg.created_at);
                                                 return (
                                                     <React.Fragment key={msg.id || `msg-${i}`}>
                                                         {showDate ? (
                                                             <div className="chat-date-separator">
-                                                                <span>{fmtDateFull(msg.created_at)}</span>
+                                                                <span>{fmtSeparador(msg.created_at)}</span>
                                                             </div>
                                                         ) : null}
                                                         <div className={`chat-bubble chat-bubble--${msg.role || 'user'}${msg._failed ? ' chat-bubble--error' : ''}`}>
@@ -1194,18 +1223,26 @@ const ChatPanel = () => {
                                                                 <img src={msg.media_url} alt="" className="chat-bubble-image chat-bubble-image--clickable" onClick={() => openLightbox(msg.media_url)} />
                                                             ) : null}
                                                             {msg.content ? <div className="chat-bubble-content"><span>{msg.content}</span></div> : null}
+                                                            {(msg._failed || showTime) && (
                                                             <div className="chat-bubble-time">
                                                                 {msg._failed ? <span style={{ color: '#ef4444' }}>Error al enviar</span> : (
                                                                     <>
                                                                         <span>{fmtTime(msg.created_at)}</span>
-                                                                        {msg.role === 'assistant' && (
-                                                                            <span className={`chat-delivery-status chat-delivery-status--${msg.delivery_status || (String(msg.id).startsWith('temp-') ? 'sending' : 'sent')}`}>
-                                                                                {msg.delivery_status === 'read' ? '✓✓' : msg.delivery_status === 'delivered' ? '✓✓' : '✓'}
-                                                                            </span>
-                                                                        )}
+                                                                        {msg.role === 'assistant' && (() => {
+                                                                            const acuse = msg.delivery_status || (String(msg.id).startsWith('temp-') ? 'sending' : 'sent');
+                                                                            return (
+                                                                                <span
+                                                                                    className={`chat-delivery-status chat-delivery-status--${acuse}`}
+                                                                                    title={ACUSE[acuse] || acuse}
+                                                                                >
+                                                                                    {acuse === 'sending' ? '·' : acuse === 'read' || acuse === 'delivered' ? '✓✓' : '✓'}
+                                                                                </span>
+                                                                            );
+                                                                        })()}
                                                                     </>
                                                                 )}
                                                             </div>
+                                                            )}
                                                         </div>
                                                     </React.Fragment>
                                                 );
