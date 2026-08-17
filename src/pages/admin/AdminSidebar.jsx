@@ -42,7 +42,7 @@ const AdminSidebar = ({ session, activeId, onNavClick, chatUnread = 0 }) => {
         <>
             <aside className="admin-sidebar">
                 <div className="admin-sidebar-logo">
-                    <img src="/assets/logo1.png" alt="Aurem GS" className="admin-sidebar-logo-img" />
+                    <img src="/assets/logo-isotipo.svg" alt="Aurem GS" className="admin-sidebar-logo-img" />
                     <div className="admin-sidebar-logo-text">
                         <span>AUREM GS</span>
                         <span className="admin-sidebar-logo-sub">Admin Panel</span>
@@ -115,7 +115,7 @@ const AdminSidebar = ({ session, activeId, onNavClick, chatUnread = 0 }) => {
             <div className={`admin-mobile-drawer ${drawerOpen ? 'open' : ''}`}>
                 <div className="admin-mobile-drawer-header">
                     <div className="admin-mobile-drawer-brand">
-                        <img src="/assets/logo1.png" alt="Aurem GS" className="admin-mobile-drawer-logo" />
+                        <img src="/assets/logo-isotipo.svg" alt="Aurem GS" className="admin-mobile-drawer-logo" />
                         <span>AUREM GS</span>
                     </div>
                     <button className="admin-mobile-drawer-close" onClick={() => setDrawerOpen(false)}>

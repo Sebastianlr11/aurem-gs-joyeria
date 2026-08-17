@@ -2,26 +2,23 @@ import React from 'react';
 import './TiltedCarousel.css';
 
 const carouselImages = [
-    '/assets/hero1.png',
-    '/assets/hero2.png',
-    '/assets/hero3.png',
-    '/assets/rings.png',
-    '/assets/necklaces.png',
-    '/assets/bracelets.png',
-    // Duplicate for seamless infinite loop
-    '/assets/hero1.png',
-    '/assets/hero2.png',
-    '/assets/hero3.png',
-    '/assets/rings.png',
-    '/assets/necklaces.png',
-    '/assets/bracelets.png',
+    '/assets/pen-pieza-1.jpg',
+    '/assets/pen-pieza-2.jpg',
+    '/assets/pen-pieza-3.jpg',
+    '/assets/pen-pieza-4.jpg',
+    '/assets/pen-pieza-5.jpg',
+    // Duplicadas para que el bucle sea continuo
+    '/assets/pen-pieza-1.jpg',
+    '/assets/pen-pieza-2.jpg',
+    '/assets/pen-pieza-3.jpg',
+    '/assets/pen-pieza-4.jpg',
+    '/assets/pen-pieza-5.jpg',
 ];
 
 const TiltedCarousel = () => {
     return (
         <section className="tilted-carousel-section">
-            <div className="carousel-bg-band"></div>
-            <p className="carousel-label"><span>✦</span> PIEZAS SELECCIONADAS <span>✦</span></p>
+            <p className="carousel-label">Piezas seleccionadas</p>
             <div className="tilted-carousel-wrapper">
                 <div className="tilted-carousel-track">
                     {carouselImages.map((src, index) => (
@@ -31,8 +28,6 @@ const TiltedCarousel = () => {
                     ))}
                 </div>
             </div>
-            {/* Edge to Edge Horizontal Divider */}
-            <div className="horizontal-divider" style={{ position: 'absolute', bottom: 0, left: 0 }}></div>
         </section>
     );
 };

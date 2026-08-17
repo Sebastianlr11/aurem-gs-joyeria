@@ -84,7 +84,7 @@ const Login = () => {
                         animate={{ scale: 1, opacity: 1 }}
                         transition={{ duration: 0.5, delay: 0.15 }}
                     >
-                        <img src="/assets/logo1.png" alt="Aurem Gs" className="admin-login-logo" />
+                        <img src="/assets/logo-isotipo.svg" alt="Aurem Gs" className="admin-login-logo" />
                     </motion.div>
 
                     <AnimatePresence mode="wait">

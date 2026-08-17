@@ -22,10 +22,10 @@ const WhatsAppIcon = () => (
 
 const EMAIL = 'auremgsjoyeria@gmail.com';
 
-const interestOptions = ['Joya del Catálogo', 'Pieza Personalizada'];
+const interestOptions = ['Anillos', 'Collares', 'Pulseras', 'Personalizado'];
 
 const Contact = () => {
-    const [interest, setInterest] = useState('Joya del Catálogo');
+    const [interest, setInterest] = useState('Anillos');
     const [form, setForm]         = useState({ name: '', email: '', phone: '', message: '' });
     const [copied, setCopied]     = useState(false);
     const [errors, setErrors]     = useState({});
@@ -76,9 +76,20 @@ const Contact = () => {
     return (
         <section id="contacto" className="contact-section">
             <div className="container">
+                <motion.div
+                    className="contact-header"
+                    initial={{ opacity: 0, y: 24 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                    viewport={{ once: true, margin: '-80px' }}
+                >
+                    <p className="contact-badge">Contacto</p>
+                    <h2 className="contact-title">Hablemos de <em>tu pieza.</em></h2>
+                </motion.div>
+
                 <div className="contact-layout">
 
-                    {/* Left */}
+                    {/* Izquierda */}
                     <motion.div
                         className="contact-left"
                         initial={{ opacity: 0, x: -40 }}
@@ -86,12 +97,8 @@ const Contact = () => {
                         transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
                         viewport={{ once: true, margin: '-80px' }}
                     >
-                        <div className="contact-badge">
-                            <span>//</span> Contacto <span>//</span>
-                        </div>
-                        <h2 className="contact-title">Hablemos.</h2>
                         <p className="contact-subtitle">
-                            ¿Tienes preguntas o lista para elegir tu pieza perfecta? Escríbenos y te respondemos en menos de 24 horas.
+                            Escríbenos y te asesoramos sin compromiso.
                         </p>
 
                         {/* Contact cards */}
@@ -104,7 +111,7 @@ const Contact = () => {
                                         <span></span><span></span>
                                     </div>
                                 </div>
-                                <p className="contact-card-label">/ Escríbenos</p>
+                                <p className="contact-card-label">Escríbenos</p>
                                 <p className="contact-card-value">{EMAIL}</p>
                             </button>
 
@@ -121,7 +128,7 @@ const Contact = () => {
                                         <span></span><span></span>
                                     </div>
                                 </div>
-                                <p className="contact-card-label">/ WhatsApp</p>
+                                <p className="contact-card-label">WhatsApp</p>
                                 <p className="contact-card-value">+57 311 576 1896</p>
                             </a>
 
@@ -144,22 +151,39 @@ const Contact = () => {
                         viewport={{ once: true, margin: '-80px' }}
                     >
 
-                        <div className="contact-field">
-                            <label className="contact-label">Tu nombre *</label>
-                            <input
-                                className={`contact-input${errors.name ? ' contact-input--error' : ''}`}
-                                type="text"
-                                name="name"
-                                placeholder="Tu nombre completo"
-                                value={form.name}
-                                onChange={handleChange}
-                            />
-                            {errors.name && <span className="contact-field-error">{errors.name}</span>}
+                        <div className="contact-row">
+                            <div className="contact-field">
+                                <label className="contact-label" htmlFor="contact-name">Nombre</label>
+                                <input
+                                    id="contact-name"
+                                    className={`contact-input${errors.name ? ' contact-input--error' : ''}`}
+                                    type="text"
+                                    name="name"
+                                    placeholder="Tu nombre completo"
+                                    value={form.name}
+                                    onChange={handleChange}
+                                />
+                                {errors.name && <span className="contact-field-error">{errors.name}</span>}
+                            </div>
+
+                            <div className="contact-field">
+                                <label className="contact-label" htmlFor="contact-phone">WhatsApp</label>
+                                <input
+                                    id="contact-phone"
+                                    className="contact-input"
+                                    type="tel"
+                                    name="phone"
+                                    placeholder="+57 300 000 0000"
+                                    value={form.phone}
+                                    onChange={handleChange}
+                                />
+                            </div>
                         </div>
 
                         <div className="contact-field">
-                            <label className="contact-label">Correo electrónico *</label>
+                            <label className="contact-label" htmlFor="contact-email">Correo</label>
                             <input
+                                id="contact-email"
                                 className={`contact-input${errors.email ? ' contact-input--error' : ''}`}
                                 type="email"
                                 name="email"
@@ -171,19 +195,7 @@ const Contact = () => {
                         </div>
 
                         <div className="contact-field">
-                            <label className="contact-label">Teléfono</label>
-                            <input
-                                className="contact-input"
-                                type="tel"
-                                name="phone"
-                                placeholder="+1 (555) 000-0000"
-                                value={form.phone}
-                                onChange={handleChange}
-                            />
-                        </div>
-
-                        <div className="contact-field">
-                            <label className="contact-label">¿Qué te interesa?</label>
+                            <label className="contact-label">Interés</label>
                             <div className="contact-interest">
                                 {interestOptions.map(opt => (
                                     <button
@@ -199,8 +211,9 @@ const Contact = () => {
                         </div>
 
                         <div className="contact-field">
-                            <label className="contact-label">Mensaje</label>
+                            <label className="contact-label" htmlFor="contact-message">Mensaje</label>
                             <textarea
+                                id="contact-message"
                                 className="contact-input contact-textarea"
                                 name="message"
                                 placeholder="Cuéntanos sobre la pieza que tienes en mente..."
@@ -211,7 +224,7 @@ const Contact = () => {
                         </div>
 
                         <button type="submit" className={`contact-submit${sent ? ' contact-submit--sent' : ''}`}>
-                            {sent ? '✓ Mensaje enviado — abrimos WhatsApp' : 'Enviar Mensaje'}
+                            {sent ? 'Enviado — abrimos WhatsApp' : 'Enviar mensaje'}
                         </button>
 
                     </motion.form>
