@@ -2572,6 +2572,429 @@ textarea:focus-visible {
 
 
 /* ================================================================
+   PÁGINA DE PRODUCTO — "Ficha de pieza"
+   ================================================================ */
+.ficha {
+  background: var(--bg-marfil);
+  min-height: 100vh;
+  padding-top: 6rem;
+  padding-bottom: 7rem;
+}
+
+.ficha-volver {
+  padding: 1.75rem 0 2rem;
+}
+
+.ficha-volver a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+
+.ficha-volver a:hover {
+  color: var(--ink);
+}
+
+.ficha-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 54fr) minmax(0, 46fr);
+  gap: 5rem;
+  align-items: start;
+}
+
+.ficha-galeria {
+  position: sticky;
+  top: 6.5rem;
+}
+
+.ficha-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.ficha-encabezado {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+}
+
+.ficha-ref {
+  font-size: 0.6875rem;
+  letter-spacing: 0.16em;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.ficha-nombre {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(2.25rem, 3.6vw, 3.25rem);
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  margin-top: 1.25rem;
+}
+
+.ficha-desc {
+  font-size: 1rem;
+  line-height: 1.65;
+  color: var(--text-secondary);
+  margin-top: 1.5rem;
+  max-width: 52ch;
+}
+
+.ficha-sellos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1.75rem;
+}
+
+.ficha-precio-bloque {
+  margin-top: 2.25rem;
+  padding: 1.75rem 0;
+  border-top: 1px solid var(--hairline);
+  border-bottom: 1px solid var(--hairline);
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.ficha-precio {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+}
+
+.ficha-precio-valor {
+  font-size: clamp(2.25rem, 4vw, 3rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.ficha-precio-moneda {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: var(--text-muted);
+}
+
+.ficha-precio-envio {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  text-align: right;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+
+.ficha-precio-envio-fuerte {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.ficha-oferta {
+  margin-top: 1.25rem;
+  padding: 1.125rem 1.25rem;
+  background: var(--bg-arena);
+  border: 1px solid var(--hairline);
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+
+.ficha-oferta-tag {
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--oro-ink);
+  white-space: nowrap;
+}
+
+/* Tallas */
+.ficha-tallas {
+  margin-top: 2rem;
+}
+
+.ficha-tallas-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.ficha-tallas-titulo {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.ficha-tallas-guia {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4375rem;
+  font-size: 0.8125rem;
+  color: var(--oro-ink);
+}
+
+.ficha-tallas-guia:hover {
+  color: var(--ink);
+}
+
+.ficha-tallas-lista {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.625rem;
+  margin-top: 0.875rem;
+}
+
+.ficha-talla {
+  min-width: 48px;
+  height: 48px;
+  padding: 0 1.125rem;
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid var(--hairline);
+  border-radius: 100px;
+  cursor: pointer;
+  transition: all 0.3s var(--ease);
+}
+
+.ficha-talla:hover {
+  border-color: var(--oro);
+  transform: translateY(-2px);
+}
+
+.ficha-talla--on {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: #fff;
+  font-weight: 700;
+}
+
+.ficha-tallas-nota {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  margin-top: 0.875rem;
+}
+
+/* Acciones */
+.ficha-acciones {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 2rem;
+}
+
+.ficha-btn-comprar {
+  width: 100%;
+  padding: 1.1875rem 2rem;
+  background: var(--ink);
+  color: #fff;
+  font-family: inherit;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  border: 0;
+  border-radius: 100px;
+  cursor: pointer;
+  transition: transform 0.3s var(--ease), background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.ficha-btn-comprar:hover {
+  background: var(--ink-soft);
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px rgba(28, 23, 20, 0.18);
+}
+
+.ficha-btn-wa {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 1.125rem 2rem;
+  background: transparent;
+  border: 1px solid var(--oro);
+  border-radius: 100px;
+  color: var(--oro-ink);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  transition: transform 0.3s var(--ease), background-color 0.3s ease;
+}
+
+.ficha-btn-wa:hover {
+  background: var(--bg-arena);
+  color: var(--oro-ink);
+  transform: translateY(-2px);
+}
+
+/* Garantías */
+.ficha-garantias {
+  margin-top: 2.25rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--hairline);
+  border: 1px solid var(--hairline);
+}
+
+.ficha-garantia {
+  background: var(--bg-marfil);
+  padding: 1.25rem;
+  display: flex;
+  gap: 0.875rem;
+  align-items: flex-start;
+}
+
+.ficha-garantia svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+.ficha-garantia div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.ficha-garantia-t {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.ficha-garantia-s {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+
+/* Ficha técnica */
+.ficha-tecnica {
+  margin-top: 2.25rem;
+}
+
+.ficha-tecnica-lista {
+  margin-top: 1.125rem;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 2rem;
+}
+
+.ficha-tecnica-lista dt {
+  border-top: 1px solid var(--hairline);
+  padding: 0.875rem 0;
+  font-size: 0.8125rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.ficha-tecnica-lista dd {
+  border-top: 1px solid var(--hairline);
+  padding: 0.875rem 0;
+  margin: 0;
+  font-size: 0.9375rem;
+  text-align: right;
+  color: var(--ink);
+}
+
+.ficha-tecnica-lista dt:last-of-type,
+.ficha-tecnica-lista dd:last-of-type {
+  border-bottom: 1px solid var(--hairline);
+}
+
+.ficha-pagos {
+  margin-top: 2.25rem;
+}
+
+/* Relacionadas */
+.ficha-relacionadas {
+  margin-top: 7rem;
+  padding-top: 3rem;
+  border-top: 1px solid var(--hairline);
+}
+
+.ficha-relacionadas-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1.5rem;
+}
+
+.ficha-relacionadas-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--oro-ink);
+  white-space: nowrap;
+}
+
+.ficha-relacionadas-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.5rem;
+  margin-top: 1.75rem;
+}
+
+@media (max-width: 968px) {
+  .ficha {
+    padding-top: 5rem;
+  }
+
+  .ficha-grid {
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+  }
+
+  .ficha-galeria {
+    position: static;
+  }
+
+  .ficha-precio-bloque {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .ficha-precio-envio {
+    text-align: left;
+  }
+
+  .ficha-garantias {
+    grid-template-columns: 1fr;
+  }
+
+  .ficha-relacionadas {
+    margin-top: 4rem;
+  }
+
+  .ficha-relacionadas-grid {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  }
+}
+
+
+/* ================================================================
    PRODUCT DETAIL PAGE
    ================================================================ */
 .product-page {

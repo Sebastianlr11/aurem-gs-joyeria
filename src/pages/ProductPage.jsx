@@ -526,6 +526,7 @@ const ProductPage = () => {
     const [loading, setLoading] = useState(true);
     const [notFound, setNotFound] = useState(false);
     const [showBuyModal, setShowBuyModal] = useState(false);
+    const [talla, setTalla] = useState(null);
 
     useEffect(() => {
         window.scrollTo(0, 0);
@@ -586,9 +587,13 @@ const ProductPage = () => {
         ? product.images
         : product.image_url ? [product.image_url] : [];
 
+    const notaTalla = talla && talla !== 'No sé mi talla'
+        ? `\n- Talla: ${talla}`
+        : talla === 'No sé mi talla' ? '\n- No sé mi talla, ¿me ayudan a medirla?' : '';
+
     const waLink = waUrl({
-        mobile: `Hola! 😊 Vi la pieza *${product.name}* en su tienda y me encantó.\n\n💰 Precio: $${fmt(product.price)} COP\n\nMe gustaría comprarla, está disponible? 💎`,
-        desktop: `Hola! Vi la pieza *${product.name}* en su tienda y me encantó.\n\n- Precio: $${fmt(product.price)} COP\n\nMe gustaría comprarla, está disponible?`,
+        mobile: `Hola! 😊 Vi la pieza *${product.name}* en su tienda y me encantó.\n\n💰 Precio: $${fmt(product.price)} COP${notaTalla}\n\nMe gustaría comprarla, está disponible? 💎`,
+        desktop: `Hola! Vi la pieza *${product.name}* en su tienda y me encantó.\n\n- Precio: $${fmt(product.price)} COP${notaTalla}\n\nMe gustaría comprarla, está disponible?`,
     });
 
     const badges = (
@@ -616,168 +621,211 @@ const ProductPage = () => {
         },
     };
 
+    /* La talla solo tiene sentido en anillos y es un dato de la clienta,
+       no del producto: viaja en el mensaje de WhatsApp y se confirma antes
+       de enviar, porque el checkout todavía no la captura. */
+    const esAnillo = product.category === 'Anillos';
+    const TALLAS = ['5', '6', '7', '8', '9', '10', '11', '12', 'No sé mi talla'];
+
+    const enOferta = product.compare_price && product.compare_price > product.price;
+    const referencia = `REF. AG-${String(product.id).replace(/\D/g, '').slice(-4).padStart(4, '0')}`;
+
+    const sellos = [
+        product.category,
+        enOferta ? 'Precio de lanzamiento' : null,
+        product.stock === 1 ? 'Última unidad' : null,
+        'Certificada',
+        'Hecha en Colombia',
+    ].filter(Boolean);
+
+    const ficha = [
+        ['Categoría', product.category],
+        ['Referencia', referencia.replace('REF. ', '')],
+        product.stock !== null && product.stock !== undefined
+            ? ['Disponibilidad', product.stock === 0 ? 'Agotada' : `${product.stock} unidad${product.stock !== 1 ? 'es' : ''}`]
+            : null,
+        esAnillo ? ['Talla', '5 a 12 · ajuste en taller sin costo'] : null,
+        ['Envío', '24 a 48 horas hábiles'],
+        ['Certificado', 'Incluido con la pieza'],
+        ['Garantía', 'De por vida contra defectos'],
+    ].filter(Boolean);
+
     return (
-        <div className="product-page">
+        <div className="ficha">
             <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
             {showBuyModal && <BuyModal product={product} onClose={() => setShowBuyModal(false)} />}
 
-            {/* Back link */}
             <div className="container">
-                <div className="product-page-back-wrap">
-                    <Link to="/catalogo" className="product-page-back">
-                        ← Volver al catálogo
+                <div className="ficha-volver">
+                    <Link to="/catalogo">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="19" y1="12" x2="5" y2="12" />
+                            <polyline points="12 19 5 12 12 5" />
+                        </svg>
+                        Volver al catálogo
                     </Link>
                 </div>
-            </div>
 
-            {/* Hero */}
-            <div className="product-page-hero section-with-borders">
-                <div className="container">
-                    <div className="product-page-grid">
+                <div className="ficha-grid">
 
-                        {/* Mobile only: category + name above gallery */}
-                        <div className="pp-mobile-header">
-                            <span className="section-label">{product.category}</span>
-                            <h1 className="product-page-name pp-mobile-name">{product.name}</h1>
-                        </div>
-
+                    <div className="ficha-galeria">
                         <Gallery images={allImages} badges={badges} />
+                    </div>
 
-                        {/* Info */}
-                        <div className="product-page-info">
-                            <span className="section-label hero-anim pp-desktop-only" style={{ '--hero-delay': '0.1s' }}>
-                                {product.category}
-                            </span>
+                    <div className="ficha-info">
 
-                            <h1 className="product-page-name pp-desktop-only">
-                                {product.name.split(' ').reduce((acc, word, i) => {
-                                    const lineIndex = Math.floor(i / 3);
-                                    if (!acc[lineIndex]) acc[lineIndex] = [];
-                                    acc[lineIndex].push(word);
-                                    return acc;
-                                }, []).map((words, i) => (
-                                    <div key={i} className="hero-line" style={{ '--line-delay': `${0.18 + i * 0.14}s` }}>
-                                        <span>{words.join(' ')}</span>
-                                    </div>
-                                ))}
-                            </h1>
+                        <div className="ficha-encabezado">
+                            <span className="eyebrow">{product.category}</span>
+                            <span className="ficha-ref">{referencia}</span>
+                        </div>
 
-                            {product.description && (
-                                <p className="product-page-desc hero-anim" style={{ '--hero-delay': '0.5s' }}>
-                                    {product.description}
+                        <h1 className="ficha-nombre">{product.name}</h1>
+
+                        {product.description && (
+                            <p className="ficha-desc">{product.description}</p>
+                        )}
+
+                        <div className="ficha-sellos">
+                            {sellos.map(s => <span key={s} className="punzon">{s}</span>)}
+                        </div>
+
+                        <div className="ficha-precio-bloque">
+                            <div className="ficha-precio">
+                                <span className="ficha-precio-valor">${fmt(product.price)}</span>
+                                <span className="ficha-precio-moneda">COP</span>
+                            </div>
+                            <div className="ficha-precio-envio">
+                                <span className="ficha-precio-envio-fuerte">Envío a toda Colombia</span>
+                                <span>Pagas al recibir o en línea</span>
+                            </div>
+                        </div>
+
+                        {enOferta && (
+                            <div className="ficha-oferta">
+                                <span>
+                                    Antes <s>${fmt(product.compare_price)}</s> — ahorras ${fmt(product.compare_price - product.price)} COP
+                                </span>
+                                <span className="ficha-oferta-tag">
+                                    {timeLeft
+                                        ? `Termina en ${pad(timeLeft.hours)}:${pad(timeLeft.minutes)}:${pad(timeLeft.seconds)}`
+                                        : 'Precio de lanzamiento'}
+                                </span>
+                            </div>
+                        )}
+
+                        {esAnillo && (
+                            <div className="ficha-tallas">
+                                <div className="ficha-tallas-head">
+                                    <span className="ficha-tallas-titulo">Talla</span>
+                                    <Link to="/guia-de-tallas" className="ficha-tallas-guia">
+                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+                                            <circle cx="12" cy="12" r="9" />
+                                            <line x1="12" y1="11" x2="12" y2="16" />
+                                            <line x1="12" y1="8" x2="12" y2="8.01" />
+                                        </svg>
+                                        Ver guía de tallas
+                                    </Link>
+                                </div>
+                                <div className="ficha-tallas-lista">
+                                    {TALLAS.map(t => (
+                                        <button
+                                            key={t}
+                                            className={`ficha-talla ${talla === t ? 'ficha-talla--on' : ''} ${t.length > 2 ? 'ficha-talla--ancha' : ''}`}
+                                            onClick={() => setTalla(talla === t ? null : t)}
+                                        >
+                                            {t}
+                                        </button>
+                                    ))}
+                                </div>
+                                <p className="ficha-tallas-nota">
+                                    {talla === 'No sé mi talla'
+                                        ? 'Sin problema: te ayudamos a medirla por WhatsApp antes de enviar.'
+                                        : talla
+                                            ? `Talla ${talla} · la confirmamos por WhatsApp antes de enviar`
+                                            : 'Elige tu talla o dinos que no la sabes.'}
                                 </p>
-                            )}
-
-                            {product.compare_price && product.compare_price > product.price ? (
-                                /* ── Bloque oferta ── */
-                                <div className="pp-offer hero-anim" style={{ '--hero-delay': '0.58s' }}>
-                                    <div className="pp-offer-header">
-                                        <span className="pp-offer-badge">🔥 Oferta especial</span>
-                                        <span className="pp-offer-discount">
-                                            -{Math.round((1 - product.price / product.compare_price) * 100)}%
-                                        </span>
-                                    </div>
-
-                                    <div className="pp-offer-prices">
-                                        <div className="pp-offer-before">
-                                            <span className="pp-offer-before-label">Antes</span>
-                                            <span className="pp-offer-before-value">${fmt(product.compare_price)}</span>
-                                        </div>
-                                        <div className="pp-offer-now">
-                                            <span className="pp-offer-now-label">Ahora</span>
-                                            <span className="pp-offer-now-value">${fmt(product.price)}</span>
-                                            <span className="pp-offer-now-currency">COP</span>
-                                        </div>
-                                    </div>
-
-                                    <span className="pp-offer-savings">
-                                        Ahorras ${fmt(product.compare_price - product.price)} COP
-                                    </span>
-
-                                    {timeLeft && (
-                                        <div className="pp-countdown">
-                                            <span className="pp-countdown-title">⏱ Oferta termina en</span>
-                                            <div className="pp-countdown-units">
-                                                <div className="pp-countdown-unit">
-                                                    <span className="pp-countdown-num">{pad(timeLeft.hours)}</span>
-                                                    <span className="pp-countdown-lbl">HRS</span>
-                                                </div>
-                                                <span className="pp-countdown-sep">:</span>
-                                                <div className="pp-countdown-unit">
-                                                    <span className="pp-countdown-num">{pad(timeLeft.minutes)}</span>
-                                                    <span className="pp-countdown-lbl">MIN</span>
-                                                </div>
-                                                <span className="pp-countdown-sep">:</span>
-                                                <div className="pp-countdown-unit">
-                                                    <span className="pp-countdown-num">{pad(timeLeft.seconds)}</span>
-                                                    <span className="pp-countdown-lbl">SEG</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            ) : (
-                                /* ── Precio normal ── */
-                                <div className="product-page-price hero-anim" style={{ '--hero-delay': '0.62s' }}>
-                                    <span className="product-page-price-label">Precio</span>
-                                    <span className="product-page-price-value">${fmt(product.price)}</span>
-                                    <span className="product-page-price-currency">COP</span>
-                                </div>
-                            )}
-
-                            <div className="product-page-actions hero-anim" style={{ '--hero-delay': '0.75s' }}>
-                                <button
-                                    className="product-page-btn product-page-btn--buy"
-                                    onClick={() => setShowBuyModal(true)}
-                                >
-                                    Comprar ahora
-                                </button>
-                                <a
-                                    href={waLink}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="product-page-btn product-page-btn--wa"
-                                    title="Consultar por WhatsApp"
-                                >
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-                                    </svg>
-                                    Consultar
-                                </a>
                             </div>
+                        )}
 
+                        <div className="ficha-acciones">
+                            <button className="ficha-btn-comprar" onClick={() => setShowBuyModal(true)}>
+                                Comprar ahora
+                            </button>
+                            <a href={waLink} target="_blank" rel="noopener noreferrer" className="ficha-btn-wa">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="#25D366">
+                                    <path d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.96-.94 1.16-.17.2-.35.22-.65.07-.3-.15-1.25-.46-2.39-1.47-.88-.79-1.48-1.76-1.65-2.06-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.08-.15-.67-1.61-.92-2.21-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.01-1.04 2.47 0 1.46 1.06 2.87 1.21 3.07.15.2 2.1 3.2 5.08 4.49.71.3 1.26.49 1.69.63.71.22 1.36.19 1.87.12.57-.09 1.76-.72 2.01-1.41.25-.7.25-1.29.17-1.42-.07-.13-.27-.2-.57-.35M12.05 21.5a9.5 9.5 0 0 1-4.84-1.32l-.35-.2-3.59.94.96-3.5-.23-.36a9.44 9.44 0 0 1-1.45-5.05c0-5.23 4.27-9.49 9.51-9.49 2.54 0 4.92.99 6.72 2.78a9.42 9.42 0 0 1 2.78 6.72c0 5.23-4.27 9.49-9.51 9.49M20.5 3.49A11.4 11.4 0 0 0 12.05 0C5.77 0 .66 5.1.66 11.37c0 2 .52 3.96 1.52 5.68L.56 24l7.1-1.86a11.4 11.4 0 0 0 5.44 1.38c6.28 0 11.39-5.1 11.39-11.37 0-3.04-1.19-5.9-3.34-8.05" />
+                                </svg>
+                                Preguntar por WhatsApp
+                            </a>
+                        </div>
+
+                        <div className="ficha-garantias">
+                            <div className="ficha-garantia">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--oro)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="3" width="15" height="13" /><polygon points="16 8 20 8 23 11 23 16 16 16 16 8" /><circle cx="5.5" cy="18.5" r="2.5" /><circle cx="18.5" cy="18.5" r="2.5" /></svg>
+                                <div>
+                                    <span className="ficha-garantia-t">Envío en 24 a 48 horas</span>
+                                    <span className="ficha-garantia-s">Hábiles, a toda Colombia</span>
+                                </div>
+                            </div>
+                            <div className="ficha-garantia">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--oro)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>
+                                <div>
+                                    <span className="ficha-garantia-t">Pagas al recibir</span>
+                                    <span className="ficha-garantia-s">Contraentrega disponible</span>
+                                </div>
+                            </div>
+                            <div className="ficha-garantia">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--oro)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="6" /><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88" /></svg>
+                                <div>
+                                    <span className="ficha-garantia-t">Certificado incluido</span>
+                                    <span className="ficha-garantia-s">Materiales y quilataje</span>
+                                </div>
+                            </div>
+                            <div className="ficha-garantia">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--oro)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
+                                <div>
+                                    <span className="ficha-garantia-t">Garantía de por vida</span>
+                                    <span className="ficha-garantia-s">Contra defectos de fabricación</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="ficha-tecnica">
+                            <span className="eyebrow">Ficha técnica</span>
+                            <dl className="ficha-tecnica-lista">
+                                {ficha.map(([k, v]) => (
+                                    <React.Fragment key={k}>
+                                        <dt>{k}</dt>
+                                        <dd>{v}</dd>
+                                    </React.Fragment>
+                                ))}
+                            </dl>
+                        </div>
+
+                        <div className="ficha-pagos">
                             <PaymentMethods />
-
-                            <div className="product-page-meta hero-anim" style={{ '--hero-delay': '0.88s' }}>
-                                <div className="product-page-meta-item">
-                                    <span>✦</span> Pieza artesanal de autor
-                                </div>
-                                <div className="product-page-meta-item">
-                                    <span>✦</span> Envío a toda Colombia
-                                </div>
-                                <div className="product-page-meta-item">
-                                    <span>✦</span> Garantía de calidad
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>
-                <div className="horizontal-divider" style={{ position: 'absolute', bottom: 0, left: 0 }} />
+
+                {related.length > 0 && (
+                    <div className="ficha-relacionadas">
+                        <div className="ficha-relacionadas-head">
+                            <span className="eyebrow">Otras piezas en {product.category.toLowerCase()}</span>
+                            <Link to="/catalogo" className="ficha-relacionadas-link">
+                                Ver el catálogo
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+                                    <line x1="5" y1="12" x2="19" y2="12" />
+                                    <polyline points="12 5 19 12 12 19" />
+                                </svg>
+                            </Link>
+                        </div>
+                        <div className="ficha-relacionadas-grid">
+                            {related.map(p => <ProductCard key={p.id} product={p} />)}
+                        </div>
+                    </div>
+                )}
             </div>
-
-            {/* Related products */}
-            {related.length > 0 && (
-                <div className="product-page-related">
-                    <div className="container">
-                        <span className="section-label">También te puede interesar</span>
-                        <div className="product-page-related-grid">
-                            {related.map(p => (
-                                <ProductCard key={p.id} product={p} />
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 };
