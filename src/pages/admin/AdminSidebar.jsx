@@ -45,7 +45,7 @@ const AdminSidebar = ({ session, activeId, onNavClick, chatUnread = 0 }) => {
                     <img src="/assets/logo-isotipo.svg" alt="Aurem GS" className="admin-sidebar-logo-img" />
                     <div className="admin-sidebar-logo-text">
                         <span>AUREM GS</span>
-                        <span className="admin-sidebar-logo-sub">Admin Panel</span>
+                        <span className="admin-sidebar-logo-sub">Panel interno</span>
                     </div>
                 </div>
 
