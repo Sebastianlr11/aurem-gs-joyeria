@@ -2147,54 +2147,69 @@ textarea:focus-visible {
   padding-top: 0;
 }
 
-.catalogo-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
+/* Riel segmentado de filtros: una sola fila, una sola activa.
+   Arena con filete de pelo; la activa sube a blanco con filete de oro al
+   35 %. Ninguna sombra, ningún desplazamiento al pasar el cursor. */
+.catalogo-riel {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--bg-arena);
+  border: 1px solid var(--hairline);
+  border-radius: 100px;
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
 }
 
-.catalogo-chip {
+.catalogo-riel::-webkit-scrollbar { display: none; }
+
+.catalogo-riel-btn {
   display: inline-flex;
-  align-items: baseline;
-  gap: 0.44rem;
-  padding: 0.5625rem 1.125rem;
+  align-items: center;
+  gap: 9px;
+  flex: 0 0 auto;
+  min-height: 40px;
+  padding: 0 18px;
+  border: 1px solid transparent;
   border-radius: 100px;
-  border: 1px solid var(--hairline);
-  background: var(--bg-color);
-  color: var(--ink-soft);
+  background: transparent;
+  font-family: inherit;
   font-size: 0.875rem;
   font-weight: 600;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  color: var(--text-secondary);
   cursor: pointer;
-  transition: all 0.3s var(--ease);
+  transition: background 0.3s var(--ease), color 0.3s var(--ease), border-color 0.3s var(--ease);
 }
 
-.catalogo-chip:hover {
-  transform: translateY(-2px);
+.catalogo-riel-btn:hover:not(:disabled) { color: var(--ink); }
+
+.catalogo-riel-btn--on,
+.catalogo-riel-btn--on:hover {
+  background: var(--bg-color);
+  border-color: rgba(168, 134, 63, 0.35);
+  color: var(--ink);
 }
 
-.catalogo-chip--on {
-  background: var(--ink);
-  border-color: var(--ink);
-  color: var(--bg-marfil);
+/* Categoría en cero: el conteo ya lo dice, así que la etiqueta se mantiene
+   legible y sólo se le quita el toque. */
+.catalogo-riel-btn--vacia {
+  cursor: default;
 }
 
-.catalogo-chip-n {
-  font-size: 0.68rem;
+.catalogo-riel-n {
+  font-size: 0.75rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
-  opacity: 0.6;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+  transition: color 0.3s var(--ease);
 }
 
-.catalogo-chip--suave {
-  padding: 0.4375rem 0.9375rem;
-  font-size: 0.8rem;
-}
-
-.catalogo-chip--suave-on {
-  background: var(--bg-arena);
-  border-color: var(--oro-hairline);
-  color: var(--oro-ink);
-}
+.catalogo-riel-btn--on .catalogo-riel-n { color: var(--oro-ink); }
 
 .catalogo-herramientas {
   display: flex;
@@ -2548,17 +2563,6 @@ textarea:focus-visible {
     width: 100%;
   }
 
-  .catalogo-chips {
-    width: 100%;
-    overflow-x: auto;
-    flex-wrap: nowrap;
-    padding-bottom: 0.25rem;
-  }
-
-  .catalogo-chip {
-    white-space: nowrap;
-    min-height: 40px;
-  }
 
   .catalogo-conteo {
     margin-left: 0;
@@ -13291,3 +13295,9 @@ textarea:focus-visible {
 .inf-grafica-pie > span:first-child { text-align: left; }
 .inf-grafica-pie > span:last-child { text-align: right; }
 .inf-grafica-pie { border-top: 0; padding-top: 0; }
+
+@media (max-width: 768px) {
+  /* El riel se desliza; la fila no se rompe. */
+  .catalogo-riel { display: flex; }
+  .catalogo-riel-btn { min-height: 44px; padding: 0 16px; }
+}
