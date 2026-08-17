@@ -588,30 +588,6 @@ const MP_RETE_FUENTE = 0.015;  // 1.5% retención en la fuente
 const MP_RETE_ICA    = 0.00414;// ~0.414% retención ICA
 
 const COD_PAID = ['pagado', 'enviado', 'entregado'];
-const RANGOS = ['7 días', '30 días', 'Este mes', 'Mes anterior'];
-
-/* Límites del rango elegido y del periodo anterior equivalente */
-const rangoLimites = (clave) => {
-    const hoy = new Date();
-    const diaCero = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
-
-    if (clave === '7 días' || clave === '30 días') {
-        const dias = clave === '7 días' ? 7 : 30;
-        const desde = diaCero(new Date(hoy.getTime() - (dias - 1) * 86400000));
-        const hasta = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() + 1);
-        return { desde, hasta, previoDesde: new Date(desde.getTime() - dias * 86400000), previoHasta: desde, dias };
-    }
-
-    const salto = clave === 'Este mes' ? 0 : -1;
-    const desde = new Date(hoy.getFullYear(), hoy.getMonth() + salto, 1);
-    const hasta = new Date(hoy.getFullYear(), hoy.getMonth() + salto + 1, 1);
-    return {
-        desde, hasta,
-        previoDesde: new Date(hoy.getFullYear(), hoy.getMonth() + salto - 1, 1),
-        previoHasta: desde,
-        dias: Math.round((hasta - desde) / 86400000),
-    };
-};
 
 /* Ingresos de un conjunto de pedidos. MercadoPago va neto de comisión y
    retenciones; contraentrega solo cuenta cuando ya se cobró. */
@@ -635,453 +611,230 @@ const ingresosDe = (pedidos) => {
         mpNeto,
         codCobrado,
         total: mpNeto + codCobrado,
-        entregados: pedidos.filter(o => o.status === 'entregado').length,
+        entregados: pedidos.filter(o => COD_PAID.includes(o.status)).length,
         porCobrar,
         porCobrarTotal: porCobrar.reduce((s, o) => s + Number(o.amount), 0),
     };
 };
 
-const waLinkPedido = (o) => {
-    const telefono = (o.customer_phone || '').replace(/\D/g, '');
-    if (!telefono) return null;
-    const msgFn = WA_MESSAGES[o.status];
-    const msg = msgFn ? msgFn(o) : `Hola ${o.customer_name}, te escribimos de Aurem Gs Joyería por tu pedido.`;
-    return `https://wa.me/${telefono.startsWith('57') ? telefono : '57' + telefono}?text=${encodeURIComponent(msg)}`;
-};
-
-const saludo = () => {
-    const h = new Date().getHours();
-    if (h < 12) return 'Buenos días';
-    if (h < 19) return 'Buenas tardes';
-    return 'Buenas noches';
-};
-
-const DashIcon = ({ name }) => {
-    const p = { width: 16, height: 16, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' };
+const JIcon = ({ name, size = 20 }) => {
+    const p = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.5, strokeLinecap: 'round', strokeLinejoin: 'round' };
     switch (name) {
-        case 'package': return <svg {...p}><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" /><polyline points="3.27 6.96 12 12.01 20.73 6.96" /><line x1="12" y1="22.08" x2="12" y2="12" /></svg>;
         case 'bag': return <svg {...p}><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" /><line x1="3" y1="6" x2="21" y2="6" /><path d="M16 10a4 4 0 0 1-8 0" /></svg>;
-        case 'users': return <svg {...p}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /></svg>;
-        case 'mail': return <svg {...p}><rect x="2" y="4" width="20" height="16" rx="2" /><path d="m2 6 10 7 10-7" /></svg>;
-        case 'chat': return <svg {...p}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>;
         case 'truck': return <svg {...p}><rect x="1" y="6" width="13" height="11" rx="1" /><path d="M14 10h4l3 3v4h-7z" /><circle cx="6" cy="18" r="1.8" /><circle cx="17" cy="18" r="1.8" /></svg>;
-        case 'money': return <svg {...p}><line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>;
-        case 'whatsapp': return <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.96-.94 1.16-.17.2-.35.22-.65.07-.3-.15-1.25-.46-2.39-1.47-.88-.79-1.48-1.76-1.65-2.06-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.08-.15-.67-1.61-.92-2.21-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.01-1.04 2.47 0 1.46 1.06 2.87 1.21 3.07.15.2 2.1 3.2 5.08 4.49.71.3 1.26.49 1.69.63.71.22 1.36.19 1.87.12.57-.09 1.76-.72 2.01-1.41.25-.7.25-1.29.17-1.42-.07-.13-.27-.2-.57-.35M12.05 21.5a9.5 9.5 0 0 1-4.84-1.32l-.35-.2-3.59.94.96-3.5-.23-.36a9.44 9.44 0 0 1-1.45-5.05c0-5.23 4.27-9.49 9.51-9.49 2.54 0 4.92.99 6.72 2.78a9.42 9.42 0 0 1 2.78 6.72c0 5.23-4.27 9.49-9.51 9.49M20.5 3.49A11.4 11.4 0 0 0 12.05 0C5.77 0 .66 5.1.66 11.37c0 2 .52 3.96 1.52 5.68L.56 24l7.1-1.86a11.4 11.4 0 0 0 5.44 1.38c6.28 0 11.39-5.1 11.39-11.37 0-3.04-1.19-5.9-3.34-8.05" /></svg>;
-        default: return <svg {...p}><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></svg>;
+        case 'chevron': return <svg {...p} strokeWidth="1.6"><polyline points="9 18 15 12 9 6" /></svg>;
+        case 'whatsapp': return <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor"><path d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.96-.94 1.16-.17.2-.35.22-.65.07-.3-.15-1.25-.46-2.39-1.47-.88-.79-1.48-1.76-1.65-2.06-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.08-.15-.67-1.61-.92-2.21-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.01-1.04 2.47 0 1.46 1.06 2.87 1.21 3.07.15.2 2.1 3.2 5.08 4.49.71.3 1.26.49 1.69.63.71.22 1.36.19 1.87.12.57-.09 1.76-.72 2.01-1.41.25-.7.25-1.29.17-1.42-.07-.13-.27-.2-.57-.35M12.05 21.5a9.5 9.5 0 0 1-4.84-1.32l-.35-.2-3.59.94.96-3.5-.23-.36a9.44 9.44 0 0 1-1.45-5.05c0-5.23 4.27-9.49 9.51-9.49 2.54 0 4.92.99 6.72 2.78a9.42 9.42 0 0 1 2.78 6.72c0 5.23-4.27 9.49-9.51 9.49M20.5 3.49A11.4 11.4 0 0 0 12.05 0C5.77 0 .66 5.1.66 11.37c0 2 .52 3.96 1.52 5.68L.56 24l7.1-1.86a11.4 11.4 0 0 0 5.44 1.38c6.28 0 11.39-5.1 11.39-11.37 0-3.04-1.19-5.9-3.34-8.05" /></svg>;
+        default: return null;
     }
 };
 
-const DashboardHome = ({ products, orders, customers, waStats, chatsPendientes, session, onNavigate, onRefresh }) => {
-    const [rango, setRango] = useState('30 días');
-    const [filtro, setFiltro] = useState(null);
-    const [modal, setModal] = useState(null);
+const DashboardHome = ({ products, orders, customers, waStats, chatsPendientes, onNavigate }) => {
+    const hoy = new Date();
+    const hace30 = new Date(hoy.getTime() - 30 * 86400000);
 
-    const { desde, hasta, previoDesde, previoHasta, dias } = rangoLimites(rango);
-    const enRango = (o, a, b) => { const t = new Date(o.created_at); return t >= a && t < b; };
+    const pedidos30 = orders.filter(o => new Date(o.created_at) >= hace30);
+    const ingresos = ingresosDe(pedidos30);
 
-    const pedidosRango = orders.filter(o => enRango(o, desde, hasta));
-    const pedidosPrevio = orders.filter(o => enRango(o, previoDesde, previoHasta));
+    /* El trabajo del día mira todos los pedidos, no solo los últimos 30 días:
+       uno de hace dos meses sin despachar sigue siendo trabajo de hoy. */
+    const porConfirmar = orders.filter(o => o.status === 'pendiente').length;
+    const porDespachar = orders.filter(o => o.status === 'pagado' || o.status === 'procesando').length;
+    const sinResponder = chatsPendientes.length;
 
-    const ingresos = ingresosDe(pedidosRango);
-    const ingresosPrevio = ingresosDe(pedidosPrevio);
+    const clientasNuevas = customers.filter(c => new Date(c.created_at) >= hace30).length;
+    const conInventario = products.filter(p => p.stock !== null && p.stock !== undefined).length;
 
-    const delta = ingresosPrevio.total > 0
-        ? Math.round(((ingresos.total - ingresosPrevio.total) / ingresosPrevio.total) * 100)
-        : null;
-
-    /* Trabajo del día — sobre todos los pedidos, no solo el rango:
-       un pedido de hace dos meses sin despachar sigue siendo trabajo de hoy. */
-    const porConfirmar = orders.filter(o => o.status === 'pendiente');
-    const porDespachar = orders.filter(o => o.status === 'pagado' || o.status === 'procesando');
+    const pendiente = porConfirmar + porDespachar + sinResponder;
 
     const tareas = [
-        { clave: 'pendiente', n: porConfirmar.length, label: 'Por confirmar', punto: '#b7791f' },
-        { clave: 'despachar', n: porDespachar.length, label: 'Por despachar', punto: '#3b6fb8' },
-        { clave: 'chats', n: chatsPendientes.length, label: 'Sin responder', punto: '#1a9e4b' },
+        {
+            clave: 'confirmar', icono: 'bag', n: porConfirmar,
+            titulo: 'Por confirmar',
+            sub: 'Pedidos nuevos que esperan tu llamada o mensaje',
+            ir: () => onNavigate('orders'),
+        },
+        {
+            clave: 'despachar', icono: 'truck', n: porDespachar,
+            titulo: 'Por despachar',
+            sub: 'Confirmados que salen en 24 a 48 horas hábiles',
+            ir: () => onNavigate('orders'),
+        },
+        {
+            clave: 'responder', icono: 'whatsapp', n: sinResponder,
+            titulo: 'Sin responder',
+            sub: 'Chats de WhatsApp esperando tu respuesta',
+            ir: () => onNavigate('chat'),
+        },
     ];
 
-    const alternarFiltro = (clave) => {
-        if (clave === 'chats') { onNavigate('chat'); return; }
-        setFiltro(f => (f === clave ? null : clave));
-    };
-
-    /* Tabla */
-    const filas = (() => {
-        if (filtro === 'pendiente') return porConfirmar;
-        if (filtro === 'despachar') return porDespachar;
-        return orders;
-    })().slice(0, 6);
-
-    const tituloTabla = filtro === 'pendiente' ? 'Pedidos por confirmar'
-        : filtro === 'despachar' ? 'Pedidos por despachar'
-            : 'Pedidos recientes';
-
-    /* Gráfica: por día si el rango es corto, por semana si es largo */
-    const barras = (() => {
-        if (dias <= 7) {
-            return Array.from({ length: dias }, (_, i) => {
-                const d = new Date(desde.getTime() + i * 86400000);
-                const sig = new Date(d.getTime() + 86400000);
-                return {
-                    label: d.toLocaleDateString('es-CO', { weekday: 'short' }).replace('.', ''),
-                    valor: pedidosRango.filter(o => enRango(o, d, sig)).length,
-                };
-            });
-        }
-        const semanas = Math.ceil(dias / 7);
-        return Array.from({ length: semanas }, (_, i) => {
-            const d = new Date(desde.getTime() + i * 7 * 86400000);
-            const sig = new Date(Math.min(d.getTime() + 7 * 86400000, hasta.getTime()));
-            return { label: `S${i + 1}`, valor: pedidosRango.filter(o => enRango(o, d, sig)).length };
-        });
-    })();
-    const pico = Math.max(...barras.map(b => b.valor), 1);
-
-    const clientasNuevas = customers.filter(c => enRango(c, desde, hasta)).length;
-
-    /* Inventario. stock null = la pieza no lleva control de inventario, así
-       que no entra en el conteo ni en la alerta. */
-    const UMBRAL_REPONER = 3;
-    const conInventario = products.filter(p => p.stock !== null && p.stock !== undefined).length;
-    const porReponer = products
-        .filter(p => p.stock !== null && p.stock !== undefined && p.stock <= UMBRAL_REPONER)
-        .sort((a, b) => a.stock - b.stock)
-        .slice(0, 4);
-
-    const stats = [
-        { icon: 'package', valor: products.length, label: 'Piezas publicadas' },
-        { icon: 'bag', valor: pedidosRango.length, label: 'Pedidos del periodo' },
-        { icon: 'users', valor: clientasNuevas, label: 'Clientas nuevas' },
-        { icon: 'mail', valor: waStats.mensajesHoy, label: 'Mensajes hoy' },
-        { icon: 'chat', valor: waStats.conversacionesActivas, label: 'Chats activos' },
-        { icon: 'whatsapp', valor: waStats.pedidosWaMes, label: 'Pedidos por WhatsApp' },
+    /* Puesta a punto: cada paso se marca solo cuando el dato existe. */
+    const pasos = [
+        {
+            t: 'Publicar las primeras piezas',
+            s: products.length > 0 ? `${products.length} pieza${products.length !== 1 ? 's' : ''} en el catálogo` : 'El catálogo está vacío',
+            hecho: products.length > 0,
+            accion: 'Abrir productos →', ir: () => onNavigate('products'),
+        },
+        {
+            t: 'Anotar cuántas unidades te quedan',
+            s: 'Sin inventario no se puede avisar cuando una pieza se agota',
+            hecho: conInventario === products.length && products.length > 0,
+            accion: 'Abrir productos →', ir: () => onNavigate('products'),
+        },
+        {
+            t: 'Confirmar envío y pago contra entrega',
+            s: 'Ciudades cubiertas, plazo de 24 a 48 horas y datos de recaudo',
+            hecho: false,
+            accion: 'Abrir ajustes →', ir: () => onNavigate('settings'),
+        },
+        {
+            t: 'Dejar listo el mensaje de bienvenida de WhatsApp',
+            s: 'Es el primer contacto de casi toda clienta que llega del anuncio',
+            hecho: false,
+            accion: 'Abrir conversaciones →', ir: () => onNavigate('chat'),
+        },
     ];
+    const hechos = pasos.filter(p => p.hecho).length;
+    const faltanPasos = hechos < pasos.length;
 
-    /* Avanzar estado — mismo flujo que la sección de Pedidos */
-    const cambiarEstado = async (order, nuevoEstado, extra = {}) => {
-        const payload = { status: nuevoEstado, status_updated_at: new Date().toISOString(), ...extra };
-        const { error } = await supabase.from('orders').update(payload).eq('id', order.id);
-        if (error) { alert('Error: ' + error.message); return; }
-        await fireWebhook(order, nuevoEstado, extra);
-        onRefresh();
-    };
-
-    const accionRapida = (order) => {
-        const accion = getNextAction(order);
-        if (!accion) return;
-        if (accion.next === 'enviado') setModal({ type: 'ship', order });
-        else setModal({ type: 'confirm', order, next: accion.next });
-    };
-
-    const nombre = session?.user?.user_metadata?.full_name || session?.user?.user_metadata?.name || '';
+    const cifras = [
+        { v: products.length, l: 'Piezas publicadas' },
+        { v: pedidos30.length, l: 'Pedidos del periodo' },
+        { v: clientasNuevas, l: 'Clientas nuevas' },
+        { v: waStats.mensajesHoy, l: 'Mensajes hoy' },
+        { v: waStats.conversacionesActivas, l: 'Chats activos' },
+    ];
 
     return (
-        <div className="dash">
+        <div className="jornada">
 
-            <div className="dash-head">
-                <div>
-                    <h1 className="dash-greeting">{saludo()}{nombre ? `, ${nombre}` : ''}</h1>
-                    <p className="dash-subtitle">
-                        {new Date().toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' })}
-                        {porConfirmar.length > 0
-                            ? ` · ${porConfirmar.length} pedido${porConfirmar.length !== 1 ? 's' : ''} espera${porConfirmar.length !== 1 ? 'n' : ''} tu confirmación`
-                            : ' · no hay pedidos esperando confirmación'}
-                    </p>
-                </div>
-
-                <div className="dash-tasks">
-                    <span className="dash-tasks-label">Atender hoy</span>
-                    {tareas.map(t => (
-                        <button
-                            key={t.clave}
-                            className={`dash-task ${filtro === t.clave ? 'dash-task--on' : ''}`}
-                            onClick={() => alternarFiltro(t.clave)}
-                        >
-                            <span className="dash-task-n" style={{ background: t.punto }}>{t.n}</span>
-                            {t.label}
-                        </button>
-                    ))}
-                </div>
+            <div className="jornada-head">
+                <span className="jornada-fecha">
+                    {hoy.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' })}
+                </span>
+                {pendiente === 0 ? (
+                    <h1 className="jornada-titulo">
+                        Hoy no hay nada
+                        <em>que esté esperando.</em>
+                    </h1>
+                ) : (
+                    <h1 className="jornada-titulo">
+                        Hoy tienes {pendiente} cosa{pendiente !== 1 ? 's' : ''}
+                        <em>por atender.</em>
+                    </h1>
+                )}
+                <p className="jornada-lead">
+                    {products.length} pieza{products.length !== 1 ? 's' : ''} publicada{products.length !== 1 ? 's' : ''},{' '}
+                    {orders.length === 0 ? 'ningún pedido todavía' : `${orders.length} pedido${orders.length !== 1 ? 's' : ''} en total`} y{' '}
+                    {sinResponder === 0 ? 'la bandeja de WhatsApp al día' : `${sinResponder} chat${sinResponder !== 1 ? 's' : ''} sin responder`}.
+                    {' '}Lo que sigue está abajo, en orden.
+                </p>
             </div>
 
-            <div className="dash-ranges">
-                {RANGOS.map(r => (
-                    <button
-                        key={r}
-                        className={`dash-range ${rango === r ? 'dash-range--on' : ''}`}
-                        onClick={() => setRango(r)}
-                    >
-                        {r}
+            <section className="jornada-panel">
+                <div className="jornada-panel-head">
+                    <span className="jornada-panel-titulo">Atender hoy</span>
+                    <span className="jornada-panel-nota">Actualizado hace un momento</span>
+                </div>
+                {tareas.map(t => (
+                    <button key={t.clave} className="jornada-tarea" onClick={t.ir}>
+                        <span className={`jornada-tarea-icono ${t.icono === 'whatsapp' ? 'jornada-tarea-icono--wa' : ''}`}>
+                            <JIcon name={t.icono} />
+                        </span>
+                        <span className="jornada-tarea-texto">
+                            <span className="jornada-tarea-t">{t.titulo}</span>
+                            <span className="jornada-tarea-s">{t.sub}</span>
+                        </span>
+                        <span className="jornada-tarea-n">
+                            <span className={`jornada-tarea-num ${t.n > 0 ? 'jornada-tarea-num--hay' : ''}`}>{t.n}</span>
+                            <span className="jornada-tarea-estado">{t.n === 0 ? 'al día' : 'pendiente'}</span>
+                        </span>
+                        <span className="jornada-tarea-chevron"><JIcon name="chevron" size={18} /></span>
                     </button>
                 ))}
-            </div>
+            </section>
 
-            <div className="dash-metrics">
-                <div className="dash-metric dash-metric--main">
-                    <div className="dash-metric-top">
-                        <span className="dash-metric-icon"><DashIcon name="money" /></span>
-                        <span className="dash-metric-badge">{rango}</span>
+            <section className="jornada-dinero">
+                <div className="jornada-dinero-col">
+                    <span className="jornada-dinero-label">Cobrado · últimos 30 días</span>
+                    <div className="jornada-dinero-cifra">
+                        <span className="jornada-dinero-valor">${fmt(ingresos.total)}</span>
+                        <span className="jornada-dinero-moneda">COP</span>
                     </div>
-                    <p className="dash-metric-amount">${fmt(ingresos.total)}</p>
-                    <p className="dash-metric-label">Ingresos cobrados</p>
-                    <p className="dash-metric-sub">
-                        {ingresos.entregados} pedido{ingresos.entregados !== 1 ? 's' : ''} entregado{ingresos.entregados !== 1 ? 's' : ''}
-                    </p>
-                    <div className="dash-metric-breakdown">
-                        <div className="dash-metric-line">
-                            <span className="dash-dot dash-dot--mp" />
-                            <span>MercadoPago (neto)</span>
+                    <span className="jornada-dinero-sub">
+                        {ingresos.entregados} pedido{ingresos.entregados !== 1 ? 's' : ''} entregado{ingresos.entregados !== 1 ? 's' : ''} y pagado{ingresos.entregados !== 1 ? 's' : ''}
+                    </span>
+                    <div className="jornada-dinero-detalle">
+                        <div className="jornada-dinero-fila">
+                            <span><span className="jornada-punto" />MercadoPago (neto)</span>
                             <strong>${fmt(ingresos.mpNeto)}</strong>
                         </div>
-                        <div className="dash-metric-line">
-                            <span className="dash-dot dash-dot--cod" />
-                            <span>Contra entrega cobrado</span>
+                        <div className="jornada-dinero-fila">
+                            <span><span className="jornada-punto jornada-punto--cod" />Contra entrega cobrado</span>
                             <strong>${fmt(ingresos.codCobrado)}</strong>
                         </div>
                     </div>
                 </div>
 
-                <div className="dash-metric-side">
-                    <div className="dash-metric dash-metric--pending">
-                        <div className="dash-metric-top">
-                            <span className="dash-metric-icon dash-metric-icon--pending"><DashIcon name="truck" /></span>
-                        </div>
-                        <p className="dash-metric-amount dash-metric-amount--sm">${fmt(ingresos.porCobrarTotal)}</p>
-                        <p className="dash-metric-label">Falta cobrar</p>
-                        <p className="dash-metric-sub">
-                            Contra entrega en tránsito · {ingresos.porCobrar.length} pedido{ingresos.porCobrar.length !== 1 ? 's' : ''}
-                        </p>
+                <div className="jornada-dinero-col">
+                    <span className="jornada-dinero-label">Falta cobrar</span>
+                    <div className="jornada-dinero-cifra">
+                        <span className="jornada-dinero-valor">${fmt(ingresos.porCobrarTotal)}</span>
+                        <span className="jornada-dinero-moneda">COP</span>
                     </div>
-
-                    <div className="dash-delta">
-                        <span className="dash-delta-label">Contra el periodo anterior</span>
-                        <div className="dash-delta-row">
-                            <span className={`dash-delta-value ${delta !== null && delta < 0 ? 'dash-delta-value--down' : ''}`}>
-                                {delta === null ? '—' : `${delta > 0 ? '+' : ''}${delta}%`}
-                            </span>
-                            <span className="dash-delta-text">
-                                {delta === null ? 'sin datos previos para comparar' : `${rango === 'Mes anterior' ? 'vs. el mes previo' : 'vs. el periodo previo'}`}
-                            </span>
-                        </div>
-                        <div className="dash-delta-track">
-                            <div
-                                className="dash-delta-fill"
-                                style={{ width: `${Math.min(Math.abs(delta ?? 0), 100)}%` }}
-                            />
-                        </div>
+                    <span className="jornada-dinero-sub">
+                        Contra entrega en tránsito · {ingresos.porCobrar.length} pedido{ingresos.porCobrar.length !== 1 ? 's' : ''}
+                    </span>
+                    <div className="jornada-dinero-detalle">
+                        <span className="punzon punzon--dark">Pago contra entrega</span>
+                        <span className="jornada-dinero-sub">
+                            {ingresos.porCobrar.length === 0
+                                ? 'Cuando el primer pedido se entregue, aquí verás cuánto queda por recaudar.'
+                                : 'Se cobra al entregar. Confirma con el mensajero para cerrarlo.'}
+                        </span>
                     </div>
                 </div>
-            </div>
+            </section>
 
-            <div className="dash-stats">
-                {stats.map(s => (
-                    <div key={s.label} className="dash-stat">
-                        <span className="dash-stat-icon"><DashIcon name={s.icon} /></span>
-                        <div className="dash-stat-body">
-                            <span className="dash-stat-value">{s.valor}</span>
-                            <span className="dash-stat-label">{s.label}</span>
+            {faltanPasos && (
+                <section className="jornada-panel">
+                    <div className="jornada-panel-head">
+                        <span className="jornada-panel-titulo">Para dejar la tienda lista</span>
+                        <span className="jornada-panel-nota">{hechos} de {pasos.length} hecho{hechos !== 1 ? 's' : ''}</span>
+                    </div>
+                    {pasos.map((p, i) => (
+                        <div key={p.t} className={`jornada-paso ${p.hecho ? 'jornada-paso--hecho' : ''}`}>
+                            <span className="jornada-paso-n">{i + 1}</span>
+                            <span className="jornada-paso-texto">
+                                <span className="jornada-paso-t">{p.t}</span>
+                                <span className="jornada-paso-s">{p.s}</span>
+                            </span>
+                            {p.hecho
+                                ? <span className="jornada-paso-listo">Listo</span>
+                                : <button className="jornada-paso-link" onClick={p.ir}>{p.accion}</button>}
                         </div>
+                    ))}
+                </section>
+            )}
+
+            <section className="jornada-cifras">
+                {cifras.map(c => (
+                    <div key={c.l} className="jornada-cifra">
+                        <span className={`jornada-cifra-v ${c.v === 0 ? 'jornada-cifra-v--cero' : ''}`}>{c.v}</span>
+                        <span className="jornada-cifra-l">{c.l}</span>
                     </div>
                 ))}
+            </section>
+
+            <div className="jornada-acciones">
+                <button className="btn-pill black" onClick={() => onNavigate('products')}>Publicar pieza nueva</button>
+                <button className="btn-pill light" onClick={() => onNavigate('chat')}>Abrir la bandeja</button>
+                {orders.length === 0 && (
+                    <span className="jornada-acciones-nota">
+                        El gráfico de pedidos por semana aparece con el primer pedido.
+                    </span>
+                )}
             </div>
-
-            <div className="dash-columns">
-                <div className="dash-col">
-
-                    <div className="dash-card">
-                        <div className="dash-card-head">
-                            <div>
-                                <span className="dash-card-title">{dias <= 7 ? 'Pedidos por día' : 'Pedidos por semana'}</span>
-                                <span className="dash-card-sub">{rango}</span>
-                            </div>
-                            <span className="dash-peak">Pico {pico} pedido{pico !== 1 ? 's' : ''}</span>
-                        </div>
-                        <div className="dash-chart" style={{ gridTemplateColumns: `repeat(${barras.length}, 1fr)` }}>
-                            {barras.map((b, i) => (
-                                <div key={i} className="dash-bar-col">
-                                    <div className="dash-bar-track">
-                                        <div
-                                            className={`dash-bar ${b.valor === pico && pico > 0 ? 'dash-bar--peak' : ''}`}
-                                            style={{ height: `${Math.round((b.valor / pico) * 88)}%` }}
-                                        >
-                                            <span className="dash-bar-value">{b.valor}</span>
-                                        </div>
-                                    </div>
-                                    <span className="dash-bar-label">{b.label}</span>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    <div className="dash-card dash-card--flush">
-                        <div className="dash-card-head dash-card-head--bordered">
-                            <div className="dash-card-head-left">
-                                <span className="dash-card-title">{tituloTabla}</span>
-                                {filtro && (
-                                    <button className="dash-chip-clear" onClick={() => setFiltro(null)}>
-                                        Quitar filtro ✕
-                                    </button>
-                                )}
-                            </div>
-                            <button className="dash-link" onClick={() => onNavigate('orders')}>Ver todos →</button>
-                        </div>
-
-                        {filas.length === 0 ? (
-                            <div className="dash-empty">
-                                <span className="dash-empty-icon"><DashIcon name="bag" /></span>
-                                <span className="dash-empty-title">Bandeja al día</span>
-                                <span className="dash-empty-text">
-                                    No queda ningún pedido en este estado.
-                                </span>
-                                {filtro && (
-                                    <button className="dash-btn-ink" onClick={() => setFiltro(null)}>Ver todos los pedidos</button>
-                                )}
-                            </div>
-                        ) : (
-                            <div className="dash-table-wrap">
-                                <table className="dash-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Pedido</th>
-                                            <th>Total</th>
-                                            <th>Estado</th>
-                                            <th className="dash-th-right">Acción</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {filas.map(o => {
-                                            const accion = getNextAction(o);
-                                            const wa = waLinkPedido(o);
-                                            return (
-                                                <tr key={o.id}>
-                                                    <td>
-                                                        <div className="dash-cell">
-                                                            <span className="dash-cell-strong">{o.customer_name}</span>
-                                                            <span className="dash-cell-meta">
-                                                                {[o.shipping_city, fmtDate(o.created_at)].filter(Boolean).join(' · ')}
-                                                            </span>
-                                                        </div>
-                                                    </td>
-                                                    <td>
-                                                        <div className="dash-cell">
-                                                            <span className="dash-cell-strong">${fmt(o.amount)}</span>
-                                                            <span className="dash-cell-meta">{isCOD(o) ? 'Contra entrega' : (o.payment_method || 'Sin método')}</span>
-                                                        </div>
-                                                    </td>
-                                                    <td><StatusBadge status={o.status} /></td>
-                                                    <td>
-                                                        <div className="dash-actions">
-                                                            {wa && (
-                                                                <a
-                                                                    className="dash-wa"
-                                                                    href={wa}
-                                                                    target="_blank"
-                                                                    rel="noopener noreferrer"
-                                                                    title="Escribir por WhatsApp"
-                                                                >
-                                                                    <DashIcon name="whatsapp" />
-                                                                </a>
-                                                            )}
-                                                            <button
-                                                                className={`dash-advance ${accion ? '' : 'dash-advance--off'}`}
-                                                                onClick={() => accion && accionRapida(o)}
-                                                                disabled={!accion}
-                                                            >
-                                                                {accion ? accion.label : STATUS_META[o.status]?.label || o.status}
-                                                            </button>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })}
-                                    </tbody>
-                                </table>
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                <div className="dash-col">
-                    <div className="dash-card dash-card--flush">
-                        <div className="dash-card-head dash-card-head--bordered">
-                            <span className="dash-card-title">Sin responder</span>
-                            <span className="dash-count-green">{chatsPendientes.length} chat{chatsPendientes.length !== 1 ? 's' : ''}</span>
-                        </div>
-                        {chatsPendientes.length === 0 ? (
-                            <div className="dash-empty dash-empty--sm">
-                                <span className="dash-empty-text">Todas las conversaciones están respondidas.</span>
-                            </div>
-                        ) : (
-                            chatsPendientes.map(c => (
-                                <button key={c.phone_number} className="dash-chat" onClick={() => onNavigate('chat')}>
-                                    <span className="dash-chat-avatar">{(c.phone_number || '?').slice(-2)}</span>
-                                    <span className="dash-chat-body">
-                                        <span className="dash-chat-top">
-                                            <span className="dash-chat-name">{c.phone_number}</span>
-                                            <span className="dash-chat-time">
-                                                {new Date(c.created_at).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}
-                                            </span>
-                                        </span>
-                                        <span className="dash-chat-msg">{c.content}</span>
-                                    </span>
-                                </button>
-                            ))
-                        )}
-                        <button className="dash-card-foot" onClick={() => onNavigate('chat')}>Abrir bandeja →</button>
-                    </div>
-
-                    <div className="dash-card dash-card--flush">
-                        <div className="dash-card-head dash-card-head--bordered">
-                            <span className="dash-card-title">Inventario por reponer</span>
-                            <button className="dash-link" onClick={() => onNavigate('products')}>Productos →</button>
-                        </div>
-
-                        {porReponer.length === 0 ? (
-                            <div className="dash-empty dash-empty--sm">
-                                <span className="dash-empty-text">
-                                    {conInventario === 0
-                                        ? 'Todavía no registras inventario. Abre una pieza en Productos y anota cuántas unidades te quedan.'
-                                        : 'Ninguna pieza está por agotarse.'}
-                                </span>
-                            </div>
-                        ) : porReponer.map(p => (
-                            <div key={p.id} className="dash-piece">
-                                <span className="dash-piece-thumb">
-                                    {p.image_url ? <img src={p.image_url} alt="" /> : '✦'}
-                                </span>
-                                <span className="dash-piece-body">
-                                    <span className="dash-piece-name">{p.name}</span>
-                                    <span className="dash-piece-meta">{p.category} · ${fmt(p.price)}</span>
-                                </span>
-                                <span className={`dash-stock ${p.stock === 0 ? 'dash-stock--out' : ''}`}>
-                                    {p.stock === 0 ? 'Agotada' : `${p.stock} unidad${p.stock !== 1 ? 'es' : ''}`}
-                                </span>
-                            </div>
-                        ))}
-
-                        <button className="dash-card-foot" onClick={() => onNavigate('products')}>Publicar pieza nueva →</button>
-                    </div>
-                </div>
-            </div>
-
-            {modal?.type === 'ship' && (
-                <ShipModal
-                    order={modal.order}
-                    onClose={() => setModal(null)}
-                    onConfirm={async (carrier, tracking) => {
-                        await cambiarEstado(modal.order, 'enviado', { carrier: carrier || null, tracking_number: tracking || null });
-                        setModal(null);
-                    }}
-                />
-            )}
-            {modal?.type === 'confirm' && (
-                <StatusConfirmModal
-                    order={modal.order}
-                    nextStatus={modal.next}
-                    onClose={() => setModal(null)}
-                    onConfirm={async () => { await cambiarEstado(modal.order, modal.next); setModal(null); }}
-                />
-            )}
         </div>
     );
 };
@@ -2826,10 +2579,14 @@ const Dashboard = () => {
             <main className="admin-content">
                 <header className="admin-topbar">
                     <div className="admin-topbar-left">
-                        <span className="admin-topbar-icon">{NAV.find(n => n.id === section)?.icon}</span>
                         <h2 className="admin-topbar-title">{NAV.find(n => n.id === section)?.label ?? 'Dashboard'}</h2>
+                        <span className="admin-topbar-sep" />
+                        <span className="admin-topbar-fecha">
+                            {new Date().toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' })}
+                        </span>
                     </div>
                     <div className="admin-topbar-right">
+                        <a className="admin-topbar-tienda" href="/" target="_blank" rel="noopener noreferrer">Ver la tienda</a>
                         <div className="admin-topbar-avatar">{session.user.email[0].toUpperCase()}</div>
                     </div>
                 </header>
@@ -2839,9 +2596,7 @@ const Dashboard = () => {
                             products={products} orders={orders} customers={customers}
                             waStats={waStats}
                             chatsPendientes={chatsPendientes}
-                            session={session}
                             onNavigate={irA}
-                            onRefresh={fetchOrders}
                         />
                     )}
                     {section === 'products' && (
