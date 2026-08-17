@@ -14,6 +14,17 @@ const normalizePhone = (p) => {
 
 const fmtTime = (d) => new Date(d).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
 const fmtDate = (d) => new Date(d).toLocaleDateString('es-CO', { day: '2-digit', month: 'short' });
+/* Iniciales del nombre, hasta dos, como en el retrato del diseño. */
+const iniciales = (nombre) => {
+    if (!nombre) return '#';
+    const partes = String(nombre).trim().split(/\s+/).filter(Boolean);
+    return (partes[0][0] + (partes[1]?.[0] || '')).toUpperCase();
+};
+/* Cómo se lee cada estado en la ficha, en vez del valor crudo. */
+const STATUS_PEDIDO = {
+    pendiente: 'Pago pendiente', pagado: 'Pagado', procesando: 'Procesando',
+    enviado: 'Enviado', entregado: 'Entregado', cancelado: 'Cancelado',
+};
 const fmtDateFull = (d) => new Date(d).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
 /* Cuánto hace del último mensaje, en corto: "Hoy", "Ayer", "3 d", "5 sem". */
 const fmtDesde = (d) => {
@@ -107,6 +118,9 @@ const ChatPanel = () => {
     const [showQuickReplies, setShowQuickReplies] = useState(false);
     const [showImagePicker, setShowImagePicker] = useState(false);
     const [products, setProducts] = useState([]);
+    const imagenDePedido = (o) => (
+        products.find(p => p.id === o.product_id) || products.find(p => p.name === o.product_name)
+    )?.image_url || null;
     const [productSearch, setProductSearch] = useState('');
     const [imageCaption, setImageCaption] = useState('');
     const [selectedProduct, setSelectedProduct] = useState(null);
@@ -886,6 +900,12 @@ const ChatPanel = () => {
         return c.last_role === 'user' && !s?.is_archived && !s?.is_resolved;
     }).length, [contacts, statusMap]);
 
+    /* Cuántas lleva alguien a mano ahora mismo. */
+    const enManual = useMemo(
+        () => contacts.filter(c => !!takeoverMap[c.phone_number] && !statusMap[c.phone_number]?.is_archived).length,
+        [contacts, takeoverMap, statusMap]
+    );
+
     /* ─── Select contact ──────────────────────────────────────────── */
     const selectContact = (phone) => {
         setActiveContact(phone);
@@ -946,11 +966,14 @@ const ChatPanel = () => {
                         <div className="chat-contacts-header">
                             <div className="chat-contacts-titulo">
                                 <h2>Chats</h2>
-                                {esperanRespuesta > 0 && (
-                                    <span className="punzon">
-                                        {esperanRespuesta} espera{esperanRespuesta !== 1 ? 'n' : ''}
-                                    </span>
-                                )}
+                                <span className={`chat-agente ${enManual > 0 ? 'chat-agente--manual' : ''}`}>
+                                    <span className="chat-agente-punto" />
+                                    {enManual > 0
+                                        ? `${enManual} en manual`
+                                        : esperanRespuesta > 0
+                                            ? `${esperanRespuesta} espera${esperanRespuesta !== 1 ? 'n' : ''}`
+                                            : 'Valentina activa'}
+                                </span>
                             </div>
                             <input
                                 ref={searchInputRef}
@@ -1012,7 +1035,6 @@ const ChatPanel = () => {
                                                 <span className="chat-contact-time">{fmtDate(c.last_time)}</span>
                                             </div>
                                             <div className="chat-contact-preview">
-                                                <span>{c.last_role === 'assistant' ? 'Valentina: ' : ''}</span>
                                                 <span>{truncate(c.last_message, 45)}</span>
                                             </div>
                                             {cTags.length > 0 && (
@@ -1023,9 +1045,9 @@ const ChatPanel = () => {
                                                 </div>
                                             )}
                                         </div>
-                                        {(c.unread || 0) > 0 && (
-                                            <span className="chat-unread-badge">{c.unread}</span>
-                                        )}
+                                        {(c.unread || 0) > 0
+                                            ? <span className="chat-unread-badge">{c.unread}</span>
+                                            : c.last_role === 'assistant' && !cTakeover && <span className="chat-contact-ia">IA</span>}
                                     </button>
                                     );
                                 })
@@ -1205,15 +1227,13 @@ const ChatPanel = () => {
                                                 {/* ── Profile card ── */}
                                                 <div className="chat-info-profile">
                                                     <div className="chat-info-avatar">
-                                                        {(contactCustomer?.name || (contactOrders.length > 0 && contactOrders[0].customer_name))
-                                                            ? (contactCustomer?.name || contactOrders[0].customer_name)[0].toUpperCase()
-                                                            : '#'}
+                                                        {iniciales(contactCustomer?.name || (contactOrders.length > 0 && contactOrders[0].customer_name))}
                                                     </div>
                                                     <div className="chat-info-identity">
                                                         <h5>{contactCustomer?.name || (contactOrders.length > 0 && contactOrders[0].customer_name) || 'Sin nombre'}</h5>
                                                         <span className="chat-info-phone">
                                                             {activeContact}
-                                                            {contactOrders.length > 1 && ' · Clienta que vuelve'}
+                                                            {messages.length > 0 && ` · Clienta desde ${fmtDate(messages[0].created_at)}`}
                                                         </span>
                                                     </div>
                                                     <span className={`chat-info-modo ${isTakeover ? 'chat-info-modo--manual' : ''}`}>
@@ -1335,12 +1355,17 @@ const ChatPanel = () => {
                                                         <div className="chat-info-orders">
                                                             {contactOrders.map(o => (
                                                                 <div key={o.id} className="chat-info-order">
-                                                                    <div className="chat-info-order-top">
-                                                                        <span className="chat-info-order-name">{o.product_name}</span>
-                                                                        <span className={`chat-info-order-status chat-info-order-status--${o.status}`}>{o.status}</span>
+                                                                    <div className="chat-info-order-thumb">
+                                                                        {imagenDePedido(o) ? <img src={imagenDePedido(o)} alt="" loading="lazy" /> : <span>✦</span>}
                                                                     </div>
-                                                                    <div className="chat-info-order-bottom">
-                                                                        <span className="chat-info-order-amount">${Number(o.amount).toLocaleString('es-CO')}</span>
+                                                                    <div className="chat-info-order-cuerpo">
+                                                                        <div className="chat-info-order-top">
+                                                                            <span className="chat-info-order-name">{o.product_name}</span>
+                                                                        </div>
+                                                                        <div className="chat-info-order-bottom">
+                                                                            <span className="chat-info-order-amount">${Number(o.amount).toLocaleString('es-CO')}</span>
+                                                                            <span className={`chat-info-order-status chat-info-order-status--${o.status}`}>{STATUS_PEDIDO[o.status] || o.status}</span>
+                                                                        </div>
                                                                         <span className="chat-info-order-date">{fmtDate(o.created_at)}</span>
                                                                     </div>
                                                                 </div>

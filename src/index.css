@@ -13033,3 +13033,79 @@ textarea:focus-visible {
   background: var(--bg-arena);
   color: var(--oro-ink);
 }
+
+/* Estado del agente en la cabecera de la bandeja */
+.chat-agente {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 100px;
+  border: 1px solid var(--hairline);
+  background: var(--bg-color);
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.chat-agente-punto {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #2E5D46;
+  flex-shrink: 0;
+}
+
+.chat-agente--manual { border-color: var(--oro-hairline); background: var(--bg-arena); color: var(--oro-ink); }
+.chat-agente--manual .chat-agente-punto { background: var(--oro); }
+
+/* Quién respondió el último mensaje de la fila */
+.chat-contact-ia {
+  align-self: flex-end;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: var(--oro-ink);
+  flex-shrink: 0;
+}
+
+/* Retrato de la ficha: oro sólido con las iniciales en marfil */
+.chat-info-avatar {
+  background: var(--oro);
+  border-color: var(--oro);
+  color: var(--bg-marfil);
+  letter-spacing: 0.02em;
+}
+
+/* La tarjeta de pedido estrena miniatura */
+.chat-info-order {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+}
+
+.chat-info-order-thumb {
+  width: 46px;
+  height: 46px;
+  flex-shrink: 0;
+  border-radius: 2px;
+  overflow: hidden;
+  background: var(--bg-arena);
+  border: 1px solid var(--hairline);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--oro);
+  font-size: 0.9rem;
+}
+
+.chat-info-order-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.chat-info-order-cuerpo { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.chat-info-order-top { background: transparent; border: 0; padding: 0; }
+.chat-info-order-bottom { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 0; }
+.chat-info-order-status { font-size: 0.68rem; font-weight: 700; color: var(--oro-ink); white-space: nowrap; }
+.chat-info-order-date { font-size: 0.7rem; color: var(--text-muted); }
