@@ -13,28 +13,28 @@ const stagger = {
 
 const faqs = [
     {
-        question: '¿Cómo puedo personalizar una pieza?',
-        answer: 'Contáctanos con tu idea y nuestros artesanos te guiarán en el proceso. Podemos adaptar materiales, tamaños, grabados y diseños exclusivos. Cada pieza personalizada incluye renders previos para tu aprobación antes de la producción.',
-    },
-    {
         question: '¿Qué materiales utilizan en sus joyas?',
-        answer: 'Trabajamos exclusivamente con oro 18k, plata 925, platino y piedras preciosas certificadas — diamantes, zafiros, esmeraldas y rubíes. Todos los materiales cuentan con certificación de origen y son verificados por nuestros gemólogos.',
+        answer: 'Oro 18k, plata 925, platino y piedras certificadas. Todos con certificación de origen.',
     },
     {
-        question: '¿Cuánto tiempo tarda la entrega?',
-        answer: 'Las piezas del catálogo se envían en 24–48 horas hábiles con seguimiento en tiempo real. Las piezas personalizadas tienen un plazo de 2 a 4 semanas según la complejidad. Ofrecemos envío express disponible para fechas especiales.',
+        question: '¿Cuánto tarda la entrega?',
+        answer: 'De 24 a 48 horas hábiles con seguimiento. Las piezas personalizadas, de 2 a 4 semanas.',
     },
     {
         question: '¿Cómo funciona la garantía de por vida?',
-        answer: 'Nuestra garantía cubre cualquier defecto de fabricación sin costo adicional. Esto incluye ajustes de talla, reparación de engastes y pulido de la pieza. Solo debes enviarnos la joya con el certificado de garantía adjunto.',
+        answer: 'Cubre defectos de fabricación sin costo: ajustes de talla, engastes y pulido.',
     },
     {
         question: '¿Puedo devolver o cambiar una pieza?',
-        answer: 'Aceptamos devoluciones dentro de los 30 días posteriores a la recepción, siempre que la pieza esté en su estado original y con el embalaje de lujo. Las piezas personalizadas no son elegibles para devolución, pero sí para ajustes sin costo.',
+        answer: 'Tienes 30 días desde la recepción, con la pieza en su estado y embalaje original.',
     },
     {
         question: '¿Ofrecen grabados personalizados?',
-        answer: 'Sí, ofrecemos grabado láser de alta precisión en la mayoría de nuestras piezas — texto, fechas, coordenadas o símbolos. El grabado está incluido sin costo adicional en todos los pedidos. El proceso agrega 2–3 días hábiles al tiempo de entrega.',
+        answer: 'Sí, grabado láser incluido sin costo. Suma 2 a 3 días hábiles al tiempo de entrega.',
+    },
+    {
+        question: '¿Cómo puedo personalizar una pieza?',
+        answer: 'Escríbenos tu idea y recibirás renders para aprobar antes de producir.',
     },
 ];
 
@@ -62,7 +62,7 @@ const Faq = () => {
     const [openIndex, setOpenIndex] = useState(0);
 
     return (
-        <section id="faqs" className="section-with-borders faq-section">
+        <section id="faqs" className="faq-section">
             <div className="container">
                 <div className="faq-layout">
 
@@ -74,12 +74,10 @@ const Faq = () => {
                         whileInView="visible"
                         viewport={{ once: true, margin: '-80px' }}
                     >
-                        <div className="luxury-badge">
-                            <span>//</span> FAQs <span>//</span>
-                        </div>
-                        <h2 className="faq-title">Preguntas<br />Frecuentes.</h2>
+                        <p className="eyebrow">FAQs</p>
+                        <h2 className="faq-title">Preguntas <em>frecuentes.</em></h2>
                         <p className="faq-subtitle">
-                            Todo lo que necesitas saber antes de elegir tu pieza perfecta.
+                            Todo lo que necesitas saber antes de elegir tu pieza.
                         </p>
                     </motion.div>
 
@@ -104,7 +102,6 @@ const Faq = () => {
 
                 </div>
             </div>
-            <div className="horizontal-divider" style={{ position: 'absolute', bottom: 0, left: 0 }}></div>
         </section>
     );
 };

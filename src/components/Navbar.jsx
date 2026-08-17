@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import Isotipo from './Isotipo';
 
 const links = [
     { label: 'Catálogo',        href: '/catalogo'        },
@@ -60,7 +61,7 @@ const Navbar = () => {
                         className="navbar-logo"
                         onClick={() => { closeMenu(); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
                     >
-                        <img src="/assets/logo1.png" alt="Aurem Gs Joyería" className="navbar-logo-img" />
+                        <Isotipo className="navbar-logo-img" />
                         <span className="navbar-logo-text">Aurem Gs</span>
                     </Link>
 
@@ -83,12 +84,6 @@ const Navbar = () => {
                         onClick={e => handleNavClick(e, 'contacto')}
                     >
                         Contactar
-                        <div className="navbar-cta-circle">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                <line x1="7" y1="17" x2="17" y2="7" />
-                                <polyline points="7 7 17 7 17 17" />
-                            </svg>
-                        </div>
                     </a>
 
                     {/* Hamburger (mobile) */}
@@ -120,7 +115,7 @@ const Navbar = () => {
 
                     {/* Brand */}
                     <div className="mobile-menu-brand">
-                        <img src="/assets/logo1.png" alt="Aurem Gs" className="mobile-menu-logo" />
+                        <Isotipo className="mobile-menu-logo" />
                         <span className="mobile-menu-brand-name">Aurem Gs</span>
                     </div>
 
