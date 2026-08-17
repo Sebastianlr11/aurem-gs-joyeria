@@ -8117,234 +8117,519 @@ textarea:focus-visible {
 /* ================================================================
    RING SIZE GUIDE
    ================================================================ */
-.ring-guide-page {
-  padding-top: 0;
+/* ================================================================
+   GUÍA DE TALLAS
+   ================================================================ */
+.talla {
+  background: var(--bg-marfil);
+  color: var(--ink);
   min-height: 100vh;
-  background: #fafafa;
 }
 
-.ring-guide-hero {
-  background: var(--text-primary);
-  color: #fff;
+/* Encabezado sobre cacao */
+.talla-head {
+  background: var(--ink);
+  padding: 8.5rem 4rem 9.5rem;
   text-align: center;
-  padding: 7rem 1.5rem 3rem;
-  position: relative;
-  overflow: hidden;
-}
-
-.ring-guide-hero::before {
-  content: '';
-  position: absolute;
-  top: -40%;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 600px;
-  height: 600px;
-  background: radial-gradient(circle, rgba(212,175,55,0.12) 0%, transparent 70%);
-  pointer-events: none;
-}
-
-.ring-guide-hero .section-label {
-  color: var(--accent-gold);
-  border-color: rgba(212,175,55,0.3);
-}
-
-.ring-guide-title {
-  font-family: var(--font-display, 'Playfair Display', serif);
-  font-size: clamp(2rem, 5vw, 3rem);
-  font-weight: 700;
-  color: #fff;
-  margin-top: 0.75rem;
-  position: relative;
-}
-
-.ring-guide-subtitle {
-  color: rgba(255,255,255,0.65);
-  font-size: 1rem;
-  max-width: 480px;
-  margin: 0.75rem auto 0;
-  line-height: 1.6;
-  position: relative;
-}
-
-.ring-guide-body {
-  max-width: 800px;
-  margin: -2rem auto 0;
-  padding: 0 1.5rem;
-  position: relative;
-  z-index: 1;
-}
-
-.ring-guide-tip {
   display: flex;
-  align-items: flex-start;
-  gap: 1rem;
-  background: #fff;
-  border: none;
-  border-radius: 16px;
-  padding: 1.25rem 1.5rem;
-  margin-bottom: 2rem;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
 }
 
-.ring-guide-tip-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, var(--accent-gold), #c9a027);
+.talla-head-eyebrow {
   display: flex;
   align-items: center;
-  justify-content: center;
-  font-size: 1.1rem;
-  flex-shrink: 0;
+  gap: 1rem;
 }
 
-.ring-guide-tip strong {
+.talla-head-eyebrow p {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--oro-luz);
+}
+
+.talla-rule {
   display: block;
-  margin-bottom: 0.3rem;
-  color: var(--text-primary);
-  font-size: 0.95rem;
+  width: 32px;
+  height: 1px;
+  background: var(--oro);
+  opacity: 0.65;
 }
 
-.ring-guide-tip p {
-  color: #666;
-  font-size: 0.88rem;
-  line-height: 1.55;
-  margin: 0;
+.talla-titulo {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(2.5rem, 5.6vw, 4.5rem);
+  line-height: 1.04;
+  color: #fff;
+  max-width: 20ch;
 }
 
-.ring-tables-grid {
+.talla-titulo em {
+  display: block;
+  font-style: normal;
+  font-size: 0.62em;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--oro-luz);
+  margin-top: 0.35em;
+}
+
+.talla-lead {
+  max-width: 560px;
+  font-size: 1rem;
+  line-height: 1.65;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.talla-punzones {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.625rem;
+}
+
+/* Calculadora montada sobre el borde del encabezado */
+.talla-calc {
+  padding: 0 4rem;
+  margin-top: -6rem;
+}
+
+.talla-calc-card {
+  max-width: 920px;
+  margin: 0 auto;
+  background: var(--bg-color);
+  border: 1px solid var(--hairline);
+  border-radius: 2px;
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+}
+
+.talla-calc-medida {
+  padding: 2.5rem 2.5rem 2.75rem;
+}
+
+.talla-calc-input {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+.talla-calc-input input {
+  width: 150px;
+  padding: 0 0 0.625rem;
+  font-family: var(--font-ui);
+  font-size: 2.25rem;
+  font-weight: 300;
+  color: var(--ink);
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--oro-hairline);
+  border-radius: 0;
+  outline: none;
+  transition: border-color 0.3s ease;
+}
+
+.talla-calc-input input:focus {
+  border-bottom-color: var(--oro);
+}
+
+.talla-calc-input span {
+  font-size: 1rem;
+  color: var(--text-secondary);
+}
+
+.talla-calc-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+}
+
+.talla-chip {
+  display: inline-flex;
+  align-items: center;
+  height: 40px;
+  padding: 0 1.125rem;
+  border-radius: 100px;
+  font-family: var(--font-ui);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--hairline);
+  cursor: pointer;
+  transition: all 0.3s var(--ease);
+}
+
+.talla-chip:hover {
+  border-color: var(--oro);
+}
+
+.talla-chip--on {
+  background: var(--ink);
+  color: #fff;
+  border-color: var(--ink);
+}
+
+.talla-calc-nota {
+  margin-top: 1.5rem;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.talla-calc-resultado {
+  padding: 2.5rem;
+  border-left: 1px solid var(--hairline);
+  background: var(--bg-marfil);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 0.875rem;
+}
+
+.talla-calc-valor {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 3.5rem;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.talla-calc-detalle {
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+/* Títulos de sección */
+.talla-h2 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(2.25rem, 4vw, 3.5rem);
+  line-height: 1.06;
+  color: var(--ink);
+}
+
+.talla-h2 em {
+  display: block;
+  font-style: normal;
+  font-size: 0.62em;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--oro-ink);
+  margin-top: 0.35em;
+}
+
+/* Pasos */
+.talla-pasos-seccion {
+  padding: 7rem 4rem 6rem;
+  max-width: 1104px;
+  margin: 0 auto;
+}
+
+.talla-pasos {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3rem;
+  margin-top: 3rem;
+}
+
+.talla-paso {
+  border-top: 1px solid var(--oro-hairline);
+  padding-top: 1.25rem;
+}
+
+.talla-paso-n {
+  font-family: var(--font-display);
+  font-size: 1.875rem;
+  line-height: 1;
+  color: var(--oro-ink);
+  margin-bottom: 0.75rem;
+}
+
+.talla-paso-titulo {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.375rem;
+  line-height: 1.2;
+  color: var(--ink);
+  margin-bottom: 0.5rem;
+}
+
+.talla-paso-texto {
+  font-size: 0.9375rem;
+  line-height: 1.65;
+  color: var(--text-secondary);
+}
+
+/* Tablas */
+.talla-tablas-seccion {
+  padding: 0 4rem 7rem;
+  max-width: 1104px;
+  margin: 0 auto;
+}
+
+.talla-tablas-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 2rem;
+}
+
+.talla-tablas-nota {
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  max-width: 300px;
+}
+
+.talla-tablas {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 2rem;
-  padding-bottom: 4rem;
+  gap: 1.5rem;
 }
 
-.ring-table-wrap {
-  background: #fff;
-  border-radius: 16px;
+.talla-tabla {
+  background: var(--bg-color);
+  border: 1px solid var(--hairline);
+  border-radius: 2px;
   overflow: hidden;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
 }
 
-.ring-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.95rem;
+.talla-tabla-head {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr 1.2fr;
+  background: var(--ink);
+  padding: 0.875rem 1.25rem;
 }
 
-.ring-table thead th {
-  background: var(--text-primary);
-  color: #fff;
-  font-weight: 600;
-  padding: 0.75rem 1.2rem;
-  text-align: center;
-  white-space: nowrap;
-  font-size: 0.78rem;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.ring-table tbody td {
-  text-align: center;
-  padding: 0.65rem 1.2rem;
-  border-bottom: 1px solid #f3f3f3;
-  color: var(--text-primary);
-  font-size: 0.92rem;
-}
-
-.ring-table-size {
+.talla-tabla-head span {
+  font-size: 0.68rem;
   font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.7);
+  text-align: right;
 }
 
-.ring-table tbody tr:nth-child(even) {
-  background: #fafafa;
+.talla-tabla-head span:first-child {
+  color: var(--oro-luz);
+  text-align: left;
 }
 
-.ring-table tbody tr:hover {
-  background: #f5f0e8;
+.talla-fila {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr 1.2fr;
+  align-items: center;
+  padding: 0.8125rem 1.25rem;
+  border-bottom: 1px solid var(--hairline);
 }
 
-/* Mobile list - hidden on desktop */
-.ring-list-mobile {
-  display: none;
+.talla-fila:last-child {
+  border-bottom: 0;
 }
 
-@media (max-width: 768px) {
-  .ring-tables-desktop {
-    display: none;
+.talla-fila--alt {
+  background: var(--bg-marfil);
+}
+
+.talla-fila-n {
+  font-weight: 700;
+  font-size: 0.9375rem;
+  color: var(--ink);
+}
+
+.talla-fila-v {
+  text-align: right;
+  font-size: 0.9375rem;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Preguntas */
+.talla-faqs-seccion {
+  padding: 0 4rem 7rem;
+  max-width: 864px;
+  margin: 0 auto;
+}
+
+.talla-faqs {
+  margin-top: 2.5rem;
+}
+
+.talla-faq {
+  border-bottom: 1px solid var(--hairline);
+}
+
+.talla-faq:first-child {
+  border-top: 1px solid var(--hairline);
+}
+
+.talla-faq-q {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 1.5rem 0;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-display);
+  font-size: 1.375rem;
+  font-weight: 400;
+  line-height: 1.25;
+  color: var(--ink);
+  transition: color 0.3s ease;
+}
+
+.talla-faq-q:hover {
+  color: var(--oro-ink);
+}
+
+.talla-faq-icono {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border: 1px solid var(--hairline);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-ui);
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  transition: all 0.3s ease;
+}
+
+.talla-faq--on .talla-faq-icono {
+  background: var(--oro);
+  border-color: var(--oro);
+  color: #fff;
+}
+
+.talla-faq-a {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.45s var(--ease);
+}
+
+.talla-faq--on .talla-faq-a {
+  grid-template-rows: 1fr;
+}
+
+.talla-faq-a > div {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.talla-faq-a p {
+  font-size: 1rem;
+  line-height: 1.7;
+  color: var(--text-secondary);
+  padding-bottom: 1.5rem;
+  max-width: 62ch;
+}
+
+/* Contacto */
+.talla-contacto {
+  background: var(--bg-arena);
+  border-top: 1px solid var(--hairline);
+  padding: 6rem 4rem;
+}
+
+.talla-contacto-inner {
+  max-width: 1104px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 4rem;
+  align-items: center;
+}
+
+.talla-contacto-lead {
+  margin-top: 1rem;
+  max-width: 460px;
+  font-size: 1rem;
+  line-height: 1.65;
+  color: var(--text-secondary);
+}
+
+.talla-contacto-acciones {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.talla-contacto-botones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.talla-contacto .talla-punzones {
+  justify-content: flex-start;
+}
+
+@media (max-width: 900px) {
+  .talla-head {
+    padding: 5rem 1.5rem 8rem;
   }
 
-  .ring-list-mobile {
-    display: flex;
+  .talla-calc {
+    padding: 0 1.5rem;
+    margin-top: -5rem;
+  }
+
+  .talla-calc-card {
+    grid-template-columns: 1fr;
+  }
+
+  .talla-calc-medida,
+  .talla-calc-resultado {
+    padding: 1.75rem 1.5rem;
+  }
+
+  .talla-calc-resultado {
+    border-left: 0;
+    border-top: 1px solid var(--hairline);
+  }
+
+  .talla-pasos-seccion {
+    padding: 4rem 1.5rem 3.5rem;
+  }
+
+  .talla-pasos,
+  .talla-tablas,
+  .talla-contacto-inner {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  .talla-tablas-seccion,
+  .talla-faqs-seccion {
+    padding: 0 1.5rem 4rem;
+  }
+
+  .talla-tablas-head {
     flex-direction: column;
-    background: #fff;
-    border-radius: 16px;
-    overflow: hidden;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-    margin-bottom: 4rem;
+    gap: 1rem;
   }
 
-  .ring-list-header {
-    display: grid;
-    grid-template-columns: 1fr 1.4fr 1fr;
-    padding: 0.85rem 1rem;
-    background: var(--text-primary);
-    color: #fff;
-    font-size: 0.7rem;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    font-weight: 700;
-  }
-
-  .ring-list-header span:not(:first-child) {
-    text-align: right;
-  }
-
-  .ring-list-item {
-    display: grid;
-    grid-template-columns: 1fr 1.4fr 1fr;
-    padding: 0.75rem 1rem;
-    align-items: center;
-    border-bottom: 1px solid #f3f3f3;
-    transition: background 0.15s;
-  }
-
-  .ring-list-item:last-child {
-    border-bottom: none;
-  }
-
-  .ring-list-item--alt {
-    background: #fafafa;
-  }
-
-  .ring-list-size {
-    font-size: 1.05rem;
-    font-weight: 800;
-    color: var(--text-primary);
-  }
-
-  .ring-list-val {
-    font-size: 0.88rem;
-    color: #555;
-    font-weight: 500;
-    text-align: right;
-  }
-
-  .ring-guide-tip {
-    margin-bottom: 1.5rem;
-  }
-
-  .ring-guide-hero {
-    padding: 6rem 1.25rem 2.5rem;
-  }
-
-  .ring-guide-body {
-    margin-top: -1.5rem;
-    padding: 0 1rem;
+  .talla-contacto {
+    padding: 4rem 1.5rem;
   }
 }
-
 /* ================================================================
    PRODUCT PAGE — mobile reorder (category+name above gallery)
    ================================================================ */
