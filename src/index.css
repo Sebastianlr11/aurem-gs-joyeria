@@ -1639,16 +1639,37 @@ textarea:focus-visible {
 
 .footer-bottom {
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
   padding: 1.25rem 0;
   font-size: 0.75rem;
   color: var(--text-secondary);
-  gap: 1rem;
+  gap: 0.5rem 1.5rem;
   flex-wrap: wrap;
   border-top: 1px solid var(--hairline);
   margin-top: 4.5rem;
-  text-align: center;
+}
+
+/* Crédito de autoría: discreto, nunca compite con la marca */
+.footer-credit {
+  color: var(--text-muted);
+}
+
+.footer-credit a {
+  color: var(--oro-ink);
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.3s ease;
+}
+
+.footer-credit a:hover {
+  border-bottom-color: var(--oro);
+}
+
+@media (max-width: 600px) {
+  .footer-bottom {
+    justify-content: center;
+    text-align: center;
+  }
 }
 
 @media (max-width: 968px) {

@@ -68,6 +68,12 @@ const Footer = () => {
             <div className="container">
                 <div className="footer-bottom">
                     <p>© {new Date().getFullYear()} Aurem Gs Joyería. Todos los derechos reservados.</p>
+                    <p className="footer-credit">
+                        Web hecha por{' '}
+                        <a href="https://www.selffcode.com" target="_blank" rel="noopener noreferrer">
+                            selffcode
+                        </a>
+                    </p>
                 </div>
             </div>
         </footer>
