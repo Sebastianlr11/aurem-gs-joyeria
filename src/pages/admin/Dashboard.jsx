@@ -59,7 +59,7 @@ const REVENUE_STATUSES = ['pagado', 'procesando', 'enviado', 'entregado'];
 const fmt = n => Number(n || 0).toLocaleString('es-CO');
 const fmtDate = d => new Date(d).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
 
-const EMPTY_PRODUCT  = { name:'', category:'Anillos', price:'', compare_price:'', description:'', image_url:'', is_new:false, is_featured:false };
+const EMPTY_PRODUCT  = { name:'', category:'Anillos', price:'', compare_price:'', description:'', image_url:'', is_new:false, is_featured:false, stock:'' };
 const EMPTY_ORDER    = { customer_name:'', customer_phone:'', customer_email:'', product_id:'', product_name:'', amount:'', status:'pendiente', payment_method:'', notes:'', carrier:'', tracking_number:'', shipping_address:'', shipping_city:'', shipping_department:'' };
 const PAYMENT_METHODS = ['MercadoPago', 'Nequi', 'Daviplata', 'Transferencia', 'Efectivo', 'Contraentrega'];
 const EMPTY_CUSTOMER = { name:'', phone:'', email:'', notes:'' };
@@ -147,6 +147,10 @@ const ProductModal = ({ product, onClose, onSaved }) => {
             description: form.description.trim() || null,
             images, image_url: images[0] || form.image_url.trim() || null,
             is_new: form.is_new, is_featured: form.is_featured,
+            // Vacío = sin control de inventario (null). 0 = agotado.
+            stock: form.stock === '' || form.stock === null || form.stock === undefined
+                ? null
+                : Math.max(0, Math.trunc(Number(form.stock))),
         };
         let err;
         if (isEdit) ({ error: err } = await supabase.from('products').update(payload).eq('id', product.id));
@@ -185,6 +189,22 @@ const ProductModal = ({ product, onClose, onSaved }) => {
                         <div className="modal-field">
                             <label>Precio anterior — opcional</label>
                             <input type="number" min="0" step="0.01" value={form.compare_price || ''} onChange={e => set('compare_price', e.target.value)} placeholder="Dejar vacio si no hay oferta" />
+                        </div>
+                    </div>
+                    <div className="modal-row">
+                        <div className="modal-field">
+                            <label>Unidades disponibles</label>
+                            <input
+                                type="number"
+                                min="0"
+                                step="1"
+                                value={form.stock ?? ''}
+                                onChange={e => set('stock', e.target.value)}
+                                placeholder="Dejar vacío si no llevas inventario"
+                            />
+                            <p className="modal-img-hint">
+                                0 significa agotado. Vacío significa que esta pieza no lleva control de inventario.
+                            </p>
                         </div>
                     </div>
                     <div className="modal-field">
@@ -719,6 +739,15 @@ const DashboardHome = ({ products, orders, customers, waStats, chatsPendientes, 
 
     const clientasNuevas = customers.filter(c => enRango(c, desde, hasta)).length;
 
+    /* Inventario. stock null = la pieza no lleva control de inventario, así
+       que no entra en el conteo ni en la alerta. */
+    const UMBRAL_REPONER = 3;
+    const conInventario = products.filter(p => p.stock !== null && p.stock !== undefined).length;
+    const porReponer = products
+        .filter(p => p.stock !== null && p.stock !== undefined && p.stock <= UMBRAL_REPONER)
+        .sort((a, b) => a.stock - b.stock)
+        .slice(0, 4);
+
     const stats = [
         { icon: 'package', valor: products.length, label: 'Piezas publicadas' },
         { icon: 'bag', valor: pedidosRango.length, label: 'Pedidos del periodo' },
@@ -1003,10 +1032,19 @@ const DashboardHome = ({ products, orders, customers, waStats, chatsPendientes, 
 
                     <div className="dash-card dash-card--flush">
                         <div className="dash-card-head dash-card-head--bordered">
-                            <span className="dash-card-title">Últimas piezas publicadas</span>
+                            <span className="dash-card-title">Inventario por reponer</span>
                             <button className="dash-link" onClick={() => onNavigate('products')}>Productos →</button>
                         </div>
-                        {products.slice(0, 3).map(p => (
+
+                        {porReponer.length === 0 ? (
+                            <div className="dash-empty dash-empty--sm">
+                                <span className="dash-empty-text">
+                                    {conInventario === 0
+                                        ? 'Todavía no registras inventario. Abre una pieza en Productos y anota cuántas unidades te quedan.'
+                                        : 'Ninguna pieza está por agotarse.'}
+                                </span>
+                            </div>
+                        ) : porReponer.map(p => (
                             <div key={p.id} className="dash-piece">
                                 <span className="dash-piece-thumb">
                                     {p.image_url ? <img src={p.image_url} alt="" /> : '✦'}
@@ -1015,9 +1053,12 @@ const DashboardHome = ({ products, orders, customers, waStats, chatsPendientes, 
                                     <span className="dash-piece-name">{p.name}</span>
                                     <span className="dash-piece-meta">{p.category} · ${fmt(p.price)}</span>
                                 </span>
-                                {p.is_new && <span className="dash-piece-tag">Nuevo</span>}
+                                <span className={`dash-stock ${p.stock === 0 ? 'dash-stock--out' : ''}`}>
+                                    {p.stock === 0 ? 'Agotada' : `${p.stock} unidad${p.stock !== 1 ? 'es' : ''}`}
+                                </span>
                             </div>
                         ))}
+
                         <button className="dash-card-foot" onClick={() => onNavigate('products')}>Publicar pieza nueva →</button>
                     </div>
                 </div>

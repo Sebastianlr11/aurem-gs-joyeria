@@ -4915,6 +4915,21 @@ textarea:focus-visible {
   color: #64748b;
 }
 
+.dash-stock {
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: var(--oro-ink);
+  background: rgba(168, 134, 63, 0.12);
+  padding: 0.28rem 0.55rem;
+  border-radius: 100px;
+  white-space: nowrap;
+}
+
+.dash-stock--out {
+  color: #8a5a4a;
+  background: rgba(138, 90, 74, 0.1);
+}
+
 .dash-piece-tag {
   font-size: 0.7rem;
   font-weight: 800;
