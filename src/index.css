@@ -12381,12 +12381,32 @@ textarea:focus-visible {
   text-transform: uppercase;
 }
 
+/* La burbuja es la excepción al radio de 2px: una conversación pide
+   esquinas blandas. Se redondean tres y se deja en punta la del lado de
+   quien habla, que es lo que da la sensación de "cola". */
 .chat-bubble {
-  border-radius: 2px;
+  border-radius: 16px;
   border: 1px solid var(--hairline);
   background: var(--bg-color);
   color: var(--ink);
   line-height: 1.6;
+  /* Ni la burbuja más larga pasa de una línea cómoda de leer. */
+  max-width: min(62%, 62ch);
+}
+
+.chat-bubble--user { border-bottom-left-radius: 5px; }
+
+.chat-bubble--assistant,
+.chat-bubble--admin,
+.chat-bubble--error { border-bottom-right-radius: 5px; }
+
+/* Cuando cambia quien habla, se abre un poco el aire; los mensajes
+   seguidos de la misma persona se quedan juntos, como un párrafo. */
+.chat-bubble--user + .chat-bubble--assistant,
+.chat-bubble--user + .chat-bubble--admin,
+.chat-bubble--assistant + .chat-bubble--user,
+.chat-bubble--admin + .chat-bubble--user {
+  margin-top: 12px;
 }
 
 .chat-bubble--assistant,
