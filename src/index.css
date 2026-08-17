@@ -11379,7 +11379,11 @@ textarea:focus-visible {
   display: flex;
   flex-direction: column;
   gap: clamp(1.75rem, 2.6vw, 2.5rem);
-  max-width: 1180px;
+  /* Tope generoso y centrado: al alejar el zoom el panel sigue usando el
+     ancho disponible en vez de dejar un hueco a la derecha. */
+  max-width: 1500px;
+  margin-inline: auto;
+  width: 100%;
 }
 
 .jornada-head {
@@ -13060,7 +13064,7 @@ textarea:focus-visible {
 /* ================================================================
    INFORMES — ventas y rendimiento
    ================================================================ */
-.inf { display: flex; flex-direction: column; gap: 1.5rem; max-width: 1320px; }
+.inf { display: flex; flex-direction: column; gap: 1.5rem; max-width: 1600px; margin-inline: auto; width: 100%; }
 
 .inf-head {
   display: flex; align-items: flex-end; justify-content: space-between;
