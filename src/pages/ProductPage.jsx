@@ -57,7 +57,7 @@ const PAYMENT_LOGOS = [
 
 const PaymentMethods = () => (
   <div className="pm-section">
-    <span className="pm-label">Métodos de pago aceptados</span>
+    <span className="pm-label">Medios de pago</span>
     <div className="pm-grid">
       {PAYMENT_LOGOS.map(({ name, src }) => (
         <div className="pm-item" key={name} title={name}>
