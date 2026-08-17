@@ -13188,7 +13188,19 @@ textarea:focus-visible {
 }
 
 /* Piezas y canales */
-.inf-pieza, .inf-canal {
+.inf-pieza {
+  display: flex; align-items: center; gap: 1rem;
+  padding: 1rem 0; border-bottom: 1px solid var(--hairline);
+}
+.inf-pieza-thumb {
+  width: 52px; height: 52px; flex-shrink: 0; border-radius: 2px; overflow: hidden;
+  background: var(--bg-arena); border: 1px solid var(--hairline);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--oro); font-size: 1rem;
+}
+.inf-pieza-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.inf-pieza-cuerpo { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+.inf-canal {
   display: flex; flex-direction: column; gap: 0.55rem;
   padding: 1rem 0; border-bottom: 1px solid var(--hairline);
 }
@@ -13218,7 +13230,7 @@ textarea:focus-visible {
 .inf-estado-pct { font-size: 0.74rem; color: var(--text-muted); min-width: 38px; text-align: right; font-variant-numeric: tabular-nums; }
 
 .inf-aviso {
-  display: flex; align-items: center; gap: 0.75rem; margin-top: 1.25rem;
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-top: 1.25rem;
   padding: 1rem 1.125rem; background: var(--bg-marfil);
   border: 1px solid var(--hairline); border-left: 2px solid var(--oro);
   border-radius: 2px; font-size: 0.83rem; color: var(--ink);
@@ -13254,3 +13266,24 @@ textarea:focus-visible {
 .inf-panel > .inf-pieza:last-child,
 .inf-panel > .inf-canal:last-child,
 .inf-embudo > .inf-canal:last-child { border-bottom: 0; padding-bottom: 0.25rem; }
+
+.inf-neto-comp { display: flex; align-items: baseline; gap: 0.5rem; flex-wrap: wrap; font-size: 0.83rem; color: rgba(255, 255, 255, 0.5); }
+.inf-neto-comp strong { font-size: 0.9rem; font-weight: 800; letter-spacing: -0.01em; }
+.inf-alza { color: var(--oro-luz); }
+.inf-baja { color: #D9A79A; }
+.inf-kpi-comp { font-size: 0.74rem; font-weight: 700; color: var(--oro-ink); }
+.inf-aviso-link {
+  border: 0; background: transparent; cursor: pointer; white-space: nowrap;
+  font-family: inherit; font-size: 0.78rem; font-weight: 800;
+  letter-spacing: 0.06em; text-transform: uppercase; color: var(--oro-ink);
+  transition: color 0.3s var(--ease);
+}
+.inf-aviso-link:hover { color: var(--ink); }
+.inf-grafica {
+  position: relative;
+  border-bottom: 1px solid var(--hairline);
+}
+.inf-grafica-pie > span { flex: 1; text-align: center; }
+.inf-grafica-pie > span:first-child { text-align: left; }
+.inf-grafica-pie > span:last-child { text-align: right; }
+.inf-grafica-pie { border-top: 0; padding-top: 0; }
