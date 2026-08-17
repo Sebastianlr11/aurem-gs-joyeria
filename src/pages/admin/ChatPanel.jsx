@@ -295,7 +295,7 @@ const ChatPanel = () => {
                             try {
                                 new Notification('Takeover activado - Aurem Gs', {
                                     body: `El chat ${phone} necesita atención manual`,
-                                    icon: '/assets/hero1.png',
+                                    icon: '/assets/logo-isotipo.png',
                                 });
                             } catch (e) {}
                         }
@@ -405,7 +405,7 @@ const ChatPanel = () => {
                         try {
                             new Notification('Nuevo mensaje - Aurem Gs', {
                                 body: truncate(newMsg.content, 80),
-                                icon: '/assets/hero1.png',
+                                icon: '/assets/logo-isotipo.png',
                             });
                         } catch (e) {}
                     }
