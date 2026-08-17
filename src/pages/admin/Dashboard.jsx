@@ -567,198 +567,480 @@ const MP_IVA         = 0.19;   // 19% IVA sobre la comisión
 const MP_RETE_FUENTE = 0.015;  // 1.5% retención en la fuente
 const MP_RETE_ICA    = 0.00414;// ~0.414% retención ICA
 
-const DashboardHome = ({ products, orders, customers, waStats, onNavigate }) => {
-    const now = new Date();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+const COD_PAID = ['pagado', 'enviado', 'entregado'];
+const RANGOS = ['7 días', '30 días', 'Este mes', 'Mes anterior'];
 
-    const ordersMonth  = orders.filter(o => new Date(o.created_at) >= monthStart);
-    const recentOrders = orders.slice(0, 6);
+/* Límites del rango elegido y del periodo anterior equivalente */
+const rangoLimites = (clave) => {
+    const hoy = new Date();
+    const diaCero = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
 
-    // Ingresos pagados (MP): descontar comisión (3.29% + $800 por cada transacción)
-    const paidMPOrders = ordersMonth.filter(o => REVENUE_STATUSES.includes(o.status) && !isCOD(o));
-    const paidMPGross  = paidMPOrders.reduce((s, o) => s + Number(o.amount), 0);
-    const paidMPFees   = paidMPOrders.reduce((s, o) => {
-        const amount = Number(o.amount);
-        const comision = (amount * MP_FEE_PERCENT + MP_FEE_FIXED) * (1 + MP_IVA);
-        const reteFuente = amount * MP_RETE_FUENTE;
-        const reteICA = amount * MP_RETE_ICA;
-        return s + Math.ceil(comision + reteFuente + reteICA);
+    if (clave === '7 días' || clave === '30 días') {
+        const dias = clave === '7 días' ? 7 : 30;
+        const desde = diaCero(new Date(hoy.getTime() - (dias - 1) * 86400000));
+        const hasta = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() + 1);
+        return { desde, hasta, previoDesde: new Date(desde.getTime() - dias * 86400000), previoHasta: desde, dias };
+    }
+
+    const salto = clave === 'Este mes' ? 0 : -1;
+    const desde = new Date(hoy.getFullYear(), hoy.getMonth() + salto, 1);
+    const hasta = new Date(hoy.getFullYear(), hoy.getMonth() + salto + 1, 1);
+    return {
+        desde, hasta,
+        previoDesde: new Date(hoy.getFullYear(), hoy.getMonth() + salto - 1, 1),
+        previoHasta: desde,
+        dias: Math.round((hasta - desde) / 86400000),
+    };
+};
+
+/* Ingresos de un conjunto de pedidos. MercadoPago va neto de comisión y
+   retenciones; contraentrega solo cuenta cuando ya se cobró. */
+const ingresosDe = (pedidos) => {
+    const mp = pedidos.filter(o => REVENUE_STATUSES.includes(o.status) && !isCOD(o));
+    const mpBruto = mp.reduce((s, o) => s + Number(o.amount), 0);
+    const mpCostos = mp.reduce((s, o) => {
+        const monto = Number(o.amount);
+        const comision = (monto * MP_FEE_PERCENT + MP_FEE_FIXED) * (1 + MP_IVA);
+        return s + Math.ceil(comision + monto * MP_RETE_FUENTE + monto * MP_RETE_ICA);
     }, 0);
-    const paidMPNet    = paidMPGross - paidMPFees;
+    const mpNeto = mpBruto - mpCostos;
 
-    // Ingresos pagados COD (pagado, enviado o entregado = ya se cobró)
-    const COD_PAID = ['pagado', 'enviado', 'entregado'];
-    const paidCODOrders = ordersMonth.filter(o => COD_PAID.includes(o.status) && isCOD(o));
-    const paidCODTotal  = paidCODOrders.reduce((s, o) => s + Number(o.amount), 0);
+    const codCobrado = pedidos
+        .filter(o => COD_PAID.includes(o.status) && isCOD(o))
+        .reduce((s, o) => s + Number(o.amount), 0);
 
-    // Ingresos pendientes: contraentrega aún no cobrados (pendiente o procesando)
-    const pendingCODOrders = ordersMonth.filter(o => isCOD(o) && !COD_PAID.includes(o.status) && o.status !== 'cancelado');
-    const pendingCODTotal  = pendingCODOrders.reduce((s, o) => s + Number(o.amount), 0);
+    const porCobrar = pedidos.filter(o => isCOD(o) && !COD_PAID.includes(o.status) && o.status !== 'cancelado');
 
-    const totalRevenue = paidMPNet + paidCODTotal;
+    return {
+        mpNeto,
+        codCobrado,
+        total: mpNeto + codCobrado,
+        entregados: pedidos.filter(o => o.status === 'entregado').length,
+        porCobrar,
+        porCobrarTotal: porCobrar.reduce((s, o) => s + Number(o.amount), 0),
+    };
+};
+
+const waLinkPedido = (o) => {
+    const telefono = (o.customer_phone || '').replace(/\D/g, '');
+    if (!telefono) return null;
+    const msgFn = WA_MESSAGES[o.status];
+    const msg = msgFn ? msgFn(o) : `Hola ${o.customer_name}, te escribimos de Aurem Gs Joyería por tu pedido.`;
+    return `https://wa.me/${telefono.startsWith('57') ? telefono : '57' + telefono}?text=${encodeURIComponent(msg)}`;
+};
+
+const saludo = () => {
+    const h = new Date().getHours();
+    if (h < 12) return 'Buenos días';
+    if (h < 19) return 'Buenas tardes';
+    return 'Buenas noches';
+};
+
+const DashIcon = ({ name }) => {
+    const p = { width: 16, height: 16, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' };
+    switch (name) {
+        case 'package': return <svg {...p}><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" /><polyline points="3.27 6.96 12 12.01 20.73 6.96" /><line x1="12" y1="22.08" x2="12" y2="12" /></svg>;
+        case 'bag': return <svg {...p}><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" /><line x1="3" y1="6" x2="21" y2="6" /><path d="M16 10a4 4 0 0 1-8 0" /></svg>;
+        case 'users': return <svg {...p}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /></svg>;
+        case 'mail': return <svg {...p}><rect x="2" y="4" width="20" height="16" rx="2" /><path d="m2 6 10 7 10-7" /></svg>;
+        case 'chat': return <svg {...p}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>;
+        case 'truck': return <svg {...p}><rect x="1" y="6" width="13" height="11" rx="1" /><path d="M14 10h4l3 3v4h-7z" /><circle cx="6" cy="18" r="1.8" /><circle cx="17" cy="18" r="1.8" /></svg>;
+        case 'money': return <svg {...p}><line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>;
+        case 'whatsapp': return <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.96-.94 1.16-.17.2-.35.22-.65.07-.3-.15-1.25-.46-2.39-1.47-.88-.79-1.48-1.76-1.65-2.06-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.08-.15-.67-1.61-.92-2.21-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.01-1.04 2.47 0 1.46 1.06 2.87 1.21 3.07.15.2 2.1 3.2 5.08 4.49.71.3 1.26.49 1.69.63.71.22 1.36.19 1.87.12.57-.09 1.76-.72 2.01-1.41.25-.7.25-1.29.17-1.42-.07-.13-.27-.2-.57-.35M12.05 21.5a9.5 9.5 0 0 1-4.84-1.32l-.35-.2-3.59.94.96-3.5-.23-.36a9.44 9.44 0 0 1-1.45-5.05c0-5.23 4.27-9.49 9.51-9.49 2.54 0 4.92.99 6.72 2.78a9.42 9.42 0 0 1 2.78 6.72c0 5.23-4.27 9.49-9.51 9.49M20.5 3.49A11.4 11.4 0 0 0 12.05 0C5.77 0 .66 5.1.66 11.37c0 2 .52 3.96 1.52 5.68L.56 24l7.1-1.86a11.4 11.4 0 0 0 5.44 1.38c6.28 0 11.39-5.1 11.39-11.37 0-3.04-1.19-5.9-3.34-8.05" /></svg>;
+        default: return <svg {...p}><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></svg>;
+    }
+};
+
+const DashboardHome = ({ products, orders, customers, waStats, chatsPendientes, session, onNavigate, onRefresh }) => {
+    const [rango, setRango] = useState('30 días');
+    const [filtro, setFiltro] = useState(null);
+    const [modal, setModal] = useState(null);
+
+    const { desde, hasta, previoDesde, previoHasta, dias } = rangoLimites(rango);
+    const enRango = (o, a, b) => { const t = new Date(o.created_at); return t >= a && t < b; };
+
+    const pedidosRango = orders.filter(o => enRango(o, desde, hasta));
+    const pedidosPrevio = orders.filter(o => enRango(o, previoDesde, previoHasta));
+
+    const ingresos = ingresosDe(pedidosRango);
+    const ingresosPrevio = ingresosDe(pedidosPrevio);
+
+    const delta = ingresosPrevio.total > 0
+        ? Math.round(((ingresos.total - ingresosPrevio.total) / ingresosPrevio.total) * 100)
+        : null;
+
+    /* Trabajo del día — sobre todos los pedidos, no solo el rango:
+       un pedido de hace dos meses sin despachar sigue siendo trabajo de hoy. */
+    const porConfirmar = orders.filter(o => o.status === 'pendiente');
+    const porDespachar = orders.filter(o => o.status === 'pagado' || o.status === 'procesando');
+
+    const tareas = [
+        { clave: 'pendiente', n: porConfirmar.length, label: 'Por confirmar', punto: '#b7791f' },
+        { clave: 'despachar', n: porDespachar.length, label: 'Por despachar', punto: '#3b6fb8' },
+        { clave: 'chats', n: chatsPendientes.length, label: 'Sin responder', punto: '#1a9e4b' },
+    ];
+
+    const alternarFiltro = (clave) => {
+        if (clave === 'chats') { onNavigate('chat'); return; }
+        setFiltro(f => (f === clave ? null : clave));
+    };
+
+    /* Tabla */
+    const filas = (() => {
+        if (filtro === 'pendiente') return porConfirmar;
+        if (filtro === 'despachar') return porDespachar;
+        return orders;
+    })().slice(0, 6);
+
+    const tituloTabla = filtro === 'pendiente' ? 'Pedidos por confirmar'
+        : filtro === 'despachar' ? 'Pedidos por despachar'
+            : 'Pedidos recientes';
+
+    /* Gráfica: por día si el rango es corto, por semana si es largo */
+    const barras = (() => {
+        if (dias <= 7) {
+            return Array.from({ length: dias }, (_, i) => {
+                const d = new Date(desde.getTime() + i * 86400000);
+                const sig = new Date(d.getTime() + 86400000);
+                return {
+                    label: d.toLocaleDateString('es-CO', { weekday: 'short' }).replace('.', ''),
+                    valor: pedidosRango.filter(o => enRango(o, d, sig)).length,
+                };
+            });
+        }
+        const semanas = Math.ceil(dias / 7);
+        return Array.from({ length: semanas }, (_, i) => {
+            const d = new Date(desde.getTime() + i * 7 * 86400000);
+            const sig = new Date(Math.min(d.getTime() + 7 * 86400000, hasta.getTime()));
+            return { label: `S${i + 1}`, valor: pedidosRango.filter(o => enRango(o, d, sig)).length };
+        });
+    })();
+    const pico = Math.max(...barras.map(b => b.valor), 1);
+
+    const clientasNuevas = customers.filter(c => enRango(c, desde, hasta)).length;
+
+    const stats = [
+        { icon: 'package', valor: products.length, label: 'Piezas publicadas' },
+        { icon: 'bag', valor: pedidosRango.length, label: 'Pedidos del periodo' },
+        { icon: 'users', valor: clientasNuevas, label: 'Clientas nuevas' },
+        { icon: 'mail', valor: waStats.mensajesHoy, label: 'Mensajes hoy' },
+        { icon: 'chat', valor: waStats.conversacionesActivas, label: 'Chats activos' },
+        { icon: 'whatsapp', valor: waStats.pedidosWaMes, label: 'Pedidos por WhatsApp' },
+    ];
+
+    /* Avanzar estado — mismo flujo que la sección de Pedidos */
+    const cambiarEstado = async (order, nuevoEstado, extra = {}) => {
+        const payload = { status: nuevoEstado, status_updated_at: new Date().toISOString(), ...extra };
+        const { error } = await supabase.from('orders').update(payload).eq('id', order.id);
+        if (error) { alert('Error: ' + error.message); return; }
+        await fireWebhook(order, nuevoEstado, extra);
+        onRefresh();
+    };
+
+    const accionRapida = (order) => {
+        const accion = getNextAction(order);
+        if (!accion) return;
+        if (accion.next === 'enviado') setModal({ type: 'ship', order });
+        else setModal({ type: 'confirm', order, next: accion.next });
+    };
+
+    const nombre = session?.user?.user_metadata?.full_name || session?.user?.user_metadata?.name || '';
 
     return (
-        <div className="admin-section">
-            <div className="admin-section-head">
-                <h1 className="admin-section-title">Dashboard</h1>
-                <p className="admin-section-sub">Bienvenido al panel de administración de Aurem Gs Joyería</p>
+        <div className="dash">
+
+            <div className="dash-head">
+                <div>
+                    <h1 className="dash-greeting">{saludo()}{nombre ? `, ${nombre}` : ''}</h1>
+                    <p className="dash-subtitle">
+                        {new Date().toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' })}
+                        {porConfirmar.length > 0
+                            ? ` · ${porConfirmar.length} pedido${porConfirmar.length !== 1 ? 's' : ''} espera${porConfirmar.length !== 1 ? 'n' : ''} tu confirmación`
+                            : ' · no hay pedidos esperando confirmación'}
+                    </p>
+                </div>
+
+                <div className="dash-tasks">
+                    <span className="dash-tasks-label">Atender hoy</span>
+                    {tareas.map(t => (
+                        <button
+                            key={t.clave}
+                            className={`dash-task ${filtro === t.clave ? 'dash-task--on' : ''}`}
+                            onClick={() => alternarFiltro(t.clave)}
+                        >
+                            <span className="dash-task-n" style={{ background: t.punto }}>{t.n}</span>
+                            {t.label}
+                        </button>
+                    ))}
+                </div>
             </div>
 
-            {/* ── Revenue highlight row ── */}
-            <div className="dash-revenue-row">
-                <div className="dash-revenue-card dash-revenue-card--main">
-                    <div className="dash-revenue-top">
-                        <div className="dash-revenue-icon">
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
-                        </div>
-                        <span className="dash-revenue-badge">Este mes</span>
+            <div className="dash-ranges">
+                {RANGOS.map(r => (
+                    <button
+                        key={r}
+                        className={`dash-range ${rango === r ? 'dash-range--on' : ''}`}
+                        onClick={() => setRango(r)}
+                    >
+                        {r}
+                    </button>
+                ))}
+            </div>
+
+            <div className="dash-metrics">
+                <div className="dash-metric dash-metric--main">
+                    <div className="dash-metric-top">
+                        <span className="dash-metric-icon"><DashIcon name="money" /></span>
+                        <span className="dash-metric-badge">{rango}</span>
                     </div>
-                    <div className="dash-revenue-amount">${fmt(totalRevenue)}</div>
-                    <div className="dash-revenue-label">Ingresos totales</div>
-                    <div className="dash-revenue-breakdown">
-                        <div className="dash-revenue-detail">
-                            <span className="dash-revenue-dot dash-revenue-dot--mp"></span>
+                    <p className="dash-metric-amount">${fmt(ingresos.total)}</p>
+                    <p className="dash-metric-label">Ingresos cobrados</p>
+                    <p className="dash-metric-sub">
+                        {ingresos.entregados} pedido{ingresos.entregados !== 1 ? 's' : ''} entregado{ingresos.entregados !== 1 ? 's' : ''}
+                    </p>
+                    <div className="dash-metric-breakdown">
+                        <div className="dash-metric-line">
+                            <span className="dash-dot dash-dot--mp" />
                             <span>MercadoPago (neto)</span>
-                            <strong>${fmt(paidMPNet)}</strong>
+                            <strong>${fmt(ingresos.mpNeto)}</strong>
                         </div>
-                        <div className="dash-revenue-detail">
-                            <span className="dash-revenue-dot dash-revenue-dot--cod"></span>
-                            <span>Contraentrega cobrado</span>
-                            <strong>${fmt(paidCODTotal)}</strong>
+                        <div className="dash-metric-line">
+                            <span className="dash-dot dash-dot--cod" />
+                            <span>Contra entrega cobrado</span>
+                            <strong>${fmt(ingresos.codCobrado)}</strong>
                         </div>
                     </div>
                 </div>
 
-                <div className="dash-revenue-card dash-revenue-card--pending">
-                    <div className="dash-revenue-top">
-                        <div className="dash-revenue-icon dash-revenue-icon--pending">
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <div className="dash-metric-side">
+                    <div className="dash-metric dash-metric--pending">
+                        <div className="dash-metric-top">
+                            <span className="dash-metric-icon dash-metric-icon--pending"><DashIcon name="truck" /></span>
+                        </div>
+                        <p className="dash-metric-amount dash-metric-amount--sm">${fmt(ingresos.porCobrarTotal)}</p>
+                        <p className="dash-metric-label">Falta cobrar</p>
+                        <p className="dash-metric-sub">
+                            Contra entrega en tránsito · {ingresos.porCobrar.length} pedido{ingresos.porCobrar.length !== 1 ? 's' : ''}
+                        </p>
+                    </div>
+
+                    <div className="dash-delta">
+                        <span className="dash-delta-label">Contra el periodo anterior</span>
+                        <div className="dash-delta-row">
+                            <span className={`dash-delta-value ${delta !== null && delta < 0 ? 'dash-delta-value--down' : ''}`}>
+                                {delta === null ? '—' : `${delta > 0 ? '+' : ''}${delta}%`}
+                            </span>
+                            <span className="dash-delta-text">
+                                {delta === null ? 'sin datos previos para comparar' : `${rango === 'Mes anterior' ? 'vs. el mes previo' : 'vs. el periodo previo'}`}
+                            </span>
+                        </div>
+                        <div className="dash-delta-track">
+                            <div
+                                className="dash-delta-fill"
+                                style={{ width: `${Math.min(Math.abs(delta ?? 0), 100)}%` }}
+                            />
                         </div>
                     </div>
-                    <div className="dash-revenue-amount dash-revenue-amount--pending">${fmt(pendingCODTotal)}</div>
-                    <div className="dash-revenue-label">Ingresos pendientes</div>
-                    <div className="dash-revenue-sub">Contraentrega por cobrar</div>
-                    <div className="dash-revenue-count"><span>{pendingCODOrders.length} pedido{pendingCODOrders.length !== 1 ? 's' : ''}</span></div>
                 </div>
             </div>
 
-            {/* ── Quick stats ── */}
-            <div className="dash-stats-row">
-                <div className="dash-stat-card">
-                    <div className="dash-stat-icon" style={{ background: '#6366f115', color: '#6366f1' }}>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+            <div className="dash-stats">
+                {stats.map(s => (
+                    <div key={s.label} className="dash-stat">
+                        <span className="dash-stat-icon"><DashIcon name={s.icon} /></span>
+                        <div className="dash-stat-body">
+                            <span className="dash-stat-value">{s.valor}</span>
+                            <span className="dash-stat-label">{s.label}</span>
+                        </div>
                     </div>
-                    <div className="dash-stat-value">{products.length}</div>
-                    <div className="dash-stat-label">Productos</div>
-                </div>
-                <div className="dash-stat-card">
-                    <div className="dash-stat-icon" style={{ background: '#f59e0b15', color: '#f59e0b' }}>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
-                    </div>
-                    <div className="dash-stat-value">{ordersMonth.length}</div>
-                    <div className="dash-stat-label">Pedidos este mes</div>
-                </div>
-                <div className="dash-stat-card">
-                    <div className="dash-stat-icon" style={{ background: '#3b82f615', color: '#3b82f6' }}>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
-                    </div>
-                    <div className="dash-stat-value">{customers.length}</div>
-                    <div className="dash-stat-label">Clientes</div>
-                </div>
+                ))}
             </div>
 
-            {/* ── WhatsApp stats ── */}
-            <div className="dash-stats-row">
-                <div className="dash-stat-card">
-                    <div className="dash-stat-icon" style={{ background: '#25D36615', color: '#25D366' }}>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-                    </div>
-                    <div className="dash-stat-value">{waStats.mensajesHoy}</div>
-                    <div className="dash-stat-label">Mensajes hoy</div>
-                </div>
-                <div className="dash-stat-card">
-                    <div className="dash-stat-icon" style={{ background: '#128C7E15', color: '#128C7E' }}>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
-                    </div>
-                    <div className="dash-stat-value">{waStats.conversacionesActivas}</div>
-                    <div className="dash-stat-label">Chats activos (24h)</div>
-                </div>
-                <div className="dash-stat-card">
-                    <div className="dash-stat-icon" style={{ background: '#b8860b15', color: '#b8860b' }}>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg>
-                    </div>
-                    <div className="dash-stat-value">{waStats.pedidosWaMes}</div>
-                    <div className="dash-stat-label">Pedidos WhatsApp (mes)</div>
-                </div>
-            </div>
+            <div className="dash-columns">
+                <div className="dash-col">
 
-            <div className="admin-home-grid">
-                {/* Recent orders */}
-                <div className="admin-card">
-                    <div className="admin-card-head">
-                        <h3 className="admin-card-title">Pedidos recientes</h3>
-                        <button className="admin-card-link" onClick={() => onNavigate('orders')}>Ver todos &rarr;</button>
-                    </div>
-                    {recentOrders.length === 0 ? (
-                        <p className="admin-empty-text">No hay pedidos aún.</p>
-                    ) : (
-                        <table className="admin-table">
-                            <thead><tr><th>Cliente</th><th>Producto</th><th>Monto</th><th>Estado</th></tr></thead>
-                            <tbody>
-                                {recentOrders.map(o => (
-                                    <tr key={o.id}>
-                                        <td className="admin-td-name">{o.customer_name}</td>
-                                        <td>{o.product_name}</td>
-                                        <td className="admin-td-price">${fmt(o.amount)}</td>
-                                        <td><StatusBadge status={o.status} /></td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    )}
-                </div>
-
-                {/* Status breakdown */}
-                <div className="admin-card">
-                    <div className="admin-card-head">
-                        <h3 className="admin-card-title">Estado de pedidos</h3>
-                    </div>
-                    <div className="admin-status-list">
-                        {ORDER_STATUSES.map(s => {
-                            const count = orders.filter(o => o.status === s).length;
-                            const pct = orders.length ? Math.round(count / orders.length * 100) : 0;
-                            return (
-                                <div key={s} className="admin-status-row">
-                                    <StatusBadge status={s} />
-                                    <div className="admin-status-bar-wrap">
-                                        <div className="admin-status-bar" style={{ width: `${pct}%` }} />
+                    <div className="dash-card">
+                        <div className="dash-card-head">
+                            <div>
+                                <span className="dash-card-title">{dias <= 7 ? 'Pedidos por día' : 'Pedidos por semana'}</span>
+                                <span className="dash-card-sub">{rango}</span>
+                            </div>
+                            <span className="dash-peak">Pico {pico} pedido{pico !== 1 ? 's' : ''}</span>
+                        </div>
+                        <div className="dash-chart" style={{ gridTemplateColumns: `repeat(${barras.length}, 1fr)` }}>
+                            {barras.map((b, i) => (
+                                <div key={i} className="dash-bar-col">
+                                    <div className="dash-bar-track">
+                                        <div
+                                            className={`dash-bar ${b.valor === pico && pico > 0 ? 'dash-bar--peak' : ''}`}
+                                            style={{ height: `${Math.round((b.valor / pico) * 88)}%` }}
+                                        >
+                                            <span className="dash-bar-value">{b.valor}</span>
+                                        </div>
                                     </div>
-                                    <span className="admin-status-count">{count}</span>
+                                    <span className="dash-bar-label">{b.label}</span>
                                 </div>
-                            );
-                        })}
+                            ))}
+                        </div>
                     </div>
 
-                    <div className="admin-card-head" style={{ marginTop: '1.5rem' }}>
-                        <h3 className="admin-card-title">Productos por categoría</h3>
+                    <div className="dash-card dash-card--flush">
+                        <div className="dash-card-head dash-card-head--bordered">
+                            <div className="dash-card-head-left">
+                                <span className="dash-card-title">{tituloTabla}</span>
+                                {filtro && (
+                                    <button className="dash-chip-clear" onClick={() => setFiltro(null)}>
+                                        Quitar filtro ✕
+                                    </button>
+                                )}
+                            </div>
+                            <button className="dash-link" onClick={() => onNavigate('orders')}>Ver todos →</button>
+                        </div>
+
+                        {filas.length === 0 ? (
+                            <div className="dash-empty">
+                                <span className="dash-empty-icon"><DashIcon name="bag" /></span>
+                                <span className="dash-empty-title">Bandeja al día</span>
+                                <span className="dash-empty-text">
+                                    No queda ningún pedido en este estado.
+                                </span>
+                                {filtro && (
+                                    <button className="dash-btn-ink" onClick={() => setFiltro(null)}>Ver todos los pedidos</button>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="dash-table-wrap">
+                                <table className="dash-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Pedido</th>
+                                            <th>Total</th>
+                                            <th>Estado</th>
+                                            <th className="dash-th-right">Acción</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {filas.map(o => {
+                                            const accion = getNextAction(o);
+                                            const wa = waLinkPedido(o);
+                                            return (
+                                                <tr key={o.id}>
+                                                    <td>
+                                                        <div className="dash-cell">
+                                                            <span className="dash-cell-strong">{o.customer_name}</span>
+                                                            <span className="dash-cell-meta">
+                                                                {[o.shipping_city, fmtDate(o.created_at)].filter(Boolean).join(' · ')}
+                                                            </span>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <div className="dash-cell">
+                                                            <span className="dash-cell-strong">${fmt(o.amount)}</span>
+                                                            <span className="dash-cell-meta">{isCOD(o) ? 'Contra entrega' : (o.payment_method || 'Sin método')}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td><StatusBadge status={o.status} /></td>
+                                                    <td>
+                                                        <div className="dash-actions">
+                                                            {wa && (
+                                                                <a
+                                                                    className="dash-wa"
+                                                                    href={wa}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    title="Escribir por WhatsApp"
+                                                                >
+                                                                    <DashIcon name="whatsapp" />
+                                                                </a>
+                                                            )}
+                                                            <button
+                                                                className={`dash-advance ${accion ? '' : 'dash-advance--off'}`}
+                                                                onClick={() => accion && accionRapida(o)}
+                                                                disabled={!accion}
+                                                            >
+                                                                {accion ? accion.label : STATUS_META[o.status]?.label || o.status}
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
                     </div>
-                    <div className="admin-status-list">
-                        {CATEGORIES.map(cat => {
-                            const count = products.filter(p => p.category === cat).length;
-                            const pct = products.length ? Math.round(count / products.length * 100) : 0;
-                            return (
-                                <div key={cat} className="admin-status-row">
-                                    <span className="admin-category-pill">{cat}</span>
-                                    <div className="admin-status-bar-wrap">
-                                        <div className="admin-status-bar admin-status-bar--gold" style={{ width: `${pct}%` }} />
-                                    </div>
-                                    <span className="admin-status-count">{count}</span>
-                                </div>
-                            );
-                        })}
+                </div>
+
+                <div className="dash-col">
+                    <div className="dash-card dash-card--flush">
+                        <div className="dash-card-head dash-card-head--bordered">
+                            <span className="dash-card-title">Sin responder</span>
+                            <span className="dash-count-green">{chatsPendientes.length} chat{chatsPendientes.length !== 1 ? 's' : ''}</span>
+                        </div>
+                        {chatsPendientes.length === 0 ? (
+                            <div className="dash-empty dash-empty--sm">
+                                <span className="dash-empty-text">Todas las conversaciones están respondidas.</span>
+                            </div>
+                        ) : (
+                            chatsPendientes.map(c => (
+                                <button key={c.phone_number} className="dash-chat" onClick={() => onNavigate('chat')}>
+                                    <span className="dash-chat-avatar">{(c.phone_number || '?').slice(-2)}</span>
+                                    <span className="dash-chat-body">
+                                        <span className="dash-chat-top">
+                                            <span className="dash-chat-name">{c.phone_number}</span>
+                                            <span className="dash-chat-time">
+                                                {new Date(c.created_at).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}
+                                            </span>
+                                        </span>
+                                        <span className="dash-chat-msg">{c.content}</span>
+                                    </span>
+                                </button>
+                            ))
+                        )}
+                        <button className="dash-card-foot" onClick={() => onNavigate('chat')}>Abrir bandeja →</button>
+                    </div>
+
+                    <div className="dash-card dash-card--flush">
+                        <div className="dash-card-head dash-card-head--bordered">
+                            <span className="dash-card-title">Últimas piezas publicadas</span>
+                            <button className="dash-link" onClick={() => onNavigate('products')}>Productos →</button>
+                        </div>
+                        {products.slice(0, 3).map(p => (
+                            <div key={p.id} className="dash-piece">
+                                <span className="dash-piece-thumb">
+                                    {p.image_url ? <img src={p.image_url} alt="" /> : '✦'}
+                                </span>
+                                <span className="dash-piece-body">
+                                    <span className="dash-piece-name">{p.name}</span>
+                                    <span className="dash-piece-meta">{p.category} · ${fmt(p.price)}</span>
+                                </span>
+                                {p.is_new && <span className="dash-piece-tag">Nuevo</span>}
+                            </div>
+                        ))}
+                        <button className="dash-card-foot" onClick={() => onNavigate('products')}>Publicar pieza nueva →</button>
                     </div>
                 </div>
             </div>
+
+            {modal?.type === 'ship' && (
+                <ShipModal
+                    order={modal.order}
+                    onClose={() => setModal(null)}
+                    onConfirm={async (carrier, tracking) => {
+                        await cambiarEstado(modal.order, 'enviado', { carrier: carrier || null, tracking_number: tracking || null });
+                        setModal(null);
+                    }}
+                />
+            )}
+            {modal?.type === 'confirm' && (
+                <StatusConfirmModal
+                    order={modal.order}
+                    nextStatus={modal.next}
+                    onClose={() => setModal(null)}
+                    onConfirm={async () => { await cambiarEstado(modal.order, modal.next); setModal(null); }}
+                />
+            )}
         </div>
     );
 };
@@ -2410,7 +2692,26 @@ const Dashboard = () => {
     const [loadingO, setLoadingO]   = useState(true);
     const [loadingC, setLoadingC]   = useState(true);
     const [waStats, setWaStats]     = useState({ mensajesHoy: 0, conversacionesActivas: 0, pedidosWaMes: 0 });
+    const [chatsPendientes, setChatsPendientes] = useState([]);
     const navigate = useNavigate();
+
+    /* Una conversación está sin responder cuando su último mensaje es de la
+       clienta. El campo is_read no se mantiene, así que no sirve para esto. */
+    const fetchChatsPendientes = useCallback(async () => {
+        const { data } = await supabase
+            .from('whatsapp_conversaciones')
+            .select('phone_number, role, content, created_at')
+            .order('created_at', { ascending: false })
+            .limit(300);
+        const ultimoPorTelefono = new Map();
+        (data || []).forEach(m => { if (!ultimoPorTelefono.has(m.phone_number)) ultimoPorTelefono.set(m.phone_number, m); });
+        setChatsPendientes([...ultimoPorTelefono.values()].filter(m => m.role === 'user').slice(0, 3));
+    }, []);
+
+    const irA = useCallback((id) => {
+        const destino = NAV.find(n => n.id === id);
+        if (destino?.path) navigate(destino.path); else setSection(id);
+    }, [navigate]);
 
     useEffect(() => {
         supabase.auth.getSession().then(({ data: { session } }) => {
@@ -2470,8 +2771,8 @@ const Dashboard = () => {
     }, []);
 
     useEffect(() => {
-        if (session) { fetchProducts(); fetchOrders(); fetchCustomers(); fetchWaStats(); }
-    }, [session, fetchProducts, fetchOrders, fetchCustomers, fetchWaStats]);
+        if (session) { fetchProducts(); fetchOrders(); fetchCustomers(); fetchWaStats(); fetchChatsPendientes(); }
+    }, [session, fetchProducts, fetchOrders, fetchCustomers, fetchWaStats, fetchChatsPendientes]);
 
     if (!session) return null;
 
@@ -2496,7 +2797,10 @@ const Dashboard = () => {
                         <DashboardHome
                             products={products} orders={orders} customers={customers}
                             waStats={waStats}
-                            onNavigate={setSection}
+                            chatsPendientes={chatsPendientes}
+                            session={session}
+                            onNavigate={irA}
+                            onRefresh={fetchOrders}
                         />
                     )}
                     {section === 'products' && (
