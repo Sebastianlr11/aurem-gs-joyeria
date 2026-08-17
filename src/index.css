@@ -12543,3 +12543,515 @@ textarea:focus-visible {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* ================================================================
+   CONVERSACIONES — realineado a la marca
+   Re-vestido de la bandeja de WhatsApp con los tokens de "Luz de
+   vitrina": marfil y cacao, radios de 2px salvo en lo que se toca,
+   líneas de pelo y ninguna sombra. La lógica no cambia.
+   ================================================================ */
+.chat-panel {
+  background: var(--bg-marfil);
+  font-family: var(--font-ui);
+  color: var(--ink);
+}
+
+/* ── Columna de conversaciones ── */
+.chat-contacts {
+  background: var(--bg-color);
+  border-right: 1px solid var(--hairline);
+}
+
+.chat-contacts-header {
+  border-bottom: 1px solid var(--hairline);
+  background: var(--bg-color);
+}
+
+.chat-contacts-header h2,
+.chat-contacts-header h1 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  color: var(--ink);
+}
+
+.chat-search,
+.chat-msg-search-input,
+.chat-image-search {
+  background: var(--bg-marfil);
+  border: 1px solid var(--hairline);
+  border-radius: 2px;
+  font-family: var(--font-ui);
+  color: var(--ink);
+  transition: border-color 0.3s var(--ease), background-color 0.3s ease;
+}
+
+.chat-search:focus,
+.chat-msg-search-input:focus,
+.chat-image-search:focus {
+  border-color: var(--oro);
+  background: var(--bg-color);
+  outline: none;
+}
+
+.chat-filter-chips button,
+.chat-quick-reply-btn,
+.chat-tag-add-btn {
+  border-radius: 100px;
+  border: 1px solid var(--hairline);
+  background: var(--bg-color);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-weight: 600;
+  transition: all 0.3s var(--ease);
+}
+
+.chat-filter-chips button:hover,
+.chat-quick-reply-btn:hover,
+.chat-tag-add-btn:hover {
+  border-color: var(--oro-hairline);
+  background: var(--bg-arena);
+}
+
+.chat-filter-chips button.active,
+.chat-filter-chips button[aria-pressed='true'] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--bg-marfil);
+}
+
+/* Fila de contacto */
+.chat-contact-item {
+  position: relative;
+  border-bottom: 1px solid var(--bg-arena);
+  background: var(--bg-color);
+  transition: background 0.3s var(--ease);
+}
+
+.chat-contact-item:hover {
+  background: var(--bg-marfil);
+}
+
+.chat-contact-item.active,
+.chat-contact-item--active {
+  background: var(--bg-marfil);
+}
+
+.chat-contact-item.active::before,
+.chat-contact-item--active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--oro);
+}
+
+.chat-contact-avatar {
+  background: var(--bg-arena);
+  border: 1px solid var(--hairline);
+  color: var(--oro-ink);
+  border-radius: 100px;
+  font-weight: 700;
+}
+
+.chat-contact-name {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.chat-contact-preview,
+.chat-contact-time {
+  color: var(--text-secondary);
+}
+
+.chat-contact-time {
+  color: var(--text-muted);
+}
+
+.chat-unread-badge,
+.chat-nav-badge {
+  background: var(--ink);
+  color: #fff;
+  border-radius: 100px;
+  font-weight: 700;
+}
+
+.chat-contact-takeover-dot {
+  background: var(--oro);
+}
+
+.chat-contact-resolved-dot {
+  background: #2E5D46;
+}
+
+/* ── Cabecera de la conversación ── */
+.chat-conv-header {
+  background: var(--bg-color);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.chat-conv-header-avatar {
+  background: var(--bg-arena);
+  border: 1px solid var(--hairline);
+  color: var(--oro-ink);
+  border-radius: 100px;
+}
+
+.chat-conv-header-name {
+  font-family: var(--font-display);
+  font-weight: 400;
+  color: var(--ink);
+}
+
+.chat-conv-header-phone {
+  color: var(--text-secondary);
+}
+
+.chat-header-action-btn {
+  border-radius: 2px;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  transition: all 0.3s var(--ease);
+}
+
+.chat-header-action-btn:hover {
+  background: var(--bg-arena);
+  color: var(--ink);
+}
+
+/* ── Cuerpo y burbujas ── */
+.chat-conv-body,
+.chat-conv-messages {
+  background: var(--bg-marfil);
+}
+
+.chat-date-separator {
+  color: var(--text-muted);
+  font-size: 0.66rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.chat-bubble {
+  border-radius: 2px;
+  border: 1px solid var(--hairline);
+  background: var(--bg-color);
+  color: var(--ink);
+  line-height: 1.6;
+}
+
+.chat-bubble--assistant,
+.chat-bubble--admin {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: #fff;
+}
+
+.chat-bubble-time {
+  color: var(--text-muted);
+  font-size: 0.69rem;
+}
+
+.chat-bubble--assistant .chat-bubble-time,
+.chat-bubble--admin .chat-bubble-time {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.chat-bubble-image {
+  border-radius: 2px;
+}
+
+/* ── Avisos ── */
+.chat-takeover-banner,
+.chat-webhook-banner {
+  background: var(--bg-arena);
+  border-bottom: 1px solid var(--hairline);
+  border-left: 2px solid var(--oro);
+  color: var(--ink);
+  border-radius: 0;
+}
+
+.chat-takeover-badge {
+  background: var(--bg-arena);
+  color: var(--oro-ink);
+  border: 1px solid var(--oro-hairline);
+  border-radius: 100px;
+  font-size: 0.63rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+/* ── Barra de escritura ── */
+.chat-conv-input {
+  background: var(--bg-marfil);
+  border-top: 1px solid var(--hairline);
+}
+
+.chat-input-field {
+  background: var(--bg-color);
+  border: 1px solid var(--hairline);
+  border-radius: 2px;
+  font-family: var(--font-ui);
+  color: var(--ink);
+  transition: border-color 0.3s ease;
+}
+
+.chat-input-field:focus {
+  border-color: var(--oro);
+  outline: none;
+}
+
+.chat-send-btn {
+  background: var(--ink);
+  color: #fff;
+  border: 0;
+  border-radius: 100px;
+  transition: all 0.3s var(--ease);
+}
+
+.chat-send-btn:hover:not(:disabled) {
+  background: var(--ink-soft);
+  transform: translateY(-2px);
+}
+
+.chat-quick-trigger,
+.chat-input-actions button {
+  border-radius: 2px;
+  color: var(--text-secondary);
+  transition: all 0.3s var(--ease);
+}
+
+.chat-quick-trigger:hover,
+.chat-input-actions button:hover {
+  background: var(--bg-arena);
+  color: var(--ink);
+}
+
+.chat-quick-replies {
+  background: var(--bg-color);
+  border: 1px solid var(--hairline);
+  border-radius: 2px;
+  box-shadow: none;
+}
+
+/* ── Ficha del contacto ── */
+.chat-info-panel {
+  background: var(--bg-color);
+  border-left: 1px solid var(--hairline);
+}
+
+.chat-info-panel-header {
+  border-bottom: 1px solid var(--hairline);
+}
+
+.chat-info-panel-header span,
+.chat-info-section-head {
+  font-size: 0.66rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--oro-ink);
+}
+
+.chat-info-profile h3,
+.chat-info-profile-name {
+  font-family: var(--font-display);
+  font-weight: 400;
+  color: var(--ink);
+}
+
+.chat-info-phone {
+  color: var(--text-secondary);
+}
+
+.chat-info-stats {
+  border-top: 1px solid var(--hairline);
+}
+
+.chat-info-stat {
+  border-right: 1px solid var(--hairline);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.chat-info-stat-value {
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.chat-info-stat-label {
+  font-size: 0.63rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.chat-info-order {
+  border: 1px solid var(--hairline);
+  border-radius: 2px;
+  background: var(--bg-color);
+}
+
+.chat-info-order-top {
+  background: var(--bg-marfil);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.chat-info-order-name {
+  font-family: var(--font-display);
+  font-weight: 400;
+  color: var(--ink);
+}
+
+.chat-info-order-amount {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.chat-info-order-date {
+  color: var(--text-muted);
+}
+
+.chat-info-notes-input {
+  background: var(--bg-marfil);
+  border: 1px solid var(--hairline);
+  border-radius: 2px;
+  font-family: var(--font-ui);
+  color: var(--ink);
+}
+
+.chat-info-notes-input:focus {
+  border-color: var(--oro);
+  outline: none;
+}
+
+/* Etiquetas */
+.chat-tag-pill {
+  border-radius: 100px;
+  background: var(--bg-color);
+  border: 1px solid var(--oro-hairline);
+  color: var(--oro-ink);
+  font-weight: 600;
+}
+
+.chat-tag-pill--active,
+.chat-tag-pill.active {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: #fff;
+}
+
+.chat-tag-picker {
+  background: var(--bg-color);
+  border: 1px solid var(--hairline);
+  border-radius: 2px;
+  box-shadow: none;
+}
+
+/* Vacío y carga */
+.chat-empty-state {
+  color: var(--text-secondary);
+}
+
+.chat-empty-state-icon {
+  color: var(--oro);
+  border: 1px solid var(--oro-hairline);
+  border-radius: 100px;
+}
+
+.chat-empty-state-sub,
+.chat-loading {
+  color: var(--text-secondary);
+}
+
+/* Selector de imágenes y modales */
+.chat-image-picker,
+.chat-confirm-modal,
+.chat-export-menu {
+  background: var(--bg-color);
+  border: 1px solid var(--hairline);
+  border-radius: 2px;
+  box-shadow: none;
+}
+
+.chat-confirm-overlay {
+  background: rgba(28, 23, 20, 0.5);
+}
+
+.chat-image-picker-item {
+  border: 1px solid var(--hairline);
+  border-radius: 2px;
+  background: var(--bg-color);
+  transition: all 0.3s var(--ease);
+}
+
+.chat-image-picker-item:hover {
+  border-color: var(--oro-hairline);
+  transform: translateY(-2px);
+}
+
+.chat-image-picker-thumb {
+  background: var(--bg-arena);
+  border-radius: 2px;
+}
+
+.chat-image-picker-price {
+  color: var(--oro-ink);
+  font-weight: 700;
+}
+
+.chat-confirm-btn {
+  border-radius: 100px;
+  font-family: var(--font-ui);
+  font-weight: 700;
+}
+
+.chat-confirm-btn--primary {
+  background: var(--ink);
+  border: 1px solid var(--ink);
+  color: #fff;
+}
+
+.chat-confirm-btn--primary:hover {
+  background: var(--ink-soft);
+}
+
+.chat-confirm-btn--cancel {
+  background: var(--bg-color);
+  border: 1px solid var(--hairline);
+  color: var(--ink);
+}
+
+.chat-confirm-btn--danger {
+  background: #8a5a4a;
+  border: 1px solid #8a5a4a;
+  color: #fff;
+}
+
+.chat-toast {
+  background: var(--ink);
+  color: var(--bg-marfil);
+  border-radius: 2px;
+  box-shadow: none;
+  border: 1px solid rgba(227, 201, 144, 0.2);
+}
+
+.chat-back-btn {
+  border-radius: 2px;
+  color: var(--text-secondary);
+}
+
+.chat-back-btn:hover {
+  background: var(--bg-arena);
+  color: var(--ink);
+}
+
+.chat-bubble--error {
+  border-color: rgba(138, 90, 74, 0.45);
+  background: rgba(138, 90, 74, 0.06);
+  color: var(--ink);
+}
