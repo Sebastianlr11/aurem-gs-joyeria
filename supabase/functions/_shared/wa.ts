@@ -7,6 +7,15 @@ import { createClient, type SupabaseClient } from 'jsr:@supabase/supabase-js@2'
 
 export const GRAFO = 'https://graph.facebook.com/v21.0'
 
+/**
+ * El código de idioma de las plantillas, tal como quedaron aprobadas.
+ *
+ * Tiene que coincidir EXACTO: una plantilla aprobada en español Colombia es
+ * `es_CO`, y pedirla como `es` devuelve "la plantilla no existe en esa
+ * traducción". Si algún día se aprueban en otro idioma, se cambia acá.
+ */
+export const IDIOMA_PLANTILLAS = 'es_CO'
+
 export const admin = (): SupabaseClient => createClient(
   Deno.env.get('SUPABASE_URL')!,
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
@@ -281,14 +290,15 @@ export async function ventanaAbierta(
  *
  * Las variables van en orden: la primera reemplaza a {{1}}, y así. La
  * plantilla tiene que existir y estar aprobada en Meta con ese nombre y ese
- * idioma exactos, o el envío se rechaza.
+ * idioma exactos, o el envío se rechaza. El idioma sale de
+ * IDIOMA_PLANTILLAS y no hay que pasarlo salvo excepción.
  */
 export async function enviarPlantilla(
   telefono: string,
   plantilla: string,
   variables: string[] = [],
   desdeId?: string | null,
-  idioma = 'es',
+  idioma = IDIOMA_PLANTILLAS,
 ): Promise<{ ok: boolean; wamid?: string; error?: string }> {
   const token = Deno.env.get('WA_TOKEN')
   const phoneId = desdeId || Deno.env.get('WA_PHONE_NUMBER_ID')
