@@ -52,7 +52,10 @@ function cargarTikTok() {
   !(function (w, d, t) {
     w.TiktokAnalyticsObject = t;
     var ttq = (w[t] = w[t] || []);
-    ttq.methods = ['page', 'track', 'identify', 'instances', 'debug', 'on', 'off', 'once', 'ready', 'alias', 'group', 'enableCookie', 'disableCookie'];
+    /* La lista viene del fragmento que entrega TikTok hoy. Los tres últimos
+       —consentimiento— son recientes: sin ellos, llamar a grantConsent()
+       fallaría en vez de encolarse. */
+    ttq.methods = ['page', 'track', 'identify', 'instances', 'debug', 'on', 'off', 'once', 'ready', 'alias', 'group', 'enableCookie', 'disableCookie', 'holdConsent', 'revokeConsent', 'grantConsent'];
     ttq.setAndDefer = function (t, e) {
       t[e] = function () { t.push([e].concat(Array.prototype.slice.call(arguments, 0))); };
     };
