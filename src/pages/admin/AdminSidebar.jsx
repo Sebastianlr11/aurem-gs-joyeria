@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { NAV } from './adminNav.jsx';
+import Isotipo from '../../components/Isotipo';
 
 const BOTTOM_BAR_IDS = ['dashboard', 'orders', 'chat', 'products'];
 
@@ -42,7 +43,7 @@ const AdminSidebar = ({ session, activeId, onNavClick, chatUnread = 0 }) => {
         <>
             <aside className="admin-sidebar">
                 <div className="admin-sidebar-logo">
-                    <img src="/assets/logo-isotipo.svg" alt="Aurem GS" className="admin-sidebar-logo-img" />
+                    <Isotipo className="admin-sidebar-logo-img" />
                     <div className="admin-sidebar-logo-text">
                         <span>AUREM GS</span>
                         <span className="admin-sidebar-logo-sub">Panel interno</span>
@@ -115,7 +116,7 @@ const AdminSidebar = ({ session, activeId, onNavClick, chatUnread = 0 }) => {
             <div className={`admin-mobile-drawer ${drawerOpen ? 'open' : ''}`}>
                 <div className="admin-mobile-drawer-header">
                     <div className="admin-mobile-drawer-brand">
-                        <img src="/assets/logo-isotipo.svg" alt="Aurem GS" className="admin-mobile-drawer-logo" />
+                        <Isotipo className="admin-mobile-drawer-logo" />
                         <span>AUREM GS</span>
                     </div>
                     <button className="admin-mobile-drawer-close" onClick={() => setDrawerOpen(false)}>
