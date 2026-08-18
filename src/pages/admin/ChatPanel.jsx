@@ -1087,19 +1087,19 @@ const ChatPanel = () => {
                                         ) : null}
                                     </div>
                                     <div className="chat-conv-header-actions">
-                                        <button className={`chat-header-action-btn ${showMsgSearch ? 'chat-header-action-btn--active' : ''}`}
+                                        <button className={`chat-header-action-btn chat-header-action-btn--secundaria ${showMsgSearch ? 'chat-header-action-btn--active' : ''}`}
                                                 onClick={() => setShowMsgSearch(!showMsgSearch)} title="Buscar en mensajes">
                                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                                         </button>
                                         <button
-                                            className={`chat-header-action-btn ${statusMap[activeContact]?.is_resolved ? 'chat-header-action-btn--resolved' : ''}`}
+                                            className={`chat-header-action-btn chat-header-action-btn--secundaria ${statusMap[activeContact]?.is_resolved ? 'chat-header-action-btn--resolved' : ''}`}
                                             onClick={() => handleToggleResolved(activeContact)}
                                             title={statusMap[activeContact]?.is_resolved ? 'Marcar como no resuelto' : 'Marcar como resuelto'}
                                         >
                                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                                         </button>
                                         <button
-                                            className="chat-header-action-btn"
+                                            className="chat-header-action-btn chat-header-action-btn--secundaria"
                                             onClick={() => setConfirmArchive(activeContact)}
                                             title="Archivar conversación"
                                         >
@@ -1117,7 +1117,7 @@ const ChatPanel = () => {
                                             )}
                                         </button>
                                         <div className="chat-export-dropdown" ref={exportMenuRef} style={{position:'relative'}}>
-                                            <button className="chat-header-action-btn" onClick={() => setShowExportMenu(!showExportMenu)} title="Exportar chat">
+                                            <button className="chat-header-action-btn chat-header-action-btn--secundaria" onClick={() => setShowExportMenu(!showExportMenu)} title="Exportar chat">
                                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                                             </button>
                                             {showExportMenu && (
@@ -1193,11 +1193,13 @@ const ChatPanel = () => {
                                                                 <span>{fmtSeparador(msg.created_at)}</span>
                                                             </div>
                                                         ) : null}
+                                                        <div className={`chat-msg chat-msg--${msg.role || 'user'}`}>
                                                         <div className={`chat-bubble chat-bubble--${msg.role || 'user'}${msg.enviado_por === 'humano' ? ' chat-bubble--admin' : ''}${msg._failed ? ' chat-bubble--error' : ''}`}>
                                                             {msg.message_type === 'image' && msg.media_url ? (
                                                                 <img src={msg.media_url} alt="" className="chat-bubble-image chat-bubble-image--clickable" onClick={() => openLightbox(msg.media_url)} />
                                                             ) : null}
                                                             {msg.content ? <div className="chat-bubble-content"><span>{msg.content}</span></div> : null}
+                                                        </div>
                                                             {(msg._failed || showTime) && (
                                                             <div className="chat-bubble-time">
                                                                 {msg._failed ? <span style={{ color: '#ef4444' }}>Error al enviar</span> : (

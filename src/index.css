@@ -9202,14 +9202,24 @@ textarea:focus-visible {
 }
 
 .chat-date-separator {
-  text-align: center;
-  margin: 20px 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 22px 4px 14px;
   animation: chatFadeIn 0.3s ease-out;
 }
+/* Filetes de pelo a los lados, como el resto del sistema. */
+.chat-date-separator::before,
+.chat-date-separator::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--hairline, #E6DED3);
+}
 .chat-date-separator span {
-  background: rgba(26, 26, 26, 0.65);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   padding: 5px 16px;
   border-radius: 20px;
   font-size: 0.68rem;
@@ -9430,7 +9440,14 @@ textarea:focus-visible {
     padding: 10px 12px;
     overflow: hidden;
   }
-  .chat-conv-header-avatar { display: none; }
+  /* Con sólo dos acciones el avatar vuelve a caber, y ayuda a identificar
+     la conversación de un vistazo. */
+  .chat-conv-header-avatar { width: 38px; height: 38px; flex-shrink: 0; }
+
+  /* Buscar, marcar resuelto, archivar y exportar son de escritorio: se
+     usan al sentarse a ordenar, no atendiendo con el teléfono en la mano.
+     En móvil quedan tomar control e info, que son las de operar en vivo. */
+  .chat-header-action-btn--secundaria { display: none; }
   .chat-conv-header-info {
     flex: 1 1 0;
     min-width: 0;
@@ -9452,6 +9469,19 @@ textarea:focus-visible {
      entre el campo y el teclado, y no se puede navegar mientras se
      escribe de todos modos. Se esconde y el chat baja hasta el borde,
      que es lo que hace WhatsApp. */
+  /* iOS hace zoom automático al enfocar un campo cuya letra mide menos de
+     16px, "para que se lea". Ese zoom descoloca todo: la cabecera se corre,
+     queda una franja en blanco arriba y la interfaz se ve gigante. 16px lo
+     evita, y de paso se lee mejor en un teléfono.
+
+     Va sobre todos los campos y no sólo el del chat: el panel tenía 22 por
+     debajo de ese umbral, así que el problema estaba en todas las pantallas. */
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
+
   /* Con el chat abierto el documento no se desplaza: el panel ya ocupa
      todo y se ancla. Si pudiera, iOS lo desplazaría solo al enfocar el
      campo y se llevaría la página de lado. */
@@ -9462,6 +9492,30 @@ textarea:focus-visible {
   body.chat-escribiendo .chat-panel {
     bottom: env(safe-area-inset-bottom);
   }
+}
+
+/* ─── El mensaje: burbuja y hora, como piezas separadas ──────────
+   La hora vive fuera de la burbuja, alineada al lado que corresponde.
+   Adentro ensuciaba el texto; afuera el dato sigue estando y la burbuja
+   queda limpia. */
+.chat-msg {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 2px;
+}
+.chat-msg--user { align-items: flex-start; }
+.chat-msg--assistant { align-items: flex-end; }
+
+.chat-msg .chat-bubble-time {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--text-secondary, #6B615A);
+  opacity: 0.75;
+  margin: 4px 6px 8px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
 }
 
 /* ─── Unread badge ─────────────────────────────────────────────── */
