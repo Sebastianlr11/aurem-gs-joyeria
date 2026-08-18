@@ -1,19 +1,26 @@
 /**
  * Webhook de la Cloud API de Meta.
- * Recibe los mensajes de las clientas y los acuses de entrega, y despierta
+ * Recibe los mensajes de los clientes y los acuses de entrega, y despierta
  * a Valentina. Sustituye al flujo de n8n.
  *
  * Meta corta a los 20 segundos y reintenta si no ve un 200, así que se
  * responde de inmediato y el trabajo largo sigue en waitUntil.
  */
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
-import { admin, enModoManual, enviarTexto, normalizarTelefono } from '../_shared/wa.ts'
+import { admin, enModoManual, enviarTextoNatural, idDestino, mantenerEscribiendo } from '../_shared/wa.ts'
 import { responder } from '../_shared/bot.ts'
+import { describirImagen, transcribir } from '../_shared/medios.ts'
+
+/* Cuánto se espera antes de contestar. La gente reparte una idea en tres o
+   cuatro mensajes seguidos: si se responde al primero, Valentina interrumpe,
+   se atropella y cuesta una llamada al modelo por cada uno. Se espera a que
+   termine, y el indicador de "escribiendo" hace que la pausa se lea natural. */
+const ESPERA_A_QUE_TERMINE_MS = 8_000
 
 const ok = (cuerpo: unknown = { ok: true }) =>
   new Response(JSON.stringify(cuerpo), { status: 200, headers: { 'Content-Type': 'application/json' } })
 
-/** Meta firma cada entrega; sin esto cualquiera podría escribirle a tus clientas. */
+/** Meta firma cada entrega; sin esto cualquiera podría escribirle a tus clientes. */
 async function firmaValida(crudo: string, cabecera: string | null): Promise<boolean> {
   const secreto = Deno.env.get('WA_APP_SECRET')
   if (!secreto) {
@@ -81,16 +88,48 @@ Deno.serve(async (req: Request) => {
   const mensaje = valor.messages?.[0]
   if (!mensaje) return ok({ ok: true, ignorado: 'sin mensajes' })
 
-  const telefono = normalizarTelefono(mensaje.from)
+  /* `from` no siempre viene: con el despliegue de nombres de usuario de Meta
+     puede llegar vacío y el cliente identificarse con un BSUID ("CO.106…")
+     en from_user_id. Sin esto la conversación se guarda huérfana y no se le
+     puede responder. Se usa || y no ??: Meta manda cadena vacía, no null. */
+  const telefono = idDestino(
+    mensaje.from
+    || valor.contacts?.[0]?.wa_id
+    || mensaje.from_user_id          // BSUID: cuentas con nombre de usuario
+    || valor.contacts?.[0]?.user_id
+    || '',
+  )
   const nombre = valor.contacts?.[0]?.profile?.name ?? null
   const texto = mensaje.text?.body
     ?? mensaje.button?.text
     ?? mensaje.interactive?.button_reply?.title
     ?? mensaje.interactive?.list_reply?.title
+    ?? mensaje.image?.caption          // "así en plata cuanto" viene como pie de foto
     ?? null
 
+  /* El número NUESTRO al que le escribieron. La app puede tener varios
+     colgando del mismo webhook; si se responde siempre por el de la
+     variable de entorno, se contesta desde el número equivocado. */
+  const numeroPropio = valor.metadata?.phone_number_id ?? null
+
+  /* Nota de voz y foto: llega sólo el id del archivo. Interpretarlo toma más
+     de lo que Meta espera, así que aquí no se hace; se hace en segundo plano.
+
+     La foto importa tanto como el texto: los clientes mandan la referencia y
+     escriben "así en plata cuánto" señalándola. */
+  const idAudio = mensaje.audio?.id ?? null
+  const idImagen = mensaje.image?.id ?? null
+
+  if (!telefono) {
+    console.error('Mensaje sin remitente identificable; no se guarda:', JSON.stringify(mensaje).slice(0, 300))
+    return ok({ ok: true, ignorado: 'sin remitente' })
+  }
+
+  /* El insert es también el candado contra reentregas: wa_message_id tiene
+     índice único. Si Meta reintenta —y reintenta cada vez que tardamos—, el
+     insert choca y paramos aquí, en vez de contestarle dos veces al cliente. */
   const db = admin()
-  await db.from('whatsapp_conversaciones').insert({
+  const { data: guardado, error: fallo } = await db.from('whatsapp_conversaciones').insert({
     phone_number: telefono,
     role: 'user',
     content: texto ?? `[${mensaje.type}]`,
@@ -98,28 +137,87 @@ Deno.serve(async (req: Request) => {
     media_url: null,
     wa_message_id: mensaje.id,
     is_read: false,
-  })
+    wa_phone_id: numeroPropio,
+  }).select('created_at').single()
+
+  if (fallo) {
+    if (fallo.code === '23505') return ok({ ok: true, ignorado: 'reentrega de Meta' })
+    console.error('No se pudo guardar el mensaje entrante:', fallo.message)
+    return ok({ ok: true, ignorado: 'no se pudo guardar' })
+  }
 
   if (nombre) {
     await db.from('customers')
       .upsert({ name: nombre, phone: telefono }, { onConflict: 'phone', ignoreDuplicates: true })
   }
 
-  // Sin texto que interpretar —una foto, un audio—, la IA no adivina: lo deja
-  // en la bandeja para que lo vea una persona.
-  if (!texto) return ok({ ok: true, guardado: true, sinRespuesta: 'mensaje no textual' })
+  // Un sticker, una ubicación, un contacto: nada que interpretar. Queda en la
+  // bandeja para que lo vea una persona.
+  if (!texto && !idAudio && !idImagen) {
+    return ok({ ok: true, guardado: true, sinRespuesta: 'mensaje no interpretable' })
+  }
 
   if (await enModoManual(telefono)) {
     return ok({ ok: true, guardado: true, sinRespuesta: 'la conversación la lleva una persona' })
   }
 
+  /* Acuse de lectura y "escribiendo…" mientras el modelo piensa. Se
+     refresca solo, porque el indicador de Meta expira a los 25 segundos y
+     un turno con herramientas puede tardar más. */
+  const dejarDeEscribir = mantenerEscribiendo(mensaje.id, numeroPropio)
+
   // 4. Valentina responde en segundo plano; a Meta se le contesta ya.
   const trabajo = (async () => {
     try {
-      const respuesta = await responder(telefono)
-      if (respuesta) await enviarTexto(telefono, respuesta, 'ia')
+      /* El audio y la foto se interpretan acá y se reescribe la fila, para que
+         `responder` lea lo que el cliente quiso decir y no un "[audio]". */
+      if (idAudio) {
+        const dicho = await transcribir(idAudio)
+        if (!dicho && !texto) return             // se queda en la bandeja
+        if (dicho) {
+          await db.from('whatsapp_conversaciones')
+            .update({ content: `🎤 ${dicho}` })
+            .eq('wa_message_id', mensaje.id)
+        }
+      }
+
+      if (idImagen) {
+        const visto = await describirImagen(idImagen)
+        if (!visto && !texto) return             // se queda en la bandeja
+        if (visto) {
+          /* Se guarda la descripción junto al pie de foto: el pie es lo que
+             el cliente escribió, y la descripción es lo que Valentina "vio". */
+          const contenido = texto ? `📷 ${visto}\n\n"${texto}"` : `📷 ${visto}`
+          await db.from('whatsapp_conversaciones')
+            .update({ content: contenido })
+            .eq('wa_message_id', mensaje.id)
+        }
+      }
+
+      /* Se espera a que el cliente termine de escribir. Si mientras tanto
+         llegó otro mensaje suyo, esta invocación se retira: la que atendió al
+         último es la que va a responder, con todo el contexto junto. */
+      await new Promise((r) => setTimeout(r, ESPERA_A_QUE_TERMINE_MS))
+
+      const { data: masNuevos } = await db.from('whatsapp_conversaciones')
+        .select('wa_message_id')
+        .eq('phone_number', telefono)
+        .eq('role', 'user')
+        .gt('created_at', guardado!.created_at)
+        .limit(1)
+
+      if (masNuevos?.length) {
+        console.log('Siguió escribiendo; responde la siguiente invocación')
+        return
+      }
+
+      const respuesta = await responder(telefono, numeroPropio)
+      if (respuesta) await enviarTextoNatural(telefono, respuesta, 'ia', numeroPropio, mensaje.id)
     } catch (e) {
       console.error('Valentina falló:', e instanceof Error ? e.message : e)
+    } finally {
+      // Que no quede "escribiendo…" para siempre si algo falla.
+      dejarDeEscribir()
     }
   })()
 

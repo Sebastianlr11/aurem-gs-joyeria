@@ -621,7 +621,7 @@ const ProductPage = () => {
         },
     };
 
-    /* La talla solo tiene sentido en anillos y es un dato de la clienta,
+    /* La talla solo tiene sentido en anillos y es un dato del cliente,
        no del producto: viaja en el mensaje de WhatsApp y se confirma antes
        de enviar, porque el checkout todavía no la captura. */
     const esAnillo = product.category === 'Anillos';
