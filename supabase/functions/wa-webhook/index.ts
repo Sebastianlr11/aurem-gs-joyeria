@@ -17,8 +17,10 @@ const ok = (cuerpo: unknown = { ok: true }) =>
 async function firmaValida(crudo: string, cabecera: string | null): Promise<boolean> {
   const secreto = Deno.env.get('WA_APP_SECRET')
   if (!secreto) {
-    console.warn('WA_APP_SECRET sin configurar: no se está verificando la firma')
-    return true
+    // Falla cerrado. Este endpoint es público: sin secreto, cualquiera podría
+    // fabricar mensajes entrantes y hacer que el bot conteste o cree pedidos.
+    console.error('WA_APP_SECRET sin configurar: se rechaza todo hasta que exista')
+    return false
   }
   if (!cabecera?.startsWith('sha256=')) return false
 

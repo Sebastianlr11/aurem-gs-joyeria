@@ -2671,9 +2671,7 @@ const NotesSection = () => {
 /* ─── SettingsSection ────────────────────────────────────────────── */
 const SettingsSection = () => {
     const [webhookUrl, setWebhookUrl] = useState(() => localStorage.getItem('admin_webhook_url') || '');
-    const [chatWebhookUrl, setChatWebhookUrl] = useState(() => localStorage.getItem('admin_chat_webhook_url') || '');
     const [saved, setSaved] = useState(false);
-    const [chatSaved, setChatSaved] = useState(false);
     const [testing, setTesting] = useState(false);
     const [testResult, setTestResult] = useState('');
     const [quickReplies, setQuickReplies] = useState(() => localStorage.getItem('admin_quick_replies') || '📦 En camino|Tu pedido esta en camino, pronto lo recibiras!\n📋 Catalogo|Visita nuestro catalogo completo en auremgs.com/catalogo\n🕐 Horario|Nuestro horario de atencion es de lunes a sabado, 9am a 6pm.\n💍 Talla|Para anillos necesitamos tu talla. Guia: auremgs.com/guia-de-tallas\n🙏 Gracias|Gracias por tu compra! Esperamos que disfrutes tu pieza.\n⏳ Entrega|El tiempo de entrega es de 2-3 dias habiles en Bogota, 3-5 en otras ciudades.');
@@ -2744,12 +2742,6 @@ const SettingsSection = () => {
         localStorage.setItem('admin_webhook_url', webhookUrl.trim());
         setSaved(true);
         setTimeout(() => setSaved(false), 2000);
-    };
-
-    const handleSaveChat = () => {
-        localStorage.setItem('admin_chat_webhook_url', chatWebhookUrl.trim());
-        setChatSaved(true);
-        setTimeout(() => setChatSaved(false), 2000);
     };
 
     const handleSaveQuickReplies = () => {
@@ -2989,35 +2981,7 @@ const SettingsSection = () => {
             </div>
 
             {/* Chat webhook */}
-            <div className="admin-card" style={{ maxWidth: 600 }}>
-                <div className="admin-card-head">
-                    <h3 className="admin-card-title">
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-                            Webhook Respuesta Manual (Chat)
-                        </span>
-                    </h3>
-                </div>
-                <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: '1rem', lineHeight: 1.5 }}>
-                    Permite enviar respuestas manuales a clientes desde el panel de Conversaciones. Se enviará un POST con phone y message.
-                </p>
-                <div className="modal-field">
-                    <label>URL del webhook de chat</label>
-                    <input
-                        value={chatWebhookUrl}
-                        onChange={e => setChatWebhookUrl(e.target.value)}
-                        placeholder="http://localhost:5678/webhook/respuesta-manual-admin"
-                        style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}
-                    />
-                </div>
-                <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem', alignItems: 'center' }}>
-                    <button className="admin-btn" onClick={handleSaveChat}>
-                        {chatSaved ? 'Guardado!' : 'Guardar'}
-                    </button>
-                </div>
-            </div>
-
-            {/* Quick replies */}
+                        {/* Quick replies */}
             <div className="admin-card" style={{ maxWidth: 600 }}>
                 <div className="admin-card-head">
                     <h3 className="admin-card-title">

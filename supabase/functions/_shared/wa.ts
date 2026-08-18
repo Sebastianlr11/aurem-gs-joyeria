@@ -63,6 +63,49 @@ export async function enviarTexto(
   return { ok: true, wamid }
 }
 
+/** Manda una foto del catálogo con su pie, como hacía el flujo de n8n. */
+export async function enviarImagen(
+  telefono: string,
+  urlImagen: string,
+  pie: string,
+  enviadoPor: 'ia' | 'humano',
+): Promise<{ ok: boolean; wamid?: string; error?: string }> {
+  const token = Deno.env.get('WA_TOKEN')
+  const phoneId = Deno.env.get('WA_PHONE_NUMBER_ID')
+  if (!token || !phoneId) return { ok: false, error: 'Faltan WA_TOKEN o WA_PHONE_NUMBER_ID' }
+
+  const para = normalizarTelefono(telefono)
+  const res = await fetch(`${GRAFO}/${phoneId}/messages`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      messaging_product: 'whatsapp',
+      recipient_type: 'individual',
+      to: para,
+      type: 'image',
+      image: { link: urlImagen, caption: pie || undefined },
+    }),
+  })
+
+  const cuerpo = await res.json().catch(() => ({}))
+  const fila = {
+    phone_number: para, role: 'assistant', content: pie,
+    message_type: 'image', media_url: urlImagen, enviado_por: enviadoPor,
+  }
+
+  if (!res.ok) {
+    const error = cuerpo?.error?.message || `HTTP ${res.status}`
+    console.error('Meta rechazó la imagen:', error)
+    await admin().from('whatsapp_conversaciones').insert({ ...fila, delivery_status: 'failed' })
+    return { ok: false, error }
+  }
+
+  const wamid = cuerpo?.messages?.[0]?.id ?? null
+  await admin().from('whatsapp_conversaciones')
+    .insert({ ...fila, delivery_status: 'sent', wa_message_id: wamid })
+  return { ok: true, wamid }
+}
+
 /** ¿Está esta conversación en manos de una persona? Entonces la IA calla. */
 export async function enModoManual(telefono: string): Promise<boolean> {
   const { data } = await admin()
