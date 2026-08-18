@@ -9394,6 +9394,27 @@ textarea:focus-visible {
   }
 }
 
+@media (max-width: 768px) {
+  /* El chat medía 100vh menos la barra superior de escritorio (64px). En
+     móvil esa barra son 52px y además hay 60px de barra inferior fija
+     encima, así que el campo para escribir quedaba tapado. Con dvh el
+     alto también sigue a la barra del navegador cuando aparece y se va. */
+  .chat-panel {
+    height: calc(100dvh - 52px - 60px - env(safe-area-inset-bottom));
+  }
+
+  /* Seis botones más el nombre no entran en una línea de 375px. */
+  .chat-conv-header {
+    flex-wrap: wrap;
+    row-gap: 10px;
+  }
+  .chat-conv-header-actions {
+    margin-left: 0;
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
 /* ─── Unread badge ─────────────────────────────────────────────── */
 .chat-unread-badge {
   min-width: 20px;
@@ -10473,8 +10494,22 @@ textarea:focus-visible {
 
 /* ─── Responsive additions ─────────────────────────────────────── */
 @media (max-width: 900px) {
+  /* En escritorio la ficha del contacto va al costado. En móvil no cabe,
+     y ocultarla dejaba el dato inalcanzable: pasa a cubrir la pantalla,
+     por encima de la barra inferior, y se cierra con su propia aspa. */
   .chat-info-panel {
-    display: none;
+    position: fixed;
+    inset: 0;
+    width: auto;
+    border-left: 0;
+    z-index: 1200;
+    animation: none;
+  }
+  .chat-info-panel-header {
+    position: sticky;
+    top: 0;
+    background: inherit;
+    z-index: 1;
   }
   .chat-quick-replies {
     min-width: 240px;

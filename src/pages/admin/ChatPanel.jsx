@@ -1087,9 +1087,9 @@ const ChatPanel = () => {
                                             title={isTakeover ? 'Devolver al agente IA' : 'Tomar control manual'}
                                         >
                                             {isTakeover ? (
-                                                <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a4 4 0 014 4c0 1.95-2 4-4 6-2-2-4-4.05-4-6a4 4 0 014-4z"/><path d="M4.93 13.5a8 8 0 0014.14 0"/><path d="M12 18v4"/></svg> Devolver a IA</>
+                                                <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a4 4 0 014 4c0 1.95-2 4-4 6-2-2-4-4.05-4-6a4 4 0 014-4z"/><path d="M4.93 13.5a8 8 0 0014.14 0"/><path d="M12 18v4"/></svg> <span>Devolver a IA</span></>
                                             ) : (
-                                                <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Tomar control</>
+                                                <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> <span>Tomar control</span></>
                                             )}
                                         </button>
                                         <div className="chat-export-dropdown" ref={exportMenuRef} style={{position:'relative'}}>

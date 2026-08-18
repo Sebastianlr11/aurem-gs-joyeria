@@ -2679,6 +2679,9 @@ const NotesSection = () => {
 const PrecioOroCard = () => {
     const [precios, setPrecios] = useState(null);
     const [gramo, setGramo] = useState('');
+    const [recargoTxt, setRecargoTxt] = useState('');
+    const [minimoTxt, setMinimoTxt] = useState('');
+    const [abierto, setAbierto] = useState(false);
     const [guardando, setGuardando] = useState(false);
     const [aviso, setAviso] = useState({ tipo: '', msg: '' });
 
@@ -2690,6 +2693,8 @@ const PrecioOroCard = () => {
                 if (!data) return;
                 setPrecios(data);
                 setGramo(String(Math.round(Number(data.precio_gramo_oro))));
+                setRecargoTxt(String(Math.round(Number(data.recargo_por_gramo))));
+                setMinimoTxt(String(Number(data.gramos_minimos)));
             });
     }, []);
 
@@ -2697,10 +2702,22 @@ const PrecioOroCard = () => {
 
     const guardar = async () => {
         const valor = Number(String(gramo).replace(/[^\d]/g, ''));
+        const recargoNuevo = Number(String(recargoTxt).replace(/[^\d]/g, ''));
+        const minimoNuevo = Number(String(minimoTxt).replace(/[^\d.,]/g, '').replace(',', '.'));
+
         if (!valor || valor <= 0) {
             setAviso({ tipo: 'error', msg: 'Escribe el precio del gramo, sólo números.' });
             return;
         }
+        if (!recargoNuevo || recargoNuevo <= 0) {
+            setAviso({ tipo: 'error', msg: 'El recargo por gramo no puede quedar vacío ni en cero.' });
+            return;
+        }
+        if (!minimoNuevo || minimoNuevo <= 0) {
+            setAviso({ tipo: 'error', msg: 'El mínimo de gramos no puede quedar vacío ni en cero.' });
+            return;
+        }
+
         setGuardando(true);
         setAviso({ tipo: '', msg: '' });
 
@@ -2708,6 +2725,8 @@ const PrecioOroCard = () => {
         const { error } = await supabase.from('taller_precios')
             .update({
                 precio_gramo_oro: valor,
+                recargo_por_gramo: recargoNuevo,
+                gramos_minimos: minimoNuevo,
                 actualizado_en: new Date().toISOString(),
                 actualizado_por: sesion?.user?.email ?? null,
             })
@@ -2724,7 +2743,8 @@ const PrecioOroCard = () => {
 
     if (!precios) return null;
 
-    const recargo = Number(precios.recargo_por_gramo);
+    const recargo = Number(String(recargoTxt).replace(/[^\d]/g, '')) || 0;
+    const minimo = Number(String(minimoTxt).replace(/[^\d.,]/g, '').replace(',', '.')) || 0;
     const porGramo = (Number(String(gramo).replace(/[^\d]/g, '')) || 0) + recargo;
     const dias = Math.floor((Date.now() - new Date(precios.actualizado_en).getTime()) / 86400000);
     const viejo = dias >= 3;
@@ -2780,13 +2800,58 @@ const PrecioOroCard = () => {
                     </div>
                     <div style={{ color: '#666', marginTop: '0.4rem' }}>
                         Un anillo de 10 gramos saldría en {pesos(porGramo * 10)}.
-                        Desde {precios.gramos_minimos} gramos; por debajo lo cotiza una persona.
+                        Desde {minimo} gramos; por debajo lo cotiza una persona.
                     </div>
                 </div>
 
+                <button
+                    type="button"
+                    onClick={() => setAbierto(!abierto)}
+                    style={{
+                        background: 'none', border: 0, padding: 0, cursor: 'pointer',
+                        font: 'inherit', fontSize: '0.82rem', color: 'var(--oro-ink, #7A5F26)',
+                        textAlign: 'left', textDecoration: 'underline', textUnderlineOffset: 3,
+                    }}
+                >
+                    {abierto ? 'Ocultar' : 'Cambiar'} el recargo del taller y el mínimo de gramos
+                </button>
+
+                {abierto && (
+                    <div style={{ display: 'grid', gap: '0.85rem' }}>
+                        <div className="modal-field">
+                            <label>Recargo por gramo (COP)</label>
+                            <input
+                                type="text"
+                                inputMode="numeric"
+                                value={recargoTxt}
+                                onChange={e => setRecargoTxt(e.target.value)}
+                                placeholder="118000"
+                            />
+                            <p style={{ fontSize: '0.78rem', color: '#666', margin: '0.3rem 0 0' }}>
+                                Cubre diseño, fundición, terminado y la ganancia del taller.
+                                Cambia pocas veces: sólo si cambia cómo se cobra el trabajo.
+                            </p>
+                        </div>
+                        <div className="modal-field">
+                            <label>Mínimo de gramos para cotizar por peso</label>
+                            <input
+                                type="text"
+                                inputMode="decimal"
+                                value={minimoTxt}
+                                onChange={e => setMinimoTxt(e.target.value)}
+                                placeholder="5"
+                            />
+                            <p style={{ fontSize: '0.78rem', color: '#666', margin: '0.3rem 0 0' }}>
+                                Por debajo de este peso la merma se come la ganancia, así que
+                                Valentina no cotiza: pasa la conversación a una persona.
+                            </p>
+                        </div>
+                    </div>
+                )}
+
                 <div>
                     <button className="admin-btn" onClick={guardar} disabled={guardando}>
-                        {guardando ? 'Guardando…' : 'Guardar precio'}
+                        {guardando ? 'Guardando…' : 'Guardar'}
                     </button>
                 </div>
 
