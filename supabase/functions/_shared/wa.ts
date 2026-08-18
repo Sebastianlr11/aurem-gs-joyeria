@@ -14,7 +14,7 @@ export const admin = (): SupabaseClient => createClient(
 )
 
 /**
- * Cómo se identifica una clienta. Puede ser un teléfono o, desde el
+ * Cómo se identifica un cliente. Puede ser un teléfono o, desde el
  * despliegue de nombres de usuario de Meta, un BSUID como "CO.1062192…".
  * Al teléfono se le quitan separadores; al BSUID NO se le toca nada,
  * porque el prefijo forma parte del identificador.
@@ -29,9 +29,20 @@ export const idDestino = (v: string): string => {
 export const normalizarTelefono = idDestino
 
 /**
+ * Cómo nombrar al destinatario en el cuerpo de la petición.
+ *
+ * Meta NO acepta un BSUID en `to`: ese campo espera un teléfono, y responde
+ * (#131009) Parameter value is not valid. El BSUID va en `recipient`, y
+ * entonces `to` se omite. Si se mandan los dos, `to` tiene precedencia.
+ * https://developers.facebook.com/documentation/business-messaging/whatsapp/business-scoped-user-ids/
+ */
+const paraQuien = (destino: string): Record<string, string> =>
+  /^\d+$/.test(destino) ? { to: destino } : { recipient: destino }
+
+/**
  * ¿Por cuál de NUESTROS números va esta conversación? Se mira el último
  * mensaje que lo dejó anotado. Sin esto, el panel responde por el número
- * por defecto aunque la clienta haya escrito a otro.
+ * por defecto aunque el cliente haya escrito a otro.
  */
 export async function numeroPropioDe(telefono: string): Promise<string | null> {
   const { data } = await admin()
@@ -70,7 +81,7 @@ export async function enviarTexto(
     body: JSON.stringify({
       messaging_product: 'whatsapp',
       recipient_type: 'individual',
-      to: para,
+      ...paraQuien(para),
       type: 'text',
       text: { preview_url: false, body: texto },
     }),
@@ -116,7 +127,7 @@ export async function enviarImagen(
     body: JSON.stringify({
       messaging_product: 'whatsapp',
       recipient_type: 'individual',
-      to: para,
+      ...paraQuien(para),
       type: 'image',
       image: { link: urlImagen, caption: pie || undefined },
     }),
