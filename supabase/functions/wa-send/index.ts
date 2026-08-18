@@ -43,7 +43,7 @@ Deno.serve(async (req: Request) => {
   if (!telefono) return json({ error: 'Falta el teléfono' }, 400)
   if (!texto && !imagenUrl) return json({ error: 'El mensaje viene vacío' }, 400)
 
-  // Se responde por el mismo número al que la clienta escribió, no por el
+  // Se responde por el mismo número al que el cliente escribió, no por el
   // de la variable de entorno.
   const desdeId = await numeroPropioDe(telefono)
 

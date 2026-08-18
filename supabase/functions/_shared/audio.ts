@@ -1,5 +1,5 @@
 /**
- * Notas de voz. Las clientas mandan audios constantemente, y hasta ahora
+ * Notas de voz. Los clientes mandan audios constantemente, y hasta ahora
  * el bot los guardaba como "[audio]" y se callaba.
  *
  * El recorrido: Meta guarda el archivo y sólo da un id → se pide la URL

@@ -90,7 +90,7 @@ const Hero = () => {
                         <figure className="hero-frame">
                             <img
                                 src="/assets/pen-hero.jpg"
-                                alt="Anillo de oro con diamante en la mano de una clienta de Aurem Gs Joyería"
+                                alt="Anillo de oro con diamante en la mano de un cliente de Aurem Gs Joyería"
                                 width="928"
                                 height="1152"
                             />

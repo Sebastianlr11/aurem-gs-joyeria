@@ -13272,12 +13272,12 @@ textarea:focus-visible {
 .ped-tabla tbody tr { transition: background 0.3s var(--ease); }
 .ped-tabla tbody tr:hover { background: var(--bg-marfil); }
 
-.ped-clienta {
+.ped-cliente {
   display: block; border: 0; background: transparent; padding: 0; cursor: pointer;
   font-family: inherit; font-size: 0.92rem; font-weight: 700; color: var(--ink);
   text-align: left; transition: color 0.3s var(--ease);
 }
-.ped-clienta:hover { color: var(--oro-ink); }
+.ped-cliente:hover { color: var(--oro-ink); }
 .ped-pieza { display: block; font-size: 0.88rem; color: var(--ink); }
 .ped-meta {
   display: flex; align-items: center; gap: 0.4rem; margin-top: 3px;
@@ -13538,7 +13538,7 @@ textarea:focus-visible {
 .od-action-btn--edit:hover { background: var(--ink-soft); border-color: var(--ink-soft); }
 
 /* Clientes reusa la pantalla de Pedidos; sólo añade lo suyo */
-.ped-clienta-nombre { display: block; font-size: 0.92rem; font-weight: 700; color: var(--ink); }
+.ped-cliente-nombre { display: block; font-size: 0.92rem; font-weight: 700; color: var(--ink); }
 .cli-vuelve {
   padding: 0.1rem 0.5rem;
   border-radius: 100px;

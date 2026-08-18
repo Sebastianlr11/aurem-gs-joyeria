@@ -1,6 +1,6 @@
 /**
  * Webhook de la Cloud API de Meta.
- * Recibe los mensajes de las clientas y los acuses de entrega, y despierta
+ * Recibe los mensajes de los clientes y los acuses de entrega, y despierta
  * a Valentina. Sustituye al flujo de n8n.
  *
  * Meta corta a los 20 segundos y reintenta si no ve un 200, así que se
@@ -14,7 +14,7 @@ import { transcribir } from '../_shared/audio.ts'
 const ok = (cuerpo: unknown = { ok: true }) =>
   new Response(JSON.stringify(cuerpo), { status: 200, headers: { 'Content-Type': 'application/json' } })
 
-/** Meta firma cada entrega; sin esto cualquiera podría escribirle a tus clientas. */
+/** Meta firma cada entrega; sin esto cualquiera podría escribirle a tus clientes. */
 async function firmaValida(crudo: string, cabecera: string | null): Promise<boolean> {
   const secreto = Deno.env.get('WA_APP_SECRET')
   if (!secreto) {
@@ -83,7 +83,7 @@ Deno.serve(async (req: Request) => {
   if (!mensaje) return ok({ ok: true, ignorado: 'sin mensajes' })
 
   /* `from` no siempre viene: con el despliegue de nombres de usuario de Meta
-     puede llegar vacío y la clienta identificarse con un BSUID ("CO.106…")
+     puede llegar vacío y el cliente identificarse con un BSUID ("CO.106…")
      en from_user_id. Sin esto la conversación se guarda huérfana y no se le
      puede responder. Se usa || y no ??: Meta manda cadena vacía, no null. */
   const telefono = idDestino(
@@ -116,7 +116,7 @@ Deno.serve(async (req: Request) => {
 
   /* El insert es también el candado contra reentregas: wa_message_id tiene
      índice único. Si Meta reintenta —y reintenta cada vez que tardamos—, el
-     insert choca y paramos aquí, en vez de contestarle dos veces a la clienta. */
+     insert choca y paramos aquí, en vez de contestarle dos veces al cliente. */
   const db = admin()
   const { error: fallo } = await db.from('whatsapp_conversaciones').insert({
     phone_number: telefono,
@@ -152,7 +152,7 @@ Deno.serve(async (req: Request) => {
   const trabajo = (async () => {
     try {
       /* La nota de voz se transcribe aquí y se reescribe la fila, para que
-         `responder` lea lo que dijo la clienta y no un "[audio]". */
+         `responder` lea lo que dijo el cliente y no un "[audio]". */
       if (!texto) {
         const dicho = await transcribir(idAudio!)
         if (!dicho) return                       // se queda en la bandeja

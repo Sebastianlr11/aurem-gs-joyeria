@@ -641,7 +641,7 @@ const DashboardHome = ({ products, orders, customers, waStats, chatsPendientes, 
     const porDespachar = orders.filter(o => o.status === 'pagado' || o.status === 'procesando').length;
     const sinResponder = chatsPendientes.length;
 
-    const clientasNuevas = customers.filter(c => new Date(c.created_at) >= hace30).length;
+    const clientesNuevos = customers.filter(c => new Date(c.created_at) >= hace30).length;
     const conInventario = products.filter(p => p.stock !== null && p.stock !== undefined).length;
 
     const pendiente = porConfirmar + porDespachar + sinResponder;
@@ -689,7 +689,7 @@ const DashboardHome = ({ products, orders, customers, waStats, chatsPendientes, 
         },
         {
             t: 'Dejar listo el mensaje de bienvenida de WhatsApp',
-            s: 'Es el primer contacto de casi toda clienta que llega del anuncio',
+            s: 'Es el primer contacto de casi todo cliente que llega del anuncio',
             hecho: false,
             accion: 'Abrir conversaciones →', ir: () => onNavigate('chat'),
         },
@@ -700,7 +700,7 @@ const DashboardHome = ({ products, orders, customers, waStats, chatsPendientes, 
     const cifras = [
         { v: products.length, l: 'Piezas publicadas' },
         { v: pedidos30.length, l: 'Pedidos del periodo' },
-        { v: clientasNuevas, l: 'Clientas nuevas' },
+        { v: clientesNuevos, l: 'Clientes nuevos' },
         { v: waStats.mensajesHoy, l: 'Mensajes hoy' },
         { v: waStats.conversacionesActivas, l: 'Chats activos' },
     ];
@@ -1353,10 +1353,10 @@ const OrdersSection = ({ orders, products, loading, onRefresh }) => {
                     <label className="ped-buscar">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                         <input
-                            placeholder="Buscar clienta o pieza"
+                            placeholder="Buscar cliente o pieza"
                             value={search}
                             onChange={e => setSearchAndReset(e.target.value)}
-                            aria-label="Buscar clienta o pieza"
+                            aria-label="Buscar cliente o pieza"
                         />
                     </label>
                 </div>
@@ -1380,7 +1380,7 @@ const OrdersSection = ({ orders, products, loading, onRefresh }) => {
                         <table className="ped-tabla">
                             <thead>
                                 <tr>
-                                    <th>Clienta</th>
+                                    <th>Cliente</th>
                                     <th>Pieza</th>
                                     <th className="ped-th-num">Monto</th>
                                     <th>Estado</th>
@@ -1395,7 +1395,7 @@ const OrdersSection = ({ orders, products, loading, onRefresh }) => {
                                     return (
                                         <tr key={o.id}>
                                             <td>
-                                                <button className="ped-clienta" onClick={() => setModal({ type: 'detail', order: o })}>
+                                                <button className="ped-cliente" onClick={() => setModal({ type: 'detail', order: o })}>
                                                     {o.customer_name}
                                                 </button>
                                                 <span className="ped-meta">
@@ -1603,7 +1603,7 @@ const CustomersSection = ({ customers, orders = [], loading, onRefresh }) => {
     const closeModal = () => setModal(null);
     const afterSave  = () => { closeModal(); onRefresh(); };
 
-    /* Cada clienta con lo que ha comprado. Los pedidos se cruzan por
+    /* Cada cliente con lo que ha comprado. Los pedidos se cruzan por
        teléfono —lo único que siempre llega desde WhatsApp— y, si no hay,
        por correo o por nombre exacto. */
     const soloDigitos = (t) => String(t || '').replace(/\D/g, '').slice(-10);
@@ -1660,7 +1660,7 @@ const CustomersSection = ({ customers, orders = [], loading, onRefresh }) => {
                     </p>
                 </div>
                 <button className="btn-pill black" onClick={() => setModal({ type: 'add' })}>
-                    Registrar una clienta
+                    Registrar un cliente
                 </button>
             </header>
 
@@ -1685,7 +1685,7 @@ const CustomersSection = ({ customers, orders = [], loading, onRefresh }) => {
 
             <section className="ped-panel">
                 <div className="ped-toolbar">
-                    <div className="riel" role="group" aria-label="Filtrar clientas">
+                    <div className="riel" role="group" aria-label="Filtrar clientes">
                         {[['todas', 'Todas'], ['con_pedido', 'Han comprado'], ['repiten', 'Vuelven'], ['sin_pedido', 'Sin pedidos']].map(([v, l]) => (
                             <button
                                 key={v}
@@ -1704,18 +1704,18 @@ const CustomersSection = ({ customers, orders = [], loading, onRefresh }) => {
                             placeholder="Nombre, teléfono, correo o ciudad"
                             value={search}
                             onChange={e => setSearch(e.target.value)}
-                            aria-label="Buscar clienta"
+                            aria-label="Buscar cliente"
                         />
                     </label>
                 </div>
 
                 {loading ? (
-                    <p className="ped-vacio">Cargando clientas…</p>
+                    <p className="ped-vacio">Cargando clientes…</p>
                 ) : visible.length === 0 ? (
                     <div className="ped-vacio-bloque">
                         <span className="ped-vacio-icono">✦</span>
                         <p className="ped-vacio-t">
-                            {customers.length === 0 ? 'Todavía no hay clientas' : 'Ninguna coincide con ese filtro'}
+                            {customers.length === 0 ? 'Todavía no hay clientes' : 'Ninguno coincide con ese filtro'}
                         </p>
                         {customers.length === 0 && (
                             <button className="btn-pill light" onClick={() => setModal({ type: 'add' })}>
@@ -1728,7 +1728,7 @@ const CustomersSection = ({ customers, orders = [], loading, onRefresh }) => {
                         <table className="ped-tabla">
                             <thead>
                                 <tr>
-                                    <th>Clienta</th>
+                                    <th>Cliente</th>
                                     <th>Contacto</th>
                                     <th className="ped-th-num">Pedidos</th>
                                     <th className="ped-th-num">Ha gastado</th>
@@ -1740,7 +1740,7 @@ const CustomersSection = ({ customers, orders = [], loading, onRefresh }) => {
                                 {visible.map(c => (
                                     <tr key={c.id}>
                                         <td>
-                                            <span className="ped-clienta-nombre">{c.name}</span>
+                                            <span className="ped-cliente-nombre">{c.name}</span>
                                             <span className="ped-meta">
                                                 {c.city || 'Sin ciudad'}
                                                 {c.pedidos > 1 && <span className="cli-vuelve">Vuelve</span>}
@@ -2369,7 +2369,7 @@ const ReportsSection = ({ orders, products = [], onNavigate }) => {
                     {newVsReturning && (
                         <article className="inf-panel">
                             <div className="inf-panel-head">
-                                <h2 className="inf-panel-titulo">Clientas</h2>
+                                <h2 className="inf-panel-titulo">Clientes</h2>
                                 <span className="inf-panel-sub">Nuevas y que vuelven</span>
                             </div>
                             {(() => {
@@ -3063,7 +3063,7 @@ const Dashboard = () => {
     const navigate = useNavigate();
 
     /* Una conversación está sin responder cuando su último mensaje es de la
-       clienta. El campo is_read no se mantiene, así que no sirve para esto. */
+       cliente. El campo is_read no se mantiene, así que no sirve para esto. */
     const fetchChatsPendientes = useCallback(async () => {
         const { data } = await supabase
             .from('whatsapp_conversaciones')

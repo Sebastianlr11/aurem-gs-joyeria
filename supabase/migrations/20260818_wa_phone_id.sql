@@ -9,7 +9,7 @@ alter table public.whatsapp_conversaciones
 comment on column public.whatsapp_conversaciones.wa_phone_id is
   'phone_number_id de Meta: el número NUESTRO por el que va la conversación.';
 
--- Para resolver rápido "¿por cuál número le respondo a esta clienta?".
+-- Para resolver rápido "¿por cuál número le respondo a este cliente?".
 create index if not exists idx_wa_conv_phone_id
   on public.whatsapp_conversaciones (phone_number, created_at desc)
   where wa_phone_id is not null;

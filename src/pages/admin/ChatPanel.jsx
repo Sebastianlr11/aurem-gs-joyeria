@@ -32,7 +32,7 @@ const ACUSE = {
     sending: 'Enviando…',
     sent: 'Enviado a WhatsApp',
     delivered: 'Entregado en el teléfono',
-    read: 'Leído por la clienta',
+    read: 'Leído por el cliente',
     failed: 'No se pudo enviar',
 };
 const fmtSeparador = (d) => {
@@ -868,7 +868,7 @@ const ChatPanel = () => {
     }, [contacts, searchQuery, takeoverMap, contactFilter, pendingPhones, statusMap]);
 
     /* Cuántas conversaciones esperan respuesta: el último mensaje es de la
-       clienta y la conversación no está archivada ni resuelta. */
+       cliente y la conversación no está archivada ni resuelta. */
     const esperanRespuesta = useMemo(() => contacts.filter(c => {
         const s = statusMap[c.phone_number];
         return c.last_role === 'user' && !s?.is_archived && !s?.is_resolved;
@@ -1221,7 +1221,7 @@ const ChatPanel = () => {
                                                         <h5>{contactCustomer?.name || (contactOrders.length > 0 && contactOrders[0].customer_name) || 'Sin nombre'}</h5>
                                                         <span className="chat-info-phone">
                                                             {activeContact}
-                                                            {messages.length > 0 && ` · Clienta desde ${fmtDate(messages[0].created_at)}`}
+                                                            {messages.length > 0 && ` · Cliente desde ${fmtDate(messages[0].created_at)}`}
                                                         </span>
                                                     </div>
                                                     <span className={`chat-info-modo ${isTakeover ? 'chat-info-modo--manual' : ''}`}>

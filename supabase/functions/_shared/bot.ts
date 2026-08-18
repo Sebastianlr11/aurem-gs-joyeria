@@ -27,7 +27,7 @@ async function catalogo(): Promise<string> {
 
 function instrucciones(piezas: string): string {
   return `Eres Valentina, la asesora de Aurem Gs Joyería, una joyería colombiana.
-Escribes por WhatsApp a clientas reales. Hablas en español de Colombia, con
+Escribes por WhatsApp a clientes reales. Hablas en español de Colombia, con
 cercanía y sin adular. Mensajes cortos: dos o tres frases, salvo que estés
 recapitulando un pedido.
 
@@ -47,7 +47,10 @@ REGLAS QUE NO SE ROMPEN
 5. Cuando los tengas todos, recapitula y usa la herramienta crear_pedido.
 6. Si te piden algo que no puedes resolver —un reclamo, un cambio, un precio
    especial, hablar con una persona— usa escalar_a_humano y dilo con calma.
-7. No prometas descuentos que no estén en esta lista.`
+7. No prometas descuentos que no estén en esta lista.
+8. No des por hecho el género de quien te escribe. Habla en formas neutras
+   ("¿cómo te ayudo?", "quedas atendido/a") y evita "bienvenida", "linda" o
+   "reina". Si te dicen su nombre o cómo prefieren que les hablen, sigue eso.`
 }
 
 const HERRAMIENTAS = [
@@ -55,7 +58,7 @@ const HERRAMIENTAS = [
     type: 'function',
     function: {
       name: 'crear_pedido',
-      description: 'Registra el pedido cuando ya tienes todos los datos confirmados por la clienta.',
+      description: 'Registra el pedido cuando ya tienes todos los datos confirmados por el cliente.',
       parameters: {
         type: 'object',
         properties: {
@@ -104,7 +107,7 @@ async function llamarModelo(mensajes: Mensaje[], herramientas = HERRAMIENTAS) {
   return (await res.json())?.choices?.[0]?.message
 }
 
-/** Ejecuta lo que el modelo pidió y devuelve qué contarle a la clienta. */
+/** Ejecuta lo que el modelo pidió y devuelve qué contarle al cliente. */
 async function ejecutarHerramienta(nombre: string, args: any, telefono: string): Promise<string> {
   const db = admin()
 
@@ -113,7 +116,7 @@ async function ejecutarHerramienta(nombre: string, args: any, telefono: string):
       { phone_number: telefono, is_active: true, admin_email: 'valentina@bot', reason: args?.motivo ?? null },
       { onConflict: 'phone_number' },
     )
-    return 'Dile que en un momento la atiende alguien del equipo. No sigas preguntando.'
+    return 'Dile que en un momento alguien del equipo se comunica. No sigas preguntando.'
   }
 
   if (nombre === 'crear_pedido') {
@@ -142,7 +145,7 @@ async function ejecutarHerramienta(nombre: string, args: any, telefono: string):
 
     if (error) {
       console.error('No se pudo crear el pedido:', error.message)
-      return 'Hubo un problema al registrar el pedido. Discúlpate y dile que alguien la contacta enseguida.'
+      return 'Hubo un problema al registrar el pedido. Discúlpate y dile que alguien del equipo se comunica enseguida.'
     }
     return `Pedido registrado por $${Number(pieza.price).toLocaleString('es-CO')} COP. Confírmaselo y dile los siguientes pasos según el medio de pago.`
   }
