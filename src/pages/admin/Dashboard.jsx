@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import AdminSidebar from './AdminSidebar';
@@ -1795,9 +1795,6 @@ const CustomersSection = ({ customers, orders = [], loading, onRefresh }) => {
 };
 
 /* ─── ReportsSection ─────────────────────────────────────────────── */
-const REPORT_PERIODS = ['7d', '14d', '30d', '90d', 'todo'];
-const REPORT_PERIOD_LABELS = { '7d': '7 días', '14d': '14 días', '30d': '30 días', '90d': '90 días', 'todo': 'Todo' };
-
 const calcMPNet = (amount) => {
     const base = amount * MP_FEE_PERCENT + MP_FEE_FIXED;
     return amount - Math.ceil(base * (1 + MP_IVA) + amount * MP_RETE_FUENTE + amount * MP_RETE_ICA);

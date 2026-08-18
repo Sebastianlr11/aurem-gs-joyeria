@@ -4284,11 +4284,13 @@ textarea:focus-visible {
   margin-bottom: 0.5rem;
 }
 
+/* El isotipo va en oro luz —el mismo que las cifras sobre cacao— y con
+   sitio suficiente para que se lea. Antes era un <img> oscuro que se
+   perdía contra el fondo. */
 .admin-sidebar-logo-img {
-  width: 38px;
-  height: 38px;
-  object-fit: contain;
-  filter: brightness(1.1);
+  width: 52px;
+  height: auto;
+  color: var(--oro-luz);
   flex-shrink: 0;
 }
 
@@ -6736,7 +6738,7 @@ textarea:focus-visible {
     font-size: 0.95rem;
     letter-spacing: 0.04em;
   }
-  .admin-mobile-drawer-logo { width: 28px; height: 28px; border-radius: 8px; }
+  .admin-mobile-drawer-logo { width: 40px; height: auto; color: var(--oro-luz); flex-shrink: 0; }
   .admin-mobile-drawer-close {
     width: 34px;
     height: 34px;
@@ -10948,8 +10950,8 @@ textarea:focus-visible {
 }
 
 .admin-sidebar-logo-img {
-  width: 34px;
-  height: 24px;
+  width: 56px;
+  height: auto;
   color: var(--oro-luz);
 }
 
@@ -11522,11 +11524,6 @@ textarea:focus-visible {
 
 .admin-topbar-icon {
   display: none;
-}
-
-.admin-sidebar-logo-img {
-  height: 24px;
-  width: 34px;
 }
 
 
