@@ -141,6 +141,16 @@ const ChatPanel = () => {
     const [showQuickReplies, setShowQuickReplies] = useState(false);
     const [showImagePicker, setShowImagePicker] = useState(false);
     const [products, setProducts] = useState([]);
+    /* Qué parte de lo enviado lo escribió Valentina. Sólo cuenta los mensajes
+       que llevan el dato: los anteriores al bot propio no lo tienen, y
+       promediarlos con los nuevos daría una cifra falsa. */
+    const respondidoPorIA = (() => {
+        const salientes = messages.filter(m => m.role === 'assistant' && m.enviado_por);
+        if (!salientes.length) return null;
+        const deIA = salientes.filter(m => m.enviado_por === 'ia').length;
+        return `${Math.round((deIA / salientes.length) * 100)} %`;
+    })();
+
     const imagenDePedido = (o) => (
         products.find(p => p.id === o.product_id) || products.find(p => p.name === o.product_name)
     )?.image_url || null;
@@ -1159,7 +1169,7 @@ const ChatPanel = () => {
                                                                 <span>{fmtSeparador(msg.created_at)}</span>
                                                             </div>
                                                         ) : null}
-                                                        <div className={`chat-bubble chat-bubble--${msg.role || 'user'}${msg._failed ? ' chat-bubble--error' : ''}`}>
+                                                        <div className={`chat-bubble chat-bubble--${msg.role || 'user'}${msg.enviado_por === 'humano' ? ' chat-bubble--admin' : ''}${msg._failed ? ' chat-bubble--error' : ''}`}>
                                                             {msg.message_type === 'image' && msg.media_url ? (
                                                                 <img src={msg.media_url} alt="" className="chat-bubble-image chat-bubble-image--clickable" onClick={() => openLightbox(msg.media_url)} />
                                                             ) : null}
@@ -1254,10 +1264,8 @@ const ChatPanel = () => {
                                                         <span className="chat-info-stat-label">Mensajes</span>
                                                     </div>
                                                     <div className="chat-info-stat">
-                                                        <span className="chat-info-stat-value">
-                                                            {messages.length > 0 ? fmtDesde(messages[messages.length - 1].created_at) : '—'}
-                                                        </span>
-                                                        <span className="chat-info-stat-label">Último mensaje</span>
+                                                        <span className="chat-info-stat-value">{respondidoPorIA ?? '—'}</span>
+                                                        <span className="chat-info-stat-label">Resp. por IA</span>
                                                     </div>
                                                 </div>
 
