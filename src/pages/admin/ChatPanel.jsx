@@ -426,7 +426,11 @@ const ChatPanel = () => {
     useEffect(() => {
         if (messages.length > prevMsgCountRef.current) {
             setTimeout(() => {
-                messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+                /* Se desplaza el contenedor, no scrollIntoView: ese arrastra a
+                   TODOS los ancestros desplazables, y en móvil terminaba
+                   moviendo la página entera además de la lista. */
+                const lista = messagesEndRef.current?.parentElement;
+                if (lista) lista.scrollTo({ top: lista.scrollHeight, behavior: 'smooth' });
             }, 50);
         }
         prevMsgCountRef.current = messages.length;

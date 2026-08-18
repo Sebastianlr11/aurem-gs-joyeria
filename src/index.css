@@ -6669,7 +6669,7 @@ textarea:focus-visible {
     bottom: 0;
     left: 0;
     right: 0;
-    height: 60px;
+    height: var(--barra-inferior);
     padding-bottom: env(safe-area-inset-bottom);
     background: #0c1220;
     z-index: 1000;
@@ -6818,7 +6818,14 @@ textarea:focus-visible {
   .admin-mobile-drawer-footer .admin-sidebar-logout:hover { background: rgba(255,255,255,0.1); }
 
   /* ── Topbar ── */
-  .admin-topbar { height: 52px; padding: 0 1rem; }
+  /* El alto de las dos barras vive acá y en ningún otro lado: el chat se
+     ancla entre ellas y si los números se separan, el campo de escribir
+     vuelve a quedar tapado. */
+  :root {
+    --barra-superior: 52px;
+    --barra-inferior: 60px;
+  }
+  .admin-topbar { height: var(--barra-superior); padding: 0 1rem; }
   .admin-topbar-title { font-size: 0.9rem; }
 
   /* ── Spacing ── */
@@ -9395,24 +9402,42 @@ textarea:focus-visible {
 }
 
 @media (max-width: 768px) {
-  /* El chat medía 100vh menos la barra superior de escritorio (64px). En
-     móvil esa barra son 52px y además hay 60px de barra inferior fija
-     encima, así que el campo para escribir quedaba tapado. Con dvh el
-     alto también sigue a la barra del navegador cuando aparece y se va. */
+  /* El chat se ancla entre las dos barras, sin unidades de viewport.
+     Con vh o dvh el alto se recalcula cuando aparece el teclado y cuando
+     se esconde la barra del navegador, y el layout salta mientras se
+     escribe. Con top/bottom no hay nada que recalcular: el navegador
+     encoge el layout (interactive-widget en el viewport) y las anclas
+     siguen valiendo. */
   .chat-panel {
-    height: calc(100dvh - 52px - 60px - env(safe-area-inset-bottom));
+    position: fixed;
+    top: var(--barra-superior);
+    bottom: calc(var(--barra-inferior) + env(safe-area-inset-bottom));
+    left: 0;
+    right: 0;
+    height: auto;
+    z-index: 1;
   }
 
-  /* Seis botones más el nombre no entran en una línea de 375px. */
+  /* Una sola fila. Se gana el ancho quitando el avatar —el nombre ya
+     dice de quién es— y dejando que el nombre se corte antes que los
+     botones, que son los que hacen falta para operar. */
   .chat-conv-header {
-    flex-wrap: wrap;
-    row-gap: 10px;
+    gap: 8px;
+    padding: 10px 12px;
+  }
+  .chat-conv-header-avatar { display: none; }
+  .chat-conv-header-info { min-width: 0; }
+  .chat-conv-header-name,
+  .chat-conv-header-phone {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .chat-conv-header-actions {
-    margin-left: 0;
-    width: 100%;
-    justify-content: space-between;
+    flex-shrink: 0;
+    gap: 2px;
   }
+  .chat-conv-header-actions button { padding: 6px; }
 }
 
 /* ─── Unread badge ─────────────────────────────────────────────── */
@@ -10508,9 +10533,14 @@ textarea:focus-visible {
   .chat-info-panel-header {
     position: sticky;
     top: 0;
-    background: inherit;
+    /* Explícito y no `inherit`: el restyle de marca cambia el fondo del
+       panel más abajo en el archivo, y heredarlo lo dejaba transparente
+       con el contenido pasando por detrás al desplazar. */
+    background: var(--bg-color, #fff);
     z-index: 1;
   }
+  /* Por encima de la barra inferior (1000) y del chat anclado. */
+  .chat-info-panel { z-index: 1200; }
   .chat-quick-replies {
     min-width: 240px;
     max-width: 300px;
