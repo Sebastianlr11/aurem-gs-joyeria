@@ -1656,7 +1656,7 @@ const CustomersSection = ({ customers, orders = [], loading, onRefresh }) => {
                         <em>quién compra, y cuánto.</em>
                     </h1>
                     <p className="ped-sub">
-                        {customers.length} en el registro · ordenadas por lo que han gastado
+                        {customers.length} en el registro · ordenados por lo que han gastado
                     </p>
                 </div>
                 <button className="btn-pill black" onClick={() => setModal({ type: 'add' })}>
@@ -1686,7 +1686,7 @@ const CustomersSection = ({ customers, orders = [], loading, onRefresh }) => {
             <section className="ped-panel">
                 <div className="ped-toolbar">
                     <div className="riel" role="group" aria-label="Filtrar clientes">
-                        {[['todas', 'Todas'], ['con_pedido', 'Han comprado'], ['repiten', 'Vuelven'], ['sin_pedido', 'Sin pedidos']].map(([v, l]) => (
+                        {[['todas', 'Todos'], ['con_pedido', 'Han comprado'], ['repiten', 'Vuelven'], ['sin_pedido', 'Sin pedidos']].map(([v, l]) => (
                             <button
                                 key={v}
                                 type="button"
@@ -1719,7 +1719,7 @@ const CustomersSection = ({ customers, orders = [], loading, onRefresh }) => {
                         </p>
                         {customers.length === 0 && (
                             <button className="btn-pill light" onClick={() => setModal({ type: 'add' })}>
-                                Registrar la primera
+                                Registrar el primero
                             </button>
                         )}
                     </div>
@@ -2373,20 +2373,20 @@ const ReportsSection = ({ orders, products = [], onNavigate }) => {
                                 <span className="inf-panel-sub">Nuevas y que vuelven</span>
                             </div>
                             {(() => {
-                                const nuevas = newVsReturning.nuevos || 0;
+                                const nuevos = newVsReturning.nuevos || 0;
                                 const vuelven = newVsReturning.recurrentes || 0;
-                                const tot = nuevas + vuelven || 1;
+                                const tot = nuevos + vuelven || 1;
                                 return (
                                     <>
                                         <div className="inf-estados-barra">
-                                            <div style={{ width: `${(nuevas / tot) * 100}%`, background: 'var(--ink)' }} />
+                                            <div style={{ width: `${(nuevos / tot) * 100}%`, background: 'var(--ink)' }} />
                                             <div style={{ width: `${(vuelven / tot) * 100}%`, background: 'var(--oro)' }} />
                                         </div>
                                         <div className="inf-estado">
                                             <span className="inf-estado-punto" style={{ background: 'var(--ink)' }} />
                                             <span className="inf-estado-l">Compran por primera vez</span>
-                                            <span className="inf-estado-n">{nuevas}</span>
-                                            <span className="inf-estado-pct">{Math.round((nuevas / tot) * 100)} %</span>
+                                            <span className="inf-estado-n">{nuevos}</span>
+                                            <span className="inf-estado-pct">{Math.round((nuevos / tot) * 100)} %</span>
                                         </div>
                                         <div className="inf-estado">
                                             <span className="inf-estado-punto" style={{ background: 'var(--oro)' }} />
