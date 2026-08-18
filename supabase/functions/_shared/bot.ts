@@ -3,7 +3,7 @@
  * precios y los pedidos salen de la base, no del modelo, para que no
  * invente nada.
  */
-import { admin, enviarImagen } from './wa.ts'
+import { admin, enviarImagen, enviarTexto } from './wa.ts'
 
 const MODELO = Deno.env.get('OPENROUTER_MODEL') || 'openai/gpt-5.6-luna-pro'
 const MENSAJES_DE_CONTEXTO = 20
@@ -223,7 +223,7 @@ const HERRAMIENTAS = [
     type: 'function',
     function: {
       name: 'crear_pedido',
-      description: 'Registra el pedido cuando ya tienes todos los datos confirmados por el cliente.',
+      description: 'Registra el pedido cuando ya tienes todos los datos confirmados por el cliente. Si el medio de pago es Mercado Pago, además genera el enlace de pago y se lo envía: no hace falta que hagas nada más con eso.',
       parameters: {
         type: 'object',
         properties: {
@@ -475,28 +475,76 @@ async function ejecutarHerramienta(
 
     if (!pieza) return `Esa pieza no está en el catálogo. Dile que revisas y ofrécele las que sí hay.`
 
-    const notas = [args.talla ? `Talla: ${args.talla}` : null, 'Pedido tomado por Valentina']
-      .filter(Boolean).join(' · ')
+    const contraEntrega = String(args.metodo_pago || '').toLowerCase().includes('entrega')
 
-    const { error } = await db.from('orders').insert({
-      customer_name: args.nombre,
-      customer_phone: telefono,
-      product_id: pieza.id,
-      product_name: pieza.name,
-      amount: pieza.price,
-      status: 'pendiente',
-      payment_method: args.metodo_pago,
-      order_source: 'whatsapp',
-      shipping_address: args.direccion,
-      shipping_city: args.ciudad,
-      notes: notas,
-    })
-
-    if (error) {
-      console.error('No se pudo crear el pedido:', error.message)
-      return 'Hubo un problema al registrar el pedido. Discúlpate y dile que alguien del equipo se comunica enseguida.'
+    /* Se delega en create-preference en vez de insertar acá. Esa función ya
+       cancela pedidos pendientes duplicados, guarda la preferencia de Mercado
+       Pago y arma el enlace; duplicar eso era tener dos verdades sobre cómo
+       nace un pedido, y la de acá ya se estaba quedando corta. */
+    const url = Deno.env.get('SUPABASE_URL')
+    const clave = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    if (!url || !clave) {
+      console.error('Faltan SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY')
+      return 'No se pudo registrar el pedido. Usa escalar_a_humano.'
     }
-    return `Pedido registrado por ${enPesos(Number(pieza.price))} COP. Confírmaselo y dile los siguientes pasos según el medio de pago.`
+
+    let respuesta: any = {}
+    try {
+      const res = await fetch(`${url}/functions/v1/create-preference`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${clave}`,
+          apikey: clave,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          items: [{ id: pieza.id, name: pieza.name, price: Number(pieza.price) }],
+          buyer: {
+            name: args.nombre,
+            phone: telefono,
+            address: args.direccion,
+            city: args.ciudad,
+          },
+          paymentMethod: contraEntrega ? 'cod' : 'mp',
+          notes: [
+            args.talla ? `Talla: ${args.talla}` : null,
+            'Pedido tomado por Valentina',
+          ].filter(Boolean).join(' · '),
+        }),
+      })
+      respuesta = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(respuesta?.error || `HTTP ${res.status}`)
+    } catch (e) {
+      console.error('create-preference falló:', e instanceof Error ? e.message : e)
+      return 'Hubo un problema al registrar el pedido. Discúlpate y usa escalar_a_humano.'
+    }
+
+    const monto = enPesos(Number(pieza.price))
+
+    if (contraEntrega) {
+      return `Pedido registrado por ${monto} COP, contra entrega. Confírmaselo y dile que ` +
+             `le llega la guía cuando se despache.`
+    }
+
+    const enlace = respuesta?.initPoint
+    if (!enlace) {
+      console.error('create-preference no devolvió initPoint')
+      return `El pedido quedó registrado por ${monto} COP pero el enlace de pago no salió. ` +
+             `Dile que alguien del equipo se lo manda en un momento y usa escalar_a_humano.`
+    }
+
+    /* El enlace se manda aparte y no dentro de la respuesta del modelo: una
+       URL larga reescrita por el modelo es una URL rota, y acá eso es una
+       venta perdida. */
+    const envio = await enviarTexto(telefono, `Este es tu enlace para pagar los ${monto}:\n${enlace}`, 'ia', desdeId)
+    if (!envio.ok) {
+      return `El pedido quedó registrado por ${monto} COP pero no se pudo enviar el enlace. ` +
+             `Usa escalar_a_humano.`
+    }
+
+    return `Pedido registrado por ${monto} COP y el enlace de pago YA se lo enviaste — no lo repitas ` +
+           `ni lo escribas tú. Confírmale el monto, dile que al pagar le llega la confirmación, y ` +
+           `que si prefiere puede pagar contra entrega.`
   }
 
   return 'Esa herramienta no existe.'

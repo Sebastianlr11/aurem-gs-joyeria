@@ -1,5 +1,6 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { createClient } from 'jsr:@supabase/supabase-js@2'
+import { enviarTexto, numeroPropioDe } from '../_shared/wa.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -68,7 +69,7 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const { error: updateError } = await supabase
+    const { data: orden, error: updateError } = await supabase
       .from('orders')
       .update({
         status: 'pagado',
@@ -76,11 +77,34 @@ Deno.serve(async (req: Request) => {
         mp_status: payment.status,
       })
       .eq('id', orderId)
+      .select('customer_phone, customer_name, product_name, amount')
+      .maybeSingle()
 
     if (updateError) {
       console.error('Error actualizando orden:', orderId, updateError)
     } else {
       console.log('Orden actualizada a pagado:', orderId)
+    }
+
+    /* Si el pedido entró por WhatsApp, se avisa por ahí mismo. Sin esto el
+       cliente paga y se queda sin señal de que llegó: la pantalla de Mercado
+       Pago se cierra y el chat, que es donde estuvo toda la conversación,
+       queda mudo. */
+    if (orden?.customer_phone) {
+      try {
+        const monto = `$${Math.round(Number(orden.amount)).toLocaleString('es-CO')}`
+        const desdeId = await numeroPropioDe(orden.customer_phone)
+        await enviarTexto(
+          orden.customer_phone,
+          `¡Listo! Recibimos tu pago de ${monto} por ${orden.product_name}. ` +
+          `Ya lo estamos preparando y te aviso apenas se despache. 🌿`,
+          'ia',
+          desdeId,
+        )
+      } catch (e) {
+        // El pago ya quedó registrado: que falle el aviso no lo invalida.
+        console.error('No se pudo avisar el pago por WhatsApp:', e instanceof Error ? e.message : e)
+      }
     }
 
     return new Response(JSON.stringify({ ok: true }), {

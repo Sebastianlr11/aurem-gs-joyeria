@@ -23,7 +23,12 @@ Deno.serve(async (req: Request) => {
         ? [{ id: product.id, name: product.name, price: Number(product.price) }]
         : []
 
-    if (!productItems.length || !buyer?.name || !buyer?.email) {
+    /* El correo es obligatorio si no hay teléfono, y no al revés. Los pedidos
+       que entran por WhatsApp no traen correo —pedirlo es fricción y mucha
+       gente no lo tiene a mano— y no hace falta: la preferencia de Mercado
+       Pago usa un payer fijo, y el correo sólo se guarda en la orden y sirve
+       para deduplicar, que con el teléfono también funciona. */
+    if (!productItems.length || !buyer?.name || (!buyer?.email && !buyer?.phone)) {
       return new Response(
         JSON.stringify({ error: 'Faltan campos requeridos' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -64,7 +69,7 @@ Deno.serve(async (req: Request) => {
       .from('orders')
       .insert({
         customer_name: buyer.name,
-        customer_email: buyer.email,
+        customer_email: buyer.email ?? null,
         customer_phone: buyer.phone ?? null,
         product_id: firstProductId,
         product_name: combinedName,
