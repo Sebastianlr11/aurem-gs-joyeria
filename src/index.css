@@ -9479,7 +9479,16 @@ textarea:focus-visible {
   input,
   textarea,
   select {
-    font-size: 16px;
+    /* !important a propósito, y es el único del archivo.
+       Sin él esta regla no gana: es un selector de elemento (0,0,1) y las
+       22 reglas que fijan el tamaño lo hacen por clase (0,1,0), que le gana
+       siempre — las media queries no suman especificidad. Enumerar las 22
+       clases sería frágil y se rompería con la próxima que se agregue.
+
+       No es una preferencia de diseño que se pueda pisar: es una
+       restricción de la plataforma. Por debajo de 16px, iOS hace zoom y la
+       interfaz deja de funcionar. */
+    font-size: 16px !important;
   }
 
   /* Con el chat abierto el documento no se desplaza: el panel ya ocupa
