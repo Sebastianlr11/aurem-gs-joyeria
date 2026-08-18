@@ -246,6 +246,102 @@ export async function enviarTextoNatural(
   return ultimo
 }
 
+/**
+ * ¿Se le puede escribir texto libre a este cliente ahora mismo?
+ *
+ * Meta abre una "ventana de atención" de 24 horas con cada mensaje que
+ * manda el cliente. Dentro de ella se le puede escribir cualquier cosa y no
+ * se cobra. Fuera, el texto libre lo rechaza —error 131047— y sólo entran
+ * plantillas aprobadas de antemano.
+ *
+ * No hace falta guardar nada: la ventana es el último mensaje entrante.
+ */
+export async function ventanaAbierta(
+  telefono: string,
+): Promise<{ abierta: boolean; vence: Date | null; minutosRestantes: number }> {
+  const { data } = await admin()
+    .from('whatsapp_conversaciones')
+    .select('created_at')
+    .eq('phone_number', telefono)
+    .eq('role', 'user')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (!data?.created_at) return { abierta: false, vence: null, minutosRestantes: 0 }
+
+  const vence = new Date(new Date(data.created_at).getTime() + 24 * 60 * 60 * 1000)
+  const restan = Math.round((vence.getTime() - Date.now()) / 60000)
+  return { abierta: restan > 0, vence, minutosRestantes: Math.max(0, restan) }
+}
+
+/**
+ * Manda una plantilla aprobada. Es la única forma de escribirle a alguien
+ * cuando la ventana de 24 horas ya se cerró.
+ *
+ * Las variables van en orden: la primera reemplaza a {{1}}, y así. La
+ * plantilla tiene que existir y estar aprobada en Meta con ese nombre y ese
+ * idioma exactos, o el envío se rechaza.
+ */
+export async function enviarPlantilla(
+  telefono: string,
+  plantilla: string,
+  variables: string[] = [],
+  desdeId?: string | null,
+  idioma = 'es',
+): Promise<{ ok: boolean; wamid?: string; error?: string }> {
+  const token = Deno.env.get('WA_TOKEN')
+  const phoneId = desdeId || Deno.env.get('WA_PHONE_NUMBER_ID')
+  if (!token || !phoneId) return { ok: false, error: 'Faltan WA_TOKEN o WA_PHONE_NUMBER_ID' }
+
+  const para = idDestino(telefono)
+
+  const componentes = variables.length
+    ? [{ type: 'body', parameters: variables.map((v) => ({ type: 'text', text: String(v) })) }]
+    : []
+
+  const res = await fetch(`${GRAFO}/${phoneId}/messages`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      messaging_product: 'whatsapp',
+      recipient_type: 'individual',
+      ...paraQuien(para),
+      type: 'template',
+      template: {
+        name: plantilla,
+        language: { code: idioma },
+        ...(componentes.length ? { components: componentes } : {}),
+      },
+    }),
+  })
+
+  const cuerpo = await res.json().catch(() => ({}))
+
+  /* En el hilo se guarda el nombre de la plantilla y sus variables, no el
+     texto final: el texto vive en Meta y puede cambiar al reaprobarse. Así
+     el panel muestra qué se mandó sin inventar el contenido. */
+  const resumen = `[plantilla: ${plantilla}]` + (variables.length ? ` ${variables.join(' · ')}` : '')
+
+  if (!res.ok) {
+    const error = cuerpo?.error?.message || `HTTP ${res.status}`
+    console.error(`Meta rechazó la plantilla ${plantilla}:`, error)
+    await admin().from('whatsapp_conversaciones').insert({
+      phone_number: para, role: 'assistant', content: resumen,
+      enviado_por: 'ia', delivery_status: 'failed', wa_phone_id: phoneId,
+    })
+    return { ok: false, error }
+  }
+
+  const wamid = cuerpo?.messages?.[0]?.id ?? null
+  await admin().from('whatsapp_conversaciones').insert({
+    phone_number: para, role: 'assistant', content: resumen,
+    enviado_por: 'ia', delivery_status: 'sent', wa_message_id: wamid,
+    wa_phone_id: phoneId,
+  })
+  return { ok: true, wamid }
+}
+
 /** ¿Está esta conversación en manos de una persona? Entonces la IA calla. */
 export async function enModoManual(telefono: string): Promise<boolean> {
   const { data } = await admin()
