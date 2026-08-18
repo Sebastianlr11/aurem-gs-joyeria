@@ -1,6 +1,7 @@
 /**
- * Valentina. El cerebro va por OpenRouter; el catálogo, los precios y los
- * pedidos salen de la base, no del modelo, para que no invente nada.
+ * Valentina. El cerebro va por OpenRouter; el catálogo, las políticas, los
+ * precios y los pedidos salen de la base, no del modelo, para que no
+ * invente nada.
  */
 import { admin, enviarImagen } from './wa.ts'
 
@@ -40,7 +41,26 @@ async function catalogo(): Promise<string> {
   }).join('\n')
 }
 
-function instrucciones(piezas: string): string {
+/**
+ * Lo que el negocio sabe de sí mismo: envíos, pagos, garantía, proceso.
+ *
+ * Vive en la base y no en este archivo. Estaba escrito acá y se
+ * desincronizó: llegó a prometer "Mercado Pago con 2% de descuento, envíos
+ * en 24 a 48 horas" cuando el taller cobra por Nequi y despacha por
+ * Interrapidísimo. Cambiar una política no puede exigir un despliegue.
+ */
+async function conocimiento(): Promise<string> {
+  const { data } = await admin()
+    .from('taller_conocimiento')
+    .select('tema, contenido')
+    .eq('activo', true)
+    .order('orden')
+
+  if (!data?.length) return 'No hay políticas cargadas: no afirmes nada sobre envíos, pagos ni garantía. Escala.'
+  return data.map((t) => `${t.tema}: ${t.contenido}`).join('\n')
+}
+
+function instrucciones(piezas: string, politicas: string): string {
   return `Eres Valentina, la asesora de Aurem Gs Joyería, una joyería colombiana.
 Escribes por WhatsApp a clientes reales. Hablas en español de Colombia, con
 cercanía y sin adular. Mensajes cortos: dos o tres frases, salvo que estés
@@ -49,14 +69,18 @@ recapitulando un pedido.
 CATÁLOGO PUBLICADO (es el único que existe):
 ${piezas}
 
+CÓMO FUNCIONA EL NEGOCIO (es lo único que puedes afirmar sin consultar):
+${politicas}
+
 REGLAS QUE NO SE ROMPEN
 1. Nunca inventes una pieza, un precio, un material, un quilataje ni un plazo.
    Si no está arriba, no existe: dilo y ofrece lo que sí hay.
 2. Si no entiendes algo, NO respondas "no te entendí". Repite lo que creas
    haber entendido y pregunta por lo que falta. Ejemplo: si dice "pago de una
    vez", eso significa que quiere pagar ya — confírmale el medio de pago.
-3. Medios de pago: Mercado Pago (2% de descuento) o contra entrega. Envíos a
-   todo el país en 24 a 48 horas hábiles.
+3. Sobre envíos, pagos, garantía y plazos di SÓLO lo que está arriba, tal
+   como está. Si te preguntan algo que no aparece ahí, no lo deduzcas ni lo
+   inventes: dilo con naturalidad y usa escalar_a_humano.
 4. Para cerrar un pedido necesitas: pieza, talla si es anillo, nombre completo,
    dirección y ciudad. Pídelos de a poco, no todos de golpe.
 5. Cuando los tengas todos, recapitula y usa la herramienta crear_pedido.
@@ -104,11 +128,9 @@ catálogo. Se puede hacer cualquier diseño, incluso a partir de una foto.
 17. Las PIEDRAS suman aparte y no sabes cuánto: depende de la piedra. Si la
    pieza lleva esmeraldas o diamantes, dilo con naturalidad y escala.
 18. Piezas livianas tampoco se cotizan por gramo. La herramienta te avisa.
-19. Cómo se trabaja, y lo puedes decir sin consultar: se hace el diseño
-   primero y se aprueba antes de fabricar, se empieza con un abono del 50%
-   y el resto se paga al terminar, se mandan fotos de cada proceso, y el
-   envío es por Interrapidísimo a todo el país con guía de seguimiento.
-   Va incluido el estuche, la marcada y la garantía.
+19. Cómo se trabaja una pieza a medida está arriba, en cómo funciona el
+   negocio. Cuéntalo cuando ayude a dar confianza: alguien que va a girar
+   plata por algo que todavía no existe necesita saber el recorrido.
 
 20. Si te dicen su presupuesto —"algo de unos 100 mil"— trabaja hacia ese
    número: muéstrale lo que sí alcanza en vez de recitar precios más altos.
@@ -503,8 +525,11 @@ export async function responder(
     .filter((m) => m.content)
     .map((m) => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.content }))
 
+  // En paralelo: son dos consultas independientes.
+  const [piezas, politicas] = await Promise.all([catalogo(), conocimiento()])
+
   const mensajes: any[] = [
-    { role: 'system', content: instrucciones(await catalogo()) },
+    { role: 'system', content: instrucciones(piezas, politicas) },
     ...conversacion,
   ]
 

@@ -2871,6 +2871,145 @@ const PrecioOroCard = () => {
     );
 };
 
+/* ─── Lo que Valentina sabe del negocio ──────────────────────────────
+   Envíos, pagos, garantía, proceso. Vivía escrito dentro del prompt y se
+   desincronizó de la operación: llegó a prometer "Mercado Pago con 2% de
+   descuento, envíos en 24 a 48 horas" cuando el taller cobra por Nequi y
+   despacha por Interrapidísimo. Acá se corrige sin desplegar nada.
+   ─────────────────────────────────────────────────────────────────── */
+const ConocimientoCard = () => {
+    const [temas, setTemas] = useState([]);
+    const [borradores, setBorradores] = useState({});
+    const [guardando, setGuardando] = useState(null);
+    const [aviso, setAviso] = useState({ tipo: '', msg: '' });
+
+    const cargar = useCallback(() => {
+        supabase.from('taller_conocimiento')
+            .select('id, tema, contenido, activo, orden')
+            .order('orden')
+            .then(({ data }) => {
+                if (!data) return;
+                setTemas(data);
+                setBorradores(Object.fromEntries(data.map(t => [t.id, t.contenido])));
+            });
+    }, []);
+
+    useEffect(() => { cargar(); }, [cargar]);
+
+    const guardar = async (t) => {
+        const texto = (borradores[t.id] ?? '').trim();
+        if (!texto) {
+            setAviso({ tipo: 'error', msg: `"${t.tema}" no puede quedar vacío. Si no aplica, desactívalo.` });
+            return;
+        }
+        setGuardando(t.id);
+        setAviso({ tipo: '', msg: '' });
+        const { error } = await supabase.from('taller_conocimiento')
+            .update({ contenido: texto, actualizado_en: new Date().toISOString() })
+            .eq('id', t.id);
+        setGuardando(null);
+        setAviso(error
+            ? { tipo: 'error', msg: `No se pudo guardar: ${error.message}` }
+            : { tipo: 'ok', msg: `"${t.tema}" actualizado. Valentina ya lo dice así.` });
+        if (!error) cargar();
+    };
+
+    const alternar = async (t) => {
+        await supabase.from('taller_conocimiento').update({ activo: !t.activo }).eq('id', t.id);
+        cargar();
+    };
+
+    if (!temas.length) return null;
+
+    const sinConfirmar = temas.filter(t => t.contenido.includes('SIN CONFIRMAR')).length;
+
+    return (
+        <div className="admin-card" style={{ maxWidth: 720 }}>
+            <div className="admin-card-head">
+                <h3 className="admin-card-title">
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                        Lo que Valentina sabe del negocio
+                    </span>
+                </h3>
+            </div>
+
+            <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: '1rem', lineHeight: 1.5 }}>
+                Es lo único que puede afirmar sobre envíos, pagos, garantía y plazos.
+                Lo que no esté acá, lo consulta con una persona en vez de inventarlo.
+                Se aplica al siguiente mensaje, sin desplegar nada.
+            </p>
+
+            {sinConfirmar > 0 && (
+                <p style={{
+                    fontSize: '0.82rem', color: '#b45309', lineHeight: 1.5,
+                    background: 'rgba(180,83,9,0.07)', borderRadius: 2,
+                    padding: '0.7rem 0.9rem', margin: '0 0 1.25rem',
+                }}>
+                    {sinConfirmar === 1 ? 'Hay 1 tema' : `Hay ${sinConfirmar} temas`} con
+                    “SIN CONFIRMAR”. Los redacté a partir de conversaciones reales, pero
+                    nadie los verificó: revísalos y borra esa marca al confirmarlos.
+                </p>
+            )}
+
+            <div style={{ display: 'grid', gap: '1.25rem' }}>
+                {temas.map(t => (
+                    <div key={t.id} style={{ opacity: t.activo ? 1 : 0.5 }}>
+                        <div style={{
+                            display: 'flex', alignItems: 'baseline',
+                            justifyContent: 'space-between', gap: '1rem', marginBottom: '0.4rem',
+                        }}>
+                            <label style={{ fontWeight: 700, fontSize: '0.9rem' }}>{t.tema}</label>
+                            <button
+                                type="button"
+                                onClick={() => alternar(t)}
+                                style={{
+                                    background: 'none', border: 0, padding: 0, cursor: 'pointer',
+                                    font: 'inherit', fontSize: '0.78rem', color: '#666',
+                                    textDecoration: 'underline', textUnderlineOffset: 3,
+                                }}
+                            >
+                                {t.activo ? 'No usar este tema' : 'Volver a usarlo'}
+                            </button>
+                        </div>
+                        <textarea
+                            value={borradores[t.id] ?? ''}
+                            onChange={e => setBorradores({ ...borradores, [t.id]: e.target.value })}
+                            rows={3}
+                            style={{
+                                width: '100%', padding: '0.7rem 0.85rem',
+                                border: '1px solid var(--hairline, #E6DED3)', borderRadius: 2,
+                                font: 'inherit', fontSize: '0.88rem', lineHeight: 1.55,
+                                resize: 'vertical', background: 'var(--bg-color, #fff)',
+                                color: 'var(--ink, #1C1714)',
+                            }}
+                        />
+                        {borradores[t.id] !== t.contenido && (
+                            <button
+                                className="admin-btn"
+                                style={{ marginTop: '0.5rem' }}
+                                onClick={() => guardar(t)}
+                                disabled={guardando === t.id}
+                            >
+                                {guardando === t.id ? 'Guardando…' : `Guardar ${t.tema.toLowerCase()}`}
+                            </button>
+                        )}
+                    </div>
+                ))}
+            </div>
+
+            {aviso.msg && (
+                <p style={{
+                    fontSize: '0.85rem', marginTop: '1rem', marginBottom: 0,
+                    color: aviso.tipo === 'error' ? '#ef4444' : '#10b981',
+                }}>
+                    {aviso.msg}
+                </p>
+            )}
+        </div>
+    );
+};
+
 /* ─── SettingsSection ────────────────────────────────────────────── */
 const SettingsSection = () => {
     const [webhookUrl, setWebhookUrl] = useState(() => localStorage.getItem('admin_webhook_url') || '');
@@ -3017,6 +3156,8 @@ const SettingsSection = () => {
             </div>
 
             <PrecioOroCard />
+
+            <ConocimientoCard />
 
             {/* Admin Users */}
             <div className="admin-card" style={{ maxWidth: 600 }}>
