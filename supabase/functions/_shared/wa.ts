@@ -157,9 +157,7 @@ export async function enviarImagen(
  * Acusa recibo y muestra "escribiendo…" en el chat del cliente.
  *
  * Va en una sola petición junto con el acuse de lectura, y el indicador se
- * apaga solo al responder o a los 25 segundos. Se llama apenas entra el
- * mensaje: el silencio de diez segundos mientras el modelo piensa es una de
- * las cosas que más delatan que del otro lado no hay nadie.
+ * apaga solo al responder o a los 25 segundos.
  * https://developers.facebook.com/docs/whatsapp/cloud-api/typing-indicators/
  */
 export async function acusarYEscribir(mensajeId: string, desdeId?: string | null): Promise<void> {
@@ -214,8 +212,6 @@ const MAX_TROZOS = 3
  * Manda la respuesta como la mandaría una persona: en dos o tres mensajes
  * cortos, con una pausa entre uno y otro, en vez de un párrafo perfecto de
  * golpe. El modelo separa los trozos con una línea en blanco.
- *
- * La pausa es proporcional al largo, como si lo estuviera tecleando.
  */
 export async function enviarTextoNatural(
   telefono: string,

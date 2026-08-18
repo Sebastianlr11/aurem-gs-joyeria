@@ -1,6 +1,6 @@
 /**
- * Valentina. El cerebro va por OpenRouter; el catálogo y los pedidos
- * salen de la base, no del modelo, para que no invente piezas ni precios.
+ * Valentina. El cerebro va por OpenRouter; el catálogo, los precios y los
+ * pedidos salen de la base, no del modelo, para que no invente nada.
  */
 import { admin, enviarImagen } from './wa.ts'
 
@@ -8,13 +8,19 @@ const MODELO = Deno.env.get('OPENROUTER_MODEL') || 'openai/gpt-5.6-luna-pro'
 const MENSAJES_DE_CONTEXTO = 20
 
 /* Topes del bucle de herramientas. Un agente sin freno es una factura sin
-   freno, y Meta corta la conversación mucho antes de que valga la pena
-   seguir pensando. El último paso va sin herramientas, así siempre termina
-   con algo que decirle al cliente. */
+   freno. El último paso va sin herramientas, así siempre termina con algo
+   que decirle al cliente. */
 const MAX_PASOS = 3
 const PRESUPUESTO_MS = 25_000
 /** Más de tres fotos seguidas satura el chat. */
 const MAX_FOTOS = 3
+
+/* Cada cuánto hay que mirar el precio del oro. El joyero lo consulta a
+   diario, pero NO cambia la cotización por movimientos chicos: "si mañana
+   baja 5000 o sube 3000 no importa". Así que el dato guardado se usa tal
+   cual; lo único que se vigila es que no esté abandonado. */
+const DIAS_PARA_AVISAR = 3
+const DIAS_PARA_NO_COTIZAR = 10
 
 type Mensaje = { role: 'user' | 'assistant' | 'system'; content: string }
 
@@ -85,10 +91,31 @@ REGLAS QUE NO SE ROMPEN
    la medida, y escala.
 14. CUANDO TE MANDAN UNA FOTO, ya la viste: en el hilo aparece con 📷 y la
    descripción de lo que muestra. Habla de esa foto con naturalidad, no
-   preguntes qué mandaron ni digas que no puedes verla. Si es la referencia
-   de un diseño que no está en tu catálogo, NO la cotices por tu cuenta:
-   di que lo revisas con el taller y usa escalar_a_humano. Fabricar a medida
-   se cotiza por gramo y por piedra, y eso todavía no lo sabes calcular.
+   preguntes qué mandaron ni digas que no puedes verla.
+
+PIEZAS A MEDIDA
+Buena parte del negocio es fabricar lo que el cliente pide, no vender del
+catálogo. Se puede hacer cualquier diseño, incluso a partir de una foto.
+
+15. En ORO puedes dar el precio tú, con cotizar_oro, si sabes el gramaje.
+   Si no lo sabes, pregunta qué diseño y qué tan gruesa la quiere, o escala.
+16. En PLATA NO cotizas nunca. La plata se vende por pieza, no por gramo, y
+   ese precio lo pone una persona. Escala.
+17. Las PIEDRAS suman aparte y no sabes cuánto: depende de la piedra. Si la
+   pieza lleva esmeraldas o diamantes, dilo con naturalidad y escala.
+18. Piezas livianas tampoco se cotizan por gramo. La herramienta te avisa.
+19. Cómo se trabaja, y lo puedes decir sin consultar: se hace el diseño
+   primero y se aprueba antes de fabricar, se empieza con un abono del 50%
+   y el resto se paga al terminar, se mandan fotos de cada proceso, y el
+   envío es por Interrapidísimo a todo el país con guía de seguimiento.
+   Va incluido el estuche, la marcada y la garantía.
+
+20. Si te dicen su presupuesto —"algo de unos 100 mil"— trabaja hacia ese
+   número: muéstrale lo que sí alcanza en vez de recitar precios más altos.
+21. Ante una objeción de precio NO descuentes por reflejo. Sube el valor:
+   que es una pieza única, hecha desde cero, que se puede personalizar con
+   iniciales o una fecha sin costo extra. Bajar el precio es decisión de una
+   persona, no tuya.
 
 CÓMO ESCRIBIR
 Frases cortas. Sin punto y coma, sin dos puntos para enumerar, sin listas
@@ -158,6 +185,21 @@ const HERRAMIENTAS = [
   {
     type: 'function',
     function: {
+      name: 'cotizar_oro',
+      description: 'Calcula el precio de una pieza a medida EN ORO, cuando ya se sabe cuántos gramos lleva. Sólo sirve para oro y para piezas de cierto peso para arriba. NO sirve para plata, que se vende por pieza, ni para calcular lo que suman las piedras.',
+      parameters: {
+        type: 'object',
+        properties: {
+          gramos: { type: 'number', description: 'Peso aproximado de la pieza en gramos' },
+          descripcion: { type: 'string', description: 'Qué pieza es, en pocas palabras' },
+        },
+        required: ['gramos'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
       name: 'crear_pedido',
       description: 'Registra el pedido cuando ya tienes todos los datos confirmados por el cliente.',
       parameters: {
@@ -179,7 +221,7 @@ const HERRAMIENTAS = [
     type: 'function',
     function: {
       name: 'escalar_a_humano',
-      description: 'Pasa la conversación a una persona del equipo y deja de responder. Úsala también cuando pidan una pieza a medida o cotizar un diseño que no está en el catálogo.',
+      description: 'Pasa la conversación a una persona del equipo y deja de responder. Úsala también para cotizar plata, piezas con piedras, o cualquier cosa a medida que no puedas calcular.',
       parameters: {
         type: 'object',
         properties: { motivo: { type: 'string' } },
@@ -242,6 +284,7 @@ const A_CIRCUNFERENCIA: Record<string, (v: number) => number> = {
 }
 
 const unDecimal = (n: number) => n.toFixed(1).replace('.', ',')
+const enPesos = (n: number) => `$${Math.round(n).toLocaleString('es-CO')}`
 
 const CAMPOS_PIEZA = 'id, name, price, image_url, images, stock'
 
@@ -307,7 +350,7 @@ async function ejecutarHerramienta(
       const url = pieza.image_url || (Array.isArray(pieza.images) ? pieza.images[0] : null)
       if (!url) { problemas.push(`${pieza.name} no tiene foto cargada`); continue }
 
-      const pie = `${pieza.name} — $${Number(pieza.price).toLocaleString('es-CO')} COP`
+      const pie = `${pieza.name} — ${enPesos(Number(pieza.price))} COP`
       const envio = await enviarImagen(telefono, url, pie, 'ia', desdeId)
       if (envio.ok) enviadas.push(pieza.name)
       else problemas.push(`no salió la foto de ${pieza.name}`)
@@ -354,6 +397,48 @@ async function ejecutarHerramienta(
            `Díselo con naturalidad y sigue con el pedido. No le preguntes otra vez qué talla es: ya la sabes.`
   }
 
+  if (nombre === 'cotizar_oro') {
+    const gramos = Number(args?.gramos)
+    if (!Number.isFinite(gramos) || gramos <= 0) {
+      return 'No dijo cuántos gramos. Pregúntale por el diseño y el tamaño, o escala para que el taller lo calcule.'
+    }
+
+    const { data: precios } = await db.from('taller_precios')
+      .select('precio_gramo_oro, recargo_por_gramo, gramos_minimos, actualizado_en')
+      .maybeSingle()
+
+    if (!precios) {
+      console.error('No hay fila en taller_precios')
+      return 'No tengo la lista de precios a mano. Usa escalar_a_humano.'
+    }
+
+    /* En piezas livianas la merma se come la ganancia, así que no se cotiza
+       por gramo: va por pieza, y ese número lo pone una persona. */
+    if (gramos < Number(precios.gramos_minimos)) {
+      return `Son ${gramos} gramos, menos del mínimo de ${precios.gramos_minimos} para cotizar por gramo. ` +
+             `Una pieza así se cobra por pieza, no por peso. Dile que lo consultas con el taller y usa escalar_a_humano.`
+    }
+
+    const dias = (Date.now() - new Date(precios.actualizado_en).getTime()) / 86_400_000
+
+    if (dias > DIAS_PARA_NO_COTIZAR) {
+      console.error(`Precio del oro con ${Math.round(dias)} días sin actualizar: no se cotiza`)
+      return 'El precio del oro que tengo está viejo y no quiero darte un número equivocado. Usa escalar_a_humano.'
+    }
+
+    const porGramo = Number(precios.precio_gramo_oro) + Number(precios.recargo_por_gramo)
+    const total = porGramo * gramos
+
+    const aviso = dias > DIAS_PARA_AVISAR
+      ? ` (Ojo: el precio base lleva ${Math.round(dias)} días sin actualizarse.)`
+      : ''
+
+    return `Son ${enPesos(total)} por ${gramos} gramos de oro — ${enPesos(porGramo)} el gramo.${aviso} ` +
+           `Ese precio ya incluye diseño, fundición y terminado. ` +
+           `Si la pieza lleva esmeraldas o diamantes eso suma aparte y NO lo sabes calcular: dilo y escala. ` +
+           `Dale el número redondeado y con naturalidad, sin desglosar el recargo.`
+  }
+
   if (nombre === 'escalar_a_humano') {
     await db.from('chat_takeover').upsert(
       { phone_number: telefono, is_active: true, admin_email: 'valentina@bot', reason: args?.motivo ?? null },
@@ -389,7 +474,7 @@ async function ejecutarHerramienta(
       console.error('No se pudo crear el pedido:', error.message)
       return 'Hubo un problema al registrar el pedido. Discúlpate y dile que alguien del equipo se comunica enseguida.'
     }
-    return `Pedido registrado por $${Number(pieza.price).toLocaleString('es-CO')} COP. Confírmaselo y dile los siguientes pasos según el medio de pago.`
+    return `Pedido registrado por ${enPesos(Number(pieza.price))} COP. Confírmaselo y dile los siguientes pasos según el medio de pago.`
   }
 
   return 'Esa herramienta no existe.'
