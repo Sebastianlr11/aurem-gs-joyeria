@@ -2668,6 +2668,144 @@ const NotesSection = () => {
     );
 };
 
+/* ─── Precio del oro ─────────────────────────────────────────────────
+   Lo que Valentina usa para cotizar piezas a medida.
+
+   No se actualiza solo a propósito. El joyero mira el precio a diario pero
+   no cambia la cotización por movimientos chicos: "si mañana baja 5000 o
+   sube 3000 no importa, se maneja lo mismo". Un valor que siguiera al
+   mercado le daría precios distintos a dos clientes el mismo día.
+   ─────────────────────────────────────────────────────────────────── */
+const PrecioOroCard = () => {
+    const [precios, setPrecios] = useState(null);
+    const [gramo, setGramo] = useState('');
+    const [guardando, setGuardando] = useState(false);
+    const [aviso, setAviso] = useState({ tipo: '', msg: '' });
+
+    const cargar = useCallback(() => {
+        supabase.from('taller_precios')
+            .select('precio_gramo_oro, recargo_por_gramo, gramos_minimos, actualizado_en, actualizado_por')
+            .maybeSingle()
+            .then(({ data }) => {
+                if (!data) return;
+                setPrecios(data);
+                setGramo(String(Math.round(Number(data.precio_gramo_oro))));
+            });
+    }, []);
+
+    useEffect(() => { cargar(); }, [cargar]);
+
+    const guardar = async () => {
+        const valor = Number(String(gramo).replace(/[^\d]/g, ''));
+        if (!valor || valor <= 0) {
+            setAviso({ tipo: 'error', msg: 'Escribe el precio del gramo, sólo números.' });
+            return;
+        }
+        setGuardando(true);
+        setAviso({ tipo: '', msg: '' });
+
+        const { data: sesion } = await supabase.auth.getUser();
+        const { error } = await supabase.from('taller_precios')
+            .update({
+                precio_gramo_oro: valor,
+                actualizado_en: new Date().toISOString(),
+                actualizado_por: sesion?.user?.email ?? null,
+            })
+            .eq('id', true);
+
+        setGuardando(false);
+        if (error) {
+            setAviso({ tipo: 'error', msg: `No se pudo guardar: ${error.message}` });
+            return;
+        }
+        setAviso({ tipo: 'ok', msg: 'Precio actualizado. Valentina ya cotiza con este valor.' });
+        cargar();
+    };
+
+    if (!precios) return null;
+
+    const recargo = Number(precios.recargo_por_gramo);
+    const porGramo = (Number(String(gramo).replace(/[^\d]/g, '')) || 0) + recargo;
+    const dias = Math.floor((Date.now() - new Date(precios.actualizado_en).getTime()) / 86400000);
+    const viejo = dias >= 3;
+    const pesos = n => `$${Math.round(n).toLocaleString('es-CO')}`;
+
+    return (
+        <div className="admin-card" style={{ maxWidth: 600 }}>
+            <div className="admin-card-head">
+                <h3 className="admin-card-title">
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                        Precio del oro
+                    </span>
+                </h3>
+            </div>
+
+            <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: '1.25rem', lineHeight: 1.5 }}>
+                Lo que Valentina usa para cotizar piezas a medida en oro. Míralo en
+                goldprice.org y cámbialo sólo cuando el movimiento lo amerite: subidas
+                o bajadas pequeñas no cambian la cotización.
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                <div className="modal-field">
+                    <label>Precio del gramo hoy (COP)</label>
+                    <input
+                        type="text"
+                        inputMode="numeric"
+                        value={gramo}
+                        onChange={e => setGramo(e.target.value)}
+                        placeholder="437668"
+                    />
+                </div>
+
+                <div style={{
+                    background: 'var(--bg-arena, #F2EAE0)', borderRadius: 2,
+                    padding: '0.85rem 1rem', fontSize: '0.85rem', lineHeight: 1.7,
+                }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span>Precio del gramo</span>
+                        <strong>{pesos(Number(String(gramo).replace(/[^\d]/g, '')) || 0)}</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#666' }}>
+                        <span>+ diseño, fundición y terminado</span>
+                        <span>{pesos(recargo)}</span>
+                    </div>
+                    <div style={{
+                        display: 'flex', justifyContent: 'space-between',
+                        borderTop: '1px solid var(--hairline, #E6DED3)', marginTop: '0.4rem', paddingTop: '0.4rem',
+                    }}>
+                        <span><strong>Se cotiza a</strong></span>
+                        <strong>{pesos(porGramo)} el gramo</strong>
+                    </div>
+                    <div style={{ color: '#666', marginTop: '0.4rem' }}>
+                        Un anillo de 10 gramos saldría en {pesos(porGramo * 10)}.
+                        Desde {precios.gramos_minimos} gramos; por debajo lo cotiza una persona.
+                    </div>
+                </div>
+
+                <div>
+                    <button className="admin-btn" onClick={guardar} disabled={guardando}>
+                        {guardando ? 'Guardando…' : 'Guardar precio'}
+                    </button>
+                </div>
+
+                <p style={{ fontSize: '0.8rem', color: viejo ? '#b45309' : '#666', margin: 0 }}>
+                    {dias === 0 ? 'Actualizado hoy' : dias === 1 ? 'Actualizado ayer' : `Actualizado hace ${dias} días`}
+                    {precios.actualizado_por ? ` por ${precios.actualizado_por}` : ''}
+                    {viejo ? ' — conviene revisarlo.' : '.'}
+                </p>
+
+                {aviso.msg && (
+                    <p style={{ fontSize: '0.85rem', color: aviso.tipo === 'error' ? '#ef4444' : '#10b981', margin: 0 }}>
+                        {aviso.msg}
+                    </p>
+                )}
+            </div>
+        </div>
+    );
+};
+
 /* ─── SettingsSection ────────────────────────────────────────────── */
 const SettingsSection = () => {
     const [webhookUrl, setWebhookUrl] = useState(() => localStorage.getItem('admin_webhook_url') || '');
@@ -2812,6 +2950,8 @@ const SettingsSection = () => {
                     <p className="admin-section-sub">Configuración del panel de administración</p>
                 </div>
             </div>
+
+            <PrecioOroCard />
 
             {/* Admin Users */}
             <div className="admin-card" style={{ maxWidth: 600 }}>
