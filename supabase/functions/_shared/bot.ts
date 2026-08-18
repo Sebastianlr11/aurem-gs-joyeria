@@ -11,8 +11,8 @@ const MENSAJES_DE_CONTEXTO = 20
    freno, y Meta corta la conversación mucho antes de que valga la pena
    seguir pensando. El último paso va sin herramientas, así siempre termina
    con algo que decirle al cliente. */
-const MAX_PASOS = 4
-const PRESUPUESTO_MS = 40_000
+const MAX_PASOS = 3
+const PRESUPUESTO_MS = 25_000
 /** Más de tres fotos seguidas satura el chat. */
 const MAX_FOTOS = 3
 
@@ -67,10 +67,31 @@ REGLAS QUE NO SE ROMPEN
    te dijeron y pregunta. La lista completa abruma y no vende.
 11. Si te preguntan directamente si eres una persona o un bot, dilo: eres
    una asistente. Sonar natural es una cosa, mentir es otra.
+12. TALLAS. Nunca calcules una talla de cabeza ni pidas que te la digan si
+   ya te dieron una medida: usa calcular_talla. Si no saben su talla,
+   guíalos así, en mensajes cortos y de a un paso:
+   - Envuelve un hilo o una tira de papel en la base del dedo, ajustado
+     pero sin apretar.
+   - Marca donde se cruza y mídelo con una regla, en milímetros.
+   - Mándame ese número.
+   Detalles que sí sabes: mejor medir al final del día, porque en la mañana
+   y con frío el dedo está más delgado. La talla es igual en oro, plata y
+   platino, pero en bandas anchas conviene media talla más. Si es un regalo,
+   que midan por dentro un anillo que esa persona ya use en ese dedo: eso es
+   diámetro, no circunferencia. La guía completa está en
+   auremgsjoyeria.com/guia-de-tallas
+13. Si un anillo no le queda, no prometas que se puede ajustar: no todos los
+   diseños admiten ajuste sin dañar el acabado. Pide la foto de la pieza y
+   la medida, y escala.
 
 CÓMO ESCRIBIR
 Frases cortas. Sin punto y coma, sin dos puntos para enumerar, sin listas
 con viñetas. Como se escribe por WhatsApp, no como se redacta un correo.
+
+Emojis: de vez en cuando, no en cada mensaje. Uno cada tres o cuatro, y
+sólo cuando acompaña algo — al saludar, al celebrar que le gustó una pieza,
+al despedirte. Nunca dos juntos, nunca en un mensaje de precio, dirección o
+plazo de envío: ahí restan seriedad. Si dudas, no lo pongas.
 
 Si tienes que decir dos cosas, sepáralas con una línea en blanco: se envían
 como dos mensajes seguidos, que es como escribe una persona. Máximo tres.
@@ -103,6 +124,25 @@ const HERRAMIENTAS = [
           },
         },
         required: ['piezas'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'calcular_talla',
+      description: 'Convierte una medida del dedo en talla de anillo, con la tabla oficial de Aurem Gs. Úsala SIEMPRE que te den una medida en milímetros o centímetros: nunca calcules la talla de cabeza.',
+      parameters: {
+        type: 'object',
+        properties: {
+          medida: { type: 'number', description: 'El número que dijo el cliente' },
+          unidad: {
+            type: 'string',
+            enum: ['circunferencia_mm', 'circunferencia_cm', 'diametro_mm', 'diametro_cm'],
+            description: 'Si midió con un hilo alrededor del dedo es circunferencia. Si midió un anillo por dentro, de lado a lado, es diámetro. Si no está claro, pregunta antes.',
+          },
+        },
+        required: ['medida', 'unidad'],
       },
     },
   },
@@ -170,6 +210,29 @@ async function llamarModelo(mensajes: any[], herramientas = HERRAMIENTAS) {
   if (!res.ok) throw new Error(`OpenRouter ${res.status}: ${(await res.text()).slice(0, 300)}`)
   return (await res.json())?.choices?.[0]?.message
 }
+
+/* Tallas de anillo. Es la MISMA tabla que la calculadora de
+   /guia-de-tallas (src/pages/RingSizeGuide.jsx): circunferencia interior en
+   milímetros. Si se cambia allá, hay que cambiarla acá.
+
+   No va en el prompt a propósito. Los modelos calculan mal, y acá una
+   equivocación se convierte en un anillo que no entra y una devolución. */
+const TALLAS: Array<[string, number]> = [
+  ['3', 44.2], ['3.5', 45.5], ['4', 46.8], ['4.5', 48.0], ['5', 49.3],
+  ['5.5', 50.6], ['6', 51.9], ['6.5', 53.1], ['7', 54.4], ['7.5', 55.7],
+  ['8', 57.0], ['8.5', 58.3], ['9', 59.5], ['9.5', 60.8], ['10', 62.1],
+  ['10.5', 63.4], ['11', 64.6], ['11.5', 65.9], ['12', 67.2], ['12.5', 68.5],
+]
+
+/** Pasa cualquier medida a circunferencia en milímetros. */
+const A_CIRCUNFERENCIA: Record<string, (v: number) => number> = {
+  circunferencia_mm: (v) => v,
+  circunferencia_cm: (v) => v * 10,
+  diametro_mm: (v) => v * Math.PI,
+  diametro_cm: (v) => v * 10 * Math.PI,
+}
+
+const unDecimal = (n: number) => n.toFixed(1).replace('.', ',')
 
 const CAMPOS_PIEZA = 'id, name, price, image_url, images, stock'
 
@@ -252,6 +315,36 @@ async function ejecutarHerramienta(
     return partes.join(' ') || 'No se pudo enviar ninguna foto. Descríbelas y discúlpate sin dramatizar.'
   }
 
+  if (nombre === 'calcular_talla') {
+    const medida = Number(args?.medida)
+    const convertir = A_CIRCUNFERENCIA[String(args?.unidad)]
+    if (!Number.isFinite(medida) || medida <= 0 || !convertir) {
+      return 'Esa medida no se entiende. Pregúntale cómo midió y con qué unidad.'
+    }
+
+    const circ = convertir(medida)
+
+    if (circ < TALLAS[0][1]) {
+      return `Esa medida (${unDecimal(circ)} mm de circunferencia) queda por debajo de la talla 3. ` +
+             `Dile que se la fabricamos a la medida y que le confirmas por interno.`
+    }
+    const mayor = TALLAS[TALLAS.length - 1]
+    if (circ > mayor[1]) {
+      return `Esa medida (${unDecimal(circ)} mm de circunferencia) pasa la talla ${mayor[0]}. ` +
+             `Dile que se la fabricamos a la medida y que le confirmas por interno.`
+    }
+
+    /* Entre dos tallas se toma la mayor: un anillo holgado se acomoda, uno
+       apretado no entra. Es la misma regla que la calculadora del sitio. */
+    const fila = TALLAS.find(([, mm]) => mm >= circ)!
+    const justa = Math.abs(fila[1] - circ) < 0.15
+
+    return `La talla es ${fila[0]}. (${unDecimal(circ)} mm de circunferencia, ` +
+           `${unDecimal(fila[1] / Math.PI)} mm de diámetro interior.) ` +
+           (justa ? 'Cae justo en esa talla. ' : 'Quedó entre dos tallas y se toma la mayor, porque un anillo holgado se acomoda y uno apretado no entra. ') +
+           `Díselo con naturalidad y sigue con el pedido. No le preguntes otra vez qué talla es: ya la sabes.`
+  }
+
   if (nombre === 'escalar_a_humano') {
     await db.from('chat_takeover').upsert(
       { phone_number: telefono, is_active: true, admin_email: 'valentina@bot', reason: args?.motivo ?? null },
@@ -329,10 +422,16 @@ export async function responder(
     const sinTiempo = Date.now() - empezo > PRESUPUESTO_MS
     const ultimo = paso === MAX_PASOS - 1 || sinTiempo
 
+    const tModelo = Date.now()
     const respuesta = await llamarModelo(mensajes, ultimo ? [] : HERRAMIENTAS)
     const llamadas = respuesta?.tool_calls ?? []
+    console.log(
+      `modelo · paso ${paso + 1} · ${Date.now() - tModelo} ms · ` +
+      `${llamadas.length ? llamadas.map((l: any) => l.function.name).join('+') : 'texto'}`,
+    )
 
     if (!llamadas.length) {
+      console.log(`turno resuelto en ${Date.now() - empezo} ms y ${paso + 1} paso(s)`)
       return String(respuesta?.content || '').trim() || null
     }
 
@@ -348,10 +447,16 @@ export async function responder(
         return 'Dame un momento, te comunico con alguien del equipo que te ayuda con eso. 🌿'
       }
 
+      /* Se registra qué herramienta y cuánto tardó. Sin esto, un turno de
+         86 segundos es un misterio: no se sabe si fue el modelo, la base o
+         Meta, ni cuántas vueltas dio el bucle. */
+      const t0 = Date.now()
       const resultado = await ejecutarHerramienta(llamada.function.name, args, telefono, desdeId)
+      console.log(`herramienta ${llamada.function.name} · paso ${paso + 1} · ${Date.now() - t0} ms`)
       mensajes.push({ role: 'tool', tool_call_id: llamada.id, content: resultado })
     }
   }
 
+  console.error(`Se agotaron los ${MAX_PASOS} pasos sin respuesta, tras ${Date.now() - empezo} ms`)
   return null
 }

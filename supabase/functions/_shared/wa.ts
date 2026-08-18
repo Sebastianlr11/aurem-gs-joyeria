@@ -184,6 +184,29 @@ export async function acusarYEscribir(mensajeId: string, desdeId?: string | null
   }
 }
 
+/**
+ * Mantiene el "escribiendo…" encendido mientras el modelo piensa.
+ *
+ * El indicador de Meta se apaga solo a los 25 segundos, y un turno con
+ * herramientas puede tardar más. Sin esto, el cliente ve "escribiendo",
+ * después nada durante un minuto, y de golpe un mensaje: peor que no
+ * mostrar nada. Se refresca antes de que expire.
+ *
+ * Devuelve la función para apagarlo.
+ */
+export function mantenerEscribiendo(mensajeId: string, desdeId?: string | null): () => void {
+  let vivo = true
+
+  ;(async () => {
+    while (vivo) {
+      await acusarYEscribir(mensajeId, desdeId)
+      await new Promise((r) => setTimeout(r, 20_000))
+    }
+  })()
+
+  return () => { vivo = false }
+}
+
 /** Cuántos mensajes seguidos como máximo. Más de tres se lee como spam. */
 const MAX_TROZOS = 3
 
@@ -199,6 +222,7 @@ export async function enviarTextoNatural(
   texto: string,
   enviadoPor: 'ia' | 'humano',
   desdeId?: string | null,
+  mensajeIdEntrante?: string | null,
 ): Promise<{ ok: boolean; wamid?: string; error?: string }> {
   const trozos = texto.split(/\n\s*\n/).map((t) => t.trim()).filter(Boolean)
 
@@ -212,6 +236,9 @@ export async function enviarTextoNatural(
 
   for (let i = 0; i < trozos.length; i++) {
     if (i > 0) {
+      /* Entre un mensaje y el siguiente vuelve a aparecer "escribiendo…",
+         que es lo que hace una persona: manda, sigue tecleando, manda. */
+      if (mensajeIdEntrante) await acusarYEscribir(mensajeIdEntrante, desdeId)
       const pausa = Math.min(900 + trozos[i].length * 22, 3500)
       await new Promise((r) => setTimeout(r, pausa))
     }
