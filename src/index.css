@@ -12657,12 +12657,46 @@ textarea:focus-visible {
   outline: none;
 }
 
+/* El compositor del chat.
+
+   La píldora es una excepción consciente al radio de 2px del sistema, que
+   rige para los campos: un compositor de chat es un patrón propio y así lo
+   espera cualquiera que venga de WhatsApp. El resto sí sigue la marca —
+   marfil, filete de pelo, cacao y un solo oro. */
+.chat-input-field {
+  border-radius: 100px;
+  background: var(--bg-marfil);
+  border: 1px solid var(--hairline);
+  padding: 13px 20px;
+  color: var(--ink);
+}
+
+.chat-input-field::placeholder {
+  color: var(--text-secondary);
+  opacity: 1;
+}
+
+/* Al escribir, el filete toma oro en dosis baja: señala dónde está el
+   cursor sin gritar. */
+.chat-input-field:focus {
+  border-color: rgba(168, 134, 63, 0.45);
+  background: var(--bg-color);
+}
+
 .chat-send-btn {
   background: var(--ink);
-  color: #fff;
+  /* Oro claro, que es el que cumple contraste sobre cacao. */
+  color: var(--oro-luz);
   border: 0;
   border-radius: 100px;
   transition: all 0.3s var(--ease);
+}
+
+/* Apagado en vez de gris: la pieza no cambia de forma, sólo de presencia. */
+.chat-send-btn:disabled {
+  background: var(--bg-arena);
+  color: var(--text-secondary);
+  cursor: default;
 }
 
 .chat-send-btn:hover:not(:disabled) {
