@@ -100,7 +100,10 @@ textarea:focus-visible {
 .container {
   max-width: 1440px;
   margin: 0 auto;
-  padding: 0 4rem;
+  /* Longhand a propósito: el atajo `padding` borra el padding vertical de
+     quien combine .container con otra clase, como .catalogo-head. */
+  padding-left: 4rem;
+  padding-right: 4rem;
 }
 
 /* Sin rieles laterales: la página se articula con bandas y líneas de pelo */
@@ -1689,6 +1692,10 @@ textarea:focus-visible {
 /* ================================================================
    NAVEGACIÓN
    ================================================================ */
+/* El navbar flota fijo: cualquier barra sticky tiene que empezar por debajo.
+   --navbar-espacio es lo que ocupa, píldora y aire incluidos. */
+:root { --navbar-espacio: 6.25rem; }
+
 .navbar-outer {
   position: fixed;
   top: 0;
@@ -2023,7 +2030,8 @@ textarea:focus-visible {
   }
 
   .container {
-    padding: 0 1.5rem;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
   }
 }
 
@@ -2125,7 +2133,7 @@ textarea:focus-visible {
 /* Barra de filtros */
 .catalogo-filtros {
   position: sticky;
-  top: 0;
+  top: var(--navbar-espacio);
   z-index: 20;
   background: rgba(251, 247, 242, 0.92);
   backdrop-filter: blur(18px);
@@ -7980,10 +7988,10 @@ textarea:focus-visible {
 
 /* ── Container padding ── */
 @media (max-width: 968px) {
-  .container { padding: 0 2rem; }
+  .container { padding-left: 2rem; padding-right: 2rem; }
 }
 @media (max-width: 600px) {
-  .container { padding: 0 1.25rem; }
+  .container { padding-left: 1.25rem; padding-right: 1.25rem; }
 }
 
 /* ================================================================
@@ -13543,3 +13551,23 @@ textarea:focus-visible {
 }
 /* Un cero de pedidos se apaga, pero sigue siendo legible */
 .ped-monto.ped-pulso-v--cero { color: var(--text-muted); }
+
+@media (max-width: 768px) {
+  :root { --navbar-espacio: 4.75rem; }
+
+  /* En 375px el valor de cada promesa llegaba pegado al borde. Se apilan
+     bajo su rótulo, que además es como se leen en el resto del sitio. */
+  .catalogo-promesa {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+  .catalogo-promesa-valor { text-align: left; }
+
+  /* El buscador se quedaba en un tercio del ancho, sin sitio ni para
+     "Buscar pieza". Ocupa su propia línea. */
+  .catalogo-herramientas { flex-wrap: wrap; }
+  .catalogo-buscar { flex: 1 1 100%; }
+  .catalogo-buscar input { width: 100%; }
+  .catalogo-orden { flex: 1 1 100%; }
+}
