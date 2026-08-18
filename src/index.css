@@ -9497,9 +9497,21 @@ textarea:focus-visible {
   html.chat-abierto,
   html.chat-abierto body { overflow: hidden; }
 
-  body.chat-escribiendo .admin-mobile-bar { display: none; }
+  /* Con el teclado abierto el chat toma el viewport VISUAL completo: la
+     parte de pantalla que el teclado deja libre. Las variables las publica
+     ChatPanel desde la API de visualViewport, porque en iOS el teclado no
+     encoge el layout y sin medirlo el panel queda debajo del teclado con
+     una franja en blanco arriba.
+
+     Se esconden las dos barras del panel: como en WhatsApp, mientras se
+     escribe manda la conversación y no la navegación. */
+  body.chat-escribiendo .admin-mobile-bar,
+  body.chat-escribiendo .admin-topbar { display: none; }
+
   body.chat-escribiendo .chat-panel {
-    bottom: env(safe-area-inset-bottom);
+    top: var(--vv-top, 0px);
+    bottom: auto;
+    height: var(--vv-alto, 100%);
   }
 }
 

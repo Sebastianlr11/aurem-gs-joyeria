@@ -140,6 +140,13 @@ const ChatPanel = () => {
        barra de navegación estorba ahí: se esconde, como hace WhatsApp. */
     const [escribiendo, setEscribiendo] = useState(false);
     const messagesEndRef = useRef(null);
+
+    /* Baja al último mensaje. Se desplaza el contenedor y no la página. */
+    const bajarAlFinal = useCallback((suave = true) => {
+        const lista = messagesEndRef.current?.parentElement;
+        if (lista) lista.scrollTo({ top: lista.scrollHeight, behavior: suave ? 'smooth' : 'auto' });
+    }, []);
+
     const activeContactRef = useRef(null);
     const [showQuickReplies, setShowQuickReplies] = useState(false);
     const [showImagePicker, setShowImagePicker] = useState(false);
@@ -428,13 +435,10 @@ const ChatPanel = () => {
     const prevMsgCountRef = useRef(0);
     useEffect(() => {
         if (messages.length > prevMsgCountRef.current) {
-            setTimeout(() => {
-                /* Se desplaza el contenedor, no scrollIntoView: ese arrastra a
-                   TODOS los ancestros desplazables, y en móvil terminaba
-                   moviendo la página entera además de la lista. */
-                const lista = messagesEndRef.current?.parentElement;
-                if (lista) lista.scrollTo({ top: lista.scrollHeight, behavior: 'smooth' });
-            }, 50);
+            /* Se desplaza el contenedor, no scrollIntoView: ese arrastra a
+               TODOS los ancestros desplazables, y en móvil terminaba
+               moviendo la página entera además de la lista. */
+            setTimeout(() => bajarAlFinal(true), 50);
         }
         prevMsgCountRef.current = messages.length;
     }, [messages.length]);
@@ -455,6 +459,45 @@ const ChatPanel = () => {
         document.body.classList.toggle('chat-escribiendo', escribiendo);
         return () => document.body.classList.remove('chat-escribiendo');
     }, [escribiendo]);
+
+    /* El teclado en iOS NO encoge el layout: encoge el viewport VISUAL y
+       deja el de layout igual. Por eso un panel anclado con position fixed
+       se queda donde estaba y aparece una franja arriba — la meta
+       interactive-widget que sirve en Android ahí no hace nada.
+
+       Se miden el alto y el desplazamiento del viewport visual y se
+       publican como variables CSS, para que el panel se acomode encima del
+       teclado en vez de quedar debajo. */
+    useEffect(() => {
+        const vv = window.visualViewport;
+        if (!vv) return;
+
+        const medir = () => {
+            const raiz = document.documentElement;
+            raiz.style.setProperty('--vv-alto', `${Math.round(vv.height)}px`);
+            raiz.style.setProperty('--vv-top', `${Math.round(vv.offsetTop)}px`);
+        };
+
+        medir();
+        vv.addEventListener('resize', medir);
+        vv.addEventListener('scroll', medir);
+        return () => {
+            vv.removeEventListener('resize', medir);
+            vv.removeEventListener('scroll', medir);
+            document.documentElement.style.removeProperty('--vv-alto');
+            document.documentElement.style.removeProperty('--vv-top');
+        };
+    }, []);
+
+    /* Al abrirse el teclado la conversación queda arriba y hay que
+       desplazarla a mano. Se baja sola, esperando a que el teclado termine
+       de subir: antes de eso el alto todavía no es el definitivo. */
+    useEffect(() => {
+        if (!escribiendo) return;
+        const t1 = setTimeout(() => bajarAlFinal(false), 120);
+        const t2 = setTimeout(() => bajarAlFinal(true), 420);
+        return () => { clearTimeout(t1); clearTimeout(t2); };
+    }, [escribiendo, bajarAlFinal]);
 
     /* ─── Supabase Realtime subscription ──────────────────────────── */
     const fetchContactsRef = useRef(fetchContacts);
