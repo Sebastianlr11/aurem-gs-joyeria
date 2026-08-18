@@ -60,7 +60,53 @@ async function conocimiento(): Promise<string> {
   return data.map((t) => `${t.tema}: ${t.contenido}`).join('\n')
 }
 
-function instrucciones(piezas: string, politicas: string): string {
+/** El identificador del anuncio, para dejarlo anotado en el pedido. */
+async function anuncioDe(telefono: string): Promise<string | null> {
+  const { data } = await admin()
+    .from('whatsapp_conversaciones')
+    .select('referral')
+    .eq('phone_number', telefono)
+    .not('referral', 'is', null)
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle()
+
+  const r: any = data?.referral
+  if (!r) return null
+
+  const id = r.source_id || r.ctwa_clid || null
+  return id ? `Anuncio: ${id}` : 'Llegó por anuncio'
+}
+
+/**
+ * De qué anuncio llegó esta persona, si llegó por uno.
+ *
+ * Los campos se leen a la defensiva: el esquema del referral no está
+ * documentado en abierto y puede traer más de lo que se espera. Se toma lo
+ * que sirve para conversar y lo demás queda igual guardado en la fila.
+ */
+async function origen(telefono: string): Promise<string> {
+  const { data } = await admin()
+    .from('whatsapp_conversaciones')
+    .select('referral')
+    .eq('phone_number', telefono)
+    .not('referral', 'is', null)
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle()
+
+  const r: any = data?.referral
+  if (!r) return ''
+
+  const titular = r.headline || r.body || null
+  const tipo = r.source_type === 'post' ? 'una publicación' : 'un anuncio'
+
+  return titular
+    ? `Esta persona llegó desde ${tipo} que decía: "${String(titular).slice(0, 160)}".`
+    : `Esta persona llegó desde ${tipo}.`
+}
+
+function instrucciones(piezas: string, politicas: string, deDonde: string): string {
   return `Eres Valentina, la asesora de Aurem Gs Joyería, una joyería colombiana.
 Escribes por WhatsApp a clientes reales. Hablas en español de Colombia, con
 cercanía y sin adular. Mensajes cortos: dos o tres frases, salvo que estés
@@ -71,6 +117,7 @@ ${piezas}
 
 CÓMO FUNCIONA EL NEGOCIO (es lo único que puedes afirmar sin consultar):
 ${politicas}
+${deDonde ? `\nDE DÓNDE VIENE\n${deDonde}\nAbre reconociendo eso, con naturalidad — "vi que te interesó…" — y sigue por ahí.\nNO recites el anuncio ni repitas su texto: sólo demuestra que sabes qué vio.\nSi el anuncio prometía algo que no está en las políticas de arriba, NO lo\nconfirmes: dilo con calma y escala.\n` : ''}
 
 REGLAS QUE NO SE ROMPEN
 1. Nunca inventes una pieza, un precio, un material, un quilataje ni un plazo.
@@ -488,6 +535,8 @@ async function ejecutarHerramienta(
       return 'No se pudo registrar el pedido. Usa escalar_a_humano.'
     }
 
+    const anuncio = await anuncioDe(telefono)
+
     let respuesta: any = {}
     try {
       const res = await fetch(`${url}/functions/v1/create-preference`, {
@@ -509,6 +558,12 @@ async function ejecutarHerramienta(
           notes: [
             args.talla ? `Talla: ${args.talla}` : null,
             'Pedido tomado por Valentina',
+            /* De qué anuncio salió. Va en las notas y no en una columna
+               porque orders es de la tienda y del panel además del bot;
+               agregarle un campo sólo por esto sería ensuciarla. Cuando
+               haya campañas de verdad y la atribución se mida en serio,
+               merece su propia tabla. */
+            anuncio,
           ].filter(Boolean).join(' · '),
         }),
       })
@@ -573,11 +628,13 @@ export async function responder(
     .filter((m) => m.content)
     .map((m) => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.content }))
 
-  // En paralelo: son dos consultas independientes.
-  const [piezas, politicas] = await Promise.all([catalogo(), conocimiento()])
+  // En paralelo: son tres consultas independientes.
+  const [piezas, politicas, deDonde] = await Promise.all([
+    catalogo(), conocimiento(), origen(telefono),
+  ])
 
   const mensajes: any[] = [
-    { role: 'system', content: instrucciones(piezas, politicas) },
+    { role: 'system', content: instrucciones(piezas, politicas, deDonde) },
     ...conversacion,
   ]
 

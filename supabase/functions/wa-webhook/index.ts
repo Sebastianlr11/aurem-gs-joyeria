@@ -120,6 +120,17 @@ Deno.serve(async (req: Request) => {
   const idAudio = mensaje.audio?.id ?? null
   const idImagen = mensaje.image?.id ?? null
 
+  /* De qué anuncio viene. Sólo llega en el primer mensaje de quien entró por
+     un clic-a-WhatsApp, así que si se descarta se pierde para siempre: es el
+     único momento en que Meta lo cuenta.
+
+     Se guarda entero. El esquema completo no está documentado en abierto, y
+     quedarse con tres campos elegidos de memoria es perder el resto. */
+  const referral = mensaje.referral ?? null
+  if (referral) {
+    console.log('Llegó por anuncio · referral:', JSON.stringify(referral).slice(0, 500))
+  }
+
   if (!telefono) {
     console.error('Mensaje sin remitente identificable; no se guarda:', JSON.stringify(mensaje).slice(0, 300))
     return ok({ ok: true, ignorado: 'sin remitente' })
@@ -138,6 +149,7 @@ Deno.serve(async (req: Request) => {
     wa_message_id: mensaje.id,
     is_read: false,
     wa_phone_id: numeroPropio,
+    referral,
   }).select('created_at').single()
 
   if (fallo) {
