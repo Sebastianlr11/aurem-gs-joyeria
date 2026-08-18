@@ -94,7 +94,11 @@ input:focus-visible,
 textarea:focus-visible {
   outline: 2px solid var(--oro);
   outline-offset: 3px;
-  border-radius: 2px;
+  /* Sin border-radius acá. Estaba fijado en 2px para que el contorno
+     quedara bien en lo cuadrado, pero le ganaba por especificidad a
+     cualquier pieza con forma propia —una píldora, un círculo— y la
+     cuadraba justo al enfocarla. Los navegadores actuales ya siguen el
+     radio del elemento con el contorno, así que no hace falta. */
 }
 
 .container {
