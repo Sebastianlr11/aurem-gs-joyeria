@@ -110,7 +110,7 @@ export function pixelVerPieza({ id, nombre, precio }) {
   };
   meta('ViewContent', datos);
   tiktok('ViewContent', {
-    contents: [{ content_id: String(id), content_name: nombre }],
+    contents: [{ content_id: String(id), content_name: nombre, content_type: 'product' }],
     value: Number(precio) || 0,
     currency: 'COP',
   });
@@ -126,7 +126,7 @@ export function pixelIniciarPago({ id, nombre, precio }) {
   };
   meta('InitiateCheckout', datos);
   tiktok('InitiateCheckout', {
-    contents: [{ content_id: String(id), content_name: nombre }],
+    contents: [{ content_id: String(id), content_name: nombre, content_type: 'product' }],
     value: Number(precio) || 0,
     currency: 'COP',
   });
@@ -141,7 +141,7 @@ export function pixelIniciarPago({ id, nombre, precio }) {
  * mande esta misma compra desde el servidor, va a usar el mismo, y así Meta
  * entiende que es UNA venta contada por dos vías y no dos ventas.
  */
-export function pixelCompra({ pedidoId, valor }) {
+export function pixelCompra({ pedidoId, valor, piezaId, piezaNombre }) {
   if (!pedidoId) return;
 
   // Recargar la página de confirmación no puede contar otra venta.
@@ -154,9 +154,28 @@ export function pixelCompra({ pedidoId, valor }) {
        contar de más una vez que perder la conversión. */
   }
 
-  const datos = { value: Number(valor) || 0, currency: 'COP' };
-  meta('Purchase', datos, { eventID: String(pedidoId) });
-  tiktok('CompletePayment', { ...datos, event_id: String(pedidoId) });
+  const valorNum = Number(valor) || 0;
+
+  const metaDatos = { value: valorNum, currency: 'COP' };
+  if (piezaId) {
+    metaDatos.content_ids = [String(piezaId)];
+    metaDatos.content_type = 'product';
+  }
+  if (piezaNombre) metaDatos.content_name = piezaNombre;
+  meta('Purchase', metaDatos, { eventID: String(pedidoId) });
+
+  /* TikTok renombró CompletePayment a Purchase en mayo de 2025. El nombre
+     viejo todavía se acepta y se convierte solo en los informes, pero el
+     embudo declarado en el panel usa el nuevo, así que mandamos ese. */
+  const ttDatos = { value: valorNum, currency: 'COP', event_id: String(pedidoId) };
+  if (piezaId) {
+    ttDatos.contents = [{
+      content_id: String(piezaId),
+      content_type: 'product',
+      content_name: piezaNombre || undefined,
+    }];
+  }
+  tiktok('Purchase', ttDatos);
 }
 
 /** Para el panel: saber si están puestos sin exponer los identificadores. */

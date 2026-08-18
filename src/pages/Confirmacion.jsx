@@ -29,12 +29,17 @@ const Confirmacion = () => {
       /* El monto sale de acá y no de una consulta aparte: el update ya
          toca esa fila, y el valor tiene que venir de la base y no de la
          URL — lo que llega por parámetro lo puede cambiar cualquiera. */
-      .select('amount')
+      .select('amount, product_id, product_name')
       .maybeSingle()
       .then(({ data }) => {
         setUpdated(true)
         if (orderStatus === 'pagado') {
-          pixelCompra({ pedidoId: externalRef, valor: data?.amount })
+          pixelCompra({
+            pedidoId: externalRef,
+            valor: data?.amount,
+            piezaId: data?.product_id,
+            piezaNombre: data?.product_name,
+          })
         }
       })
   }, [externalRef, status, paymentId, updated])
