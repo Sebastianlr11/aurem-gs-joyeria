@@ -13555,6 +13555,17 @@ textarea:focus-visible {
 @media (max-width: 768px) {
   :root { --navbar-espacio: 4.75rem; }
 
+  /* La barra de filtros ocupaba 337px de los 812 de un móvil —el 41%—, así
+     que al bajar dejaba 412px para ver piezas y se sentía encima todo el
+     rato. En móvil se desplaza con la página. En escritorio sigue pegada,
+     que allí es una sola franja y hay altura de sobra. */
+  .catalogo-filtros {
+    position: static;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: var(--bg-marfil);
+  }
+
   /* En 375px el valor de cada promesa llegaba pegado al borde. Se apilan
      bajo su rótulo, que además es como se leen en el resto del sitio. */
   .catalogo-promesa {
