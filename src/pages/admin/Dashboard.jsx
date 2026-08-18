@@ -1595,63 +1595,181 @@ const OrdersSection = ({ orders, products, loading, onRefresh }) => {
 };
 
 /* ─── CustomersSection ───────────────────────────────────────────── */
-const CustomersSection = ({ customers, loading, onRefresh }) => {
+const CustomersSection = ({ customers, orders = [], loading, onRefresh }) => {
     const [search, setSearch] = useState('');
+    const [filtro, setFiltro] = useState('todas');
     const [modal, setModal]   = useState(null);
 
     const closeModal = () => setModal(null);
     const afterSave  = () => { closeModal(); onRefresh(); };
 
-    const visible = customers.filter(c =>
-        !search.trim() ||
-        c.name.toLowerCase().includes(search.toLowerCase()) ||
-        (c.phone || '').includes(search) ||
-        (c.email || '').toLowerCase().includes(search.toLowerCase())
-    );
+    /* Cada clienta con lo que ha comprado. Los pedidos se cruzan por
+       teléfono —lo único que siempre llega desde WhatsApp— y, si no hay,
+       por correo o por nombre exacto. */
+    const soloDigitos = (t) => String(t || '').replace(/\D/g, '').slice(-10);
+
+    const conCompras = useMemo(() => customers.map(c => {
+        const tel = soloDigitos(c.phone);
+        const correo = (c.email || '').toLowerCase();
+        const suyos = orders.filter(o =>
+            (tel && soloDigitos(o.customer_phone) === tel) ||
+            (correo && (o.customer_email || '').toLowerCase() === correo) ||
+            (!tel && !correo && o.customer_name === c.name)
+        );
+        const cobrados = suyos.filter(o => REVENUE_STATUSES.includes(o.status));
+        const ultima = suyos.length
+            ? suyos.reduce((a, b) => (new Date(a.created_at) > new Date(b.created_at) ? a : b))
+            : null;
+        return {
+            ...c,
+            pedidos: suyos.length,
+            gastado: cobrados.reduce((s, o) => s + Number(o.amount), 0),
+            ultima: ultima?.created_at || null,
+        };
+    }), [customers, orders]);
+
+    const conPedido = conCompras.filter(c => c.pedidos > 0).length;
+    const repiten   = conCompras.filter(c => c.pedidos > 1).length;
+
+    const visible = conCompras
+        .filter(c => {
+            if (filtro === 'con_pedido' && c.pedidos === 0) return false;
+            if (filtro === 'repiten' && c.pedidos < 2) return false;
+            if (filtro === 'sin_pedido' && c.pedidos > 0) return false;
+            const q = search.trim().toLowerCase();
+            return !q
+                || c.name.toLowerCase().includes(q)
+                || (c.phone || '').includes(search)
+                || (c.email || '').toLowerCase().includes(q)
+                || (c.city || '').toLowerCase().includes(q);
+        })
+        .sort((a, b) => b.gastado - a.gastado || a.name.localeCompare(b.name));
 
     return (
-        <div className="admin-section">
-            <div className="admin-section-head">
-                <div>
-                    <h1 className="admin-section-title">Clientes</h1>
-                    <p className="admin-section-sub">{customers.length} clientes registrados</p>
+        <div className="ped">
+
+            <header className="ped-head">
+                <div className="ped-head-texto">
+                    <span className="eyebrow">Panel interno</span>
+                    <h1 className="ped-titulo">
+                        Clientes
+                        <em>quién compra, y cuánto.</em>
+                    </h1>
+                    <p className="ped-sub">
+                        {customers.length} en el registro · ordenadas por lo que han gastado
+                    </p>
                 </div>
-                <button className="admin-btn" onClick={() => setModal({ type: 'add' })}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                    Nuevo cliente
+                <button className="btn-pill black" onClick={() => setModal({ type: 'add' })}>
+                    Registrar una clienta
                 </button>
-            </div>
+            </header>
 
-            <div className="admin-card">
-                <div className="admin-toolbar">
-                    <div className="admin-search-wrap" style={{ maxWidth: 320 }}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                        <input className="admin-search" placeholder="Buscar por nombre, telefono o email..." value={search} onChange={e => setSearch(e.target.value)} />
+            <section className="ped-pulso">
+                {[
+                    ['En el registro', customers.length, 'Fichas guardadas', 'todas'],
+                    ['Han comprado', conPedido, 'Al menos un pedido', 'con_pedido'],
+                    ['Vuelven', repiten, 'Dos pedidos o más', 'repiten'],
+                ].map(([label, n, nota, clave]) => (
+                    <button
+                        key={label}
+                        type="button"
+                        className={`ped-pulso-item ${filtro === clave ? 'ped-pulso-item--on' : ''}`}
+                        onClick={() => setFiltro(filtro === clave ? 'todas' : clave)}
+                    >
+                        <span className="ped-pulso-l">{label}</span>
+                        <span className={`ped-pulso-v ${n === 0 ? 'ped-pulso-v--cero' : ''}`}>{n}</span>
+                        <span className="ped-pulso-s">{nota}</span>
+                    </button>
+                ))}
+            </section>
+
+            <section className="ped-panel">
+                <div className="ped-toolbar">
+                    <div className="riel" role="group" aria-label="Filtrar clientas">
+                        {[['todas', 'Todas'], ['con_pedido', 'Han comprado'], ['repiten', 'Vuelven'], ['sin_pedido', 'Sin pedidos']].map(([v, l]) => (
+                            <button
+                                key={v}
+                                type="button"
+                                className={`riel-btn ${filtro === v ? 'riel-btn--on' : ''}`}
+                                aria-pressed={filtro === v}
+                                onClick={() => setFiltro(v)}
+                            >
+                                <span>{l}</span>
+                            </button>
+                        ))}
                     </div>
+                    <label className="ped-buscar">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                        <input
+                            placeholder="Nombre, teléfono, correo o ciudad"
+                            value={search}
+                            onChange={e => setSearch(e.target.value)}
+                            aria-label="Buscar clienta"
+                        />
+                    </label>
                 </div>
 
-                {loading ? <div className="admin-loading">Cargando clientes...</div>
-                : visible.length === 0 ? (
-                    <div className="admin-empty">
-                        <p>No hay clientes registrados.</p>
-                        <button className="admin-btn" onClick={() => setModal({ type: 'add' })}>Agregar el primero</button>
+                {loading ? (
+                    <p className="ped-vacio">Cargando clientas…</p>
+                ) : visible.length === 0 ? (
+                    <div className="ped-vacio-bloque">
+                        <span className="ped-vacio-icono">✦</span>
+                        <p className="ped-vacio-t">
+                            {customers.length === 0 ? 'Todavía no hay clientas' : 'Ninguna coincide con ese filtro'}
+                        </p>
+                        {customers.length === 0 && (
+                            <button className="btn-pill light" onClick={() => setModal({ type: 'add' })}>
+                                Registrar la primera
+                            </button>
+                        )}
                     </div>
                 ) : (
-                    <div className="admin-table-wrap">
-                        <table className="admin-table">
-                            <thead><tr><th>Nombre</th><th>Telefono</th><th>Email</th><th>Notas</th><th>Registro</th><th>Acciones</th></tr></thead>
+                    <div className="ped-tabla-wrap">
+                        <table className="ped-tabla">
+                            <thead>
+                                <tr>
+                                    <th>Clienta</th>
+                                    <th>Contacto</th>
+                                    <th className="ped-th-num">Pedidos</th>
+                                    <th className="ped-th-num">Ha gastado</th>
+                                    <th>Última compra</th>
+                                    <th className="ped-th-acc">Acciones</th>
+                                </tr>
+                            </thead>
                             <tbody>
                                 {visible.map(c => (
                                     <tr key={c.id}>
-                                        <td className="admin-td-name">{c.name}</td>
-                                        <td>{c.phone || <span style={{color:'#aaa'}}>&mdash;</span>}</td>
-                                        <td>{c.email || <span style={{color:'#aaa'}}>&mdash;</span>}</td>
-                                        <td style={{maxWidth:200,fontSize:'0.82rem',color:'#666'}}>{c.notes || <span style={{color:'#aaa'}}>&mdash;</span>}</td>
-                                        <td style={{fontSize:'0.82rem',color:'#666'}}>{fmtDate(c.created_at)}</td>
                                         <td>
-                                            <div className="admin-actions">
-                                                <button className="admin-action-btn admin-action-btn--edit" onClick={() => setModal({ type: 'edit', customer: c })}>Editar</button>
-                                                <button className="admin-action-btn admin-action-btn--delete" onClick={() => setModal({ type: 'delete', customer: c })}>Eliminar</button>
+                                            <span className="ped-clienta-nombre">{c.name}</span>
+                                            <span className="ped-meta">
+                                                {c.city || 'Sin ciudad'}
+                                                {c.pedidos > 1 && <span className="cli-vuelve">Vuelve</span>}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span className="ped-pieza">{c.phone || '—'}</span>
+                                            <span className="ped-meta">{c.email || 'Sin correo'}</span>
+                                        </td>
+                                        <td className="ped-td-num">
+                                            <span className={`ped-monto ${c.pedidos === 0 ? 'ped-pulso-v--cero' : ''}`}>{c.pedidos}</span>
+                                        </td>
+                                        <td className="ped-td-num">
+                                            <span className="ped-monto">{c.gastado > 0 ? `$${fmt(c.gastado)}` : '—'}</span>
+                                        </td>
+                                        <td>
+                                            <span className="ped-pieza">{c.ultima ? fmtDate(c.ultima) : '—'}</span>
+                                            <span className="ped-meta">
+                                                {c.ultima ? 'Último pedido' : `En el registro desde ${fmtDate(c.created_at)}`}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div className="ped-acciones">
+                                                <button className="ped-icono" onClick={() => setModal({ type: 'edit', customer: c })} title="Editar">
+                                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                                </button>
+                                                <button className="ped-icono ped-icono--baja" onClick={() => setModal({ type: 'delete', customer: c })} title="Eliminar">
+                                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+                                                </button>
                                             </div>
                                         </td>
                                     </tr>
@@ -1660,7 +1778,7 @@ const CustomersSection = ({ customers, loading, onRefresh }) => {
                         </table>
                     </div>
                 )}
-            </div>
+            </section>
 
             {modal?.type === 'add'    && <CustomerModal onClose={closeModal} onSaved={afterSave} />}
             {modal?.type === 'edit'   && <CustomerModal customer={modal.customer} onClose={closeModal} onSaved={afterSave} />}
@@ -3100,7 +3218,7 @@ const Dashboard = () => {
                         <OrdersSection orders={orders} products={products} loading={loadingO} onRefresh={fetchOrders} />
                     )}
                     {section === 'customers' && (
-                        <CustomersSection customers={customers} loading={loadingC} onRefresh={fetchCustomers} />
+                        <CustomersSection customers={customers} orders={orders} loading={loadingC} onRefresh={fetchCustomers} />
                     )}
                     {section === 'reports' && (
                         <ReportsSection orders={orders} products={products} onNavigate={irA} />

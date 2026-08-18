@@ -13531,3 +13531,18 @@ textarea:focus-visible {
 .od-action-btn--wa:hover { background: var(--bg-arena); border-color: var(--oro-hairline); color: var(--oro-ink); }
 .od-action-btn--edit { background: var(--ink); border-color: var(--ink); color: var(--bg-marfil); }
 .od-action-btn--edit:hover { background: var(--ink-soft); border-color: var(--ink-soft); }
+
+/* Clientes reusa la pantalla de Pedidos; sólo añade lo suyo */
+.ped-clienta-nombre { display: block; font-size: 0.92rem; font-weight: 700; color: var(--ink); }
+.cli-vuelve {
+  padding: 0.1rem 0.5rem;
+  border-radius: 100px;
+  background: var(--bg-arena);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--oro-ink);
+}
+/* Un cero de pedidos se apaga, pero sigue siendo legible */
+.ped-monto.ped-pulso-v--cero { color: var(--text-muted); }
