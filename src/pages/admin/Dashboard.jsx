@@ -1277,21 +1277,51 @@ const OrdersSection = ({ orders, products, loading, onRefresh }) => {
         return `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
     };
 
-    return (
-        <div className="admin-section">
-            <div className="admin-section-head">
-                <div>
-                    <h1 className="admin-section-title">Pedidos</h1>
-                    <p className="admin-section-sub">{orders.length} pedidos &middot; Total visible: ${fmt(totalVisible)} COP</p>
-                </div>
-                <button className="admin-btn" onClick={() => setModal({ type: 'add' })}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                    Nuevo pedido
-                </button>
-            </div>
+    /* Lo que de verdad pide acción, para que la cabecera no sea decorativa */
+    const porConfirmar = orders.filter(o => o.status === 'pendiente').length;
+    const porDespachar = orders.filter(o => o.status === 'pagado' || o.status === 'procesando').length;
+    const enCamino     = orders.filter(o => o.status === 'enviado').length;
 
-            <div className="admin-card">
-                <div className="admin-toolbar">
+    return (
+        <div className="ped">
+
+            <header className="ped-head">
+                <div className="ped-head-texto">
+                    <span className="eyebrow">Panel interno</span>
+                    <h1 className="ped-titulo">
+                        Pedidos
+                        <em>de la vitrina a la puerta.</em>
+                    </h1>
+                    <p className="ped-sub">
+                        {orders.length} en total · ${fmt(totalVisible)} COP en lo que estás viendo
+                    </p>
+                </div>
+                <button className="btn-pill black" onClick={() => setModal({ type: 'add' })}>
+                    Registrar un pedido
+                </button>
+            </header>
+
+            <section className="ped-pulso">
+                {[
+                    ['Por confirmar', porConfirmar, 'Esperan tu llamada o mensaje', 'pendiente'],
+                    ['Por despachar', porDespachar, 'Cobrados que salen en 24 a 48 h', 'pagado'],
+                    ['En camino', enCamino, 'Ya salieron, falta que lleguen', 'enviado'],
+                ].map(([label, n, nota, estado]) => (
+                    <button
+                        key={label}
+                        type="button"
+                        className={`ped-pulso-item ${filterStatus === estado ? 'ped-pulso-item--on' : ''}`}
+                        onClick={() => setFilterStatusAndReset(filterStatus === estado ? 'Todos' : estado)}
+                    >
+                        <span className="ped-pulso-l">{label}</span>
+                        <span className={`ped-pulso-v ${n === 0 ? 'ped-pulso-v--cero' : ''}`}>{n}</span>
+                        <span className="ped-pulso-s">{n === 0 ? 'Nada pendiente' : nota}</span>
+                    </button>
+                ))}
+            </section>
+
+            <section className="ped-panel">
+                <div className="ped-toolbar">
                     <div className="admin-filters">
                         <div className="riel" role="group" aria-label="Estado del pedido">
                             {['Todos', ...ORDER_STATUSES].map(s => (
@@ -1320,75 +1350,100 @@ const OrdersSection = ({ orders, products, loading, onRefresh }) => {
                             ))}
                         </div>
                     </div>
-                    <div className="admin-search-wrap">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                        <input className="admin-search" placeholder="Buscar cliente o producto..." value={search} onChange={e => setSearchAndReset(e.target.value)} />
-                    </div>
+                    <label className="ped-buscar">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                        <input
+                            placeholder="Buscar clienta o pieza"
+                            value={search}
+                            onChange={e => setSearchAndReset(e.target.value)}
+                            aria-label="Buscar clienta o pieza"
+                        />
+                    </label>
                 </div>
 
-                {loading ? <div className="admin-loading">Cargando pedidos...</div>
-                : visible.length === 0 ? (
-                    <div className="admin-empty">
-                        <p>No hay pedidos{filterStatus !== 'Todos' ? ` con estado "${STATUS_META[filterStatus]?.label}"` : ''}.</p>
-                        <button className="admin-btn" onClick={() => setModal({ type: 'add' })}>Registrar primero</button>
+                {loading ? (
+                    <p className="ped-vacio">Cargando pedidos…</p>
+                ) : visible.length === 0 ? (
+                    <div className="ped-vacio-bloque">
+                        <span className="ped-vacio-icono">✦</span>
+                        <p className="ped-vacio-t">
+                            {filterStatus !== 'Todos'
+                                ? `Ningún pedido en "${STATUS_META[filterStatus]?.label}"`
+                                : 'Todavía no hay pedidos'}
+                        </p>
+                        <button className="btn-pill light" onClick={() => setModal({ type: 'add' })}>
+                            Registrar el primero
+                        </button>
                     </div>
                 ) : (
-                    <div className="admin-table-wrap">
-                        <table className="admin-table orders-table">
-                            <thead><tr><th>Canal</th><th>Fecha</th><th>Cliente</th><th>Producto</th><th>Monto</th><th>Pago</th><th>Estado</th><th>Detalles</th><th>Acción rápida</th><th>Acciones</th></tr></thead>
+                    <div className="ped-tabla-wrap">
+                        <table className="ped-tabla">
+                            <thead>
+                                <tr>
+                                    <th>Clienta</th>
+                                    <th>Pieza</th>
+                                    <th className="ped-th-num">Monto</th>
+                                    <th>Estado</th>
+                                    <th>Lo que sigue</th>
+                                    <th className="ped-th-acc">Acciones</th>
+                                </tr>
+                            </thead>
                             <tbody>
                                 {paginated.map(o => {
                                     const action = getNextAction(o);
                                     const waLink = getWaLink(o);
                                     return (
-                                    <tr key={o.id}>
-                                        <td><SourceBadge source={o.order_source || 'web'} /></td>
-                                        <td className="orders-td-date">{fmtShortDate(o.created_at)}</td>
-                                        <td className="admin-td-name">{o.customer_name}</td>
-                                        <td>{o.product_name}</td>
-                                        <td className="admin-td-price">${fmt(o.amount)}</td>
-                                        <td style={{fontSize:'0.82rem',color:'#666'}}>
-                                            {o.payment_method
-                                                ? <span style={isCOD(o) ? {background:'#fef3c7',color:'#92400e',padding:'2px 8px',borderRadius:'9999px',fontWeight:600,fontSize:'0.7rem',textTransform:'uppercase'} : {}}>
-                                                    {o.payment_method}
-                                                  </span>
-                                                : <span style={{color:'#aaa'}}>&mdash;</span>
-                                            }
-                                        </td>
-                                        <td><StatusBadge status={o.status} /></td>
-                                        <td>
-                                            <button
-                                                className="admin-detail-btn"
-                                                onClick={() => setModal({ type: 'detail', order: o })}
-                                            >
-                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                                                Ver
-                                            </button>
-                                        </td>
-                                        <td>
-                                            {action && (
-                                                <button
-                                                    className={`admin-quick-action ${action.cls}`}
-                                                    onClick={() => handleQuickAction(o)}
-                                                >
-                                                    {action.label}
+                                        <tr key={o.id}>
+                                            <td>
+                                                <button className="ped-clienta" onClick={() => setModal({ type: 'detail', order: o })}>
+                                                    {o.customer_name}
                                                 </button>
-                                            )}
-                                        </td>
-                                        <td>
-                                            <div className="admin-actions">
-                                                {waLink && (
-                                                    <a className="admin-action-btn admin-action-btn--wa" href={waLink} target="_blank" rel="noreferrer" title="WhatsApp">
-                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.121.553 4.114 1.519 5.845L.525 23.5l5.793-.983A11.937 11.937 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818c-1.9 0-3.699-.496-5.254-1.368l-.377-.223-3.437.583.594-3.326-.244-.39A9.778 9.778 0 012.182 12c0-5.42 4.398-9.818 9.818-9.818S21.818 6.58 21.818 12 17.42 21.818 12 21.818z"/></svg>
-                                                    </a>
+                                                <span className="ped-meta">
+                                                    <SourceBadge source={o.order_source || 'web'} />
+                                                    {o.shipping_city ? ` · ${o.shipping_city}` : ''}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span className="ped-pieza">{o.product_name}</span>
+                                                <span className="ped-meta">{fmtShortDate(o.created_at)}</span>
+                                            </td>
+                                            <td className="ped-td-num">
+                                                <span className="ped-monto">${fmt(o.amount)}</span>
+                                                <span className="ped-meta">
+                                                    {o.payment_method
+                                                        ? (isCOD(o) ? 'Contra entrega' : o.payment_method)
+                                                        : 'Sin registrar'}
+                                                </span>
+                                            </td>
+                                            <td><StatusBadge status={o.status} /></td>
+                                            <td>
+                                                {action ? (
+                                                    <button className="ped-accion" onClick={() => handleQuickAction(o)}>
+                                                        {action.label}
+                                                    </button>
+                                                ) : (
+                                                    <span className="ped-meta">Cerrado</span>
                                                 )}
-                                                <button className="admin-action-btn admin-action-btn--edit admin-action-btn--sm" onClick={() => setModal({ type: 'edit', order: o })} title="Editar">Editar</button>
-                                                <button className="admin-action-btn admin-action-btn--delete admin-action-btn--icon" onClick={() => setModal({ type: 'delete', order: o })} title="Eliminar">
-                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
+                                            </td>
+                                            <td>
+                                                <div className="ped-acciones">
+                                                    <button className="ped-icono" onClick={() => setModal({ type: 'detail', order: o })} title="Ver el detalle">
+                                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                                    </button>
+                                                    {waLink && (
+                                                        <a className="ped-icono ped-icono--wa" href={waLink} target="_blank" rel="noreferrer" title="Escribirle por WhatsApp">
+                                                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
+                                                        </a>
+                                                    )}
+                                                    <button className="ped-icono" onClick={() => setModal({ type: 'edit', order: o })} title="Editar">
+                                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                                    </button>
+                                                    <button className="ped-icono ped-icono--baja" onClick={() => setModal({ type: 'delete', order: o })} title="Eliminar">
+                                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
                                     );
                                 })}
                             </tbody>
@@ -1397,21 +1452,15 @@ const OrdersSection = ({ orders, products, loading, onRefresh }) => {
                 )}
 
                 {totalPages > 1 && (
-                    <div className="pagination">
-                        <button className="pagination-btn" disabled={page === 1} onClick={() => setPage(p => p - 1)}>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-                        </button>
-                        {Array.from({ length: totalPages }, (_, i) => i + 1).map(n => (
-                            <button key={n} className={`pagination-num${n === page ? ' pagination-num--active' : ''}`} onClick={() => setPage(n)}>{n}</button>
-                        ))}
-                        <button className="pagination-btn" disabled={page === totalPages} onClick={() => setPage(p => p + 1)}>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-                        </button>
-                        <span className="pagination-info">{`${visible.length} pedido${visible.length !== 1 ? 's' : ''}`}</span>
+                    <div className="ped-paginas">
+                        <button className="ped-pagina" disabled={page === 1} onClick={() => setPage(p => p - 1)}>Anterior</button>
+                        <span className="ped-paginas-info">
+                            Página {page} de {totalPages} · {visible.length} pedido{visible.length !== 1 ? 's' : ''}
+                        </span>
+                        <button className="ped-pagina" disabled={page === totalPages} onClick={() => setPage(p => p + 1)}>Siguiente</button>
                     </div>
                 )}
-            </div>
-
+            </section>
             {modal?.type === 'detail' && (() => {
                 const o = modal.order;
                 const addressParts = [o.shipping_address, o.shipping_city, o.shipping_department].filter(Boolean);

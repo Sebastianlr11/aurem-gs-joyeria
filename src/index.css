@@ -13174,3 +13174,360 @@ textarea:focus-visible {
 .chat-bubble--admin .chat-delivery-status--delivered {
   color: rgba(255, 255, 255, 0.5);
 }
+
+/* ================================================================
+   PEDIDOS — de la vitrina a la puerta
+   ================================================================ */
+.ped { display: flex; flex-direction: column; gap: 1.5rem; max-width: 1500px; margin-inline: auto; width: 100%; }
+
+.ped-head {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  gap: 2rem; flex-wrap: wrap; padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--hairline);
+}
+.ped-head-texto { display: flex; flex-direction: column; gap: 0.75rem; }
+.ped-titulo {
+  font-family: var(--font-display); font-weight: 400;
+  font-size: clamp(1.9rem, 3.2vw, 2.6rem); line-height: 1.06;
+  letter-spacing: -0.01em; color: var(--ink);
+}
+.ped-titulo em {
+  display: block; font-style: normal; font-size: 0.62em;
+  letter-spacing: 0.06em; text-transform: uppercase; margin-top: 0.3em;
+}
+.ped-sub { font-size: 0.86rem; color: var(--text-secondary); }
+
+/* El pulso: tres cifras que además filtran */
+.ped-pulso {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+  background: var(--bg-color); border: 1px solid var(--hairline); border-radius: 2px;
+}
+.ped-pulso-item {
+  display: flex; flex-direction: column; gap: 0.5rem; align-items: flex-start;
+  padding: 1.5rem 1.75rem; border: 0; border-right: 1px solid var(--hairline);
+  background: transparent; font-family: inherit; text-align: left; cursor: pointer;
+  transition: background 0.3s var(--ease);
+}
+.ped-pulso-item:last-child { border-right: 0; }
+.ped-pulso-item:hover { background: var(--bg-marfil); }
+.ped-pulso-item--on { background: var(--bg-arena); }
+.ped-pulso-l {
+  font-size: 0.68rem; font-weight: 800; letter-spacing: 0.24em;
+  text-transform: uppercase; color: var(--oro-ink);
+}
+.ped-pulso-v {
+  font-size: clamp(1.7rem, 2.6vw, 2.3rem); font-weight: 700; letter-spacing: -0.025em;
+  line-height: 1; color: var(--ink); font-variant-numeric: tabular-nums;
+}
+.ped-pulso-v--cero { color: var(--hairline); }
+.ped-pulso-s { font-size: 0.79rem; color: var(--text-secondary); }
+
+.ped-panel {
+  background: var(--bg-color); border: 1px solid var(--hairline); border-radius: 2px;
+  min-width: 0;
+}
+
+.ped-toolbar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 1.25rem; flex-wrap: wrap; padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.ped-buscar {
+  display: flex; align-items: center; gap: 0.5625rem;
+  padding: 0.5rem 1rem; min-height: 40px;
+  background: var(--bg-marfil); border: 1px solid var(--hairline); border-radius: 100px;
+  color: var(--text-secondary); transition: border-color 0.3s ease;
+}
+.ped-buscar:focus-within { border-color: var(--oro); }
+.ped-buscar input {
+  border: 0; outline: none; background: transparent; font-family: inherit;
+  font-size: 0.875rem; color: var(--ink); width: 170px;
+}
+.ped-buscar input::placeholder { color: var(--text-muted); }
+
+/* La tabla */
+.ped-tabla-wrap { overflow-x: auto; }
+.ped-tabla { width: 100%; border-collapse: collapse; }
+
+.ped-tabla thead th {
+  padding: 0.875rem 1.5rem; text-align: left; white-space: nowrap;
+  font-size: 0.66rem; font-weight: 800; letter-spacing: 0.2em;
+  text-transform: uppercase; color: var(--oro-ink);
+  border-bottom: 1px solid var(--hairline); background: var(--bg-marfil);
+}
+.ped-tabla thead th.ped-th-num,
+.ped-tabla thead th.ped-th-acc { text-align: right; }
+
+.ped-tabla tbody td {
+  padding: 1.125rem 1.5rem; vertical-align: middle;
+  border-bottom: 1px solid var(--hairline);
+}
+.ped-tabla tbody tr:last-child td { border-bottom: 0; }
+.ped-tabla tbody tr { transition: background 0.3s var(--ease); }
+.ped-tabla tbody tr:hover { background: var(--bg-marfil); }
+
+.ped-clienta {
+  display: block; border: 0; background: transparent; padding: 0; cursor: pointer;
+  font-family: inherit; font-size: 0.92rem; font-weight: 700; color: var(--ink);
+  text-align: left; transition: color 0.3s var(--ease);
+}
+.ped-clienta:hover { color: var(--oro-ink); }
+.ped-pieza { display: block; font-size: 0.88rem; color: var(--ink); }
+.ped-meta {
+  display: flex; align-items: center; gap: 0.4rem; margin-top: 3px;
+  font-size: 0.74rem; color: var(--text-secondary);
+}
+.ped-td-num { text-align: right; }
+.ped-td-num .ped-meta { justify-content: flex-end; }
+.ped-monto {
+  font-size: 0.95rem; font-weight: 700; color: var(--ink);
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+
+.ped-accion {
+  padding: 0.5rem 1.05rem; min-height: 36px; border-radius: 100px;
+  border: 1px solid var(--ink); background: var(--ink); color: var(--bg-marfil);
+  font-family: inherit; font-size: 0.78rem; font-weight: 700; white-space: nowrap;
+  cursor: pointer; transition: all 0.3s var(--ease);
+}
+.ped-accion:hover { background: var(--ink-soft); border-color: var(--ink-soft); }
+
+.ped-acciones { display: flex; align-items: center; justify-content: flex-end; gap: 4px; }
+.ped-icono {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; border-radius: 100px;
+  border: 1px solid transparent; background: transparent;
+  color: var(--text-secondary); cursor: pointer;
+  transition: all 0.3s var(--ease);
+}
+.ped-icono:hover { border-color: var(--hairline); background: var(--bg-arena); color: var(--ink); }
+.ped-icono--wa:hover { color: #2E5D46; }
+.ped-icono--baja:hover { color: #8a5a4a; }
+
+.ped-paginas {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 1rem; padding: 1.125rem 1.5rem; border-top: 1px solid var(--hairline);
+}
+.ped-pagina {
+  padding: 0.5rem 1.125rem; min-height: 36px; border-radius: 100px;
+  border: 1px solid var(--hairline); background: var(--bg-color);
+  font-family: inherit; font-size: 0.8rem; font-weight: 600; color: var(--ink);
+  cursor: pointer; transition: all 0.3s var(--ease);
+}
+.ped-pagina:hover:not(:disabled) { border-color: var(--oro-hairline); background: var(--bg-arena); }
+.ped-pagina:disabled { opacity: 0.35; cursor: default; }
+.ped-paginas-info { font-size: 0.78rem; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+
+.ped-vacio { padding: 3rem 1.5rem; font-size: 0.86rem; color: var(--text-secondary); text-align: center; }
+.ped-vacio-bloque {
+  display: flex; flex-direction: column; align-items: center; gap: 1rem;
+  padding: 4rem 1.5rem;
+}
+.ped-vacio-icono { font-size: 1.6rem; color: var(--oro); }
+.ped-vacio-t { font-family: var(--font-display); font-size: 1.2rem; color: var(--ink); }
+
+@media (max-width: 900px) {
+  .ped-pulso { grid-template-columns: 1fr; }
+  .ped-pulso-item { border-right: 0; border-bottom: 1px solid var(--hairline); }
+  .ped-pulso-item:last-child { border-bottom: 0; }
+  .ped-toolbar { padding: 1rem; }
+  .ped-tabla thead th, .ped-tabla tbody td { padding: 0.875rem 1rem; }
+}
+
+/* Los distintivos de estado y canal, en la escala de la marca: el color
+   lo lleva el punto, no todo el fondo. Mismo orden de tonos que en el
+   informe, para que un pedido "enviado" se vea igual en las dos pantallas. */
+.status-badge,
+.source-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 100px;
+  border: 1px solid var(--hairline);
+  background: var(--bg-color);
+  color: var(--ink);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.status-badge::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 1px solid var(--hairline);
+  background: var(--bg-arena);
+  opacity: 1;
+}
+
+.status-badge.badge--yellow::before { background: var(--bg-arena); }
+.status-badge.badge--blue::before   { background: rgba(168, 134, 63, 0.45); border-color: transparent; }
+.status-badge.badge--purple::before { background: var(--oro); border-color: transparent; }
+.status-badge.badge--green::before  { background: var(--ink); border-color: transparent; }
+.status-badge.badge--red::before    { background: var(--bg-color); }
+
+.status-badge.badge--yellow,
+.status-badge.badge--blue,
+.status-badge.badge--purple,
+.status-badge.badge--green,
+.status-badge.badge--red {
+  background: var(--bg-color);
+  color: var(--ink);
+}
+
+/* El canal va en un tono más bajo: acompaña, no compite */
+.source-badge {
+  padding: 0.2rem 0.6rem;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: var(--bg-arena);
+  border-color: transparent;
+  color: var(--oro-ink);
+}
+
+/* ================================================================
+   DETALLE DEL PEDIDO — el mismo lenguaje que la pantalla
+   ================================================================ */
+.modal-overlay {
+  background: rgba(28, 23, 20, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.od-modal {
+  background: var(--bg-color);
+  border: 1px solid var(--hairline);
+  border-radius: 2px;
+  box-shadow: none;
+  max-width: 520px;
+}
+
+.od-close {
+  top: 0.875rem;
+  right: 0.875rem;
+  width: 34px;
+  height: 34px;
+  border-radius: 100px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.6);
+  transition: all 0.3s var(--ease);
+}
+.od-close:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
+
+/* El encabezado: cacao, la cifra en oro luz, alineado a la izquierda */
+.od-hero {
+  background: var(--ink);
+  border-radius: 0;
+  padding: 2rem 1.75rem 1.75rem;
+  text-align: left;
+}
+.od-hero-top { justify-content: flex-start; margin-bottom: 1.25rem; flex-wrap: wrap; }
+.od-hero-amount {
+  font-size: clamp(2rem, 5vw, 2.6rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--oro-luz);
+  font-variant-numeric: tabular-nums;
+}
+.od-hero-product {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.1rem;
+  color: #fff;
+  margin-top: 0.5rem;
+}
+.od-hero-date {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.4);
+  margin-top: 0.625rem;
+}
+
+/* Los distintivos, legibles sobre el cacao */
+.od-hero .status-badge,
+.od-hero .source-badge {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.16);
+  color: #fff;
+}
+.od-hero .source-badge { color: var(--oro-luz); }
+.od-hero .status-badge::before { border-color: rgba(255, 255, 255, 0.3); }
+.od-hero .status-badge.badge--green::before { background: #fff; }
+.od-hero .status-badge.badge--yellow::before { background: rgba(255, 255, 255, 0.25); }
+
+.od-pay-badge {
+  padding: 0.3rem 0.75rem;
+  border-radius: 100px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #fff;
+}
+.od-pay-badge--cod {
+  border-color: rgba(227, 201, 144, 0.4);
+  background: rgba(227, 201, 144, 0.12);
+  color: var(--oro-luz);
+}
+
+.od-section { padding: 1.5rem 1.75rem; border-bottom: 1px solid var(--hairline); }
+.od-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 1rem;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--oro-ink);
+}
+.od-section-title svg { color: var(--oro); }
+
+.od-info-label {
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.od-info-value { font-size: 0.9rem; color: var(--ink); }
+
+.od-notes-box {
+  padding: 1rem 1.125rem;
+  background: var(--bg-marfil);
+  border: 1px solid var(--hairline);
+  border-left: 2px solid var(--oro);
+  border-radius: 2px;
+  font-size: 0.86rem;
+  line-height: 1.65;
+  color: var(--ink);
+}
+
+.od-actions { padding: 1.5rem 1.75rem; gap: 0.625rem; }
+.od-action-btn {
+  min-height: 40px;
+  padding: 0 1.25rem;
+  border-radius: 100px;
+  border: 1px solid var(--hairline);
+  background: var(--bg-color);
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--ink);
+  transition: all 0.3s var(--ease);
+}
+.od-action-btn--wa,
+.od-action-btn--wa:hover { background: var(--bg-arena); border-color: var(--oro-hairline); color: var(--oro-ink); }
+.od-action-btn--edit { background: var(--ink); border-color: var(--ink); color: var(--bg-marfil); }
+.od-action-btn--edit:hover { background: var(--ink-soft); border-color: var(--ink-soft); }
