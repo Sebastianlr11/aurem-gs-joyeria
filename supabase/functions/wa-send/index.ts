@@ -8,7 +8,7 @@
  */
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { createClient } from 'jsr:@supabase/supabase-js@2'
-import { enviarImagen, enviarTexto, normalizarTelefono } from '../_shared/wa.ts'
+import { enviarImagen, enviarTexto, idDestino, numeroPropioDe } from '../_shared/wa.ts'
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -37,15 +37,19 @@ Deno.serve(async (req: Request) => {
   let cuerpo: { telefono?: string; texto?: string; imagenUrl?: string }
   try { cuerpo = await req.json() } catch { return json({ error: 'Cuerpo ilegible' }, 400) }
 
-  const telefono = normalizarTelefono(cuerpo.telefono ?? '')
+  const telefono = idDestino(cuerpo.telefono ?? '')
   const texto = String(cuerpo.texto ?? '').trim()
   const imagenUrl = String(cuerpo.imagenUrl ?? '').trim()
   if (!telefono) return json({ error: 'Falta el teléfono' }, 400)
   if (!texto && !imagenUrl) return json({ error: 'El mensaje viene vacío' }, 400)
 
+  // Se responde por el mismo número al que la clienta escribió, no por el
+  // de la variable de entorno.
+  const desdeId = await numeroPropioDe(telefono)
+
   const res = imagenUrl
-    ? await enviarImagen(telefono, imagenUrl, texto, 'humano')
-    : await enviarTexto(telefono, texto, 'humano')
+    ? await enviarImagen(telefono, imagenUrl, texto, 'humano', desdeId)
+    : await enviarTexto(telefono, texto, 'humano', desdeId)
 
   return res.ok ? json({ ok: true, wamid: res.wamid }) : json({ error: res.error }, 502)
 })

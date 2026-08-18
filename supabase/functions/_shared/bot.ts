@@ -4,7 +4,7 @@
  */
 import { admin } from './wa.ts'
 
-const MODELO = Deno.env.get('OPENROUTER_MODEL') || 'anthropic/claude-3.5-sonnet'
+const MODELO = Deno.env.get('OPENROUTER_MODEL') || 'openai/gpt-5.6-luna-pro'
 const MENSAJES_DE_CONTEXTO = 20
 
 type Mensaje = { role: 'user' | 'assistant' | 'system'; content: string }

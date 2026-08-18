@@ -13,24 +13,57 @@ export const admin = (): SupabaseClient => createClient(
   { auth: { persistSession: false } },
 )
 
-/** Deja el número como lo maneja Meta: sólo dígitos. */
-export const normalizarTelefono = (t: string) => String(t || '').replace(/\D/g, '')
+/**
+ * Cómo se identifica una clienta. Puede ser un teléfono o, desde el
+ * despliegue de nombres de usuario de Meta, un BSUID como "CO.1062192…".
+ * Al teléfono se le quitan separadores; al BSUID NO se le toca nada,
+ * porque el prefijo forma parte del identificador.
+ */
+export const idDestino = (v: string): string => {
+  const limpio = String(v || '').trim()
+  if (!limpio) return ''
+  return /^\+?[\d\s()-]+$/.test(limpio) ? limpio.replace(/\D/g, '') : limpio
+}
+
+/** Se mantiene el nombre viejo como alias, para no romper llamadas. */
+export const normalizarTelefono = idDestino
+
+/**
+ * ¿Por cuál de NUESTROS números va esta conversación? Se mira el último
+ * mensaje que lo dejó anotado. Sin esto, el panel responde por el número
+ * por defecto aunque la clienta haya escrito a otro.
+ */
+export async function numeroPropioDe(telefono: string): Promise<string | null> {
+  const { data } = await admin()
+    .from('whatsapp_conversaciones')
+    .select('wa_phone_id')
+    .eq('phone_number', telefono)
+    .not('wa_phone_id', 'is', null)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  return data?.wa_phone_id ?? null
+}
 
 /**
  * Envía un texto y lo guarda en la conversación.
  * `enviadoPor` distingue lo que escribe la IA de lo que escribes tú: es
  * la columna que hasta ahora no existía y que hacía imposible medir nada.
+ * `desdeId` es el número propio por el que sale; si no se pasa, el de
+ * siempre. Responder por el número equivocado es lo que hacía que le
+ * escribieras al real y contestara el de prueba.
  */
 export async function enviarTexto(
   telefono: string,
   texto: string,
   enviadoPor: 'ia' | 'humano',
+  desdeId?: string | null,
 ): Promise<{ ok: boolean; wamid?: string; error?: string }> {
   const token = Deno.env.get('WA_TOKEN')
-  const phoneId = Deno.env.get('WA_PHONE_NUMBER_ID')
+  const phoneId = desdeId || Deno.env.get('WA_PHONE_NUMBER_ID')
   if (!token || !phoneId) return { ok: false, error: 'Faltan WA_TOKEN o WA_PHONE_NUMBER_ID' }
 
-  const para = normalizarTelefono(telefono)
+  const para = idDestino(telefono)
   const res = await fetch(`${GRAFO}/${phoneId}/messages`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -50,7 +83,7 @@ export async function enviarTexto(
     // Se guarda igual, marcado como fallido, para que no desaparezca del hilo.
     await admin().from('whatsapp_conversaciones').insert({
       phone_number: para, role: 'assistant', content: texto,
-      enviado_por: enviadoPor, delivery_status: 'failed',
+      enviado_por: enviadoPor, delivery_status: 'failed', wa_phone_id: phoneId,
     })
     return { ok: false, error }
   }
@@ -59,6 +92,7 @@ export async function enviarTexto(
   await admin().from('whatsapp_conversaciones').insert({
     phone_number: para, role: 'assistant', content: texto,
     enviado_por: enviadoPor, delivery_status: 'sent', wa_message_id: wamid,
+    wa_phone_id: phoneId,
   })
   return { ok: true, wamid }
 }
@@ -69,12 +103,13 @@ export async function enviarImagen(
   urlImagen: string,
   pie: string,
   enviadoPor: 'ia' | 'humano',
+  desdeId?: string | null,
 ): Promise<{ ok: boolean; wamid?: string; error?: string }> {
   const token = Deno.env.get('WA_TOKEN')
-  const phoneId = Deno.env.get('WA_PHONE_NUMBER_ID')
+  const phoneId = desdeId || Deno.env.get('WA_PHONE_NUMBER_ID')
   if (!token || !phoneId) return { ok: false, error: 'Faltan WA_TOKEN o WA_PHONE_NUMBER_ID' }
 
-  const para = normalizarTelefono(telefono)
+  const para = idDestino(telefono)
   const res = await fetch(`${GRAFO}/${phoneId}/messages`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -91,6 +126,7 @@ export async function enviarImagen(
   const fila = {
     phone_number: para, role: 'assistant', content: pie,
     message_type: 'image', media_url: urlImagen, enviado_por: enviadoPor,
+    wa_phone_id: phoneId,
   }
 
   if (!res.ok) {
