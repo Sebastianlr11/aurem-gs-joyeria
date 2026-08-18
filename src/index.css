@@ -6912,10 +6912,8 @@ textarea:focus-visible {
 
 .modal-box {
   background: white;
-  border-radius: 20px;
   width: 100%;
   max-width: 580px;
-  max-height: 90vh;
   overflow-y: auto;
   box-shadow: 0 25px 60px rgba(0,0,0,0.2);
   animation: modalSlideIn 0.25s ease;
@@ -6963,8 +6961,14 @@ textarea:focus-visible {
 
 .modal-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
   gap: 1rem;
+}
+
+/* Sólo escritorio: si va suelto pisa la regla móvil de más arriba,
+   porque este bloque se escribió después en el archivo. */
+@media (min-width: 769px) {
+  .modal-box { border-radius: 20px; max-height: 90vh; }
+  .modal-row { grid-template-columns: 1fr 1fr; }
 }
 
 .modal-field {
@@ -10941,9 +10945,14 @@ textarea:focus-visible {
    ================================================================ */
 .admin-layout {
   background: var(--bg-marfil);
-  grid-template-columns: 248px 1fr;
   font-family: var(--font-ui);
   color: var(--ink);
+}
+
+/* Sólo escritorio: si va suelto pisa la regla móvil de más arriba,
+   porque este bloque se escribió después en el archivo. */
+@media (min-width: 769px) {
+  .admin-layout { grid-template-columns: 248px 1fr; }
 }
 
 .admin-sidebar {
@@ -11038,7 +11047,6 @@ textarea:focus-visible {
 }
 
 .admin-topbar {
-  height: 64px;
   background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(28px) saturate(1.2);
   -webkit-backdrop-filter: blur(28px) saturate(1.2);
@@ -11048,7 +11056,6 @@ textarea:focus-visible {
 
 .admin-topbar-title {
   font-family: var(--font-ui);
-  font-size: 0.92rem;
   font-weight: 700;
   letter-spacing: -0.01em;
   color: var(--ink);
@@ -11511,9 +11518,13 @@ textarea:focus-visible {
   min-width: 0;
 }
 
-.admin-topbar {
-  padding: 0 clamp(1.25rem, 3vw, 3rem);
-  gap: 1rem;
+.admin-topbar { gap: 1rem; }
+
+/* Sólo escritorio: si va suelto pisa la regla móvil de más arriba,
+   porque este bloque se escribió después en el archivo. */
+@media (min-width: 769px) {
+  .admin-topbar { height: 64px; padding: 0 clamp(1.25rem, 3vw, 3rem); }
+  .admin-topbar-title { font-size: 0.92rem; }
 }
 
 .admin-topbar-left {
@@ -12395,8 +12406,14 @@ textarea:focus-visible {
   background: var(--bg-color);
   color: var(--ink);
   line-height: 1.6;
-  /* Ni la burbuja más larga pasa de una línea cómoda de leer. */
-  max-width: min(62%, 62ch);
+}
+
+/* Sólo escritorio: si va suelto pisa la regla móvil de más arriba,
+   porque este bloque se escribió después en el archivo. */
+@media (min-width: 901px) {
+  /* Ni la burbuja más larga pasa de una línea cómoda de leer.
+     901 y no 769: la regla móvil de arriba usa max-width 900. */
+  .chat-bubble { max-width: min(62%, 62ch); }
 }
 
 .chat-bubble--user { border-bottom-left-radius: 5px; }
