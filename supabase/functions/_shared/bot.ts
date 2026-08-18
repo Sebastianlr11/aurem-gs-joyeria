@@ -2,10 +2,19 @@
  * Valentina. El cerebro va por OpenRouter; el catálogo y los pedidos
  * salen de la base, no del modelo, para que no invente piezas ni precios.
  */
-import { admin } from './wa.ts'
+import { admin, enviarImagen } from './wa.ts'
 
 const MODELO = Deno.env.get('OPENROUTER_MODEL') || 'openai/gpt-5.6-luna-pro'
 const MENSAJES_DE_CONTEXTO = 20
+
+/* Topes del bucle de herramientas. Un agente sin freno es una factura sin
+   freno, y Meta corta la conversación mucho antes de que valga la pena
+   seguir pensando. El último paso va sin herramientas, así siempre termina
+   con algo que decirle al cliente. */
+const MAX_PASOS = 4
+const PRESUPUESTO_MS = 40_000
+/** Más de tres fotos seguidas satura el chat. */
+const MAX_FOTOS = 3
 
 type Mensaje = { role: 'user' | 'assistant' | 'system'; content: string }
 
@@ -50,10 +59,53 @@ REGLAS QUE NO SE ROMPEN
 7. No prometas descuentos que no estén en esta lista.
 8. No des por hecho el género de quien te escribe. Habla en formas neutras
    ("¿cómo te ayudo?", "quedas atendido/a") y evita "bienvenida", "linda" o
-   "reina". Si te dicen su nombre o cómo prefieren que les hablen, sigue eso.`
+   "reina". Si te dicen su nombre o cómo prefieren que les hablen, sigue eso.
+9. TIENES FOTOS. Cuando pidan ver algo, cuando duden entre piezas o cuando
+   una imagen ayude a decidir, usa mostrar_pieza. No describas una pieza
+   pudiendo mostrarla. Nunca digas que no puedes mandar fotos.
+10. No recites el catálogo. Ofrece una o dos piezas que encajen con lo que
+   te dijeron y pregunta. La lista completa abruma y no vende.
+11. Si te preguntan directamente si eres una persona o un bot, dilo: eres
+   una asistente. Sonar natural es una cosa, mentir es otra.
+
+CÓMO ESCRIBIR
+Frases cortas. Sin punto y coma, sin dos puntos para enumerar, sin listas
+con viñetas. Como se escribe por WhatsApp, no como se redacta un correo.
+
+Si tienes que decir dos cosas, sepáralas con una línea en blanco: se envían
+como dos mensajes seguidos, que es como escribe una persona. Máximo tres.
+
+Así NO:
+  "Claro. Tenemos tres opciones en plata 925: Camino Verde por $550.000,
+  Majestuosa por $500.000 y Trinidad por $500.000; también está Esencia
+  Imperial en oro blanco de 18K por $4.500.000. ¿Cuál te gustaría conocer?"
+
+Así SÍ:
+  "Claro, ¿buscas algo en plata o en oro?
+
+  Te muestro para que veas."
+(y llamas a mostrar_pieza)`
 }
 
 const HERRAMIENTAS = [
+  {
+    type: 'function',
+    function: {
+      name: 'mostrar_pieza',
+      description: 'Envía por WhatsApp la foto de una o varias piezas del catálogo. Úsala cuando pidan ver algo, cuando duden entre opciones, o cuando una foto ayude a decidir. Las fotos llegan solas: después de llamarla, el cliente YA las tiene.',
+      parameters: {
+        type: 'object',
+        properties: {
+          piezas: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'Nombres exactos como aparecen en el catálogo. Máximo tres.',
+          },
+        },
+        required: ['piezas'],
+      },
+    },
+  },
   {
     type: 'function',
     function: {
@@ -88,7 +140,11 @@ const HERRAMIENTAS = [
   },
 ]
 
-async function llamarModelo(mensajes: Mensaje[], herramientas = HERRAMIENTAS) {
+/**
+ * El historial lleva mensajes de asistente con tool_calls y respuestas de
+ * herramienta, así que no encaja en `Mensaje`: por eso va suelto.
+ */
+async function llamarModelo(mensajes: any[], herramientas = HERRAMIENTAS) {
   const clave = Deno.env.get('OPENROUTER_API_KEY')
   if (!clave) throw new Error('Falta OPENROUTER_API_KEY')
 
@@ -100,16 +156,101 @@ async function llamarModelo(mensajes: Mensaje[], herramientas = HERRAMIENTAS) {
       'HTTP-Referer': 'https://www.auremgsjoyeria.com',
       'X-Title': 'Aurem Gs · Valentina',
     },
-    body: JSON.stringify({ model: MODELO, messages: mensajes, tools: herramientas, temperature: 0.3, max_tokens: 600 }),
+    body: JSON.stringify({
+      model: MODELO,
+      messages: mensajes,
+      // Se omite el campo si no hay herramientas: varios proveedores
+      // rechazan `tools: []` en vez de tratarlo como "ninguna".
+      ...(herramientas?.length ? { tools: herramientas } : {}),
+      temperature: 0.3,
+      max_tokens: 600,
+    }),
   })
 
   if (!res.ok) throw new Error(`OpenRouter ${res.status}: ${(await res.text()).slice(0, 300)}`)
   return (await res.json())?.choices?.[0]?.message
 }
 
-/** Ejecuta lo que el modelo pidió y devuelve qué contarle al cliente. */
-async function ejecutarHerramienta(nombre: string, args: any, telefono: string): Promise<string> {
+const CAMPOS_PIEZA = 'id, name, price, image_url, images, stock'
+
+/**
+ * Encuentra una pieza por como la nombró el modelo.
+ *
+ * En el catálogo se llaman "Anillo Camino Verde", pero al conversar el
+ * modelo dice "Camino Verde" — es lo natural, y con una búsqueda exacta no
+ * encontraba nada. Se intenta exacto y luego por contenido.
+ *
+ * Si hay más de una coincidencia se devuelve null a propósito: mandar el
+ * anillo equivocado es peor que decir que no se encontró.
+ */
+async function buscarPieza(nombre: string) {
+  const limpio = String(nombre || '').trim()
+  if (!limpio) return null
   const db = admin()
+
+  const { data: exacta } = await db.from('products')
+    .select(CAMPOS_PIEZA).eq('name', limpio).maybeSingle()
+  if (exacta) return exacta
+
+  // Los comodines de ilike se neutralizan para que no ensanchen la búsqueda.
+  const patron = limpio.replace(/[%_]/g, '')
+  if (!patron) return null
+
+  const { data: parecidas } = await db.from('products')
+    .select(CAMPOS_PIEZA).ilike('name', `%${patron}%`).limit(2)
+
+  return parecidas?.length === 1 ? parecidas[0] : null
+}
+
+/**
+ * Ejecuta lo que el modelo pidió y devuelve qué contarle al cliente.
+ * `desdeId` es el número propio por el que va la conversación: las fotos
+ * tienen que salir por el mismo número que el texto.
+ */
+async function ejecutarHerramienta(
+  nombre: string,
+  args: any,
+  telefono: string,
+  desdeId?: string | null,
+): Promise<string> {
+  const db = admin()
+
+  if (nombre === 'mostrar_pieza') {
+    const pedidas: string[] = (Array.isArray(args?.piezas) ? args.piezas : [args?.piezas])
+      .filter((p: unknown) => typeof p === 'string' && p.trim())
+      .slice(0, MAX_FOTOS)
+
+    if (!pedidas.length) return 'No dijiste qué pieza mostrar. Pregúntale cuál quiere ver.'
+
+    const enviadas: string[] = []
+    const problemas: string[] = []
+
+    for (const cual of pedidas) {
+      const pieza = await buscarPieza(cual)
+
+      if (!pieza) { problemas.push(`"${cual}" no está en el catálogo, o hay varias que se llaman parecido`); continue }
+      if (pieza.stock === 0) { problemas.push(`${pieza.name} está agotada, no la ofrezcas`); continue }
+
+      // image_url es la principal; images guarda los otros ángulos.
+      const url = pieza.image_url || (Array.isArray(pieza.images) ? pieza.images[0] : null)
+      if (!url) { problemas.push(`${pieza.name} no tiene foto cargada`); continue }
+
+      const pie = `${pieza.name} — $${Number(pieza.price).toLocaleString('es-CO')} COP`
+      const envio = await enviarImagen(telefono, url, pie, 'ia', desdeId)
+      if (envio.ok) enviadas.push(pieza.name)
+      else problemas.push(`no salió la foto de ${pieza.name}`)
+    }
+
+    const partes: string[] = []
+    if (enviadas.length) {
+      partes.push(
+        `Fotos ya enviadas: ${enviadas.join(', ')}. El cliente YA las está viendo. ` +
+        `No digas que se las vas a mandar. Comenta algo breve y pregunta cuál le gusta.`,
+      )
+    }
+    if (problemas.length) partes.push(`No se pudo con: ${problemas.join('; ')}.`)
+    return partes.join(' ') || 'No se pudo enviar ninguna foto. Descríbelas y discúlpate sin dramatizar.'
+  }
 
   if (nombre === 'escalar_a_humano') {
     await db.from('chat_takeover').upsert(
@@ -121,8 +262,7 @@ async function ejecutarHerramienta(nombre: string, args: any, telefono: string):
 
   if (nombre === 'crear_pedido') {
     // El precio se toma del catálogo, no de lo que diga el modelo.
-    const { data: pieza } = await db.from('products')
-      .select('id, name, price').eq('name', args.producto).maybeSingle()
+    const pieza = await buscarPieza(args.producto)
 
     if (!pieza) return `Esa pieza no está en el catálogo. Dile que revisas y ofrécele las que sí hay.`
 
@@ -153,8 +293,16 @@ async function ejecutarHerramienta(nombre: string, args: any, telefono: string):
   return 'Esa herramienta no existe.'
 }
 
-/** Punto de entrada: dado un teléfono, decide y devuelve la respuesta. */
-export async function responder(telefono: string): Promise<string | null> {
+/**
+ * Punto de entrada: dado un teléfono, decide y devuelve la respuesta.
+ *
+ * Es un bucle, no una sola ronda: mostrar una foto y después comentarla son
+ * dos pasos, y con una sola ronda el segundo nunca ocurría.
+ */
+export async function responder(
+  telefono: string,
+  desdeId?: string | null,
+): Promise<string | null> {
   const db = admin()
 
   const { data: historial } = await db
@@ -168,30 +316,42 @@ export async function responder(telefono: string): Promise<string | null> {
     .filter((m) => m.content)
     .map((m) => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.content }))
 
-  const mensajes: Mensaje[] = [
+  const mensajes: any[] = [
     { role: 'system', content: instrucciones(await catalogo()) },
     ...conversacion,
   ]
 
-  let respuesta = await llamarModelo(mensajes)
+  const empezo = Date.now()
 
-  // Una sola ronda de herramientas: suficiente para cerrar o escalar.
-  const llamada = respuesta?.tool_calls?.[0]
-  if (llamada) {
-    let args: any = {}
-    try { args = JSON.parse(llamada.function.arguments || '{}') } catch { /* argumentos rotos */ }
-    const resultado = await ejecutarHerramienta(llamada.function.name, args, telefono)
+  for (let paso = 0; paso < MAX_PASOS; paso++) {
+    /* El último paso va sin herramientas para forzar una respuesta de texto:
+       nunca se le deja al cliente el chat en silencio. */
+    const sinTiempo = Date.now() - empezo > PRESUPUESTO_MS
+    const ultimo = paso === MAX_PASOS - 1 || sinTiempo
 
-    if (llamada.function.name === 'escalar_a_humano') {
-      return 'Dame un momento, te comunico con alguien del equipo que te ayuda con eso. 🌿'
+    const respuesta = await llamarModelo(mensajes, ultimo ? [] : HERRAMIENTAS)
+    const llamadas = respuesta?.tool_calls ?? []
+
+    if (!llamadas.length) {
+      return String(respuesta?.content || '').trim() || null
     }
 
-    respuesta = await llamarModelo([
-      ...mensajes,
-      { role: 'system', content: `Resultado de ${llamada.function.name}: ${resultado}` },
-    ], [])
+    mensajes.push(respuesta)
+
+    for (const llamada of llamadas) {
+      let args: any = {}
+      try { args = JSON.parse(llamada.function.arguments || '{}') } catch { /* argumentos rotos */ }
+
+      // Escalar corta el bucle: a partir de acá contesta una persona.
+      if (llamada.function.name === 'escalar_a_humano') {
+        await ejecutarHerramienta(llamada.function.name, args, telefono, desdeId)
+        return 'Dame un momento, te comunico con alguien del equipo que te ayuda con eso. 🌿'
+      }
+
+      const resultado = await ejecutarHerramienta(llamada.function.name, args, telefono, desdeId)
+      mensajes.push({ role: 'tool', tool_call_id: llamada.id, content: resultado })
+    }
   }
 
-  const texto = String(respuesta?.content || '').trim()
-  return texto || null
+  return null
 }

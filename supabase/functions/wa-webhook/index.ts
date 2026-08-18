@@ -7,7 +7,7 @@
  * responde de inmediato y el trabajo largo sigue en waitUntil.
  */
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
-import { admin, enModoManual, enviarTexto, idDestino } from '../_shared/wa.ts'
+import { acusarYEscribir, admin, enModoManual, enviarTextoNatural, idDestino } from '../_shared/wa.ts'
 import { responder } from '../_shared/bot.ts'
 import { transcribir } from '../_shared/audio.ts'
 
@@ -148,9 +148,15 @@ Deno.serve(async (req: Request) => {
     return ok({ ok: true, guardado: true, sinRespuesta: 'la conversación la lleva una persona' })
   }
 
+  /* Acuse de lectura y "escribiendo…" antes de pensar. El modelo tarda
+     unos diez segundos; sin esto, ese silencio es lo que más delata que del
+     otro lado no hay nadie. Se apaga solo al responder. */
+  const avisando = acusarYEscribir(mensaje.id, numeroPropio)
+
   // 4. Valentina responde en segundo plano; a Meta se le contesta ya.
   const trabajo = (async () => {
     try {
+      await avisando
       /* La nota de voz se transcribe aquí y se reescribe la fila, para que
          `responder` lea lo que dijo el cliente y no un "[audio]". */
       if (!texto) {
@@ -161,8 +167,8 @@ Deno.serve(async (req: Request) => {
           .eq('wa_message_id', mensaje.id)
       }
 
-      const respuesta = await responder(telefono)
-      if (respuesta) await enviarTexto(telefono, respuesta, 'ia', numeroPropio)
+      const respuesta = await responder(telefono, numeroPropio)
+      if (respuesta) await enviarTextoNatural(telefono, respuesta, 'ia', numeroPropio)
     } catch (e) {
       console.error('Valentina falló:', e instanceof Error ? e.message : e)
     }

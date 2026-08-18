@@ -153,6 +153,76 @@ export async function enviarImagen(
   return { ok: true, wamid }
 }
 
+/**
+ * Acusa recibo y muestra "escribiendo…" en el chat del cliente.
+ *
+ * Va en una sola petición junto con el acuse de lectura, y el indicador se
+ * apaga solo al responder o a los 25 segundos. Se llama apenas entra el
+ * mensaje: el silencio de diez segundos mientras el modelo piensa es una de
+ * las cosas que más delatan que del otro lado no hay nadie.
+ * https://developers.facebook.com/docs/whatsapp/cloud-api/typing-indicators/
+ */
+export async function acusarYEscribir(mensajeId: string, desdeId?: string | null): Promise<void> {
+  const token = Deno.env.get('WA_TOKEN')
+  const phoneId = desdeId || Deno.env.get('WA_PHONE_NUMBER_ID')
+  if (!token || !phoneId || !mensajeId) return
+
+  try {
+    await fetch(`${GRAFO}/${phoneId}/messages`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messaging_product: 'whatsapp',
+        status: 'read',
+        message_id: mensajeId,
+        typing_indicator: { type: 'text' },
+      }),
+    })
+  } catch (e) {
+    // Es cosmético: si falla, la respuesta igual tiene que salir.
+    console.error('No se pudo acusar recibo:', e instanceof Error ? e.message : e)
+  }
+}
+
+/** Cuántos mensajes seguidos como máximo. Más de tres se lee como spam. */
+const MAX_TROZOS = 3
+
+/**
+ * Manda la respuesta como la mandaría una persona: en dos o tres mensajes
+ * cortos, con una pausa entre uno y otro, en vez de un párrafo perfecto de
+ * golpe. El modelo separa los trozos con una línea en blanco.
+ *
+ * La pausa es proporcional al largo, como si lo estuviera tecleando.
+ */
+export async function enviarTextoNatural(
+  telefono: string,
+  texto: string,
+  enviadoPor: 'ia' | 'humano',
+  desdeId?: string | null,
+): Promise<{ ok: boolean; wamid?: string; error?: string }> {
+  const trozos = texto.split(/\n\s*\n/).map((t) => t.trim()).filter(Boolean)
+
+  // Lo que pase del tope se pega al último trozo, para no perder texto.
+  if (trozos.length > MAX_TROZOS) {
+    trozos.splice(MAX_TROZOS - 1, trozos.length, trozos.slice(MAX_TROZOS - 1).join('\n\n'))
+  }
+  if (!trozos.length) return { ok: false, error: 'Respuesta vacía' }
+
+  let ultimo: { ok: boolean; wamid?: string; error?: string } = { ok: false }
+
+  for (let i = 0; i < trozos.length; i++) {
+    if (i > 0) {
+      const pausa = Math.min(900 + trozos[i].length * 22, 3500)
+      await new Promise((r) => setTimeout(r, pausa))
+    }
+    ultimo = await enviarTexto(telefono, trozos[i], enviadoPor, desdeId)
+    // Si Meta rechazó uno, no tiene sentido seguir mandando los que faltan.
+    if (!ultimo.ok) return ultimo
+  }
+
+  return ultimo
+}
+
 /** ¿Está esta conversación en manos de una persona? Entonces la IA calla. */
 export async function enModoManual(telefono: string): Promise<boolean> {
   const { data } = await admin()
