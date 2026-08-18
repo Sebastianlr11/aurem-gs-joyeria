@@ -9420,13 +9420,22 @@ textarea:focus-visible {
 
   /* Una sola fila. Se gana el ancho quitando el avatar —el nombre ya
      dice de quién es— y dejando que el nombre se corte antes que los
-     botones, que son los que hacen falta para operar. */
+     botones, que son los que hacen falta para operar.
+
+     El overflow oculto es lo que impide que la cabecera empuje el ancho
+     de la página: sin él, seis botones más el nombre desbordaban y toda
+     la pantalla se corría de lado al enfocar el campo. */
   .chat-conv-header {
     gap: 8px;
     padding: 10px 12px;
+    overflow: hidden;
   }
   .chat-conv-header-avatar { display: none; }
-  .chat-conv-header-info { min-width: 0; }
+  .chat-conv-header-info {
+    flex: 1 1 0;
+    min-width: 0;
+    overflow: hidden;
+  }
   .chat-conv-header-name,
   .chat-conv-header-phone {
     overflow: hidden;
@@ -9438,6 +9447,21 @@ textarea:focus-visible {
     gap: 2px;
   }
   .chat-conv-header-actions button { padding: 6px; }
+
+  /* Con el teclado abierto la barra de navegación estorba: ocupa 60px
+     entre el campo y el teclado, y no se puede navegar mientras se
+     escribe de todos modos. Se esconde y el chat baja hasta el borde,
+     que es lo que hace WhatsApp. */
+  /* Con el chat abierto el documento no se desplaza: el panel ya ocupa
+     todo y se ancla. Si pudiera, iOS lo desplazaría solo al enfocar el
+     campo y se llevaría la página de lado. */
+  html.chat-abierto,
+  html.chat-abierto body { overflow: hidden; }
+
+  body.chat-escribiendo .admin-mobile-bar { display: none; }
+  body.chat-escribiendo .chat-panel {
+    bottom: env(safe-area-inset-bottom);
+  }
 }
 
 /* ─── Unread badge ─────────────────────────────────────────────── */

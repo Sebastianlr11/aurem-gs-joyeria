@@ -136,6 +136,9 @@ const ChatPanel = () => {
     const [loadingMsgs, setLoadingMsgs] = useState(false);
     const [sending, setSending] = useState(false);
     const [mobileShowChat, setMobileShowChat] = useState(false);
+    /* Mientras el campo tiene el foco, el celular muestra el teclado. La
+       barra de navegación estorba ahí: se esconde, como hace WhatsApp. */
+    const [escribiendo, setEscribiendo] = useState(false);
     const messagesEndRef = useRef(null);
     const activeContactRef = useRef(null);
     const [showQuickReplies, setShowQuickReplies] = useState(false);
@@ -435,6 +438,23 @@ const ChatPanel = () => {
         }
         prevMsgCountRef.current = messages.length;
     }, [messages.length]);
+
+    /* En el celular el chat ocupa la pantalla completa y se ancla entre las
+       dos barras, así que el documento no tiene por qué desplazarse. Si
+       puede, iOS lo desplaza solo al enfocar el campo —para "revelarlo"— y
+       se lleva la página de lado, dejando la cabecera y la barra cortadas.
+       Quitándole el desplazamiento al documento, no tiene a dónde ir. */
+    useEffect(() => {
+        const html = document.documentElement;
+        html.classList.add('chat-abierto');
+        return () => html.classList.remove('chat-abierto');
+    }, []);
+
+    /* La clase la lee el CSS para esconder la barra de navegación. */
+    useEffect(() => {
+        document.body.classList.toggle('chat-escribiendo', escribiendo);
+        return () => document.body.classList.remove('chat-escribiendo');
+    }, [escribiendo]);
 
     /* ─── Supabase Realtime subscription ──────────────────────────── */
     const fetchContactsRef = useRef(fetchContacts);
@@ -1493,10 +1513,16 @@ const ChatPanel = () => {
                                         value={newMessage}
                                         onChange={e => setNewMessage(e.target.value)}
                                         onKeyDown={handleKeyDown}
+                                        onFocus={() => setEscribiendo(true)}
+                                        onBlur={() => setEscribiendo(false)}
                                         rows={1}
                                     />
                                     <button
                                         className="chat-send-btn"
+                                        /* Sin esto el campo pierde el foco ANTES del clic: la barra
+                                           de navegación reaparece, el layout se mueve y el toque
+                                           puede caer en otro lado. */
+                                        onMouseDown={e => e.preventDefault()}
                                         onClick={handleSend}
                                         disabled={!newMessage.trim() || sending}
                                     >
