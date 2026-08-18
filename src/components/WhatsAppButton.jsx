@@ -6,13 +6,17 @@ const WhatsAppButton = () => {
   const { pathname } = useLocation();
   const [visible, setVisible] = useState(false);
 
-  if (pathname.startsWith('/admin')) return null;
-
   // Aparece suavemente al cargar
   useEffect(() => {
     const t = setTimeout(() => setVisible(true), 800);
     return () => clearTimeout(t);
   }, []);
+
+  /* La salida temprana va DESPUÉS de los hooks. Este componente vive
+     fuera de <Routes>, así que no se desmonta al navegar: si el return
+     estuviera antes, pasar de la tienda a /admin cambiaría el número de
+     hooks y React tumbaría la página entera. */
+  if (pathname.startsWith('/admin')) return null;
 
   return (
     <a
