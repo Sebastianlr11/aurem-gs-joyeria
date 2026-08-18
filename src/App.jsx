@@ -1,6 +1,7 @@
 import React, { Suspense, lazy, useEffect } from 'react'
 import { Routes, Route, useLocation } from 'react-router-dom'
 import { initMercadoPago } from '@mercadopago/sdk-react'
+import { iniciarPixeles, pixelPagina } from './lib/pixeles'
 
 initMercadoPago(import.meta.env.VITE_MP_PUBLIC_KEY, { locale: 'es-CO' })
 
@@ -36,10 +37,21 @@ const PageLoader = () => (
   </div>
 )
 
+/* Cuenta una vista por cada cambio de ruta. En una app de una sola página
+   el píxel no se entera solo: sin esto, sólo contaría la primera. */
+function ContadorDePaginas() {
+  const { pathname } = useLocation();
+  useEffect(() => { pixelPagina(); }, [pathname]);
+  return null;
+}
+
 function App() {
+  useEffect(() => { iniciarPixeles(); }, []);
+
   return (
     <div className="app">
       <ScrollToTop />
+      <ContadorDePaginas />
       <WhatsAppButton />
       <Suspense fallback={<PageLoader />}>
         <Routes>

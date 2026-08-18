@@ -60,8 +60,15 @@ async function conocimiento(): Promise<string> {
   return data.map((t) => `${t.tema}: ${t.contenido}`).join('\n')
 }
 
-/** El identificador del anuncio, para dejarlo anotado en el pedido. */
-async function anuncioDe(telefono: string): Promise<string | null> {
+/**
+ * El anuncio del que vino esta conversación, si vino de uno.
+ *
+ * Meta manda el referral sólo en el primer mensaje, así que se busca el más
+ * antiguo de la conversación. Los campos se leen a la defensiva: el esquema
+ * no está documentado en abierto y puede traer más de lo que se espera; lo
+ * que no se use igual queda guardado entero en la fila.
+ */
+async function referralDe(telefono: string): Promise<any | null> {
   const { data } = await admin()
     .from('whatsapp_conversaciones')
     .select('referral')
@@ -71,31 +78,11 @@ async function anuncioDe(telefono: string): Promise<string | null> {
     .limit(1)
     .maybeSingle()
 
-  const r: any = data?.referral
-  if (!r) return null
-
-  const id = r.source_id || r.ctwa_clid || null
-  return id ? `Anuncio: ${id}` : 'Llegó por anuncio'
+  return data?.referral ?? null
 }
 
-/**
- * De qué anuncio llegó esta persona, si llegó por uno.
- *
- * Los campos se leen a la defensiva: el esquema del referral no está
- * documentado en abierto y puede traer más de lo que se espera. Se toma lo
- * que sirve para conversar y lo demás queda igual guardado en la fila.
- */
-async function origen(telefono: string): Promise<string> {
-  const { data } = await admin()
-    .from('whatsapp_conversaciones')
-    .select('referral')
-    .eq('phone_number', telefono)
-    .not('referral', 'is', null)
-    .order('created_at', { ascending: true })
-    .limit(1)
-    .maybeSingle()
-
-  const r: any = data?.referral
+/** Cómo contárselo al modelo, para que abra reconociendo lo que vio. */
+function origen(r: any | null): string {
   if (!r) return ''
 
   const titular = r.headline || r.body || null
@@ -104,6 +91,13 @@ async function origen(telefono: string): Promise<string> {
   return titular
     ? `Esta persona llegó desde ${tipo} que decía: "${String(titular).slice(0, 160)}".`
     : `Esta persona llegó desde ${tipo}.`
+}
+
+/** Cómo anotarlo en el pedido, para poder medir qué creativo vende. */
+function anuncioDe(r: any | null): string | null {
+  if (!r) return null
+  const id = r.source_id || r.ctwa_clid || null
+  return id ? `Anuncio: ${id}` : 'Llegó por anuncio'
 }
 
 function instrucciones(piezas: string, politicas: string, deDonde: string): string {
@@ -535,7 +529,7 @@ async function ejecutarHerramienta(
       return 'No se pudo registrar el pedido. Usa escalar_a_humano.'
     }
 
-    const anuncio = await anuncioDe(telefono)
+    const anuncio = anuncioDe(await referralDe(telefono))
 
     let respuesta: any = {}
     try {
@@ -629,9 +623,10 @@ export async function responder(
     .map((m) => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.content }))
 
   // En paralelo: son tres consultas independientes.
-  const [piezas, politicas, deDonde] = await Promise.all([
-    catalogo(), conocimiento(), origen(telefono),
+  const [piezas, politicas, referral] = await Promise.all([
+    catalogo(), conocimiento(), referralDe(telefono),
   ])
+  const deDonde = origen(referral)
 
   const mensajes: any[] = [
     { role: 'system', content: instrucciones(piezas, politicas, deDonde) },

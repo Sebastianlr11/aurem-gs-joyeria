@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { waUrl } from '../lib/whatsapp'
+import { pixelCompra } from '../lib/pixeles'
 
 const Confirmacion = () => {
   const [searchParams] = useSearchParams()
@@ -25,7 +26,17 @@ const Confirmacion = () => {
         status: orderStatus,
       })
       .eq('id', externalRef)
-      .then(() => setUpdated(true))
+      /* El monto sale de acá y no de una consulta aparte: el update ya
+         toca esa fila, y el valor tiene que venir de la base y no de la
+         URL — lo que llega por parámetro lo puede cambiar cualquiera. */
+      .select('amount')
+      .maybeSingle()
+      .then(({ data }) => {
+        setUpdated(true)
+        if (orderStatus === 'pagado') {
+          pixelCompra({ pedidoId: externalRef, valor: data?.amount })
+        }
+      })
   }, [externalRef, status, paymentId, updated])
 
   const isApproved  = status === 'approved'

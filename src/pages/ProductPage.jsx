@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { waUrl } from '../lib/whatsapp';
 import { Wallet } from '@mercadopago/sdk-react';
 import ProductCard from '../components/catalog/ProductCard';
+import { pixelVerPieza, pixelIniciarPago } from '../lib/pixeles';
 
 /* ── Countdown hook: 24 h rolling, persiste en localStorage ─────── */
 const pad = (n) => String(n).padStart(2, '0');
@@ -123,6 +124,11 @@ const BuyModal = ({ product, onClose }) => {
 
     try {
       const finalPrice = paymentMethod === 'mp' ? mpPrice : product.price;
+
+      /* Antes de la llamada y no después: si create-preference falla, el
+         intento de compra igual ocurrió y es lo que este evento mide. */
+      pixelIniciarPago({ id: product.id, nombre: product.name, precio: finalPrice });
+
       const { data, error } = await supabase.functions.invoke('create-preference', {
         body: {
           paymentMethod,
@@ -547,6 +553,10 @@ const ProductPage = () => {
             }
 
             setProduct(data);
+
+            /* Vio la pieza. Va acá y no al montar el componente: hasta que
+               no cargó, no se sabe qué está mirando ni cuánto vale. */
+            pixelVerPieza({ id: data.id, nombre: data.name, precio: data.price });
 
             const { data: rel } = await supabase
                 .from('products')
