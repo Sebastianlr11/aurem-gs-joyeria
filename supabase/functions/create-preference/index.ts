@@ -13,7 +13,7 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const { items, product, buyer, paymentMethod = 'mp', notes: orderNotes } = await req.json()
+    const { items, product, buyer, paymentMethod = 'mp', notes: orderNotes, atribucion } = await req.json()
 
     // Soporta formato nuevo (items array) y formato legacy (product objeto)
     const productItems: Array<{ id: string; name: string; price: number }> =
@@ -85,6 +85,13 @@ Deno.serve(async (req: Request) => {
         shipping_address: buyer.address ?? null,
         shipping_city: buyer.city ?? null,
         shipping_department: buyer.department ?? null,
+        /* De qué anuncio vino. Se guarda ahora porque después no hay dónde
+           sacarlo: cuando Mercado Pago confirma el pago, el navegador que
+           tenía estas cookies ya no está en la conversación. */
+        ttclid: atribucion?.ttclid ?? null,
+        ttp: atribucion?.ttp ?? null,
+        fbc: atribucion?.fbc ?? null,
+        fbp: atribucion?.fbp ?? null,
       })
       .select('id')
       .single()

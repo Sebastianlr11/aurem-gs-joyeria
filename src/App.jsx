@@ -2,6 +2,7 @@ import React, { Suspense, lazy, useEffect } from 'react'
 import { Routes, Route, useLocation } from 'react-router-dom'
 import { initMercadoPago } from '@mercadopago/sdk-react'
 import { iniciarPixeles, pixelPagina } from './lib/pixeles'
+import { capturarClic } from './lib/atribucion'
 
 initMercadoPago(import.meta.env.VITE_MP_PUBLIC_KEY, { locale: 'es-CO' })
 
@@ -46,7 +47,10 @@ function ContadorDePaginas() {
 }
 
 function App() {
-  useEffect(() => { iniciarPixeles(); }, []);
+  /* El clic se captura antes de cargar los píxeles: el identificador viene
+     en la URL de esta visita y hay que guardarlo aunque la compra sea otro
+     día. */
+  useEffect(() => { capturarClic(); iniciarPixeles(); }, []);
 
   return (
     <div className="app">

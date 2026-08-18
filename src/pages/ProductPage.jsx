@@ -4,7 +4,8 @@ import { supabase } from '../lib/supabase';
 import { waUrl } from '../lib/whatsapp';
 import { Wallet } from '@mercadopago/sdk-react';
 import ProductCard from '../components/catalog/ProductCard';
-import { pixelVerPieza, pixelIniciarPago } from '../lib/pixeles';
+import { pixelVerPieza, pixelIniciarPago } from '../lib/pixeles'
+import { datosDeAtribucion } from '../lib/atribucion';
 
 /* ── Countdown hook: 24 h rolling, persiste en localStorage ─────── */
 const pad = (n) => String(n).padStart(2, '0');
@@ -141,6 +142,10 @@ const BuyModal = ({ product, onClose }) => {
             address: form.address.trim() || undefined,
             department: form.department.trim() || undefined,
           },
+          /* De qué anuncio vino. Se guarda con el pedido para que el webhook
+             de Mercado Pago pueda decirle a TikTok y a Meta qué clic terminó
+             en venta — para entonces el navegador ya no está. */
+          atribucion: datosDeAtribucion(),
         },
       });
 

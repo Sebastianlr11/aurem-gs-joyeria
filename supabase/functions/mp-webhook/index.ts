@@ -1,6 +1,7 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { enviarTexto, numeroPropioDe } from '../_shared/wa.ts'
+import { avisarVenta } from '../_shared/conversiones.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -75,15 +76,50 @@ Deno.serve(async (req: Request) => {
         status: 'pagado',
         mp_payment_id: String(payment.id),
         mp_status: payment.status,
+        /* El candado contra reintentos: Mercado Pago reenvía el webhook varias
+           veces por el mismo pago, y sin esto la venta se le contaría repetida
+           a TikTok y a Meta, y el cliente recibiría el aviso otras tantas.
+           Se marca acá y no después de enviar, en el mismo update que filtra
+           por null: así dos webhooks que lleguen a la vez no pueden pasar los
+           dos, porque Postgres serializa la escritura sobre la fila. */
+        conversion_enviada_en: new Date().toISOString(),
       })
       .eq('id', orderId)
-      .select('customer_phone, customer_name, product_name, amount')
+      .is('conversion_enviada_en', null)
+      .select('customer_phone, customer_email, customer_name, product_id, product_name, amount, ttclid, ttp, fbc, fbp')
       .maybeSingle()
 
     if (updateError) {
       console.error('Error actualizando orden:', orderId, updateError)
+    } else if (!orden) {
+      /* Ya se procesó en un intento anterior. No es un error: es el candado
+         haciendo su trabajo. */
+      console.log('Pago ya procesado antes, no se repite:', orderId)
+      return new Response(JSON.stringify({ ok: true, repetido: true }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
     } else {
       console.log('Orden actualizada a pagado:', orderId)
+    }
+
+    /* La venta a TikTok y a Meta. Va antes del aviso por WhatsApp porque no
+       depende de él y porque es lo que tiene ventana de tiempo: cuanto más
+       cerca del pago llegue, mejor atribuye. Nunca lanza. */
+    if (orden) {
+      await avisarVenta({
+        pedidoId: orderId,
+        monto: Number(orden.amount),
+        correo: orden.customer_email,
+        telefono: orden.customer_phone,
+        piezaId: orden.product_id,
+        piezaNombre: orden.product_name,
+        ttclid: orden.ttclid,
+        ttp: orden.ttp,
+        fbc: orden.fbc,
+        fbp: orden.fbp,
+        url: 'https://www.auremgsjoyeria.com/confirmacion',
+      })
     }
 
     /* Si el pedido entró por WhatsApp, se avisa por ahí mismo. Sin esto el
