@@ -148,7 +148,6 @@ const ChatPanel = () => {
     const [imageCaption, setImageCaption] = useState('');
     const [selectedProduct, setSelectedProduct] = useState(null);
     const [sendingImage, setSendingImage] = useState(false);
-    const [webhookMissing, setWebhookMissing] = useState(false);
     const [takeoverMap, setTakeoverMap] = useState({});
     const [showContactInfo, setShowContactInfo] = useState(() => window.innerWidth >= 1200);
     const [contactOrders, setContactOrders] = useState([]);
@@ -560,81 +559,40 @@ const ChatPanel = () => {
         };
     }, [session]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    /* ─── Webhook URLs ─────────────────────────────────────────────── */
-    const MANUAL_WEBHOOK = 'http://localhost:5678/webhook/respuesta-manual-admin';
-
-    /* ─── Send manual message (optimistic UI) ────────────────────── */
+    /* ─── Enviar un mensaje escrito por una persona ───────────────
+       Va por la función wa-send, que habla con la Cloud API y guarda la
+       fila con enviado_por='humano'. Antes salía a un webhook de n8n en
+       localhost con mode:'no-cors', así que el navegador no podía leer la
+       respuesta y un fallo se veía igual que un envío correcto. */
     const handleSend = async () => {
         if (!newMessage.trim() || !activeContact || sending) return;
         setSending(true);
         setSendError(null);
         const msg = newMessage.trim();
         const tempId = `temp-${Date.now()}`;
-        const isManual = !!takeoverMapRef.current[activeContact];
 
-        // Para modo normal, necesita webhook configurado
-        if (!isManual) {
-            const webhookUrl = localStorage.getItem('admin_chat_webhook_url');
-            if (!webhookUrl) {
-                setWebhookMissing(true);
-                setSending(false);
-                return;
-            }
-        }
-
-        // Optimistic: show message immediately and clear input
         const optimisticMsg = {
             id: tempId,
             phone_number: activeContact,
             role: 'assistant',
             content: msg,
+            enviado_por: 'humano',
             created_at: new Date().toISOString(),
         };
         setMessages(prev => [...prev, optimisticMsg]);
         setNewMessage('');
 
         try {
-            // 1. Enviar via webhook correspondiente
-            const webhookUrl = isManual
-                ? MANUAL_WEBHOOK
-                : localStorage.getItem('admin_chat_webhook_url');
-
-            if (webhookUrl) {
-                const body = isManual
-                    ? { phone_number: activeContact, message: msg }
-                    : { phone: activeContact, message: msg };
-                fetch(webhookUrl, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    headers: { 'Content-Type': 'text/plain' },
-                    body: JSON.stringify(body),
-                }).catch(() => {});
-            }
-
-            // 2. Save to Supabase (solo si NO es manual — el workflow ya guarda)
-            if (!isManual) {
-                const { data, error } = await supabase.from('whatsapp_conversaciones').insert({
-                    phone_number: activeContact,
-                    role: 'assistant',
-                    content: msg,
-                }).select().single();
-
-                if (error) {
-                    console.error('Error guardando mensaje:', error);
-                    setMessages(prev => prev.map(m => m.id === tempId ? { ...m, _failed: true } : m));
-                    setSendError('Error al guardar mensaje en base de datos.');
-                } else if (data) {
-                    setMessages(prev => {
-                        const hasReal = prev.some(m => m.id === data.id);
-                        if (hasReal) return prev.filter(m => m.id !== tempId);
-                        return prev.map(m => m.id === tempId ? data : m);
-                    });
-                }
-            }
+            const { data, error } = await supabase.functions.invoke('wa-send', {
+                body: { telefono: activeContact, texto: msg },
+            });
+            if (error || data?.error) throw new Error(data?.error || error.message);
+            // La fila real llega por la suscripción en vivo; se retira la burbuja
+            // provisional cuando aparezca.
         } catch (e) {
-            console.error('Error enviando mensaje:', e);
+            console.error('No se pudo enviar:', e);
             setMessages(prev => prev.map(m => m.id === tempId ? { ...m, _failed: true } : m));
-            setSendError('Error de conexion al enviar mensaje.');
+            setSendError(e.message || 'No se pudo enviar el mensaje.');
         }
         setSending(false);
     };
@@ -646,37 +604,20 @@ const ChatPanel = () => {
         }
     };
 
-    /* ─── Send image ────────────────────────────────────────────── */
+    /* ─── Enviar una foto del catálogo ───────────────────────────── */
     const handleSendImage = async (product) => {
         if (!activeContact || sendingImage) return;
         setSendingImage(true);
         const caption = imageCaption.trim() || `${product.name} - $${Number(product.price).toLocaleString('es-CO')}`;
-        const isManual = !!takeoverMapRef.current[activeContact];
-        const webhookUrl = isManual
-            ? MANUAL_WEBHOOK
-            : localStorage.getItem('admin_chat_webhook_url');
 
-        if (webhookUrl) {
-            const body = isManual
-                ? { phone_number: activeContact, image_url: product.image_url, caption }
-                : { phone: activeContact, image_url: product.image_url, caption };
-            fetch(webhookUrl, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'text/plain' },
-                body: JSON.stringify(body),
-            }).catch(() => {});
-        }
-
-        // Solo guardar desde frontend si NO es manual (el workflow ya guarda)
-        if (!isManual) {
-            await supabase.from('whatsapp_conversaciones').insert({
-                phone_number: activeContact,
-                role: 'assistant',
-                content: caption,
-                message_type: 'image',
-                media_url: product.image_url,
+        try {
+            const { data, error } = await supabase.functions.invoke('wa-send', {
+                body: { telefono: activeContact, texto: caption, imagenUrl: product.image_url },
             });
+            if (error || data?.error) throw new Error(data?.error || error.message);
+        } catch (e) {
+            console.error('No se pudo enviar la imagen:', e);
+            setSendError(e.message || 'No se pudo enviar la imagen.');
         }
 
         setShowImagePicker(false);
@@ -1414,15 +1355,6 @@ const ChatPanel = () => {
                                         </div>
                                     )}
                                 </div>
-
-                                {/* Webhook missing banner */}
-                                {webhookMissing && (
-                                    <div className="chat-webhook-banner">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                                        <span>Configura el webhook en <strong>Ajustes</strong> para enviar mensajes por WhatsApp.</span>
-                                        <button className="chat-webhook-banner-close" onClick={() => setWebhookMissing(false)}>&times;</button>
-                                    </div>
-                                )}
 
                                 {/* Send error banner */}
                                 {sendError && (
