@@ -13731,3 +13731,10 @@ textarea:focus-visible {
 @media (min-width: 769px) {
   .catalogo-panel-velo { display: none; }
 }
+
+/* Lo que escribe una persona se distingue de lo que escribe Valentina:
+   misma familia, un punto más claro y un filete de oro al canto. */
+.chat-bubble--admin {
+  background: var(--ink-soft);
+  border-color: rgba(227, 201, 144, 0.28);
+}
