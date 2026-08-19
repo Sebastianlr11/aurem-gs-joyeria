@@ -673,8 +673,8 @@ const ProductPage = () => {
             : null,
         esAnillo ? ['Talla', '5 a 12 · ajuste en taller sin costo'] : null,
         ['Envío', '24 a 48 horas hábiles'],
-        ['Certificado', 'Incluido con la pieza'],
-        ['Garantía', 'De por vida contra defectos'],
+        ['Certificado', 'Opcional · $50.000'],
+        ['Garantía', 'De por vida en el metal'],
     ].filter(Boolean);
 
     return (
@@ -798,21 +798,21 @@ const ProductPage = () => {
                                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--oro)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>
                                 <div>
                                     <span className="ficha-garantia-t">Pagas al recibir</span>
-                                    <span className="ficha-garantia-s">Contraentrega disponible</span>
+                                    <span className="ficha-garantia-s">Contraentrega en Bogotá</span>
                                 </div>
                             </div>
                             <div className="ficha-garantia">
                                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--oro)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="6" /><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88" /></svg>
                                 <div>
-                                    <span className="ficha-garantia-t">Certificado incluido</span>
-                                    <span className="ficha-garantia-s">Materiales y quilataje</span>
+                                    <span className="ficha-garantia-t">Certificado disponible</span>
+                                    <span className="ficha-garantia-s">Materiales y quilataje · $50.000</span>
                                 </div>
                             </div>
                             <div className="ficha-garantia">
                                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--oro)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
                                 <div>
                                     <span className="ficha-garantia-t">Garantía de por vida</span>
-                                    <span className="ficha-garantia-s">Contra defectos de fabricación</span>
+                                    <span className="ficha-garantia-s">En el metal, contra defectos</span>
                                 </div>
                             </div>
                         </div>

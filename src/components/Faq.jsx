@@ -22,7 +22,7 @@ const faqs = [
     },
     {
         question: '¿Cómo funciona la garantía de por vida?',
-        answer: 'Cubre defectos de fabricación sin costo: ajustes de talla, engastes y pulido.',
+        answer: 'Cubre el metal de por vida contra defectos de fabricación: ajustes de talla y pulido, sin costo. Las piedras no entran en esa garantía; si se suelta o se daña una, escríbenos y lo revisamos caso por caso.',
     },
     {
         question: '¿Puedo devolver o cambiar una pieza?',
@@ -30,7 +30,7 @@ const faqs = [
     },
     {
         question: '¿Ofrecen grabados personalizados?',
-        answer: 'Sí, grabado láser incluido sin costo. Suma 2 a 3 días hábiles al tiempo de entrega.',
+        answer: 'En argollas y anillos va incluido sin costo. En otras piezas, escríbenos y te confirmamos. Suma 2 a 3 días hábiles al tiempo de entrega.',
     },
     {
         question: '¿Cómo puedo personalizar una pieza?',

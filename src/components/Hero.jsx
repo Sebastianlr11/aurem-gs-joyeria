@@ -53,7 +53,7 @@ const Hero = () => {
 
                         <p className="hero-subtitle hero-anim" style={{ '--hero-delay': '0.5s' }}>
                             Anillos, collares y pulseras en oro 18k, plata 925 y platino. Cada pieza sale de
-                            nuestro taller con certificado de autenticidad y garantía de por vida.
+                            nuestro taller sellada con su ley y con garantía de por vida en el metal.
                         </p>
 
                         <div className="hero-btns hero-anim" style={{ '--hero-delay': '0.62s' }}>
@@ -80,7 +80,7 @@ const Hero = () => {
                             <span className="punzon">925</span>
                             <span className="punzon">PT950</span>
                             <p className="hero-marks-note">
-                                Cada pieza sellada, certificada y con garantía de por vida.
+                                Cada pieza sellada con su ley y con garantía de por vida.
                             </p>
                         </div>
                     </div>

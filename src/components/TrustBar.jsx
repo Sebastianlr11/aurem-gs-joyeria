@@ -35,8 +35,12 @@ const ShieldIcon = () => (
 const items = [
     { icon: <TruckIcon />, title: 'Envío a toda Colombia', sub: '24 a 48 horas hábiles' },
     { icon: <CashIcon />, title: 'Pago contra entrega', sub: 'En Bogotá' },
-    { icon: <CertificateIcon />, title: 'Certificado de autenticidad', sub: 'Materiales y quilataje' },
-    { icon: <ShieldIcon />, title: 'Garantía de por vida', sub: 'Contra defectos de fabricación' },
+    /* Acá va sólo lo que se cumple SIEMPRE. El certificado salió de esta
+       barra porque tiene un costo aparte: prometerlo junto al envío y la
+       garantía lo hacía leer como incluido. Vive en la ficha del producto,
+       con su precio. */
+    { icon: <CertificateIcon />, title: 'Taller propio', sub: 'Piezas a medida' },
+    { icon: <ShieldIcon />, title: 'Garantía de por vida', sub: 'En el metal' },
 ];
 
 const TrustBar = () => (

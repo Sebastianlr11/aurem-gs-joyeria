@@ -43,12 +43,12 @@ const pillars = [
     {
         icon: <MedalIcon />,
         title: 'Certificación de autenticidad',
-        description: 'Cada joya incluye certificado de materiales, quilataje y procedencia.',
+        description: 'Certificamos materiales, quilataje y procedencia. El certificado tiene un costo adicional de $50.000.',
     },
     {
         icon: <ShieldIcon />,
         title: 'Garantía de por vida',
-        description: 'Respaldamos cada pieza contra defectos de fabricación, con ajuste de talla sin costo.',
+        description: 'Respaldamos el metal de por vida contra defectos de fabricación, con ajuste de talla sin costo.',
     },
 ];
 
