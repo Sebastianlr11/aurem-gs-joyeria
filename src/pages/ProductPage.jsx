@@ -204,16 +204,20 @@ const BuyModal = ({ product, onClose }) => {
     if (errors[field]) setErrors(er => { const n = { ...er }; delete n[field]; return n; });
   };
 
+  /* El error aparece al salir del campo, no al enviar. Enterarse de cinco
+     errores de golpe después de darle al botón obliga a subir y releer todo;
+     enterarse de uno al pasar al siguiente se corrige en el momento. */
+  const handleBlur = (field) => () => {
+    const e = validate();
+    if (e[field]) setErrors(er => ({ ...er, [field]: e[field] }));
+  };
+
   return (
     <div className="buy-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="buy-modal-box">
-        <button className="buy-modal-close" onClick={onClose} aria-label="Cerrar">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-          </svg>
-        </button>
-
-        {/* Cabecera de la pieza */}
+        {/* Cabecera de la pieza. El cierre va DENTRO de la fila y no flotando
+            encima: sobre el nombre de la pieza tapaba texto, y con el modal
+            angosto obligaba a dejarle un hueco al titular. */}
         <header className="pago-pieza">
           {product.image_url && <img src={product.image_url} alt={product.name} />}
           <div className="pago-pieza-info">
@@ -221,6 +225,11 @@ const BuyModal = ({ product, onClose }) => {
             <h3 className="pago-pieza-nombre">{product.name}</h3>
             <span className="pago-pieza-cat">{product.category}</span>
           </div>
+          <button type="button" className="pago-cerrar" onClick={onClose} aria-label="Cerrar">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
         </header>
 
         {/* Selector de método de pago */}
@@ -343,8 +352,8 @@ const BuyModal = ({ product, onClose }) => {
         {step === 'form' && (
           <form className="buy-modal-form" onSubmit={handleSubmit} noValidate>
             <div className="buy-modal-form-header">
-              <button type="button" className="buy-modal-back" onClick={() => setStep('method')}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <button type="button" className="pago-volver" onClick={() => setStep('method')} aria-label="Volver">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="15 18 9 12 15 6"/>
                 </svg>
               </button>
@@ -354,35 +363,35 @@ const BuyModal = ({ product, onClose }) => {
             </div>
 
             <div className="buy-modal-field">
-              <label>Nombre completo *</label>
+              <label>Nombre completo <span className="req">*</span></label>
               <input type="text" placeholder="Ej. María García" value={form.name}
-                onChange={handleChange('name')} className={errors.name ? 'buy-modal-input--error' : ''} />
+                onChange={handleChange('name')} onBlur={handleBlur('name')} className={errors.name ? 'buy-modal-input--error' : ''} />
               {errors.name && <span className="buy-modal-field-error">{errors.name}</span>}
             </div>
             <div className="buy-modal-field">
-              <label>Correo electrónico *</label>
+              <label>Correo electrónico <span className="req">*</span></label>
               <input type="email" placeholder="correo@ejemplo.com" value={form.email}
-                onChange={handleChange('email')} className={errors.email ? 'buy-modal-input--error' : ''} />
+                onChange={handleChange('email')} onBlur={handleBlur('email')} className={errors.email ? 'buy-modal-input--error' : ''} />
               {errors.email && <span className="buy-modal-field-error">{errors.email}</span>}
             </div>
             <div className="buy-modal-field">
-              <label>Teléfono {paymentMethod === 'cod' ? '*' : '(opcional)'}</label>
+              <label>Teléfono {paymentMethod === 'cod' ? <span className="req">*</span> : '(opcional)'}</label>
               <input type="tel" placeholder="Ej. 3001234567" value={form.phone}
-                onChange={handleChange('phone')} className={errors.phone ? 'buy-modal-input--error' : ''} />
+                onChange={handleChange('phone')} onBlur={handleBlur('phone')} className={errors.phone ? 'buy-modal-input--error' : ''} />
               {errors.phone && <span className="buy-modal-field-error">{errors.phone}</span>}
             </div>
 
             <div className="buy-modal-field">
-              <label>Dirección de entrega *</label>
+              <label>Dirección de entrega <span className="req">*</span></label>
               <input type="text" placeholder="Ej. Calle 123 # 45-67, Apto 301" value={form.address}
-                onChange={handleChange('address')} className={errors.address ? 'buy-modal-input--error' : ''} />
+                onChange={handleChange('address')} onBlur={handleBlur('address')} className={errors.address ? 'buy-modal-input--error' : ''} />
               {errors.address && <span className="buy-modal-field-error">{errors.address}</span>}
             </div>
 
             {paymentMethod === 'mp' && (
               <>
                 <div className="buy-modal-field">
-                  <label>Departamento *</label>
+                  <label>Departamento <span className="req">*</span></label>
                   <select value={form.department} onChange={handleChange('department')}
                     className={errors.department ? 'buy-modal-input--error' : ''}>
                     <option value="">Selecciona tu departamento</option>
@@ -391,9 +400,9 @@ const BuyModal = ({ product, onClose }) => {
                   {errors.department && <span className="buy-modal-field-error">{errors.department}</span>}
                 </div>
                 <div className="buy-modal-field">
-                  <label>Ciudad *</label>
+                  <label>Ciudad <span className="req">*</span></label>
                   <input type="text" placeholder="Ej. Envigado" value={form.city}
-                    onChange={handleChange('city')} className={errors.city ? 'buy-modal-input--error' : ''} />
+                    onChange={handleChange('city')} onBlur={handleBlur('city')} className={errors.city ? 'buy-modal-input--error' : ''} />
                   {errors.city && <span className="buy-modal-field-error">{errors.city}</span>}
                 </div>
               </>

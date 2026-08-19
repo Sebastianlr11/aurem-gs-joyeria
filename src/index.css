@@ -14313,3 +14313,141 @@ textarea:focus-visible {
   font-size: 0.95rem;
   color: var(--ink);
 }
+
+/* ─── Datos de entrega ───────────────────────────────────────────────
+   El formulario va sobre marfil y la cabecera de la pieza queda en blanco:
+   la banda separa "qué estás comprando" de "a dónde te lo mandamos" sin
+   necesidad de una línea más. */
+.buy-modal-form { background: var(--bg-marfil); gap: 20px; }
+
+.pago-cerrar,
+.pago-volver {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid var(--hairline);
+  border-radius: 100px;
+  background: var(--bg-color);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+.pago-cerrar { width: 38px; height: 38px; }
+.pago-volver { width: 32px; height: 32px; }
+.pago-cerrar:hover,
+.pago-volver:hover { background: var(--bg-arena); color: var(--ink); }
+
+/* La cabecera pasa a tres columnas para hacerle sitio al cierre. */
+.pago-pieza { align-items: flex-start; }
+.pago-pieza-info { flex: 1; padding-right: 0; }
+
+.buy-modal-form-header {
+  gap: 11px;
+  margin-bottom: 6px;
+}
+.buy-modal-form-header .buy-modal-title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.5rem;
+  line-height: 1.1;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+}
+
+/* Campos: 52px de alto, radio de 2px, línea de pelo. Nada de esquinas
+   redondeadas ni sombras: eso era del formulario genérico. */
+.buy-modal-field { gap: 8px; }
+.buy-modal-field label {
+  font-family: var(--font-ui);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.buy-modal-field label .req { color: var(--oro-ink); }
+
+.buy-modal-field input,
+.buy-modal-field select {
+  height: 52px;
+  padding: 0 15px;
+  border: 1px solid var(--hairline);
+  border-radius: 2px;
+  background: var(--bg-color);
+  font-family: var(--font-ui);
+  font-size: 1rem;
+  color: var(--ink);
+  transition: var(--transition-smooth);
+}
+.buy-modal-field select { padding-right: 40px; background-position: right 15px center; }
+.buy-modal-field input:hover,
+.buy-modal-field select:hover { border-color: rgba(168, 134, 63, 0.35); }
+.buy-modal-field input:focus,
+.buy-modal-field select:focus {
+  border-color: var(--oro);
+  box-shadow: none;
+}
+.buy-modal-field input::placeholder { color: var(--text-muted); }
+
+/* El error se escribe en oro viejo y no en rojo: la dirección no tiene un
+   segundo acento, y un rojo de alerta en una pantalla de joyería grita más de
+   lo que ayuda. El borde lo acompaña para que el campo se distinga de un
+   vistazo. */
+.buy-modal-input--error { border-color: var(--oro-ink) !important; }
+.buy-modal-field-error {
+  font-family: var(--font-ui);
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--oro-ink);
+}
+
+/* El aviso del abono: arena, no verde. El verde era el único color ajeno que
+   quedaba en el modal. */
+.buy-cod-notice {
+  align-items: flex-start;
+  gap: 11px;
+  padding: 16px 17px;
+  margin: 6px 0 0;
+  background: var(--bg-arena);
+  border: none;
+  border-radius: 2px;
+  font-family: var(--font-ui);
+  font-size: 0.86rem;
+  line-height: 1.65;
+  color: var(--ink);
+}
+.buy-cod-notice svg { color: var(--oro); margin-top: 2px; }
+.buy-cod-notice strong { font-weight: 700; }
+
+.buy-modal-city-note { margin-top: 0; font-size: 0.82rem; line-height: 1.65; color: var(--text-secondary); }
+.buy-modal-city-note-link { color: var(--oro-ink); border-bottom: 1px solid rgba(168, 134, 63, 0.35); text-decoration: none; }
+.buy-modal-city-note-link:hover { color: var(--ink); border-bottom-color: var(--ink); }
+
+/* El botón de continuar, igual que el de la pantalla anterior. */
+.buy-modal-submit {
+  margin-top: 6px;
+  height: 58px;
+  padding: 0 24px;
+  border: none;
+  border-radius: 100px;
+  background: var(--ink);
+  color: #fff;
+  font-family: var(--font-ui);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+.buy-modal-submit:hover {
+  background: var(--ink-soft);
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px rgba(28, 23, 20, 0.18);
+}
+.buy-modal-submit:active { transform: translateY(0); }
+
+@media (prefers-reduced-motion: reduce) {
+  .buy-modal-submit:hover { transform: none; }
+}
