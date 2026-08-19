@@ -49,6 +49,10 @@ export type Venta = {
   url?: string | null
   ua?: string | null
   ip?: string | null
+  /* Cuándo ocurrió la compra, en segundos unix. Por defecto, ahora. Sólo hace
+     falta pasarlo cuando el aviso llega tarde —el contraentrega se confirma
+     días después— y hay que fecharlo cuando la persona compró de verdad. */
+  momento?: number
 }
 
 /* ─── Cifrado ───────────────────────────────────────────────────────
@@ -231,7 +235,7 @@ async function aMeta(venta: Venta, momento: number): Promise<string> {
 export async function avisarVenta(venta: Venta): Promise<void> {
   if (!venta.pedidoId || !(venta.monto > 0)) return
 
-  const momento = Math.floor(Date.now() / 1000)
+  const momento = venta.momento ?? Math.floor(Date.now() / 1000)
 
   const [tiktok, meta] = await Promise.allSettled([
     aTikTok(venta, momento),

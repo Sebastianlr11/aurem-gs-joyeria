@@ -65,6 +65,23 @@ const PAYMENT_METHODS = ['MercadoPago', 'Nequi', 'Daviplata', 'Transferencia', '
 const EMPTY_CUSTOMER = { name:'', phone:'', email:'', notes:'' };
 
 /* ─── Webhook helper ─────────────────────────────────────────────── */
+/**
+ * Le cuenta la venta a TikTok y a Meta cuando se cobra un pedido que no pasó
+ * por Mercado Pago —el contraentrega, o los que cargás a mano.
+ *
+ * Va por una edge function porque los tokens de las APIs de conversiones no
+ * pueden salir al navegador. Y no se avisa si algo falla: el pedido ya quedó
+ * cobrado, y un error de medición no es algo que tengas que atender en medio
+ * del trabajo. Queda en la consola y en los logs de la función.
+ */
+const avisarConversion = async (orderId) => {
+    try {
+        await supabase.functions.invoke('conversion-pedido', { body: { pedidoId: orderId } });
+    } catch (e) {
+        console.error('No se pudo avisar la venta a los anuncios:', e);
+    }
+};
+
 const fireWebhook = async (order, newStatus, extraFields = {}) => {
     const url = localStorage.getItem('admin_webhook_url');
     if (!url) return;
@@ -288,10 +305,15 @@ const OrderModal = ({ order, products, onClose, onSaved }) => {
             payload.order_source = 'manual';
         }
         let err;
+        let creado = null;
         if (isEdit) ({ error: err } = await supabase.from('orders').update(payload).eq('id', order.id));
-        else ({ error: err } = await supabase.from('orders').insert([payload]));
+        else ({ data: creado, error: err } = await supabase.from('orders').insert([payload]).select('id').single());
         setSaving(false);
         if (err) { setError(err.message); return; }
+        // También desde el formulario: un pedido cargado a mano ya cobrado es
+        // una venta igual de real que las demás.
+        const id = isEdit ? order.id : creado?.id;
+        if (id && form.status === 'pagado') await avisarConversion(id);
         onSaved();
     };
 
@@ -1245,6 +1267,11 @@ const OrdersSection = ({ orders, products, loading, onRefresh }) => {
         const payload = { status: newStatus, status_updated_at: new Date().toISOString(), ...extraFields };
         const { error } = await supabase.from('orders').update(payload).eq('id', order.id);
         if (error) { alert('Error: ' + error.message); return; }
+        /* Sólo al cobrar. En contraentrega 'pagado' es el último paso —la
+           plata en la mano— y en prepago es el primero; la función se encarga
+           de que no se cuente dos veces si el pedido ya pasó por el webhook
+           de Mercado Pago. */
+        if (newStatus === 'pagado') await avisarConversion(order.id);
         await fireWebhook(order, newStatus, extraFields);
         onRefresh();
     };
