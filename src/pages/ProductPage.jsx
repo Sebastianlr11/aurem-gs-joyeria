@@ -71,16 +71,17 @@ const PaymentMethods = () => (
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
         <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
       </svg>
-      Contraentrega disponible en ciudades principales
+      Contraentrega en Bogotá · envíos a todo el país
     </div>
   </div>
 );
 
-const COD_CITIES = [
-  'Bogotá', 'Medellín', 'Cali', 'Barranquilla', 'Cartagena',
-  'Bucaramanga', 'Pereira', 'Manizales', 'Santa Marta', 'Cúcuta',
-  'Ibagué', 'Villavicencio',
-];
+/* El contraentrega sólo se hace en Bogotá. Estaban listadas doce ciudades y
+   el taller sólo despacha a domicilio con cobro en la capital: alguien en Cali
+   podía pedir contraentrega y quedábamos obligados a algo que no se puede
+   cumplir. Al resto del país se le cobra por anticipado, y el envío por
+   Interrapidísimo sí llega a todas partes. */
+const COD_CITIES = ['Bogotá'];
 
 const MP_DISCOUNT = 0.02; // 2% descuento pagando con Mercado Pago
 
@@ -217,13 +218,13 @@ const BuyModal = ({ product, onClose }) => {
               </div>
               <div className="buy-method-info">
                 <span className="buy-method-name">Contraentrega</span>
-                <span className="buy-method-desc">Paga en efectivo al recibir tu pedido</span>
+                <span className="buy-method-desc">Sólo en Bogotá — pagas en efectivo al recibir</span>
               </div>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="9 18 15 12 9 6"/>
               </svg>
             </button>
-            <p className="buy-method-note">Envíos a ciudades principales de Colombia</p>
+            <p className="buy-method-note">Envíos a todo el país · contraentrega solo en Bogotá</p>
           </div>
         )}
 
@@ -293,7 +294,7 @@ const BuyModal = ({ product, onClose }) => {
                 </select>
                 {errors.city && <span className="buy-modal-field-error">{errors.city}</span>}
                 <span className="buy-modal-city-note">
-                  ¿No ves tu ciudad? Por ahora el pago contraentrega solo está disponible en las ciudades de la lista. Para el resto del país puedes usar{' '}
+                  El pago contraentrega por ahora solo está disponible en Bogotá. Si estás en otra ciudad te lo enviamos igual, pagando con{' '}
                   <button type="button" className="buy-modal-city-note-link" onClick={() => { setPaymentMethod('mp'); }}>
                     Mercado Pago
                   </button>

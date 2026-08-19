@@ -34,7 +34,7 @@ const ShieldIcon = () => (
 
 const items = [
     { icon: <TruckIcon />, title: 'Envío a toda Colombia', sub: '24 a 48 horas hábiles' },
-    { icon: <CashIcon />, title: 'Pago contra entrega', sub: 'Pagas al recibir' },
+    { icon: <CashIcon />, title: 'Pago contra entrega', sub: 'En Bogotá' },
     { icon: <CertificateIcon />, title: 'Certificado de autenticidad', sub: 'Materiales y quilataje' },
     { icon: <ShieldIcon />, title: 'Garantía de por vida', sub: 'Contra defectos de fabricación' },
 ];
