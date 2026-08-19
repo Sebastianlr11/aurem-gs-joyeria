@@ -251,9 +251,9 @@ const BuyModal = ({ product, onClose }) => {
                     <span className="pago-op-solo">Sólo Bogotá</span>
                   </div>
                   <span className="pago-op-sub">
-                    {abonoEnvio
-                      ? `Abonas $${fmt(abonoEnvio)} del envío y pagas el resto al recibir`
-                      : 'Pagas en efectivo al recibir'}
+                    {abonoEnvio ? (
+                      <>Abonas <strong>${fmt(abonoEnvio)}</strong> del envío hoy y pagas el resto al recibir</>
+                    ) : 'Pagas en efectivo al recibir'}
                   </span>
                   <div className="pago-op-precio">
                     <span className="pago-op-valor">${fmt(product.price)}</span>
@@ -263,25 +263,42 @@ const BuyModal = ({ product, onClose }) => {
               </div>
             </div>
 
-            <div className="pago-total">
-              <div>
-                <span className="pago-total-l">Total a pagar</span>
-                <div className="pago-total-v">
-                  <span>${fmt(paymentMethod === 'mp' ? mpPrice : product.price)}</span>
-                  <small>COP</small>
+            {paymentMethod === 'mp' ? (
+              <div className="pago-total">
+                <div>
+                  <span className="pago-total-l">Total a pagar ahora</span>
+                  <div className="pago-total-v">
+                    <span>${fmt(mpPrice)}</span>
+                    <small>COP</small>
+                  </div>
+                </div>
+                <span className="pago-total-nota">Ahorras ${fmt(mpSaving)}</span>
+              </div>
+            ) : (
+              <div className="pago-cuenta">
+                <div className="pago-cuenta-cabeza">
+                  <span className="pago-cuenta-l">Abonas hoy</span>
+                  <div className="pago-total-v">
+                    <span>${fmt(abonoEnvio ?? 0)}</span>
+                    <small>COP</small>
+                  </div>
+                  <span className="pago-cuenta-porque">Es el envío — sin este abono no se despacha</span>
+                </div>
+                <div className="pago-cuenta-fila">
+                  <span>Pagas al recibir la pieza</span>
+                  <span>${fmt(Math.max(product.price - (abonoEnvio ?? 0), 0))} COP</span>
+                </div>
+                <div className="pago-cuenta-fila pago-cuenta-fila--total">
+                  <span>Total de tu pedido</span>
+                  <span>${fmt(product.price)} COP</span>
                 </div>
               </div>
-              <span className="pago-total-nota">
-                {paymentMethod === 'mp'
-                  ? `Ahorras $${fmt(mpSaving)}`
-                  : abonoEnvio ? `Abonas $${fmt(abonoEnvio)} hoy` : 'Pagas al recibir'}
-              </span>
-            </div>
+            )}
 
             <button type="button" className="pago-cta" onClick={() => selectMethod(paymentMethod)}>
               {paymentMethod === 'mp'
                 ? 'Pagar con Mercado Pago'
-                : abonoEnvio ? `Continuar y abonar $${fmt(abonoEnvio)}` : 'Continuar'}
+                : abonoEnvio ? `Abonar $${fmt(abonoEnvio)} del envío` : 'Continuar'}
             </button>
 
             {/* Lo que se promete acá se cumple SIEMPRE. El certificado no

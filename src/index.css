@@ -14252,3 +14252,52 @@ textarea:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   .pago-cta:hover { transform: none; }
 }
+
+/* El desglose del contraentrega. No es un total: son tres cifras distintas y
+   verlas separadas ANTES de pagar es lo que evita la discusión en la puerta.
+   Alguien que sabe que va a entregar $480.000 en efectivo abre; alguien que
+   creía pagar todo hoy, no. */
+.pago-cuenta {
+  margin-top: 24px;
+  background: var(--bg-arena);
+  border-radius: 2px;
+}
+
+.pago-cuenta-cabeza {
+  padding: 18px 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pago-cuenta-l {
+  font-family: var(--font-ui);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--oro-ink);
+}
+
+.pago-cuenta-porque {
+  font-family: var(--font-ui);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--oro-ink);
+}
+
+.pago-cuenta-fila {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 20px;
+  border-top: 1px solid rgba(28, 23, 20, 0.1);
+  font-family: var(--font-ui);
+  font-variant-numeric: tabular-nums;
+}
+.pago-cuenta-fila span:first-child { font-size: 0.875rem; color: var(--text-secondary); }
+.pago-cuenta-fila span:last-child { font-size: 0.9375rem; font-weight: 800; color: var(--ink); }
+.pago-cuenta-fila--total span:first-child { font-weight: 700; color: var(--ink); }
+
+.pago-op-sub strong { color: var(--ink); font-weight: 700; }
