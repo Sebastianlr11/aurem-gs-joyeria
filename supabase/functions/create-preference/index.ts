@@ -45,6 +45,23 @@ Deno.serve(async (req: Request) => {
     const combinedName = productItems.map(i => i.name).join(' + ')
     const firstProductId = productItems[0].id
 
+    const esContraEntrega = paymentMethod === 'cod'
+
+    /* El abono que confirma un contraentrega. Vive en taller_precios y no acá
+       para que se pueda cambiar desde el panel; si la fila no existe se usa un
+       valor de respaldo, porque quedarse sin poder tomar pedidos por eso sería
+       peor que cobrar un número desactualizado. */
+    let abono = 0
+    if (esContraEntrega) {
+      const { data: precios } = await supabase
+        .from('taller_precios').select('abono_envio').maybeSingle()
+      abono = Number(precios?.abono_envio ?? 20000)
+      if (!(abono > 0) || abono >= totalAmount) {
+        console.error('Abono inválido:', abono, 'sobre un total de', totalAmount)
+        abono = Math.min(20000, Math.floor(totalAmount / 2))
+      }
+    }
+
     // Cancelar pedidos pendientes duplicados del mismo cliente + producto
     // (ej: cliente cambia de MercadoPago a contraentrega)
     if (buyer.phone) {
@@ -103,6 +120,7 @@ Deno.serve(async (req: Request) => {
         anuncio_id: atribucion?.anuncio_id ?? null,
         utm_source: atribucion?.utm_source ?? null,
         utm_campaign: atribucion?.utm_campaign ?? null,
+        abono_monto: esContraEntrega ? abono : null,
       })
       .select('id')
       .single()
@@ -155,25 +173,32 @@ Deno.serve(async (req: Request) => {
     // @ts-ignore EdgeRuntime existe en el entorno de Supabase
     if (typeof EdgeRuntime !== 'undefined') EdgeRuntime.waitUntil(avisoPedido)
 
-    // Contraentrega: no necesita preferencia MP
-    if (paymentMethod === 'cod') {
-      return new Response(
-        JSON.stringify({ orderId, isCod: true }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    // Flujo Mercado Pago (producción)
+    /* El contraentrega también pasa por Mercado Pago, pero sólo por el abono.
+       Antes se confirmaba solo, y un pedido que no cuesta nada hacer es un
+       pedido que la mitad de las veces no se recibe: la devolución la paga el
+       negocio y, peor, le enseña a los anuncios que ese público compra. */
     const mpAccessToken = Deno.env.get('MP_ACCESS_TOKEN')!
     const appUrl = (Deno.env.get('APP_URL') ?? 'https://auremgsjoyeria.vercel.app').replace(/\/$/, '')
 
-    const mpItems = productItems.map(item => ({
-      id: item.id,
-      title: item.name,
-      quantity: 1,
-      unit_price: Number(item.price),
-      currency_id: 'COP',
-    }))
+    /* En contraentrega se cobra un solo renglón por el abono, y no las piezas:
+       el cliente no está pagando el anillo todavía, y ver el precio completo
+       en la pasarela cuando va a girar veinte mil confunde y tumba el pago. */
+    const mpItems = esContraEntrega
+      ? [{
+          id: orderId,
+          title: `Abono de envío — ${combinedName}`,
+          description: `Se descuenta del total. Al recibir pagas $${(totalAmount - abono).toLocaleString('es-CO')}.`,
+          quantity: 1,
+          unit_price: abono,
+          currency_id: 'COP',
+        }]
+      : productItems.map(item => ({
+          id: item.id,
+          title: item.name,
+          quantity: 1,
+          unit_price: Number(item.price),
+          currency_id: 'COP',
+        }))
 
     const preference: Record<string, unknown> = {
       items: mpItems,
@@ -218,6 +243,9 @@ Deno.serve(async (req: Request) => {
         preferenceId,
         orderId,
         initPoint: mpData.init_point ?? null,
+        isCod: esContraEntrega,
+        abono: esContraEntrega ? abono : null,
+        saldo: esContraEntrega ? totalAmount - abono : null,
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )

@@ -616,31 +616,46 @@ async function ejecutarHerramienta(
     }
 
     const monto = enPesos(Number(pieza.price))
-
-    if (contraEntrega) {
-      return `Pedido registrado por ${monto} COP, contra entrega. Confírmaselo y dile que ` +
-             `le llega la guía cuando se despache.`
-    }
-
     const enlace = respuesta?.initPoint
+
     if (!enlace) {
       console.error('create-preference no devolvió initPoint')
       return `El pedido quedó registrado por ${monto} COP pero el enlace de pago no salió. ` +
              `Dile que alguien del equipo se lo manda en un momento y usa escalar_a_humano.`
     }
 
+    /* El contraentrega también cobra por adelantado, pero sólo el envío. Un
+       pedido que no cuesta nada hacer es un pedido que la mitad de las veces
+       no se recibe, y esa devolución la paga el taller. */
+    const abono = Number(respuesta?.abono ?? 0)
+    const saldo = Number(respuesta?.saldo ?? 0)
+
+    const texto = contraEntrega
+      ? `Para confirmar tu pedido abonas ${enPesos(abono)}, que es el envío, y se descuenta del total.\n` +
+        `Al recibirlo pagas ${enPesos(saldo)} en efectivo.\n\n${enlace}`
+      : `Este es tu enlace para pagar los ${monto}:\n${enlace}`
+
     /* El enlace se manda aparte y no dentro de la respuesta del modelo: una
        URL larga reescrita por el modelo es una URL rota, y acá eso es una
        venta perdida. */
-    const envio = await enviarTexto(telefono, `Este es tu enlace para pagar los ${monto}:\n${enlace}`, 'ia', desdeId)
+    const envio = await enviarTexto(telefono, texto, 'ia', desdeId)
     if (!envio.ok) {
       return `El pedido quedó registrado por ${monto} COP pero no se pudo enviar el enlace. ` +
              `Usa escalar_a_humano.`
     }
 
+    if (contraEntrega) {
+      return `Pedido registrado por ${monto} COP contra entrega, y el enlace del abono YA se lo ` +
+             `enviaste — no lo repitas ni lo escribas tú. Explícale con tus palabras que abona ` +
+             `${enPesos(abono)} del envío para confirmar, que eso se descuenta, y que al recibir ` +
+             `paga ${enPesos(saldo)}. Si pregunta por qué se cobra: porque la transportadora cobra ` +
+             `el envío igual, aunque el pedido se rechace. Dile que apenas entre el abono le ` +
+             `confirmas y le mandas la guía al despachar.`
+    }
+
     return `Pedido registrado por ${monto} COP y el enlace de pago YA se lo enviaste — no lo repitas ` +
            `ni lo escribas tú. Confírmale el monto, dile que al pagar le llega la confirmación, y ` +
-           `que si prefiere puede pagar contra entrega.`
+           `que si prefiere puede pagar contra entrega abonando sólo el envío.`
   }
 
   return 'Esa herramienta no existe.'

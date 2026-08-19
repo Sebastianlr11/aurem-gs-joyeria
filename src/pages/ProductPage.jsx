@@ -89,11 +89,12 @@ const MP_DISCOUNT = 0.02; // 2% descuento pagando con Mercado Pago
 const BuyModal = ({ product, onClose }) => {
   const mpPrice = Math.round(product.price * (1 - MP_DISCOUNT));
   const mpSaving = product.price - mpPrice;
-  const [step, setStep] = useState('method'); // method | form | loading | wallet | cod-success | error
+  const [step, setStep] = useState('method'); // method | form | loading | wallet | error
   const [paymentMethod, setPaymentMethod] = useState(null); // 'mp' | 'cod'
   const [form, setForm] = useState({ name: '', email: '', phone: '', city: '', address: '', department: '' });
   const [errors, setErrors] = useState({});
   const [preferenceId, setPreferenceId] = useState(null);
+  const [abono, setAbono] = useState(null);
   const [initPoint, setInitPoint] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -152,14 +153,14 @@ const BuyModal = ({ product, onClose }) => {
 
       if (error || !data) throw new Error(data?.error || error?.message || 'Error desconocido');
 
-      if (paymentMethod === 'cod') {
-        setStep('cod-success');
-      } else {
-        if (!data.preferenceId) throw new Error(data?.error || 'Error desconocido');
-        setPreferenceId(data.preferenceId);
-        setInitPoint(data.initPoint);
-        setStep('wallet');
-      }
+      if (!data.preferenceId) throw new Error(data?.error || 'Error desconocido');
+      setPreferenceId(data.preferenceId);
+      setInitPoint(data.initPoint);
+      /* El contraentrega también pasa por la pasarela, pero sólo por el abono.
+         El servidor devuelve cuánto es y cuánto queda, para no calcularlo dos
+         veces con el riesgo de que no coincidan. */
+      setAbono(data.isCod ? { abono: data.abono, saldo: data.saldo } : null);
+      setStep('wallet');
     } catch (err) {
       setErrorMsg(err.message || 'No se pudo procesar tu pedido. Intenta de nuevo.');
       setStep('error');
@@ -325,27 +326,25 @@ const BuyModal = ({ product, onClose }) => {
           </div>
         )}
 
-        {step === 'cod-success' && (
-          <div className="buy-cod-success">
-            <div className="buy-cod-success-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10"/><polyline points="9 12 11.5 14.5 15 10"/>
-              </svg>
-            </div>
-            <h2>¡Pedido registrado!</h2>
-            <p>Nos comunicaremos contigo pronto para coordinar la entrega en <strong>{form.city}</strong>.</p>
-            <div className="buy-cod-success-detail">
-              <span>Producto</span><span>{product.name}</span>
-              <span>Total a pagar</span><span>${fmt(product.price)} COP</span>
-              <span>Ciudad</span><span>{form.city}</span>
-            </div>
-            <button className="buy-modal-submit" onClick={onClose}>Entendido</button>
-          </div>
-        )}
 
         {step === 'wallet' && initPoint && (
           <div className="buy-modal-wallet">
-            <p className="buy-modal-wallet-hint">Tu pedido está listo. Haz clic para completar el pago de forma segura.</p>
+            {abono ? (
+              <>
+                <p className="buy-modal-wallet-hint">
+                  Para confirmar tu pedido abonas <strong>${fmt(abono.abono)} COP</strong>,
+                  que es lo que cuesta el envío. Se descuenta del total.
+                </p>
+                <div className="buy-abono-cuenta">
+                  <span>Abonas ahora</span><span>${fmt(abono.abono)}</span>
+                  <span>Pagas al recibir</span><span>${fmt(abono.saldo)}</span>
+                  <span className="buy-abono-total">Total</span>
+                  <span className="buy-abono-total">${fmt(abono.abono + abono.saldo)}</span>
+                </div>
+              </>
+            ) : (
+              <p className="buy-modal-wallet-hint">Tu pedido está listo. Haz clic para completar el pago de forma segura.</p>
+            )}
             <a
               href={initPoint}
               target="_blank"
@@ -355,8 +354,20 @@ const BuyModal = ({ product, onClose }) => {
               <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/>
               </svg>
-              Pagar con Mercado Pago
+              {abono ? `Abonar $${fmt(abono.abono)}` : 'Pagar con Mercado Pago'}
             </a>
+            {abono && (
+              /* La condición del abono, antes de pagar y no en un enlace que
+                 nadie abre. Si el cliente rechaza la entrega, la transportadora
+                 igual cobra el servicio prestado: decirlo acá evita el reclamo
+                 después, y es lo que hace que el cobro sea justo y no una
+                 sorpresa. */
+              <p className="buy-abono-condicion">
+                El abono no se devuelve si rechazas la entrega: la transportadora
+                cobra el envío igual por haberlo despachado. Si lo recibes, se
+                descuenta del total.
+              </p>
+            )}
             <p className="buy-modal-secure-note">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>

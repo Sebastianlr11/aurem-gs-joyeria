@@ -70,10 +70,22 @@ Deno.serve(async (req: Request) => {
       })
     }
 
+    /* ¿Este pago es el total, o el abono que confirma un contraentrega? Los
+       dos llegan por el mismo webhook y significan cosas distintas: uno cierra
+       la venta, el otro apenas la confirma. Confundirlos daría por cobrado
+       medio millón que todavía está en la puerta del cliente. */
+    const { data: previo } = await supabase
+      .from('orders').select('abono_monto').eq('id', orderId).maybeSingle()
+    const esAbono = previo?.abono_monto != null
+
     const { data: orden, error: updateError } = await supabase
       .from('orders')
       .update({
-        status: 'pagado',
+        /* En contraentrega el pedido queda confirmado y entra a producción,
+           pero NO pagado: la plata grande llega en la puerta. Ahí es donde el
+           flujo del panel lo retoma. */
+        status: esAbono ? 'procesando' : 'pagado',
+        ...(esAbono ? { abono_pagado_en: new Date().toISOString() } : {}),
         mp_payment_id: String(payment.id),
         mp_status: payment.status,
         /* El candado contra reintentos: Mercado Pago reenvía el webhook varias
@@ -86,7 +98,7 @@ Deno.serve(async (req: Request) => {
       })
       .eq('id', orderId)
       .is('conversion_enviada_en', null)
-      .select('customer_phone, customer_email, customer_name, product_id, product_name, amount, ttclid, ttp, fbc, fbp, client_ua, client_ip, ctwa_clid')
+      .select('customer_phone, customer_email, customer_name, product_id, product_name, amount, abono_monto, ttclid, ttp, fbc, fbp, client_ua, client_ip, ctwa_clid')
       .maybeSingle()
 
     if (updateError) {
@@ -100,7 +112,7 @@ Deno.serve(async (req: Request) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     } else {
-      console.log('Orden actualizada a pagado:', orderId)
+      console.log(esAbono ? 'Abono recibido, pedido confirmado:' : 'Orden actualizada a pagado:', orderId)
     }
 
     /* La venta a TikTok y a Meta. Va antes del aviso por WhatsApp porque no
@@ -131,15 +143,22 @@ Deno.serve(async (req: Request) => {
        queda mudo. */
     if (orden?.customer_phone) {
       try {
-        const monto = `$${Math.round(Number(orden.amount)).toLocaleString('es-CO')}`
+        const enPesos = (n: number) => `$${Math.round(n).toLocaleString('es-CO')}`
+        const total = Number(orden.amount)
         const desdeId = await numeroPropioDe(orden.customer_phone)
-        await enviarTexto(
-          orden.customer_phone,
-          `¡Listo! Recibimos tu pago de ${monto} por ${orden.product_name}. ` +
-          `Ya lo estamos preparando y te aviso apenas se despache. 🌿`,
-          'ia',
-          desdeId,
-        )
+
+        /* Se le repite el saldo exacto. Es el número que va a tener que tener
+           listo en efectivo cuando toquen la puerta, y no saberlo es el motivo
+           más tonto por el que se rechaza una entrega. */
+        const texto = esAbono
+          ? `¡Listo! Recibimos tu abono de ${enPesos(Number(orden.abono_monto))} y tu ` +
+            `${orden.product_name} queda confirmado. Al recibirlo pagas ` +
+            `${enPesos(total - Number(orden.abono_monto))} en efectivo. ` +
+            `Te aviso apenas se despache con el número de guía. 🌿`
+          : `¡Listo! Recibimos tu pago de ${enPesos(total)} por ${orden.product_name}. ` +
+            `Ya lo estamos preparando y te aviso apenas se despache. 🌿`
+
+        await enviarTexto(orden.customer_phone, texto, 'ia', desdeId)
       } catch (e) {
         // El pago ya quedó registrado: que falle el aviso no lo invalida.
         console.error('No se pudo avisar el pago por WhatsApp:', e instanceof Error ? e.message : e)
