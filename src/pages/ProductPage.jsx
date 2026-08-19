@@ -95,12 +95,24 @@ const BuyModal = ({ product, onClose }) => {
   const [errors, setErrors] = useState({});
   const [preferenceId, setPreferenceId] = useState(null);
   const [abono, setAbono] = useState(null);
+  /* El abono se pide al abrir, no al pagar. Tiene que estar anunciado en la
+     primera pantalla: descubrirlo después de llenar el formulario se lee como
+     un cobro escondido, y es la forma más rápida de perder una venta que ya
+     estaba decidida. */
+  const [abonoEnvio, setAbonoEnvio] = useState(null);
   const [initPoint, setInitPoint] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = ''; };
+  }, []);
+
+  useEffect(() => {
+    let vivo = true;
+    supabase.from('envio_publico').select('abono_envio').maybeSingle()
+      .then(({ data }) => { if (vivo && data?.abono_envio) setAbonoEnvio(Number(data.abono_envio)); });
+    return () => { vivo = false; };
   }, []);
 
   const selectMethod = (method) => {
@@ -219,7 +231,11 @@ const BuyModal = ({ product, onClose }) => {
               </div>
               <div className="buy-method-info">
                 <span className="buy-method-name">Contraentrega</span>
-                <span className="buy-method-desc">Sólo en Bogotá — pagas en efectivo al recibir</span>
+                <span className="buy-method-desc">
+                  {abonoEnvio
+                    ? `Sólo en Bogotá — abonas $${fmt(abonoEnvio)} del envío y el resto al recibir`
+                    : 'Sólo en Bogotá — pagas en efectivo al recibir'}
+                </span>
               </div>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="9 18 15 12 9 6"/>
@@ -309,12 +325,22 @@ const BuyModal = ({ product, onClose }) => {
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
                 </svg>
-                Pagarás <strong>${fmt(product.price)} COP</strong> en efectivo al recibir tu pedido.
+                {abonoEnvio ? (
+                  <span>
+                    Para confirmar abonas <strong>${fmt(abonoEnvio)} COP</strong> del envío,
+                    que se descuentan del total. Al recibir pagas{' '}
+                    <strong>${fmt(product.price - abonoEnvio)} COP</strong> en efectivo.
+                  </span>
+                ) : (
+                  <span>Pagarás <strong>${fmt(product.price)} COP</strong> en efectivo al recibir tu pedido.</span>
+                )}
               </div>
             )}
 
             <button type="submit" className="buy-modal-submit">
-              {paymentMethod === 'cod' ? 'Confirmar pedido' : 'Continuar al pago'}
+              {paymentMethod === 'cod'
+                ? (abonoEnvio ? `Continuar y abonar $${fmt(abonoEnvio)}` : 'Continuar al abono')
+                : 'Continuar al pago'}
             </button>
           </form>
         )}
