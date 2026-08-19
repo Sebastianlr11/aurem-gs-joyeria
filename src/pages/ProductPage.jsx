@@ -76,12 +76,26 @@ const PaymentMethods = () => (
   </div>
 );
 
-/* El contraentrega sólo se hace en Bogotá. Estaban listadas doce ciudades y
-   el taller sólo despacha a domicilio con cobro en la capital: alguien en Cali
-   podía pedir contraentrega y quedábamos obligados a algo que no se puede
-   cumplir. Al resto del país se le cobra por anticipado, y el envío por
-   Interrapidísimo sí llega a todas partes. */
-const COD_CITIES = ['Bogotá'];
+/* El contraentrega sólo se hace en Bogotá: el taller despacha a domicilio con
+   cobro únicamente en la capital. Al resto del país se le cobra por
+   anticipado, y el envío por Interrapidísimo sí llega a todas partes. */
+/* En contraentrega no se pregunta ni ciudad ni departamento: sólo hay una
+   respuesta posible. Estos dos valores se ponen solos al enviar. */
+const COD_CIUDAD = 'Bogotá';
+const COD_DEPARTAMENTO = 'Bogotá D.C.';
+
+/* Los 32 departamentos más el distrito capital. Escrito a mano y no en un
+   campo libre: "bogota", "Bogotá D.C.", "Cund" y "cundinamarca" son cuatro
+   filas distintas en la base para el mismo lugar, y después no hay forma de
+   contar a dónde se está vendiendo. */
+const DEPARTAMENTOS = [
+  'Amazonas', 'Antioquia', 'Arauca', 'Atlántico', 'Bogotá D.C.', 'Bolívar',
+  'Boyacá', 'Caldas', 'Caquetá', 'Casanare', 'Cauca', 'Cesar', 'Chocó',
+  'Córdoba', 'Cundinamarca', 'Guainía', 'Guaviare', 'Huila', 'La Guajira',
+  'Magdalena', 'Meta', 'Nariño', 'Norte de Santander', 'Putumayo', 'Quindío',
+  'Risaralda', 'San Andrés y Providencia', 'Santander', 'Sucre', 'Tolima',
+  'Valle del Cauca', 'Vaupés', 'Vichada',
+];
 
 const MP_DISCOUNT = 0.02; // 2% descuento pagando con Mercado Pago
 
@@ -127,8 +141,12 @@ const BuyModal = ({ product, onClose }) => {
     if (!form.name.trim()) e.name = 'Ingresa tu nombre';
     if (!form.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = 'Ingresa un email válido';
     if (!form.address.trim()) e.address = 'Ingresa tu dirección de entrega';
-    if (!form.department.trim()) e.department = 'Ingresa tu departamento';
-    if (!form.city.trim()) e.city = 'Ingresa tu ciudad';
+    /* En contraentrega el destino es siempre Bogotá, así que no se pide ni se
+       valida: se pone solo al enviar. */
+    if (paymentMethod !== 'cod') {
+      if (!form.department.trim()) e.department = 'Elige tu departamento';
+      if (!form.city.trim()) e.city = 'Ingresa tu ciudad';
+    }
     return e;
   };
 
@@ -154,9 +172,9 @@ const BuyModal = ({ product, onClose }) => {
             name: form.name.trim(),
             email: form.email.trim(),
             phone: form.phone.trim() || undefined,
-            city: form.city || undefined,
+            city: (paymentMethod === 'cod' ? COD_CIUDAD : form.city) || undefined,
             address: form.address.trim() || undefined,
-            department: form.department.trim() || undefined,
+            department: (paymentMethod === 'cod' ? COD_DEPARTAMENTO : form.department.trim()) || undefined,
           },
           /* De qué anuncio vino. Se guarda con el pedido para que el webhook
              de Mercado Pago pueda decirle a TikTok y a Meta qué clic terminó
@@ -361,31 +379,33 @@ const BuyModal = ({ product, onClose }) => {
               {errors.address && <span className="buy-modal-field-error">{errors.address}</span>}
             </div>
 
-            <div className="buy-modal-field">
-              <label>Departamento *</label>
-              <input type="text" placeholder="Ej. Cundinamarca" value={form.department}
-                onChange={handleChange('department')} className={errors.department ? 'buy-modal-input--error' : ''} />
-              {errors.department && <span className="buy-modal-field-error">{errors.department}</span>}
-            </div>
-
             {paymentMethod === 'mp' && (
-              <div className="buy-modal-field">
-                <label>Ciudad *</label>
-                <input type="text" placeholder="Ej. Bogotá" value={form.city}
-                  onChange={handleChange('city')} className={errors.city ? 'buy-modal-input--error' : ''} />
-                {errors.city && <span className="buy-modal-field-error">{errors.city}</span>}
-              </div>
+              <>
+                <div className="buy-modal-field">
+                  <label>Departamento *</label>
+                  <select value={form.department} onChange={handleChange('department')}
+                    className={errors.department ? 'buy-modal-input--error' : ''}>
+                    <option value="">Selecciona tu departamento</option>
+                    {DEPARTAMENTOS.map(d => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                  {errors.department && <span className="buy-modal-field-error">{errors.department}</span>}
+                </div>
+                <div className="buy-modal-field">
+                  <label>Ciudad *</label>
+                  <input type="text" placeholder="Ej. Envigado" value={form.city}
+                    onChange={handleChange('city')} className={errors.city ? 'buy-modal-input--error' : ''} />
+                  {errors.city && <span className="buy-modal-field-error">{errors.city}</span>}
+                </div>
+              </>
             )}
 
+            {/* En contraentrega no hay nada que elegir: el destino es Bogotá y
+                punto. Se muestra para que quede claro a dónde va, pero no se
+                pregunta — dos campos menos entre el cliente y el pago. */}
             {paymentMethod === 'cod' && (
               <div className="buy-modal-field">
-                <label>Ciudad *</label>
-                <select value={form.city} onChange={handleChange('city')}
-                  className={errors.city ? 'buy-modal-input--error' : ''}>
-                  <option value="">Selecciona tu ciudad</option>
-                  {COD_CITIES.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
-                {errors.city && <span className="buy-modal-field-error">{errors.city}</span>}
+                <label>Ciudad de entrega</label>
+                <div className="buy-modal-fijo">{COD_CIUDAD}</div>
                 <span className="buy-modal-city-note">
                   El pago contraentrega por ahora solo está disponible en Bogotá. Si estás en otra ciudad te lo enviamos igual, pagando con{' '}
                   <button type="button" className="buy-modal-city-note-link" onClick={() => { setPaymentMethod('mp'); }}>

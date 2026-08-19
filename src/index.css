@@ -14301,3 +14301,15 @@ textarea:focus-visible {
 .pago-cuenta-fila--total span:first-child { font-weight: 700; color: var(--ink); }
 
 .pago-op-sub strong { color: var(--ink); font-weight: 700; }
+
+/* Un dato que no se elige porque no hay nada que elegir. Se ve como un campo
+   para que la lectura del formulario no se rompa, pero no invita a tocarlo. */
+.buy-modal-fijo {
+  padding: 0.7rem 0.875rem;
+  border: 1px solid var(--hairline);
+  border-radius: 2px;
+  background: var(--bg-marfil);
+  font-family: var(--font-ui);
+  font-size: 0.95rem;
+  color: var(--ink);
+}
