@@ -94,6 +94,13 @@ const fireWebhook = async (order, newStatus, extraFields = {}) => {
     } catch (e) { console.error('Webhook error:', e); }
 };
 
+/**
+ * Lo que viene de la base puede ser null, y llamar .trim() sobre null tumba
+ * el guardado y deja el botón congelado. Los formularios de edición se llenan
+ * directo desde la fila, así que todo texto pasa por acá.
+ */
+const texto = (v) => String(v ?? '').trim();
+
 /* NAV imported from adminNav.js */
 
 /* ─── StatusBadge ────────────────────────────────────────────────── */
@@ -154,15 +161,15 @@ const ProductModal = ({ product, onClose, onSaved }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault(); setError('');
-        if (!form.name.trim()) { setError('El nombre es obligatorio.'); return; }
+        if (!texto(form.name)) { setError('El nombre es obligatorio.'); return; }
         if (!form.price || isNaN(Number(form.price))) { setError('El precio debe ser un numero.'); return; }
         setSaving(true);
         const payload = {
-            name: form.name.trim(), category: form.category,
+            name: texto(form.name), category: form.category,
             price: Number(form.price),
             compare_price: form.compare_price && Number(form.compare_price) > Number(form.price) ? Number(form.compare_price) : null,
-            description: form.description.trim() || null,
-            images, image_url: images[0] || form.image_url.trim() || null,
+            description: texto(form.description) || null,
+            images, image_url: images[0] || texto(form.image_url) || null,
             is_new: form.is_new, is_featured: form.is_featured,
             // Vacío = sin control de inventario (null). 0 = agotado.
             stock: form.stock === '' || form.stock === null || form.stock === undefined
@@ -281,35 +288,41 @@ const OrderModal = ({ order, products, onClose, onSaved }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault(); setError('');
-        if (!form.customer_name.trim()) { setError('Nombre del cliente obligatorio.'); return; }
-        if (!form.product_name.trim())  { setError('Nombre del producto obligatorio.'); return; }
+        if (!texto(form.customer_name)) { setError('Nombre del cliente obligatorio.'); return; }
+        if (!texto(form.product_name))  { setError('Nombre del producto obligatorio.'); return; }
         if (!form.amount || isNaN(Number(form.amount))) { setError('Monto invalido.'); return; }
         setSaving(true);
         const payload = {
-            customer_name: form.customer_name.trim(),
-            customer_phone: form.customer_phone.trim() || null,
-            customer_email: form.customer_email?.trim() || null,
+            customer_name: texto(form.customer_name),
+            customer_phone: texto(form.customer_phone) || null,
+            customer_email: texto(form.customer_email) || null,
             product_id: form.product_id || null,
-            product_name: form.product_name.trim(),
+            product_name: texto(form.product_name),
             amount: Number(form.amount),
             status: form.status,
             payment_method: form.payment_method || null,
-            notes: form.notes.trim() || null,
-            carrier: form.carrier?.trim() || null,
-            tracking_number: form.tracking_number?.trim() || null,
-            shipping_address: form.shipping_address?.trim() || null,
-            shipping_city: form.shipping_city?.trim() || null,
-            shipping_department: form.shipping_department?.trim() || null,
+            notes: texto(form.notes) || null,
+            carrier: texto(form.carrier) || null,
+            tracking_number: texto(form.tracking_number) || null,
+            shipping_address: texto(form.shipping_address) || null,
+            shipping_city: texto(form.shipping_city) || null,
+            shipping_department: texto(form.shipping_department) || null,
         };
         if (!isEdit) {
             payload.order_source = 'manual';
         }
         let err;
         let creado = null;
-        if (isEdit) ({ error: err } = await supabase.from('orders').update(payload).eq('id', order.id));
-        else ({ data: creado, error: err } = await supabase.from('orders').insert([payload]).select('id').single());
-        setSaving(false);
-        if (err) { setError(err.message); return; }
+        try {
+            if (isEdit) ({ error: err } = await supabase.from('orders').update(payload).eq('id', order.id));
+            else ({ data: creado, error: err } = await supabase.from('orders').insert([payload]).select('id').single());
+        } catch (e) {
+            err = e;
+        } finally {
+            // Si algo revienta, el botón tiene que volver a decir "Guardar".
+            setSaving(false);
+        }
+        if (err) { setError(err.message || 'No se pudo guardar el pedido.'); return; }
         // También desde el formulario: un pedido cargado a mano ya cobrado es
         // una venta igual de real que las demás.
         const id = isEdit ? order.id : creado?.id;
