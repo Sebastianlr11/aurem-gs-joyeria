@@ -57,7 +57,37 @@ export type Venta = {
      falta pasarlo cuando el aviso llega tarde —el contraentrega se confirma
      días después— y hay que fecharlo cuando la persona compró de verdad. */
   momento?: number
+  /**
+   * Qué momento del embudo se está contando.
+   *
+   * 'pedido' es cuando alguien se compromete a comprar: eligió la pieza, dio
+   * su dirección, y el pedido quedó tomado. 'compra' es cuando entra la plata.
+   *
+   * Existen los dos porque en contraentrega pueden separarlos varios días, y
+   * las plataformas sólo atribuyen dentro de siete desde el clic. Si la única
+   * señal fuera la plata, media venta llegaría fuera de la ventana y no se le
+   * acreditaría a ningún anuncio. Con el pedido saliendo el mismo día, la
+   * campaña aprende a tiempo; con la compra saliendo después, el ROAS sigue
+   * siendo el de verdad.
+   */
+  evento?: 'pedido' | 'compra'
 }
+
+/* Los nombres que espera cada plataforma. Coinciden a propósito con los que
+   dispara el píxel del navegador: es lo que permite que un mismo hecho
+   contado por las dos vías se deduplique en vez de contarse doble. */
+const NOMBRES = {
+  compra: { meta: 'Purchase', tiktok: 'Purchase' },
+  pedido: { meta: 'InitiateCheckout', tiktok: 'InitiateCheckout' },
+} as const
+
+/* El identificador del evento. La compra usa el número de pedido pelado
+   porque es el mismo que manda el píxel del navegador. El pedido lleva
+   sufijo: son dos hechos distintos sobre la misma venta, y sin distinguirlos
+   la plataforma pensaría que es el mismo contado dos veces y descartaría
+   uno. */
+const idEvento = (venta: Venta) =>
+  venta.evento === 'pedido' ? `${venta.pedidoId}-pedido` : venta.pedidoId
 
 /* ─── Cifrado ───────────────────────────────────────────────────────
    Las dos plataformas piden SHA-256 en hexadecimal, sobre el valor
@@ -128,9 +158,9 @@ async function aTikTok(venta: Venta, momento: number): Promise<string> {
       /* TikTok renombró CompletePayment a Purchase en mayo de 2025. Este
          nombre tiene que ser idéntico al que dispara el píxel del navegador
          o la deduplicación por event_id no ocurre. */
-      event: 'Purchase',
+      event: NOMBRES[venta.evento ?? 'compra'].tiktok,
       event_time: momento,
-      event_id: venta.pedidoId,
+      event_id: idEvento(venta),
       user: limpio({
         email: correo,
         phone: telefono,
@@ -199,11 +229,11 @@ async function aMeta(venta: Venta, momento: number): Promise<string> {
   const porWhatsApp = !!venta.ctwaClid
 
   const evento: Record<string, unknown> = {
-    event_name: 'Purchase',
+    event_name: NOMBRES[venta.evento ?? 'compra'].meta,
     event_time: momento,
     /* El mismo identificador que usa el píxel del navegador. Meta junta las
        dos y cuenta una sola venta. */
-    event_id: venta.pedidoId,
+    event_id: idEvento(venta),
     action_source: porWhatsApp ? 'business_messaging' : 'website',
   }
 
@@ -265,6 +295,7 @@ export async function avisarVenta(venta: Venta): Promise<void> {
   if (!venta.pedidoId || !(venta.monto > 0)) return
 
   const momento = venta.momento ?? Math.floor(Date.now() / 1000)
+  const que = venta.evento ?? 'compra'
 
   const [tiktok, meta] = await Promise.allSettled([
     aTikTok(venta, momento),
@@ -273,10 +304,10 @@ export async function avisarVenta(venta: Venta): Promise<void> {
 
   const contar = (r: PromiseSettledResult<string>, quien: string) => {
     if (r.status === 'fulfilled') {
-      if (r.value === 'ok') console.log(`conversión → ${quien}: ok`)
-      else console.log(`conversión → ${quien}: ${r.value}`)
+      if (r.value === 'ok') console.log(`${que} → ${quien}: ok`)
+      else console.log(`${que} → ${quien}: ${r.value}`)
     } else {
-      console.error(`conversión → ${quien} falló:`, r.reason?.message ?? r.reason)
+      console.error(`${que} → ${quien} falló:`, r.reason?.message ?? r.reason)
     }
   }
 

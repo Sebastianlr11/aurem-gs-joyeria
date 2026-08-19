@@ -1,5 +1,6 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { createClient } from 'jsr:@supabase/supabase-js@2'
+import { avisarVenta } from '../_shared/conversiones.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -115,6 +116,44 @@ Deno.serve(async (req: Request) => {
     }
 
     const orderId = order.id
+
+    /* Se le avisa a TikTok y a Meta que alguien se comprometió a comprar,
+       ahora mismo y no cuando entre la plata.
+       
+       En contraentrega esas dos cosas están separadas por días —el cliente
+       paga en la puerta y el cobro se confirma después— y las plataformas
+       sólo atribuyen dentro de siete días desde el clic en el anuncio. Si la
+       única señal fuera el pago, buena parte de las ventas llegaría fuera de
+       la ventana y no se le acreditaría a ningún anuncio. Peor todavía: el
+       algoritmo necesita decenas de conversiones para dejar de tantear, y con
+       una semana de retraso aprende de lo que pasó hace una semana.
+       
+       La compra sigue saliendo cuando el dinero entra, con el valor real.
+       Este evento dice "se comprometió", no "pagó", y por eso es
+       InitiateCheckout y no Purchase. */
+    const avisoPedido = avisarVenta({
+      pedidoId: orderId,
+      monto: totalAmount,
+      evento: 'pedido',
+      correo: buyer.email ?? null,
+      telefono: buyer.phone ?? null,
+      piezaId: firstProductId,
+      piezaNombre: combinedName,
+      ttclid: atribucion?.ttclid ?? null,
+      ttp: atribucion?.ttp ?? null,
+      fbc: atribucion?.fbc ?? null,
+      fbp: atribucion?.fbp ?? null,
+      ua: atribucion?.ua ?? null,
+      ip: (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || null,
+      ctwaClid: atribucion?.ctwa_clid ?? null,
+      url: 'https://www.auremgsjoyeria.com/',
+    })
+
+    /* No se espera: el cliente está mirando una pantalla de carga y la
+       medición no puede costarle segundos. Si el entorno no deja trabajo en
+       segundo plano, se deja correr sin await —avisarVenta nunca lanza. */
+    // @ts-ignore EdgeRuntime existe en el entorno de Supabase
+    if (typeof EdgeRuntime !== 'undefined') EdgeRuntime.waitUntil(avisoPedido)
 
     // Contraentrega: no necesita preferencia MP
     if (paymentMethod === 'cod') {
