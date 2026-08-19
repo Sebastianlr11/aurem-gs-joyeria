@@ -97,6 +97,51 @@ const DEPARTAMENTOS = [
   'Valle del Cauca', 'Vaupés', 'Vichada',
 ];
 
+/* Los municipios que más pesan de cada departamento. NO es la lista completa
+   —Colombia tiene 1.103— y a propósito: sirven como sugerencia, no como
+   candado. Quien viva en un pueblo que no está lo escribe igual y compra.
+   Bloquear una venta real por no tener su municipio en una lista es peor que
+   guardar un nombre con una tilde de menos.
+   
+   Lo que sí resuelven: el 90% de los pedidos queda con el municipio escrito
+   como lo espera la transportadora, y una guía con el municipio mal escrito es
+   un paquete que rebota. */
+const CIUDADES = {
+  'Amazonas': ['Leticia', 'Puerto Nariño'],
+  'Antioquia': ['Medellín', 'Bello', 'Itagüí', 'Envigado', 'Sabaneta', 'La Estrella', 'Copacabana', 'Girardota', 'Caldas', 'Rionegro', 'Marinilla', 'La Ceja', 'Guarne', 'Apartadó', 'Turbo', 'Carepa', 'Chigorodó', 'Caucasia', 'Necoclí', 'Santa Fe de Antioquia'],
+  'Arauca': ['Arauca', 'Saravena', 'Tame', 'Arauquita'],
+  'Atlántico': ['Barranquilla', 'Soledad', 'Malambo', 'Puerto Colombia', 'Galapa', 'Baranoa', 'Sabanalarga'],
+  'Bogotá D.C.': ['Bogotá'],
+  'Bolívar': ['Cartagena', 'Magangué', 'Turbaco', 'Arjona', 'El Carmen de Bolívar', 'Mompós'],
+  'Boyacá': ['Tunja', 'Duitama', 'Sogamoso', 'Chiquinquirá', 'Paipa', 'Villa de Leyva'],
+  'Caldas': ['Manizales', 'Villamaría', 'Chinchiná', 'La Dorada', 'Riosucio', 'Anserma'],
+  'Caquetá': ['Florencia', 'San Vicente del Caguán', 'Puerto Rico'],
+  'Casanare': ['Yopal', 'Aguazul', 'Villanueva', 'Tauramena'],
+  'Cauca': ['Popayán', 'Santander de Quilichao', 'Puerto Tejada', 'Piendamó', 'Guapi'],
+  'Cesar': ['Valledupar', 'Aguachica', 'Bosconia', 'Agustín Codazzi', 'La Jagua de Ibirico'],
+  'Chocó': ['Quibdó', 'Istmina', 'Acandí', 'Bahía Solano'],
+  'Córdoba': ['Montería', 'Lorica', 'Cereté', 'Sahagún', 'Montelíbano', 'Planeta Rica', 'Tierralta'],
+  'Cundinamarca': ['Soacha', 'Fusagasugá', 'Facatativá', 'Zipaquirá', 'Chía', 'Mosquera', 'Madrid', 'Funza', 'Cajicá', 'Girardot', 'Sibaté', 'Tocancipá', 'Cota', 'Tenjo', 'La Calera', 'Villeta', 'Ubaté', 'Anapoima'],
+  'Guainía': ['Inírida'],
+  'Guaviare': ['San José del Guaviare'],
+  'Huila': ['Neiva', 'Pitalito', 'Garzón', 'La Plata', 'Campoalegre'],
+  'La Guajira': ['Riohacha', 'Maicao', 'Uribia', 'Fonseca', 'San Juan del Cesar'],
+  'Magdalena': ['Santa Marta', 'Ciénaga', 'Fundación', 'El Banco', 'Plato'],
+  'Meta': ['Villavicencio', 'Acacías', 'Granada', 'Puerto López', 'San Martín'],
+  'Nariño': ['Pasto', 'Ipiales', 'Tumaco', 'Túquerres', 'La Unión'],
+  'Norte de Santander': ['Cúcuta', 'Ocaña', 'Pamplona', 'Villa del Rosario', 'Los Patios'],
+  'Putumayo': ['Mocoa', 'Puerto Asís', 'Orito', 'Villagarzón'],
+  'Quindío': ['Armenia', 'Calarcá', 'La Tebaida', 'Montenegro', 'Quimbaya', 'Circasia', 'Salento'],
+  'Risaralda': ['Pereira', 'Dosquebradas', 'Santa Rosa de Cabal', 'La Virginia'],
+  'San Andrés y Providencia': ['San Andrés', 'Providencia'],
+  'Santander': ['Bucaramanga', 'Floridablanca', 'Girón', 'Piedecuesta', 'Barrancabermeja', 'San Gil', 'Socorro', 'Barbosa', 'Málaga'],
+  'Sucre': ['Sincelejo', 'Corozal', 'San Marcos', 'Sampués', 'Santiago de Tolú'],
+  'Tolima': ['Ibagué', 'Espinal', 'Melgar', 'Honda', 'Líbano', 'Chaparral', 'San Sebastián de Mariquita', 'Flandes'],
+  'Valle del Cauca': ['Cali', 'Palmira', 'Buenaventura', 'Tuluá', 'Cartago', 'Buga', 'Jamundí', 'Yumbo', 'Candelaria', 'Florida', 'Zarzal', 'Roldanillo'],
+  'Vaupés': ['Mitú'],
+  'Vichada': ['Puerto Carreño', 'La Primavera'],
+};
+
 const MP_DISCOUNT = 0.02; // 2% descuento pagando con Mercado Pago
 
 /* ── BuyModal ───────────────────────────────────────────────────── */
@@ -374,11 +419,17 @@ const BuyModal = ({ product, onClose }) => {
                 onChange={handleChange('email')} onBlur={handleBlur('email')} className={errors.email ? 'buy-modal-input--error' : ''} />
               {errors.email && <span className="buy-modal-field-error">{errors.email}</span>}
             </div>
+            {/* Se llama WhatsApp y no teléfono porque es lo que es: ahí llega la
+                confirmación del pago, la guía del despacho y ahí responde
+                Valentina. Pedir "teléfono" hace que alguien ponga un fijo, y
+                un fijo en este negocio es un cliente incomunicado. */}
             <div className="buy-modal-field">
-              <label>Teléfono {paymentMethod === 'cod' ? <span className="req">*</span> : '(opcional)'}</label>
-              <input type="tel" placeholder="Ej. 3001234567" value={form.phone}
+              <label>WhatsApp {paymentMethod === 'cod' ? <span className="req">*</span> : '(opcional)'}</label>
+              <input type="tel" inputMode="numeric" autoComplete="tel" placeholder="Ej. 3001234567" value={form.phone}
                 onChange={handleChange('phone')} onBlur={handleBlur('phone')} className={errors.phone ? 'buy-modal-input--error' : ''} />
-              {errors.phone && <span className="buy-modal-field-error">{errors.phone}</span>}
+              {errors.phone
+                ? <span className="buy-modal-field-error">{errors.phone}</span>
+                : <span className="buy-modal-city-note">Ahí te confirmamos el pedido y te mandamos la guía del envío.</span>}
             </div>
 
             <div className="buy-modal-field">
@@ -392,7 +443,15 @@ const BuyModal = ({ product, onClose }) => {
               <>
                 <div className="buy-modal-field">
                   <label>Departamento <span className="req">*</span></label>
-                  <select value={form.department} onChange={handleChange('department')}
+                  <select value={form.department}
+                    onChange={(e) => {
+                      const dep = e.target.value;
+                      /* Cambiar de departamento vacía la ciudad. Si no, queda
+                         "Medellín" bajo "Santander" y la guía sale a un lugar
+                         que no existe. */
+                      setForm(f => ({ ...f, department: dep, city: '' }));
+                      if (errors.department) setErrors(er => { const n = { ...er }; delete n.department; return n; });
+                    }}
                     className={errors.department ? 'buy-modal-input--error' : ''}>
                     <option value="">Selecciona tu departamento</option>
                     {DEPARTAMENTOS.map(d => <option key={d} value={d}>{d}</option>)}
@@ -401,9 +460,20 @@ const BuyModal = ({ product, onClose }) => {
                 </div>
                 <div className="buy-modal-field">
                   <label>Ciudad <span className="req">*</span></label>
-                  <input type="text" placeholder="Ej. Envigado" value={form.city}
-                    onChange={handleChange('city')} onBlur={handleBlur('city')} className={errors.city ? 'buy-modal-input--error' : ''} />
+                  <input type="text" list="ciudades-sugeridas" autoComplete="address-level2"
+                    placeholder={form.department ? `Ej. ${(CIUDADES[form.department] || ['tu municipio'])[0]}` : 'Elige primero el departamento'}
+                    value={form.city}
+                    onChange={handleChange('city')} onBlur={handleBlur('city')}
+                    className={errors.city ? 'buy-modal-input--error' : ''} />
+                  <datalist id="ciudades-sugeridas">
+                    {(CIUDADES[form.department] || []).map(c => <option key={c} value={c} />)}
+                  </datalist>
                   {errors.city && <span className="buy-modal-field-error">{errors.city}</span>}
+                  {form.department && (
+                    <span className="buy-modal-city-note">
+                      Escribe y te sugerimos. Si tu municipio no aparece, escríbelo igual — llegamos a todo el país.
+                    </span>
+                  )}
                 </div>
               </>
             )}
