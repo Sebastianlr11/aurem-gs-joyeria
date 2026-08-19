@@ -86,7 +86,7 @@ Deno.serve(async (req: Request) => {
       })
       .eq('id', orderId)
       .is('conversion_enviada_en', null)
-      .select('customer_phone, customer_email, customer_name, product_id, product_name, amount, ttclid, ttp, fbc, fbp')
+      .select('customer_phone, customer_email, customer_name, product_id, product_name, amount, ttclid, ttp, fbc, fbp, client_ua, client_ip')
       .maybeSingle()
 
     if (updateError) {
@@ -118,6 +118,8 @@ Deno.serve(async (req: Request) => {
         ttp: orden.ttp,
         fbc: orden.fbc,
         fbp: orden.fbp,
+        ua: orden.client_ua,
+        ip: orden.client_ip,
         url: 'https://www.auremgsjoyeria.com/confirmacion',
       })
     }

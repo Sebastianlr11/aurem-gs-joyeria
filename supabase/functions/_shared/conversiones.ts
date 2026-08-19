@@ -14,8 +14,10 @@
  *
  * Qué sale de acá: el correo y el teléfono del comprador, cifrados con
  * SHA-256 —ninguna de las dos plataformas recibe el dato en claro y ninguna
- * puede revertirlo—, el monto, la pieza, y los identificadores de clic. NO
- * sale el nombre, la dirección de entrega ni nada del medio de pago.
+ * puede revertirlo—, el monto, la pieza, los identificadores de clic, y la IP
+ * y el navegador del comprador. Estos dos últimos van en claro porque así los
+ * exigen ambas: Meta descarta el evento web que llega sin user agent. NO sale
+ * el nombre, la dirección de entrega ni nada del medio de pago.
  *
  * Si falta el token de una plataforma, esa mitad no se envía y la otra sigue
  * funcionando. Si fallan las dos, la venta ya quedó registrada igual: esto
@@ -45,6 +47,8 @@ export type Venta = {
   fbc?: string | null
   fbp?: string | null
   url?: string | null
+  ua?: string | null
+  ip?: string | null
 }
 
 /* ─── Cifrado ───────────────────────────────────────────────────────
@@ -125,6 +129,8 @@ async function aTikTok(venta: Venta, momento: number): Promise<string> {
         external_id: externo,
         ttclid: venta.ttclid,
         ttp: venta.ttp,
+        ip: venta.ip,
+        user_agent: venta.ua,
       }),
       properties: limpio({
         currency: 'COP',
@@ -186,6 +192,11 @@ async function aMeta(venta: Venta, momento: number): Promise<string> {
         external_id: externo,
         fbc: venta.fbc,
         fbp: venta.fbp,
+        /* Meta descarta los eventos con action_source 'website' que llegan
+           sin client_user_agent. No es opcional: sin esto la venta no se
+           registra. Viene del checkout, guardado con el pedido. */
+        client_user_agent: venta.ua,
+        client_ip_address: venta.ip,
       }),
       custom_data: limpio({
         currency: 'COP',

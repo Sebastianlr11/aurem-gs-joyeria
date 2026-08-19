@@ -92,6 +92,12 @@ Deno.serve(async (req: Request) => {
         ttp: atribucion?.ttp ?? null,
         fbc: atribucion?.fbc ?? null,
         fbp: atribucion?.fbp ?? null,
+        client_ua: atribucion?.ua ?? null,
+        /* La IP sale del encabezado y no del cuerpo: el cliente la podría
+           inventar, y este es el único momento en que su navegador nos habla
+           directamente. El primero de la lista es el suyo; los siguientes son
+           los proxis por los que pasó. */
+        client_ip: (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || null,
       })
       .select('id')
       .single()

@@ -104,8 +104,13 @@ export function datosDeAtribucion() {
     ttp: cookie('_ttp'),
     fbc: fbc || null,
     fbp: cookie('_fbp'),
+    /* Meta descarta los eventos de servidor con action_source 'website' que
+       llegan sin el user agent del navegador del comprador. El servidor no
+       lo tiene —cuando Mercado Pago confirma el pago, quien llama es Mercado
+       Pago— así que hay que capturarlo acá y llevarlo con el pedido. */
+    ua: typeof navigator !== 'undefined' ? navigator.userAgent : null,
   };
 
-  // Sólo lo que existe: mandar cuatro nulos no le sirve a nadie.
+  // Sólo lo que existe: mandar nulos no le sirve a nadie.
   return Object.fromEntries(Object.entries(datos).filter(([, v]) => v));
 }
