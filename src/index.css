@@ -7356,39 +7356,6 @@ textarea:focus-visible {
 }
 .buy-modal-close:hover { background: #eee; color: var(--text-primary); }
 
-.buy-modal-product {
-  display: flex;
-  align-items: center;
-  gap: 0.875rem;
-  padding: 0.875rem;
-  background: #fafafa;
-  border-radius: 10px;
-  margin-bottom: 1.25rem;
-  border: 1px solid var(--border-color);
-}
-.buy-modal-product img {
-  width: 56px;
-  height: 56px;
-  object-fit: cover;
-  border-radius: 8px;
-  flex-shrink: 0;
-}
-.buy-modal-product-info {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-}
-.buy-modal-product-name {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  line-height: 1.3;
-}
-.buy-modal-product-price {
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: var(--accent-gold);
-}
 
 .buy-modal-title {
   font-size: 1.1rem;
@@ -7544,63 +7511,7 @@ textarea:focus-visible {
 .buy-modal-retry:hover { background: #333; }
 
 /* ── Payment method selector ─────────────────────────────────── */
-.buy-modal-methods { padding: 0.25rem 0 0.5rem; }
-.buy-modal-methods .buy-modal-title { margin-bottom: 1.25rem; }
 
-.buy-method-btn {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  width: 100%;
-  padding: 1rem 1.1rem;
-  background: #fafafa;
-  border: 1.5px solid #e5e5e5;
-  border-radius: 12px;
-  cursor: pointer;
-  text-align: left;
-  transition: border-color 0.2s, background 0.2s;
-  margin-bottom: 0.75rem;
-}
-.buy-method-btn:hover { border-color: var(--accent-gold); background: #fffdf3; }
-
-.buy-method-icon {
-  width: 44px; height: 44px;
-  background: #111;
-  border-radius: 10px;
-  display: flex; align-items: center; justify-content: center;
-  color: #fff;
-  flex-shrink: 0;
-}
-.buy-method-icon--cod { background: #1a7a4a; }
-
-.buy-method-info { flex: 1; }
-.buy-method-name { display: block; font-size: 0.95rem; font-weight: 600; color: #111; }
-.buy-method-desc { display: block; font-size: 0.78rem; color: #888; margin-top: 2px; }
-
-.buy-method-note {
-  text-align: center;
-  font-size: 0.75rem;
-  color: #aaa;
-  margin-top: 0.25rem;
-}
-
-.buy-method-btn--mp { border-color: #d4af37; }
-.buy-method-btn--mp:hover { background: #fffdf0; border-color: #b8940f; }
-
-.buy-method-name-row {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-.buy-method-discount-badge {
-  background: var(--accent-gold);
-  color: #fff;
-  font-size: 0.65rem;
-  font-weight: 700;
-  padding: 2px 6px;
-  border-radius: 4px;
-  letter-spacing: 0.03em;
-}
 
 .buy-modal-city-note {
   display: block;
@@ -14084,4 +13995,260 @@ textarea:focus-visible {
   line-height: 1.5;
   color: var(--text-secondary);
   text-align: left;
+}
+
+/* ─── Modal de pago ──────────────────────────────────────────────────
+   La pantalla donde se decide la compra. Rehecha con «Luz de vitrina»: el
+   radio de 2px, las líneas de pelo y la píldora sólo en lo que se toca. El
+   modal genérico de antes —esquinas de 16px, grises fríos, insignias
+   naranjas— pertenecía a otra tienda. */
+
+/* La caja del modal, en el lenguaje de la casa. */
+.buy-modal-box {
+  border-radius: 2px;
+  padding: 0;
+  max-width: 420px;
+  box-shadow: 0 24px 64px rgba(28, 23, 20, 0.22);
+}
+
+.buy-modal-close {
+  top: 14px;
+  right: 14px;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--hairline);
+  border-radius: 100px;
+  background: var(--bg-color);
+  color: var(--ink);
+  transition: var(--transition-smooth);
+}
+.buy-modal-close:hover { background: var(--bg-arena); color: var(--ink); }
+
+/* La pieza que se está comprando, arriba de todo. */
+.pago-pieza {
+  display: flex;
+  gap: 16px;
+  padding: 24px 24px 20px;
+  border-bottom: 1px solid var(--hairline);
+}
+.pago-pieza img {
+  width: 68px;
+  height: 85px;
+  object-fit: cover;
+  border-radius: 2px;
+  flex: none;
+}
+.pago-pieza-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-right: 44px;
+  min-width: 0;
+}
+.pago-eyebrow {
+  font-family: var(--font-ui);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--oro-ink);
+}
+.pago-pieza-nombre {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.375rem;
+  line-height: 1.15;
+  color: var(--ink);
+}
+.pago-pieza-cat {
+  font-family: var(--font-ui);
+  font-size: 0.63rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.pago-metodos { padding: 24px 24px 24px; }
+
+/* El titular parte la frase: la segunda línea en versalitas, como el resto
+   del sitio. La serif no lleva cursiva ni otro peso. */
+.pago-titulo { margin-bottom: 20px; }
+.pago-titulo h2 {
+  margin: 0 0 4px;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.75rem;
+  line-height: 1.1;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+}
+.pago-titulo em {
+  display: block;
+  font-family: var(--font-display);
+  font-style: normal;
+  font-weight: 400;
+  font-size: 1.085rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.pago-opciones { display: flex; flex-direction: column; gap: 10px; }
+
+.pago-op {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--hairline);
+  border-radius: 2px;
+  background: var(--bg-color);
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+.pago-op:hover { border-color: rgba(168, 134, 63, 0.32); }
+.pago-op--on {
+  border-color: rgba(168, 134, 63, 0.55);
+  background: #FDFBF7;
+}
+.pago-op:focus-visible { outline: 2px solid var(--oro); outline-offset: 3px; }
+
+.pago-radio {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin-top: 3px;
+  border: 1px solid var(--hairline);
+  border-radius: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition-smooth);
+}
+.pago-radio span {
+  width: 10px;
+  height: 10px;
+  border-radius: 100px;
+  background: var(--oro);
+  opacity: 0;
+  transition: var(--transition-smooth);
+}
+.pago-op--on .pago-radio { border-color: var(--oro); }
+.pago-op--on .pago-radio span { opacity: 1; }
+
+.pago-op-cuerpo { flex: 1; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.pago-op-fila { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.pago-op-nombre { font-family: var(--font-ui); font-size: 1rem; font-weight: 700; color: var(--ink); }
+.pago-op-solo {
+  font-family: var(--font-ui);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.pago-op-sub { font-family: var(--font-ui); font-size: 0.875rem; line-height: 1.5; color: var(--text-secondary); }
+.pago-op-precio { display: flex; align-items: baseline; gap: 8px; margin-top: 2px; font-variant-numeric: tabular-nums; }
+.pago-op-valor { font-family: var(--font-ui); font-size: 1.0625rem; font-weight: 800; color: var(--ink); }
+.pago-op-tachado { font-size: 0.8125rem; color: var(--text-muted); text-decoration: line-through; }
+.pago-op-nota { font-size: 0.8125rem; color: var(--text-muted); }
+
+/* El total, en la banda de arena. Es el número que se mira antes de decidir. */
+.pago-total {
+  margin-top: 24px;
+  padding: 18px 20px;
+  background: var(--bg-arena);
+  border-radius: 2px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+.pago-total-l {
+  display: block;
+  margin-bottom: 4px;
+  font-family: var(--font-ui);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.pago-total-v {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-variant-numeric: tabular-nums;
+}
+.pago-total-v span {
+  font-family: var(--font-ui);
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--ink);
+}
+.pago-total-v small { font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); }
+.pago-total-nota {
+  flex: none;
+  white-space: nowrap;
+  font-family: var(--font-ui);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-align: right;
+  color: var(--oro-ink);
+}
+
+/* Píldora, porque es lo que se toca. */
+.pago-cta {
+  width: 100%;
+  margin-top: 16px;
+  padding: 16px 24px;
+  border: none;
+  border-radius: 100px;
+  background: var(--ink);
+  color: #fff;
+  font-family: var(--font-ui);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+.pago-cta:hover {
+  background: var(--ink-soft);
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px rgba(28, 23, 20, 0.18);
+}
+
+.pago-confianza {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  padding-top: 20px;
+}
+.pago-confianza > div { display: flex; flex-direction: column; gap: 6px; color: var(--text-secondary); }
+.pago-confianza svg { color: var(--oro); }
+.pago-confianza span { font-family: var(--font-ui); font-size: 0.75rem; line-height: 1.35; }
+
+/* Los pasos que siguen conservan su relleno, que el modal ya no trae. */
+.buy-modal-form,
+.buy-modal-loading,
+.buy-modal-wallet,
+.buy-modal-error { padding: 24px; }
+
+@media (max-width: 480px) {
+  .pago-metodos { padding: 20px 16px; }
+  .pago-pieza { padding: 20px 16px 16px; }
+  .pago-pieza-info { padding-right: 40px; }
+  .pago-confianza { grid-template-columns: 1fr; gap: 10px; }
+  .pago-confianza > div { flex-direction: row; align-items: center; gap: 10px; }
+  .buy-modal-form,
+  .buy-modal-loading,
+  .buy-modal-wallet,
+  .buy-modal-error { padding: 20px 16px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pago-cta:hover { transform: none; }
 }

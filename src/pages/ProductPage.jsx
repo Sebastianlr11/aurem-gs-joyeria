@@ -90,7 +90,9 @@ const BuyModal = ({ product, onClose }) => {
   const mpPrice = Math.round(product.price * (1 - MP_DISCOUNT));
   const mpSaving = product.price - mpPrice;
   const [step, setStep] = useState('method'); // method | form | loading | wallet | error
-  const [paymentMethod, setPaymentMethod] = useState(null); // 'mp' | 'cod'
+  /* Arranca en Mercado Pago. El diseño muestra un total desde el primer
+     segundo, y un total sin método elegido no existe. */
+  const [paymentMethod, setPaymentMethod] = useState('mp'); // 'mp' | 'cod'
   const [form, setForm] = useState({ name: '', email: '', phone: '', city: '', address: '', department: '' });
   const [errors, setErrors] = useState({});
   const [preferenceId, setPreferenceId] = useState(null);
@@ -193,55 +195,114 @@ const BuyModal = ({ product, onClose }) => {
           </svg>
         </button>
 
-        {/* Product strip */}
-        <div className="buy-modal-product">
+        {/* Cabecera de la pieza */}
+        <header className="pago-pieza">
           {product.image_url && <img src={product.image_url} alt={product.name} />}
-          <div className="buy-modal-product-info">
-            <span className="buy-modal-product-name">{product.name}</span>
-            <span className="buy-modal-product-price">${fmt(product.price)} COP</span>
+          <div className="pago-pieza-info">
+            <span className="pago-eyebrow">Tu pieza</span>
+            <h3 className="pago-pieza-nombre">{product.name}</h3>
+            <span className="pago-pieza-cat">{product.category}</span>
           </div>
-        </div>
+        </header>
 
         {/* Selector de método de pago */}
         {step === 'method' && (
-          <div className="buy-modal-methods">
-            <h2 className="buy-modal-title">¿Cómo quieres pagar?</h2>
-            <button className="buy-method-btn buy-method-btn--mp" onClick={() => selectMethod('mp')}>
-              <div className="buy-method-icon">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/>
-                </svg>
-              </div>
-              <div className="buy-method-info">
-                <div className="buy-method-name-row">
-                  <span className="buy-method-name">Mercado Pago</span>
-                  <span className="buy-method-discount-badge">2% OFF</span>
+          <div className="pago-metodos">
+            <div className="pago-titulo">
+              <h2>¿Cómo quieres</h2>
+              <em>pagar?</em>
+            </div>
+
+            <div className="pago-opciones" role="radiogroup" aria-label="Medio de pago">
+              <div
+                role="radio"
+                tabIndex={0}
+                aria-checked={paymentMethod === 'mp'}
+                className={`pago-op ${paymentMethod === 'mp' ? 'pago-op--on' : ''}`}
+                onClick={() => setPaymentMethod('mp')}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setPaymentMethod('mp'); } }}
+              >
+                <span className="pago-radio"><span /></span>
+                <div className="pago-op-cuerpo">
+                  <div className="pago-op-fila">
+                    <span className="pago-op-nombre">Mercado Pago</span>
+                    <span className="punzon">2% menos</span>
+                  </div>
+                  <span className="pago-op-sub">Tarjeta, PSE o Nequi · pago inmediato</span>
+                  <div className="pago-op-precio">
+                    <span className="pago-op-valor">${fmt(mpPrice)}</span>
+                    <span className="pago-op-tachado">${fmt(product.price)}</span>
+                  </div>
                 </div>
-                <span className="buy-method-desc">Pagas <strong>${fmt(mpPrice)}</strong> — ahorras ${fmt(mpSaving)} COP</span>
               </div>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="9 18 15 12 9 6"/>
-              </svg>
+
+              <div
+                role="radio"
+                tabIndex={0}
+                aria-checked={paymentMethod === 'cod'}
+                className={`pago-op ${paymentMethod === 'cod' ? 'pago-op--on' : ''}`}
+                onClick={() => setPaymentMethod('cod')}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setPaymentMethod('cod'); } }}
+              >
+                <span className="pago-radio"><span /></span>
+                <div className="pago-op-cuerpo">
+                  <div className="pago-op-fila">
+                    <span className="pago-op-nombre">Contraentrega</span>
+                    <span className="pago-op-solo">Sólo Bogotá</span>
+                  </div>
+                  <span className="pago-op-sub">
+                    {abonoEnvio
+                      ? `Abonas $${fmt(abonoEnvio)} del envío y pagas el resto al recibir`
+                      : 'Pagas en efectivo al recibir'}
+                  </span>
+                  <div className="pago-op-precio">
+                    <span className="pago-op-valor">${fmt(product.price)}</span>
+                    <span className="pago-op-nota">sin descuento</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="pago-total">
+              <div>
+                <span className="pago-total-l">Total a pagar</span>
+                <div className="pago-total-v">
+                  <span>${fmt(paymentMethod === 'mp' ? mpPrice : product.price)}</span>
+                  <small>COP</small>
+                </div>
+              </div>
+              <span className="pago-total-nota">
+                {paymentMethod === 'mp'
+                  ? `Ahorras $${fmt(mpSaving)}`
+                  : abonoEnvio ? `Abonas $${fmt(abonoEnvio)} hoy` : 'Pagas al recibir'}
+              </span>
+            </div>
+
+            <button type="button" className="pago-cta" onClick={() => selectMethod(paymentMethod)}>
+              {paymentMethod === 'mp'
+                ? 'Pagar con Mercado Pago'
+                : abonoEnvio ? `Continuar y abonar $${fmt(abonoEnvio)}` : 'Continuar'}
             </button>
-            <button className="buy-method-btn" onClick={() => selectMethod('cod')}>
-              <div className="buy-method-icon buy-method-icon--cod">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-                </svg>
+
+            {/* Lo que se promete acá se cumple SIEMPRE. El certificado no
+                entra: tiene un costo aparte y vive en la ficha, con su
+                precio. */}
+            <div className="pago-confianza">
+              <div>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="3" width="15" height="13"/><path d="M16 8h4l3 3v5h-7z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+                <span>Envío 24 a 48 horas hábiles</span>
               </div>
-              <div className="buy-method-info">
-                <span className="buy-method-name">Contraentrega</span>
-                <span className="buy-method-desc">
-                  {abonoEnvio
-                    ? `Sólo en Bogotá — abonas $${fmt(abonoEnvio)} del envío y el resto al recibir`
-                    : 'Sólo en Bogotá — pagas en efectivo al recibir'}
-                </span>
+              <div>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2v6h6"/><path d="M4 22V4a2 2 0 0 1 2-2h8l6 6v14a2 2 0 0 1-2 2z"/><path d="M9 13h6M9 17h4"/></svg>
+                <span>Taller propio, piezas a medida</span>
               </div>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="9 18 15 12 9 6"/>
-              </svg>
-            </button>
-            <p className="buy-method-note">Envíos a todo el país · contraentrega solo en Bogotá</p>
+              <div>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                <span>Garantía de por vida en el metal</span>
+              </div>
+            </div>
+
+            <PaymentMethods />
           </div>
         )}
 
