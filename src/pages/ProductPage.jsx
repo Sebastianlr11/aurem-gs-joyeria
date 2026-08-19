@@ -318,8 +318,6 @@ const BuyModal = ({ product, onClose }) => {
                 <span>Garantía de por vida en el metal</span>
               </div>
             </div>
-
-            <PaymentMethods />
           </div>
         )}
 
