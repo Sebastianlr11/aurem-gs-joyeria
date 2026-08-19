@@ -100,6 +100,48 @@ function anuncioDe(r: any | null): string | null {
   return id ? `Anuncio: ${id}` : 'Llegó por anuncio'
 }
 
+/**
+ * Los identificadores del anuncio, para guardarlos como datos y no como
+ * texto en una nota.
+ *
+ * El `ctwa_clid` es el que importa de verdad: es lo que hay que devolverle a
+ * Meta cuando la venta se cierra para que se la atribuya al anuncio que la
+ * trajo. Sin él, Valentina vende y el anuncio nunca se entera.
+ */
+function atribucionDe(r: any | null): { ctwa_clid: string | null; anuncio_id: string | null } {
+  if (!r) return { ctwa_clid: null, anuncio_id: null }
+  return {
+    ctwa_clid: r.ctwa_clid ?? null,
+    anuncio_id: r.source_id ?? null,
+  }
+}
+
+/**
+ * La marca `[ref: tiktok]` que el sitio le pega al primer mensaje.
+ *
+ * Existe porque TikTok, a diferencia de Meta, no manda ningún identificador
+ * cuando su anuncio abre WhatsApp. Sin esto, todas esas conversaciones
+ * parecerían tráfico directo y las campañas de TikTok se verían como si no
+ * vendieran nada.
+ *
+ * Se busca en el primer mensaje de la persona, que es donde el enlace la
+ * pone. Un mensaje posterior que traiga la marca es de una visita nueva y no
+ * debería reescribir de dónde vino originalmente.
+ */
+async function refDeMensajes(telefono: string): Promise<string | null> {
+  const { data } = await admin()
+    .from('whatsapp_conversaciones')
+    .select('content')
+    .eq('phone_number', telefono)
+    .eq('role', 'user')
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle()
+
+  const marca = String(data?.content ?? '').match(/\[ref:\s*([a-z0-9_-]{1,20})\]/i)
+  return marca ? marca[1].toLowerCase() : null
+}
+
 function instrucciones(piezas: string, politicas: string, deDonde: string): string {
   return `Eres Valentina, la asesora de Aurem Gs Joyería, una joyería colombiana.
 Escribes por WhatsApp a clientes reales. Hablas en español de Colombia, con
@@ -179,6 +221,10 @@ catálogo. Se puede hacer cualquier diseño, incluso a partir de una foto.
    que es una pieza única, hecha desde cero, que se puede personalizar con
    iniciales o una fecha sin costo extra. Bajar el precio es decisión de una
    persona, no tuya.
+
+22. Si el primer mensaje trae algo entre corchetes como [ref: tiktok], es una
+   marca del sitio para saber de dónde vino la persona. No la menciones, no
+   la comentes y no preguntes qué significa. Responde como si no estuviera.
 
 CÓMO ESCRIBIR
 Frases cortas. Sin punto y coma, sin dos puntos para enumerar, sin listas
@@ -529,7 +575,8 @@ async function ejecutarHerramienta(
       return 'No se pudo registrar el pedido. Usa escalar_a_humano.'
     }
 
-    const anuncio = anuncioDe(await referralDe(telefono))
+    const referral = await referralDe(telefono)
+    const anuncio = anuncioDe(referral)
 
     let respuesta: any = {}
     try {
@@ -549,14 +596,14 @@ async function ejecutarHerramienta(
             city: args.ciudad,
           },
           paymentMethod: contraEntrega ? 'cod' : 'mp',
+          /* Los identificadores del anuncio van como datos aparte de la nota:
+             la nota es para leerla, esto es para devolvérselo a Meta cuando
+             se cobre y para poder contar ventas por origen. */
+          atribucion: { ...atribucionDe(referral), utm_source: await refDeMensajes(telefono) },
           notes: [
             args.talla ? `Talla: ${args.talla}` : null,
             'Pedido tomado por Valentina',
-            /* De qué anuncio salió. Va en las notas y no en una columna
-               porque orders es de la tienda y del panel además del bot;
-               agregarle un campo sólo por esto sería ensuciarla. Cuando
-               haya campañas de verdad y la atribución se mida en serio,
-               merece su propia tabla. */
+            // Legible en el panel; el dato que se mide va en `atribucion`.
             anuncio,
           ].filter(Boolean).join(' · '),
         }),

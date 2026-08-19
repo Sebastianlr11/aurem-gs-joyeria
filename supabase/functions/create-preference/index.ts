@@ -98,6 +98,10 @@ Deno.serve(async (req: Request) => {
            directamente. El primero de la lista es el suyo; los siguientes son
            los proxis por los que pasó. */
         client_ip: (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || null,
+        ctwa_clid: atribucion?.ctwa_clid ?? null,
+        anuncio_id: atribucion?.anuncio_id ?? null,
+        utm_source: atribucion?.utm_source ?? null,
+        utm_campaign: atribucion?.utm_campaign ?? null,
       })
       .select('id')
       .single()

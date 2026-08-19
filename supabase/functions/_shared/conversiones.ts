@@ -49,6 +49,10 @@ export type Venta = {
   url?: string | null
   ua?: string | null
   ip?: string | null
+  /* Identificador de clic de un anuncio Click-to-WhatsApp. Su presencia
+     cambia de raíz cómo se le cuenta la venta a Meta: deja de ser un evento
+     web y pasa a ser uno de mensajería. */
+  ctwaClid?: string | null
   /* Cuándo ocurrió la compra, en segundos unix. Por defecto, ahora. Sólo hace
      falta pasarlo cuando el aviso llega tarde —el contraentrega se confirma
      días después— y hay que fecharlo cuando la persona compró de verdad. */
@@ -181,26 +185,51 @@ async function aMeta(venta: Venta, momento: number): Promise<string> {
 
   const { correo, telefono, externo } = await identificadores(venta)
 
+  /* Dos caminos, y elegir mal el camino es perder la atribución entera.
+     
+     Si la venta empezó con un clic en un anuncio de Click-to-WhatsApp, Meta
+     NO la cuenta como evento web: hay que mandarla con action_source
+     'business_messaging' y devolverle el ctwa_clid que él mismo mandó en el
+     webhook. Sin eso, Valentina cierra la venta y el anuncio que la trajo
+     nunca se entera —que es exactamente lo que pasaba hasta ahora, y en un
+     negocio que vende por WhatsApp es la mayoría del dinero.
+     
+     El resto de las ventas —las del sitio— siguen siendo eventos web, y ahí
+     lo obligatorio es el user agent. */
+  const porWhatsApp = !!venta.ctwaClid
+
+  const evento: Record<string, unknown> = {
+    event_name: 'Purchase',
+    event_time: momento,
+    /* El mismo identificador que usa el píxel del navegador. Meta junta las
+       dos y cuenta una sola venta. */
+    event_id: venta.pedidoId,
+    action_source: porWhatsApp ? 'business_messaging' : 'website',
+  }
+
+  if (porWhatsApp) {
+    evento.messaging_channel = 'whatsapp'
+  } else if (venta.url) {
+    evento.event_source_url = venta.url
+  }
+
   const cuerpo = {
     data: [{
-      event_name: 'Purchase',
-      event_time: momento,
-      /* El mismo identificador que usa el píxel del navegador. Meta junta las
-         dos y cuenta una sola venta. */
-      event_id: venta.pedidoId,
-      action_source: 'website',
-      event_source_url: venta.url || undefined,
+      ...evento,
       user_data: limpio({
         em: correo,
         ph: telefono,
         external_id: externo,
         fbc: venta.fbc,
         fbp: venta.fbp,
+        ctwa_clid: venta.ctwaClid,
         /* Meta descarta los eventos con action_source 'website' que llegan
            sin client_user_agent. No es opcional: sin esto la venta no se
-           registra. Viene del checkout, guardado con el pedido. */
-        client_user_agent: venta.ua,
-        client_ip_address: venta.ip,
+           registra. Viene del checkout, guardado con el pedido. En los de
+           mensajería no aplica —no hubo navegador— y mandarlos vacíos sólo
+           ensuciaría. */
+        client_user_agent: porWhatsApp ? null : venta.ua,
+        client_ip_address: porWhatsApp ? null : venta.ip,
       }),
       custom_data: limpio({
         currency: 'COP',

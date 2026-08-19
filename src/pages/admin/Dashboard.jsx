@@ -271,6 +271,80 @@ const ProductModal = ({ product, onClose, onSaved }) => {
     );
 };
 
+/* ─── Ventas por origen ──────────────────────────────────────────────
+   El único número honesto de atribución que vas a tener.
+
+   Meta y TikTok se cuelgan medallas de más: si alguien vio anuncios en las
+   dos, las dos se atribuyen la misma venta, y sumar sus paneles te da más
+   ventas de las que hiciste. Esto se calcula desde tus propios pedidos, con
+   el identificador de clic que quedó pegado a cada uno, y por construcción
+   suma exactamente lo que vendiste.
+
+   El orden importa: se mira primero lo que es prueba directa —el ctwa_clid
+   de un anuncio de WhatsApp, el ttclid de TikTok— y sólo después las UTMs,
+   que se pueden perder o pegar a mano. */
+const ORIGENES = [
+    { id: 'meta',    label: 'Meta',    nota: 'Instagram y Facebook' },
+    { id: 'tiktok',  label: 'TikTok',  nota: 'Anuncios y lives' },
+    { id: 'otro',    label: 'Otro',    nota: 'Enlaces con etiqueta' },
+    { id: 'directo', label: 'Directo', nota: 'Sin rastro de campaña' },
+];
+
+const origenDe = (o) => {
+    if (o.ctwa_clid || o.anuncio_id || o.fbc) return 'meta';
+    if (o.ttclid) return 'tiktok';
+    const u = (o.utm_source || '').toLowerCase();
+    if (u.includes('tiktok') || u === 'tt') return 'tiktok';
+    if (u.includes('meta') || u.includes('facebook') || u.includes('instagram') || u === 'ig' || u === 'fb') return 'meta';
+    if (u) return 'otro';
+    return 'directo';
+};
+
+const VentasPorOrigen = ({ orders }) => {
+    const vendidos = orders.filter(o => REVENUE_STATUSES.includes(o.status));
+
+    const porOrigen = ORIGENES.map(({ id, label, nota }) => {
+        const suyos = vendidos.filter(o => origenDe(o) === id);
+        return {
+            id, label, nota,
+            pedidos: suyos.length,
+            plata: suyos.reduce((s, o) => s + Number(o.amount || 0), 0),
+        };
+    });
+
+    const total = porOrigen.reduce((s, x) => s + x.plata, 0);
+
+    if (!vendidos.length) return null;
+
+    return (
+        <section className="origen-panel">
+            <header className="origen-head">
+                <h3 className="origen-title">De dónde vienen las ventas</h3>
+                <p className="origen-sub">
+                    Calculado desde tus pedidos, no desde lo que dice cada plataforma.
+                    Los administradores de anuncios se atribuyen de más cuando alguien
+                    vio anuncios en los dos lados; esto no.
+                </p>
+            </header>
+            <div className="origen-grid">
+                {porOrigen.map(({ id, label, nota, pedidos, plata }) => (
+                    <div key={id} className={`origen-item origen-item--${id}`}>
+                        <span className="origen-l">{label}</span>
+                        <span className={`origen-v ${pedidos === 0 ? 'origen-v--cero' : ''}`}>
+                            {pedidos === 0 ? '—' : `$${fmt(Math.round(plata))}`}
+                        </span>
+                        <span className="origen-s">
+                            {pedidos === 0
+                                ? nota
+                                : `${pedidos} pedido${pedidos !== 1 ? 's' : ''}${total > 0 ? ` · ${Math.round((plata / total) * 100)}%` : ''}`}
+                        </span>
+                    </div>
+                ))}
+            </div>
+        </section>
+    );
+};
+
 /* ─── OrderModal ─────────────────────────────────────────────────── */
 const OrderModal = ({ order, products, onClose, onSaved }) => {
     const isEdit = !!order?.id;
@@ -1359,6 +1433,8 @@ const OrdersSection = ({ orders, products, loading, onRefresh }) => {
                     </button>
                 ))}
             </section>
+
+            <VentasPorOrigen orders={orders} />
 
             <section className="ped-panel">
                 <div className="ped-toolbar">

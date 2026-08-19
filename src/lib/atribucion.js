@@ -56,12 +56,19 @@ export function capturarClic() {
     const params = new URLSearchParams(window.location.search);
     const ttclid = params.get('ttclid');
     const fbclid = params.get('fbclid');
-    if (!ttclid && !fbclid) return;
+    /* Las UTMs cubren lo que ningún identificador de clic alcanza: los lives
+       de TikTok, un enlace pegado en la bio, lo que compartas por WhatsApp.
+       Sin ellas ese tráfico aparece como "directo" y parece que no vino de
+       ningún lado. */
+    const utmSource = params.get('utm_source');
+    if (!ttclid && !fbclid && !utmSource) return;
 
     const previo = leer() || {};
     localStorage.setItem(GUARDADO, JSON.stringify({
       ttclid: ttclid || previo.ttclid || null,
       fbclid: fbclid || previo.fbclid || null,
+      utm_source: utmSource || previo.utm_source || null,
+      utm_campaign: params.get('utm_campaign') || previo.utm_campaign || null,
       momento: Date.now(),
     }));
   } catch {
@@ -109,8 +116,26 @@ export function datosDeAtribucion() {
        lo tiene —cuando Mercado Pago confirma el pago, quien llama es Mercado
        Pago— así que hay que capturarlo acá y llevarlo con el pedido. */
     ua: typeof navigator !== 'undefined' ? navigator.userAgent : null,
+    utm_source: guardado?.utm_source || null,
+    utm_campaign: guardado?.utm_campaign || null,
   };
 
   // Sólo lo que existe: mandar nulos no le sirve a nadie.
   return Object.fromEntries(Object.entries(datos).filter(([, v]) => v));
+}
+
+/**
+ * De dónde viene esta visita, en una palabra.
+ *
+ * Sirve para el enlace de WhatsApp: TikTok no manda nada equivalente al
+ * ctwa_clid de Meta, así que la única forma de saber que una conversación
+ * empezó en un anuncio de TikTok es que el propio mensaje lo diga.
+ */
+export function origenCorto() {
+  const g = leer();
+  if (!g) return null;
+  if (g.ttclid) return 'tiktok';
+  if (g.fbclid) return 'meta';
+  if (g.utm_source) return String(g.utm_source).toLowerCase().slice(0, 20);
+  return null;
 }

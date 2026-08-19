@@ -66,7 +66,7 @@ Deno.serve(async (req: Request) => {
     .update({ conversion_enviada_en: new Date().toISOString() })
     .eq('id', pedidoId)
     .is('conversion_enviada_en', null)
-    .select('created_at, amount, customer_email, customer_phone, product_id, product_name, ttclid, ttp, fbc, fbp, client_ua, client_ip')
+    .select('created_at, amount, customer_email, customer_phone, product_id, product_name, ttclid, ttp, fbc, fbp, client_ua, client_ip, ctwa_clid')
     .maybeSingle()
 
   if (error) {
@@ -99,6 +99,7 @@ Deno.serve(async (req: Request) => {
     fbp: orden.fbp,
     ua: orden.client_ua,
     ip: orden.client_ip,
+    ctwaClid: orden.ctwa_clid,
     url: 'https://www.auremgsjoyeria.com/',
     momento,
   })
