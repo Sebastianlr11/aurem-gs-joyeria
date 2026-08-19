@@ -42,6 +42,21 @@ function cargarMeta() {
   })(window, document, 'script', 'https://connect.facebook.net/en_US/fbevents.js');
   /* eslint-enable */
 
+  /* Se apaga la configuración automática ANTES de arrancar el píxel.
+     
+     Por defecto Meta recoge por su cuenta los clics en botones y envíos de
+     formulario, y los manda como SubscribedButtonClick. No es un tipo de
+     conversión, así que no distorsiona las ventas — pero tampoco aporta nada
+     acá: este sitio dispara sus eventos explícitos y el servidor manda la
+     venta con identificadores fuertes, que es mucho mejor señal que un clic
+     adivinado.
+     
+     Lo que sí hace es mandar datos que no están declarados en la política de
+     privacidad —Meta no documenta qué recoge exactamente, sólo dice "datos de
+     clic en botones"— y ensuciar el panel con líneas que no vienen del
+     código, que es justo lo que hace imposible saber si la medición está
+     bien. */
+  window.fbq('set', 'autoConfig', false, META_ID);
   window.fbq('init', META_ID);
 }
 
