@@ -14544,26 +14544,53 @@ textarea:focus-visible {
   .abono-cta:hover { transform: none; }
 }
 
-/* En el móvil el checkout ocupa la pantalla entera. Una caja flotante con
-   márgenes obliga a pelear con el scroll de dos contenedores, y cuando se abre
-   el teclado para escribir la dirección, el botón se va por debajo. A pantalla
-   completa hay un solo scroll y el teclado empuja lo que tiene que empujar. */
+/* En el móvil el checkout sube desde abajo como una hoja.
+   
+   A pantalla completa se leía como otra página del sitio: sin bordes, sin
+   sombra y sin nada de la anterior a la vista, no había señal de que se
+   pudiera volver. La franja oscurecida que queda arriba es esa señal, y es
+   más clara que cualquier botón de cerrar.
+   
+   Sigue ocupando casi todo el alto a propósito: una caja flotante con
+   márgenes obliga a pelear con el scroll de dos contenedores, y al abrir el
+   teclado para escribir la dirección el botón se iba por debajo. */
 @media (max-width: 600px) {
   .buy-modal-overlay {
     padding: 0;
-    align-items: stretch;
-    backdrop-filter: none;
+    align-items: flex-end;
   }
   .buy-modal-box {
     max-width: none;
-    height: 100%;
-    max-height: 100%;
-    border-radius: 0;
-    box-shadow: none;
+    /* Los 56px que quedan arriba son la página anterior, oscurecida. */
+    max-height: calc(100% - 56px);
+    border-radius: 2px 2px 0 0;
+    box-shadow: 0 -12px 40px rgba(28, 23, 20, 0.3);
+    animation: subirHoja 0.42s cubic-bezier(0.16, 1, 0.3, 1) both;
   }
   .pago-pieza img { width: 56px; height: 70px; }
   .pago-pieza-nombre { font-size: 1.25rem; }
   .abono-cuerpo { padding: 20px 16px 16px; }
   .abono-monto { font-size: 1rem; }
-  .abono-pie { padding: 14px 16px 16px; }
+  .abono-pie { padding: 14px 16px calc(16px + env(safe-area-inset-bottom)); }
+  .buy-modal-form { padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
+}
+
+@keyframes subirHoja {
+  from { transform: translateY(100%); }
+  to   { transform: none; }
+}
+
+/* En pantalla grande no sube: aparece. Arrastrar una hoja en un escritorio no
+   significa nada. */
+@media (min-width: 601px) {
+  .buy-modal-box { animation: aparecerCaja 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; }
+}
+
+@keyframes aparecerCaja {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .buy-modal-box { animation: none; }
 }
