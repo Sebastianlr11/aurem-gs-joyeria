@@ -14804,18 +14804,24 @@ textarea:focus-visible {
   border-radius: 2px;
   background: var(--ink);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  height: auto;
-  min-height: clamp(440px, 46vw, 700px);
+  /* Contra el alto de la pantalla y no contra el ancho: hay que descontar el
+     navbar de arriba y la barra de compra de abajo, o la pieza se sale por el
+     borde inferior y la primera impresión se pierde. */
+  height: clamp(360px, calc(100vh - 300px), 580px);
+  min-height: 0;
 }
 
-.ficha-hero .pg-gallery-main img {
+/* Hijo directo, no cualquier img: las miniaturas viven dentro de este mismo
+   contenedor, y este relleno de 48px sobre un cuadro de 58px no les dejaba
+   sitio para la imagen. Se veían vacías. */
+.ficha-hero .pg-gallery-main > img {
   /* contain y no cover: recortar un anillo por los bordes es perder
      justamente lo que la persona vino a mirar. */
   object-fit: contain;
   padding: clamp(24px, 4vw, 48px);
   background: var(--ink);
 }
-.ficha-hero .pg-gallery-main:hover img { transform: none; }
+.ficha-hero .pg-gallery-main:hover > img { transform: none; }
 
 /* Volver, arriba a la izquierda y encima de la foto. Estaba suelto sobre el
    fondo, ocupando una franja entera para una sola línea. */
@@ -14873,8 +14879,23 @@ textarea:focus-visible {
 }
 
 @media (max-width: 900px) {
-  .ficha-hero .pg-gallery { position: static; min-height: 62vh; }
+  .ficha-hero .pg-gallery { position: static; height: clamp(320px, 56vh, 460px); }
   .ficha-hero .pg-gallery-thumbs { flex-direction: row; top: auto; bottom: 16px; right: 16px; }
   .ficha-hero .pg-gallery-thumb { width: 48px; height: 48px; }
   .ficha-hero .product-page-badges { bottom: auto; top: 76px; }
+}
+
+/* La descripción de venta, en la ficha del joyero. Arriba competía con el
+   precio y la talla; acá se lee con calma, que es cuando convence. */
+.joyero-desc {
+  margin: 0 0 22px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid var(--hairline);
+  max-width: 68ch;
+  font-family: var(--font-ui);
+  font-size: 0.95rem;
+  line-height: 1.75;
+  color: var(--text-secondary);
+  white-space: pre-line;
+  text-wrap: pretty;
 }
