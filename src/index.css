@@ -14613,7 +14613,11 @@ textarea:focus-visible {
   background: var(--bg-color);
   border: 1px solid var(--hairline);
   border-radius: 2px;
-  padding: clamp(24px, 3vw, 40px);
+  /* El relleno en variable porque el pie de pagos lo tiene que anular con
+     margen negativo para ir a sangre, y los dos números deben ser el mismo. */
+  --joyero-pad: clamp(24px, 3vw, 40px);
+  padding: var(--joyero-pad) var(--joyero-pad) 0;
+  overflow: hidden;
 }
 /* El sello de la casa. A 28px quedaba como una marca de agua al lado de un
    titular de 1.75rem en romana; esto es el membrete del documento que respalda
@@ -14676,18 +14680,146 @@ textarea:focus-visible {
   color: var(--ink);
 }
 
+/* ─── Cómo pagas: el pie de la ficha del joyero ──────────────────────
+   Franja de arena a sangre, que cierra el documento. Antes era una etiqueta
+   pegada al borde izquierdo y los logos al derecho, con un vacío de un palmo
+   en medio y nada que explicara qué significaban. */
 .joyero-pagos {
+  margin: clamp(24px, 3vw, 30px) calc(var(--joyero-pad) * -1) 0;
+  padding: clamp(24px, 3vw, 30px) var(--joyero-pad) clamp(26px, 3.2vw, 32px);
+  background: var(--bg-arena);
+  border-top: 1px solid var(--hairline);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(20px, 2.4vw, 26px);
+}
+
+/* Filete de oro a los dos lados: el antetítulo va centrado y con uno solo
+   quedaría descolgado. */
+.joyero-pagos-titulo {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-family: var(--font-ui);
+  font-size: 0.68rem;
+  font-weight: 400;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--oro-ink);
+}
+.joyero-pagos-titulo::before,
+.joyero-pagos-titulo::after {
+  content: '';
+  width: 34px;
+  height: 1px;
+  background: var(--oro);
+  flex: none;
+}
+
+.joyero-formas {
+  display: grid;
+  grid-template-columns: 1fr 1px 1fr;
+  gap: 36px;
+  align-items: start;
+  width: 100%;
+  max-width: 860px;
+}
+
+.joyero-formas-linea { background: var(--hairline); align-self: stretch; }
+
+.joyero-forma {
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.joyero-forma-icono {
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--oro-hairline);
+  border-radius: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.joyero-forma-t {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  line-height: 1.2;
+  color: var(--ink);
+}
+
+.joyero-forma-s {
+  margin: 7px 0 0;
+  font-size: 0.86rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  text-wrap: pretty;
+}
+
+/* Fichas del mismo tamaño exacto. Sueltos y a su altura natural cada logo
+   pesaba distinto —Visa ancha, Nequi alta— y la fila se leía desordenada. */
+.joyero-logos {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   align-items: center;
-  justify-content: space-between;
-  gap: 20px 32px;
-  margin-top: clamp(32px, 4vw, 48px);
-  padding-top: 24px;
-  border-top: 1px solid var(--hairline);
+  gap: 10px;
 }
-.joyero-logos { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; }
-.joyero-logos img { height: 26px; width: auto; opacity: 0.85; }
+
+.joyero-logo {
+  width: 62px;
+  height: 39px;
+  padding: 5px;
+  border: 1px solid var(--hairline);
+  border-radius: 2px;
+  background: var(--bg-color);
+  overflow: hidden;
+  box-sizing: border-box;
+  transition: border-color 0.3s var(--ease);
+}
+.joyero-logo:hover { border-color: var(--oro-hairline); }
+.joyero-logo img { width: 100%; height: 100%; object-fit: contain; display: block; }
+
+.joyero-seguro {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+@media (max-width: 768px) {
+  .joyero-pagos-titulo { font-size: 0.64rem; letter-spacing: 0.2em; gap: 12px; }
+  .joyero-pagos-titulo::before,
+  .joyero-pagos-titulo::after { width: 20px; }
+
+  /* En una columna la línea vertical no separa nada; separa el filete de
+     pelo debajo de la primera forma. */
+  .joyero-formas { grid-template-columns: 1fr; gap: 18px; }
+  .joyero-formas-linea { display: none; }
+  .joyero-forma:first-child {
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  .joyero-forma { grid-template-columns: 40px 1fr; gap: 14px; }
+  .joyero-forma-icono { width: 40px; height: 40px; }
+  .joyero-forma-t { font-size: 1.05rem; }
+  .joyero-forma-s { font-size: 0.82rem; }
+
+  /* Rejilla y no fila: con ocho fichas envueltas la última línea quedaba
+     coja y descentrada. */
+  .joyero-logos { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; width: 100%; }
+  .joyero-logo { width: auto; height: 44px; }
+
+  .joyero-seguro { font-size: 0.78rem; }
+}
 
 /* ─── La barra fija ──────────────────────────────────────────────────
    En el móvil el botón de comprar queda arriba y se pierde apenas la persona
@@ -14778,7 +14910,10 @@ textarea:focus-visible {
 
 .incluye-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr));
+  /* 200 y no 230: al entrar la sección dentro de la tarjeta perdió los 80px
+     del relleno y con 230 los cuatro datos ya no cabían en una fila —el
+     cuarto caía solo debajo y dejaba de leerse como un conjunto. */
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
   gap: clamp(20px, 3vw, 32px);
 }
 .incluye-grid > div { padding-top: 20px; border-top: 1px solid var(--hairline); }

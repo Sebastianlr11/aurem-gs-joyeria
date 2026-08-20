@@ -1175,54 +1175,115 @@ const ProductPage = () => {
                       </div>
                     ))}
                   </dl>
-                </div>
 
-                {/* Qué incluye el precio. Se arma con lo que la pieza tenga
-                    cargado: la que no lleva piedra no muestra esa columna. La
-                    última es la única que va siempre, porque el taller y la
-                    garantía sí aplican a todo. */}
-                {(product.piedra || product.metal || product.engaste) && (
-                  <div className="incluye">
-                    <span className="eyebrow">Qué incluye el precio</span>
-                    <div className="incluye-grid">
-                      {product.piedra && (
+                  {/* Qué incluye el precio. Se arma con lo que la pieza tenga
+                      cargado: la que no lleva piedra no muestra esa columna. La
+                      última es la única que va siempre, porque el taller y la
+                      garantía sí aplican a todo. */}
+                  {(product.piedra || product.metal || product.engaste) && (
+                    <div className="incluye">
+                      <span className="eyebrow">Qué incluye el precio</span>
+                      <div className="incluye-grid">
+                        {product.piedra && (
+                          <div>
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--oro)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/><polyline points="10 8 11.5 10 14 7"/></svg>
+                            <p className="incluye-t">{product.piedra.split(',')[0]}</p>
+                            <p className="incluye-s">{product.piedra}</p>
+                          </div>
+                        )}
+                        {product.metal && (
+                          <div>
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--oro)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 3h14v13H5z"/><path d="M8.5 19.5 12 17l3.5 2.5V16h-7z"/><path d="M8.5 7.5h7M8.5 11h4"/></svg>
+                            <p className="incluye-t">{product.metal}</p>
+                            <p className="incluye-s">
+                              {punzonLey ? `Punzón de ley ${punzonLey} marcado en la pieza.` : 'Metal trabajado en nuestro taller.'}
+                            </p>
+                          </div>
+                        )}
+                        {product.engaste && (
+                          <div>
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--oro)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+                            <p className="incluye-t">Engaste a mano</p>
+                            <p className="incluye-s">{product.engaste}</p>
+                          </div>
+                        )}
                         <div>
-                          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--oro)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/><polyline points="10 8 11.5 10 14 7"/></svg>
-                          <p className="incluye-t">{product.piedra.split(',')[0]}</p>
-                          <p className="incluye-s">{product.piedra}</p>
+                          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--oro)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+                          <p className="incluye-t">Taller y garantía</p>
+                          <p className="incluye-s">Ajuste de talla, pulido y garantía de por vida en el metal.</p>
                         </div>
-                      )}
-                      {product.metal && (
-                        <div>
-                          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--oro)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 3h14v13H5z"/><path d="M8.5 19.5 12 17l3.5 2.5V16h-7z"/><path d="M8.5 7.5h7M8.5 11h4"/></svg>
-                          <p className="incluye-t">{product.metal}</p>
-                          <p className="incluye-s">
-                            {punzonLey ? `Punzón de ley ${punzonLey} marcado en la pieza.` : 'Metal trabajado en nuestro taller.'}
-                          </p>
-                        </div>
-                      )}
-                      {product.engaste && (
-                        <div>
-                          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--oro)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
-                          <p className="incluye-t">Engaste a mano</p>
-                          <p className="incluye-s">{product.engaste}</p>
-                        </div>
-                      )}
-                      <div>
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--oro)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
-                        <p className="incluye-t">Taller y garantía</p>
-                        <p className="incluye-s">Ajuste de talla, pulido y garantía de por vida en el metal.</p>
                       </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                <div className="joyero-pagos">
-                  <span className="eyebrow">Pagas al recibir o con</span>
-                  <div className="joyero-logos">
-                    {PAYMENT_LOGOS.map(({ name, src }) => (
-                      <img key={name} src={src} alt={name} />
-                    ))}
+                  {/* El pie de la tarjeta. Antes era la etiqueta pegada al borde
+                      izquierdo y los logos al derecho, con un vacío en medio y
+                      nada que explicara qué significan. Ese vacío lo llena la
+                      pregunta que la clienta trae: qué puedo pagar al recibir y
+                      qué en línea. */}
+                  <div className="joyero-pagos">
+                    <span className="joyero-pagos-titulo">Cómo pagas</span>
+
+                    <div className="joyero-formas">
+                      <div className="joyero-forma">
+                        <span className="joyero-forma-icono">
+                          <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="var(--oro)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="2" y="6" width="20" height="12" rx="1.5" />
+                            <circle cx="12" cy="12" r="2.8" />
+                            <path d="M5 9.5v5M19 9.5v5" />
+                          </svg>
+                        </span>
+                        <div>
+                          <span className="joyero-forma-t">Al recibir, en efectivo</span>
+                          {/* "Solo en Bogotá" va primero y no al final: es la
+                              condición que decide si esta opción existe para
+                              quien está leyendo. */}
+                          <p className="joyero-forma-s">
+                            Solo en Bogotá. Abonas el envío al confirmar el pedido y pagas
+                            el resto cuando te entregan la pieza.
+                          </p>
+                        </div>
+                      </div>
+
+                      <span className="joyero-formas-linea" />
+
+                      <div className="joyero-forma">
+                        <span className="joyero-forma-icono">
+                          <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="var(--oro)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="1" y="3" width="15" height="13" />
+                            <path d="M16 8h4l3 3v5h-7z" />
+                            <circle cx="5.5" cy="18.5" r="2.5" />
+                            <circle cx="18.5" cy="18.5" r="2.5" />
+                          </svg>
+                        </span>
+                        <div>
+                          <span className="joyero-forma-t">En línea, a todo el país</span>
+                          <p className="joyero-forma-s">
+                            Tarjeta, PSE, Nequi, Daviplata o efectivo en Efecty.
+                            Despachamos en 24 a 48 horas hábiles.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Fichas del mismo tamaño exacto. Sueltos y a su altura
+                        natural, cada logo pesaba distinto y la fila se leía
+                        desordenada. */}
+                    <div className="joyero-logos">
+                      {PAYMENT_LOGOS.map(({ name, src }) => (
+                        <span key={name} className="joyero-logo">
+                          <img src={src} alt={name} />
+                        </span>
+                      ))}
+                    </div>
+
+                    <span className="joyero-seguro">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--oro)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="3" y="11" width="18" height="11" rx="2" />
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                      </svg>
+                      Pago seguro procesado por Mercado Pago
+                    </span>
                   </div>
                 </div>
               </div>
