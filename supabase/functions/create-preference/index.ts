@@ -211,6 +211,14 @@ Deno.serve(async (req: Request) => {
         pending: `${appUrl}/confirmacion`,
       },
       external_reference: orderId,
+      /* A dónde avisa Mercado Pago cuando el pago cambia de estado.
+         Sin esto no avisa a ninguna parte: el cliente paga, la orden se queda
+         en "pendiente" para siempre, no sale el WhatsApp de confirmación y la
+         venta no llega ni a TikTok ni a Meta. Se descubrió en la primera
+         prueba con plata real —el pago entró y hubo que empujar el webhook a
+         mano—. Va en la preferencia y no en el panel de Mercado Pago para que
+         no dependa de una casilla que nadie recuerda haber marcado. */
+      notification_url: `${supabaseUrl}/functions/v1/mp-webhook`,
       statement_descriptor: 'AUREM GS JOYERIA',
     }
 

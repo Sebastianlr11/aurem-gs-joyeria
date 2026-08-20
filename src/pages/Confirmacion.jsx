@@ -12,37 +12,42 @@ const Confirmacion = () => {
   const status          = searchParams.get('status')
   const externalRef     = searchParams.get('external_reference')
 
+  /* Esta pantalla sólo lee. Antes escribía el estado del pedido —marcaba
+     "pagado" si la URL decía approved— y eso estaba mal por dos motivos.
+     
+     El primero es el dinero: en un contraentrega sólo entra el abono, y
+     marcar "pagado" daba por cobrado el total. Medio millón que sigue en la
+     puerta del cliente, contado como si estuviera en la cuenta.
+     
+     El segundo es que corre en el navegador con la llave pública: quien
+     abriera /confirmacion?external_reference=<pedido>&status=approved dejaba
+     un pedido por pagado sin haber pagado.
+     
+     Quien decide el estado es el webhook, que le pregunta el pago a Mercado
+     Pago con el token del servidor y sabe distinguir un abono de un total.
+     Aquí sólo se leen los datos para el píxel del navegador, que va con el
+     mismo event_id que el del servidor y se deduplica contra él. */
   useEffect(() => {
-    if (!externalRef || !status || updated) return
-
-    const mpStatus = status
-    const orderStatus = status === 'approved' ? 'pagado' : 'pendiente'
+    if (!externalRef || status !== 'approved' || updated) return
 
     supabase
       .from('orders')
-      .update({
-        mp_payment_id: paymentId,
-        mp_status: mpStatus,
-        status: orderStatus,
-      })
-      .eq('id', externalRef)
-      /* El monto sale de acá y no de una consulta aparte: el update ya
-         toca esa fila, y el valor tiene que venir de la base y no de la
-         URL — lo que llega por parámetro lo puede cambiar cualquiera. */
       .select('amount, product_id, product_name')
+      .eq('id', externalRef)
       .maybeSingle()
       .then(({ data }) => {
         setUpdated(true)
-        if (orderStatus === 'pagado') {
-          pixelCompra({
-            pedidoId: externalRef,
-            valor: data?.amount,
-            piezaId: data?.product_id,
-            piezaNombre: data?.product_name,
-          })
-        }
+        if (!data) return
+        pixelCompra({
+          pedidoId: externalRef,
+          /* El valor sale de la base y no de la URL: lo que llega por
+             parámetro lo puede cambiar cualquiera. */
+          valor: data.amount,
+          piezaId: data.product_id,
+          piezaNombre: data.product_name,
+        })
       })
-  }, [externalRef, status, paymentId, updated])
+  }, [externalRef, status, updated])
 
   const isApproved  = status === 'approved'
   const isPending   = status === 'pending' || status === 'in_process'
