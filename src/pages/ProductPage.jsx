@@ -1054,20 +1054,31 @@ const ProductPage = () => {
         'envío 24 a 48 h',
     ].filter(Boolean).join(' · ');
 
+    /* Sin "Categoría" —ya lo dice el antetítulo del hero— y sin "Referencia",
+       que sube al punzón de la cabecera junto a la ley. */
     const ficha = [
         product.metal ? ['Metal', product.metal + (punzonLey ? ' con punzón de ley' : '')] : null,
         product.piedra ? ['Piedra', product.piedra] : null,
         product.engaste ? ['Engaste', product.engaste] : null,
-        ['Categoría', product.category],
-        ['Referencia', referencia.replace('REF. ', '')],
+        esAnillo ? ['Talla', `${product.talla_rango || '5 a 12'} · ajuste en taller sin costo`] : null,
+        ['Envío', '24 a 48 horas hábiles, a todo el país'],
+        ['Certificado', 'Opcional · $50.000'],
+        ['Garantía', 'De por vida en el metal'],
         product.stock !== null && product.stock !== undefined
             ? ['Disponibilidad', product.stock === 0 ? 'Agotada' : `${product.stock} unidad${product.stock !== 1 ? 'es' : ''}`]
             : null,
-        esAnillo ? ['Talla', `${product.talla_rango || '5 a 12'} · ajuste en taller sin costo`] : null,
-        ['Envío', '24 a 48 horas hábiles'],
-        ['Certificado', 'Opcional · $50.000'],
-        ['Garantía', 'De por vida en el metal'],
     ].filter(Boolean);
+
+    /* Qué incluye el precio. Antes describía la pieza —piedra, metal,
+       engaste— repitiendo lo que la tabla de arriba ya dice con más
+       precisión. Ahora describe la compra: qué recibes además de la joya.
+       Cada frase se queda en lo que el taller sí hace: nada de "envío
+       asegurado" ni plazos que no hemos confirmado. */
+    const incluye = [
+        ['estuche', 'Estuche y envío', 'Caja de joyería y guía con seguimiento.'],
+        ['taller', 'Ajuste de talla en taller', 'Una modificación sin costo.'],
+        ['garantia', 'Garantía de por vida', 'Pulido y reparación por defectos del metal, sin vencimiento.'],
+    ];
 
     return (
         <div className="ficha">
@@ -1207,138 +1218,135 @@ const ProductPage = () => {
                 parecer letra chica. */}
             <section className="joyero">
               <div className="container">
-                <div className="joyero-caja">
-                  <img className="joyero-sello" src="/assets/logo-isotipo.svg" alt="Aurem Gs Joyería"
-                    onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-                  <div className="joyero-cabeza">
+                {/* Sin tarjeta blanca: la ficha se apoya en el marfil y la
+                    ordenan las líneas de pelo. La caja con borde y sombra
+                    encerraba un documento que ya se sostiene solo. */}
+                <img className="joyero-sello" src="/assets/logo-isotipo.svg" alt="Aurem Gs Joyería"
+                     width="120" height="44" loading="lazy" />
+
+                <header className="joyero-cabeza">
+                  <div>
+                    <span className="eyebrow">Lo verificable</span>
                     <h2>Ficha del<em>joyero.</em></h2>
-                    {/* El punzón de la tarjeta lleva la ley, no la categoría:
-                        "Anillos" es una etiqueta de catálogo y esto es el
-                        documento que respalda la pieza. */}
+                  </div>
+                  {/* La ley y la referencia, juntas: las dos son marcas que
+                      identifican esta pieza y no etiquetas de catálogo. */}
+                  <div className="joyero-punzones">
                     {punzonLey && product.metal && (
                       <span className="punzon">
                         {`${product.metal.replace(/\s*\b(925|750|18\s?k|14\s?k|PT\s?950|950)\b/i, '').trim()} ley ${punzonLey}`}
                       </span>
                     )}
+                    <span className="punzon">{referencia.replace('REF. ', 'Ref. ')}</span>
                   </div>
-                  <dl className="joyero-lista">
-                    {ficha.map(([k, v]) => (
-                      <div key={k}>
-                        <dt>{k}</dt>
-                        <dd>{v}</dd>
+                </header>
+
+                <dl className="joyero-lista">
+                  {ficha.map(([k, v]) => (
+                    <div key={k}>
+                      <dt>{k}</dt>
+                      <dd>{v}</dd>
+                    </div>
+                  ))}
+                </dl>
+
+                <div className="incluye">
+                  <span className="eyebrow">Qué incluye el precio</span>
+                  <div className="incluye-grid">
+                    {incluye.map(([id, titulo, detalle]) => (
+                      <div key={id}>
+                        {id === 'estuche' && (
+                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--oro)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+                        )}
+                        {id === 'taller' && (
+                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--oro)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="6"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
+                        )}
+                        {id === 'garantia' && (
+                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--oro)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+                        )}
+                        <h3 className="incluye-t">{titulo}</h3>
+                        <p className="incluye-s">{detalle}</p>
                       </div>
                     ))}
-                  </dl>
-
-                  {/* Qué incluye el precio. Se arma con lo que la pieza tenga
-                      cargado: la que no lleva piedra no muestra esa columna. La
-                      última es la única que va siempre, porque el taller y la
-                      garantía sí aplican a todo. */}
-                  {(product.piedra || product.metal || product.engaste) && (
-                    <div className="incluye">
-                      <span className="eyebrow">Qué incluye el precio</span>
-                      <div className="incluye-grid">
-                        {product.piedra && (
-                          <div>
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--oro)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/><polyline points="10 8 11.5 10 14 7"/></svg>
-                            <p className="incluye-t">{product.piedra.split(',')[0]}</p>
-                            <p className="incluye-s">{product.piedra}</p>
-                          </div>
-                        )}
-                        {product.metal && (
-                          <div>
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--oro)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 3h14v13H5z"/><path d="M8.5 19.5 12 17l3.5 2.5V16h-7z"/><path d="M8.5 7.5h7M8.5 11h4"/></svg>
-                            <p className="incluye-t">{product.metal}</p>
-                            <p className="incluye-s">
-                              {punzonLey ? `Punzón de ley ${punzonLey} marcado en la pieza.` : 'Metal trabajado en nuestro taller.'}
-                            </p>
-                          </div>
-                        )}
-                        {product.engaste && (
-                          <div>
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--oro)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
-                            <p className="incluye-t">Engaste a mano</p>
-                            <p className="incluye-s">{product.engaste}</p>
-                          </div>
-                        )}
-                        <div>
-                          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--oro)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
-                          <p className="incluye-t">Taller y garantía</p>
-                          <p className="incluye-s">Ajuste de talla, pulido y garantía de por vida en el metal.</p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* El pie de la tarjeta. Antes era la etiqueta pegada al borde
-                      izquierdo y los logos al derecho, con un vacío en medio y
-                      nada que explicara qué significan. Ese vacío lo llena la
-                      pregunta que la clienta trae: qué puedo pagar al recibir y
-                      qué en línea. */}
-                  <div className="joyero-pagos">
-                    <span className="joyero-pagos-titulo">Cómo pagas</span>
-
-                    <div className="joyero-formas">
-                      <div className="joyero-forma">
-                        <span className="joyero-forma-icono">
-                          <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="var(--oro)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
-                            <rect x="2" y="6" width="20" height="12" rx="1.5" />
-                            <circle cx="12" cy="12" r="2.8" />
-                            <path d="M5 9.5v5M19 9.5v5" />
-                          </svg>
-                        </span>
-                        <div>
-                          <span className="joyero-forma-t">Al recibir, en efectivo</span>
-                          {/* "Solo en Bogotá" va primero y no al final: es la
-                              condición que decide si esta opción existe para
-                              quien está leyendo. */}
-                          <p className="joyero-forma-s">
-                            Solo en Bogotá. Abonas el envío al confirmar el pedido y pagas
-                            el resto cuando te entregan la pieza.
-                          </p>
-                        </div>
-                      </div>
-
-                      <span className="joyero-formas-linea" />
-
-                      <div className="joyero-forma">
-                        <span className="joyero-forma-icono">
-                          <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="var(--oro)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
-                            <rect x="1" y="3" width="15" height="13" />
-                            <path d="M16 8h4l3 3v5h-7z" />
-                            <circle cx="5.5" cy="18.5" r="2.5" />
-                            <circle cx="18.5" cy="18.5" r="2.5" />
-                          </svg>
-                        </span>
-                        <div>
-                          <span className="joyero-forma-t">En línea, a todo el país</span>
-                          <p className="joyero-forma-s">
-                            Tarjeta, PSE, Nequi, Daviplata o efectivo en Efecty.
-                            Despachamos en 24 a 48 horas hábiles.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Fichas del mismo tamaño exacto. Sueltos y a su altura
-                        natural, cada logo pesaba distinto y la fila se leía
-                        desordenada. */}
-                    <div className="joyero-logos">
-                      {PAYMENT_LOGOS.map(({ name, src }) => (
-                        <span key={name} className="joyero-logo">
-                          <img src={src} alt={name} />
-                        </span>
-                      ))}
-                    </div>
-
-                    <span className="joyero-seguro">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--oro)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
-                        <rect x="3" y="11" width="18" height="11" rx="2" />
-                        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                      </svg>
-                      Pago seguro procesado por Mercado Pago
-                    </span>
                   </div>
+
+                  {/* Lo que NO incluye, dicho de frente. El certificado cuesta
+                      aparte y esconderlo es el tipo de sorpresa que tumba una
+                      venta en la puerta. */}
+                  <p className="incluye-no">
+                    <span>No incluye</span>
+                    Certificado gemológico, que se pide aparte por $50.000.
+                  </p>
+                </div>
+
+                {/* El pie de la tarjeta. Antes era la etiqueta pegada al borde
+                    izquierdo y los logos al derecho, con un vacío en medio y
+                    nada que explicara qué significan. Ese vacío lo llena la
+                    pregunta que la clienta trae: qué puedo pagar al recibir y
+                    qué en línea. */}
+                <div className="joyero-pagos">
+                  <span className="joyero-pagos-titulo">Cómo pagas</span>
+
+                  <div className="joyero-formas">
+                    <div className="joyero-forma">
+                      <span className="joyero-forma-icono">
+                        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="var(--oro)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="2" y="6" width="20" height="12" rx="1.5" />
+                          <circle cx="12" cy="12" r="2.8" />
+                          <path d="M5 9.5v5M19 9.5v5" />
+                        </svg>
+                      </span>
+                      <div>
+                        <span className="joyero-forma-t">Al recibir, en efectivo</span>
+                        {/* "Solo en Bogotá" va primero y no al final: es la
+                            condición que decide si esta opción existe para
+                            quien está leyendo. */}
+                        <p className="joyero-forma-s">
+                          Solo en Bogotá. Abonas el envío al confirmar el pedido y pagas
+                          el resto cuando te entregan la pieza.
+                        </p>
+                      </div>
+                    </div>
+
+                    <span className="joyero-formas-linea" />
+
+                    <div className="joyero-forma">
+                      <span className="joyero-forma-icono">
+                        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="var(--oro)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="1" y="3" width="15" height="13" />
+                          <path d="M16 8h4l3 3v5h-7z" />
+                          <circle cx="5.5" cy="18.5" r="2.5" />
+                          <circle cx="18.5" cy="18.5" r="2.5" />
+                        </svg>
+                      </span>
+                      <div>
+                        <span className="joyero-forma-t">En línea, a todo el país</span>
+                        <p className="joyero-forma-s">
+                          Tarjeta, PSE, Nequi, Daviplata o efectivo en Efecty.
+                          Despachamos en 24 a 48 horas hábiles.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Fichas del mismo tamaño exacto. Sueltos y a su altura
+                      natural, cada logo pesaba distinto y la fila se leía
+                      desordenada. */}
+                  <div className="joyero-logos">
+                    {PAYMENT_LOGOS.map(({ name, src }) => (
+                      <span key={name} className="joyero-logo">
+                        <img src={src} alt={name} />
+                      </span>
+                    ))}
+                  </div>
+
+                  <span className="joyero-seguro">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--oro)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="11" width="18" height="11" rx="2" />
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                    </svg>
+                    Pago seguro procesado por Mercado Pago
+                  </span>
                 </div>
               </div>
             </section>

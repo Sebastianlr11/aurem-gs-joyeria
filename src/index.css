@@ -1693,6 +1693,17 @@ textarea:focus-visible {
   /* Dos columnas y no tres: apiladas, doce enlaces son doce pantallazos. */
   .footer-nav-columns { grid-template-columns: 1fr 1fr; gap: 1.25rem; }
 
+  /* Redes cruza las dos columnas y sus enlaces van en fila: son tres
+     palabras cortas y apiladas gastaban tres renglones para nada. */
+  .footer-col:last-child { grid-column: 1 / -1; }
+  .footer-col:last-child .footer-col-links {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.5rem;
+  }
+  /* Sin el desplazamiento al pasar el dedo: en fila empuja al vecino. */
+  .footer-col:last-child .footer-col-links a:hover { transform: none; }
+
   .footer-cierre { padding: 1.75rem 0 1.25rem; }
   /* El cuerpo del logotipo no se toca aquí: la fórmula en vw ya lo ajusta
      sola en todos los anchos. Fijarlo en 1.75rem lo dejaba al 39% del ancho
@@ -14609,28 +14620,37 @@ textarea:focus-visible {
    completo con su propio papel. */
 .joyero { background: var(--bg-marfil); padding: clamp(40px, 6vw, 80px) 0 clamp(24px, 3vw, 40px); }
 
-.joyero-caja {
-  background: var(--bg-color);
-  border: 1px solid var(--hairline);
-  border-radius: 2px;
-  /* El relleno en variable porque el pie de pagos lo tiene que anular con
-     margen negativo para ir a sangre, y los dos números deben ser el mismo. */
-  --joyero-pad: clamp(24px, 3vw, 40px);
-  padding: var(--joyero-pad) var(--joyero-pad) 0;
-  overflow: hidden;
-}
+/* La ficha se apoya en el marfil. La tarjeta blanca con borde y sombra
+   encerraba un documento que ya se sostiene con sus propias líneas de pelo,
+   y el marco competía con el de la propia sección.
+   Sin tarjeta, el margen negativo de la franja de pagos ya no se mide contra
+   el relleno de la caja sino contra el del contenedor, que cambia con el
+   ancho. Va en variable y se declara en la sección para que la franja la
+   herede: si no resuelve, el atajo entero se invalida y los márgenes caen
+   a cero. */
+.joyero { --joyero-pad: 4rem; }
+
+/* Los cortes van aquí y no junto a los del contenedor: allí quedaban ocho mil
+   líneas por encima de la declaración base y perdían por orden, así que la
+   franja seguía saliéndose 44px por cada lado en el celular. */
+@media (max-width: 968px) { .joyero { --joyero-pad: 2rem; } }
+@media (max-width: 600px) { .joyero { --joyero-pad: 1.25rem; } }
 /* El sello de la casa. A 28px quedaba como una marca de agua al lado de un
    titular de 1.75rem en romana; esto es el membrete del documento que respalda
    la pieza y tiene que leerse como tal. */
-.joyero-sello { height: 44px; display: block; opacity: 0.9; margin-bottom: 22px; }
+.joyero-sello { height: 44px; display: block; opacity: 0.9; margin-bottom: 28px; }
 
 .joyero-cabeza {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
+  /* Al pie y no a la línea base: el titular tiene dos renglones y los
+     punzones uno; alineados por la base, los punzones flotaban a media
+     altura del titular. */
+  align-items: flex-end;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 22px;
+  gap: 24px;
+  padding-bottom: clamp(32px, 4vw, 56px);
+  margin-bottom: 0;
 }
 .joyero-cabeza h2 {
   margin: 0;
@@ -14652,31 +14672,38 @@ textarea:focus-visible {
 .joyero-lista {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
-  gap: 0 clamp(32px, 5vw, 64px);
+  column-gap: clamp(32px, 6vw, 96px);
   margin: 0;
+  border-top: 1px solid var(--hairline);
 }
 .joyero-lista > div {
   display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 0 20px;
+  /* Columna fija para la etiqueta: con auto, cada fila medía distinto según
+     la palabra —"Metal" contra "Certificado"— y los valores quedaban en
+     zigzag entre las dos columnas. */
+  grid-template-columns: 116px 1fr;
+  gap: 8px 24px;
   align-items: baseline;
-  padding: 14px 0;
+  padding: 17px 0;
   border-bottom: 1px solid var(--hairline);
 }
 .joyero-lista dt {
   font-family: var(--font-ui);
-  font-size: 0.7rem;
-  line-height: 1.3;
-  letter-spacing: 0.18em;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1.5;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--text-muted);
+  color: var(--text-secondary);
 }
 .joyero-lista dd {
   margin: 0;
   font-family: var(--font-ui);
-  font-size: 0.95rem;
-  line-height: 1.4;
-  text-align: right;
+  font-size: 1rem;
+  line-height: 1.5;
+  /* A la izquierda, pegado a su etiqueta. Alineado a la derecha, el ojo
+     tenía que cruzar el vacío de la fila para emparejar dato y nombre. */
+  text-align: left;
   color: var(--ink);
 }
 
@@ -14911,8 +14938,8 @@ textarea:focus-visible {
    Contra la objeción que no se dice en voz alta: por qué esto cuesta lo que
    cuesta. Cada columna nombra una cosa que está en la pieza y que no se ve en
    una foto. */
-.incluye { margin-top: clamp(32px, 4vw, 48px); }
-.incluye .eyebrow { margin-bottom: 22px; }
+.incluye { margin-top: clamp(48px, 6vw, 96px); }
+.incluye .eyebrow { margin-bottom: clamp(28px, 3vw, 40px); }
 
 .incluye-grid {
   display: grid;
@@ -14922,22 +14949,44 @@ textarea:focus-visible {
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
   gap: clamp(20px, 3vw, 32px);
 }
-.incluye-grid > div { padding-top: 20px; border-top: 1px solid var(--hairline); }
+.incluye-grid > div { padding-top: 24px; border-top: 1px solid var(--hairline); }
 
+/* Los títulos en la romana: son cuatro promesas, no cuatro etiquetas. */
 .incluye-t {
-  margin: 12px 0 0;
-  font-family: var(--font-ui);
-  font-size: 0.95rem;
-  font-weight: 600;
-  line-height: 1.35;
+  margin: 18px 0 8px;
+  font-family: var(--font-display);
+  font-size: 1.1875rem;
+  font-weight: 400;
+  line-height: 1.25;
   color: var(--ink);
 }
 .incluye-s {
-  margin: 4px 0 0;
+  margin: 0;
   font-family: var(--font-ui);
-  font-size: 0.88rem;
-  line-height: 1.55;
+  font-size: 1rem;
+  line-height: 1.6;
   color: var(--text-secondary);
+  text-wrap: pretty;
+}
+
+/* Lo que no incluye. Con la misma línea de pelo que separa lo demás, para
+   que se lea como una fila más de la ficha y no como letra chica. */
+.incluye-no {
+  margin: clamp(28px, 3vw, 40px) 0 0;
+  padding-top: 20px;
+  border-top: 1px solid var(--hairline);
+  font-family: var(--font-ui);
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+.incluye-no > span {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--oro-ink);
+  margin-right: 12px;
 }
 
 /* ─── Galería sobre cacao ────────────────────────────────────────────
