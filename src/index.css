@@ -15873,3 +15873,16 @@ textarea:focus-visible {
   .catalogo-resumen { padding-bottom: 0.75rem; }
   .catalogo-grid { gap: 1.25rem; }
 }
+
+/* Un escalón más. El despeje del navbar queda justo en lo que ocupa —92px—
+   y el titular baja a 56: sigue mandando en la página sin empujar la primera
+   fila de fotos fuera del primer vistazo. */
+@media (min-width: 769px) {
+  .catalogo-head { padding-top: 5.75rem; padding-bottom: 2rem; gap: 2.5rem; }
+  .catalogo-titulo { font-size: clamp(2.5rem, 4vw, 3.5rem); }
+  .catalogo-lead { margin-top: 1rem; font-size: 0.95rem; }
+  .catalogo-promesa { padding: 0.75rem 0; }
+  .catalogo-filtros-fila { padding-top: 0.4375rem; padding-bottom: 0.4375rem; }
+  .catalogo-filtros-fila--precio { padding-bottom: 0.5rem; }
+  .catalogo-resumen { padding-bottom: 0.625rem; }
+}
