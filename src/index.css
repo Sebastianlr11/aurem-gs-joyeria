@@ -15778,3 +15778,65 @@ textarea:focus-visible {
    ganar por orden a la declaración base. */
 @media (max-width: 968px) { .catalogo { --catalogo-fuga: 2rem; } }
 @media (max-width: 600px) { .catalogo { --catalogo-fuga: 1.25rem; } }
+
+/* ─── La franja de filtros en escritorio, a su escala ────────────────
+   El .riel arrastra su cápsula de arena y píldoras de 40px con 14px de
+   texto. Con precio, material y orden en la misma fila eso no cabía: el
+   orden se iba a un tercer renglón y la franja crecía a 200px de alto,
+   más que la primera fila de fotos. Aquí las píldoras van sueltas, con
+   filete de pelo, y la fila vuelve a ser una. */
+@media (min-width: 769px) {
+  .catalogo-filtros .riel {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 0;
+    background: none;
+    border: none;
+    border-radius: 0;
+    overflow: visible;
+  }
+
+  .catalogo-filtros .riel-btn {
+    min-height: 40px;
+    padding: 0 17px;
+    gap: 8px;
+    font-size: 0.875rem;
+    font-weight: 400;
+    background: var(--bg-color);
+    border-color: var(--hairline);
+    color: var(--text-secondary);
+  }
+  .catalogo-filtros .riel-btn:hover:not(:disabled) { border-color: var(--oro-hairline); }
+  .catalogo-filtros .riel-btn--on {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: #fff;
+    font-weight: 600;
+  }
+  .catalogo-filtros .riel-btn--on .riel-n { color: var(--oro-luz); }
+
+  /* La segunda fila más compacta: son filtros secundarios y compiten con
+     las categorías si pesan lo mismo. */
+  .catalogo-filtros-fila--precio { gap: 0.875rem; padding-top: 0; padding-bottom: 0.875rem; }
+  .catalogo-filtros-fila--precio .riel-btn {
+    min-height: 36px;
+    padding: 0 14px;
+    font-size: 0.8125rem;
+  }
+  .catalogo-filtros-fila--precio .riel { flex-wrap: nowrap; }
+}
+
+/* Entre 769 y 1320 el ancho ya no da para precio, material y orden con el
+   cuerpo de 1440: el orden se descolgaba a un tercer renglón. Se aprieta el
+   aire, no se quita ningún filtro. */
+@media (min-width: 769px) and (max-width: 1320px) {
+  .catalogo-filtros-fila--precio { gap: 0.625rem; }
+  .catalogo-filtros-fila--precio .riel { gap: 6px; }
+  .catalogo-filtros-fila--precio .riel-btn {
+    min-height: 34px;
+    padding: 0 11px;
+    font-size: 0.78rem;
+  }
+  .catalogo-filtros-fila--precio .catalogo-precio-label { font-size: 0.58rem; letter-spacing: 0.16em; }
+}
