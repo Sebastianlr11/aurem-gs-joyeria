@@ -13,7 +13,7 @@ const RANGOS = [
 ];
 
 const PROMESAS = [
-    { titulo: 'Envío a todo el país', valor: '24 h Bogotá · 2 a 3 días resto' },
+    { titulo: 'Envío a todo el país', valor: '24 a 48 h Bogotá · 2 a 3 días resto' },
     { titulo: 'Forma de pago', valor: 'Contraentrega en Bogotá' },
     /* El certificado NO está incluido: cuesta $50.000 aparte. Esta franja es
        de lo que se cumple siempre. */

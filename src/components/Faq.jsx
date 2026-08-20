@@ -18,7 +18,7 @@ const faqs = [
     },
     {
         question: '¿Cuánto tarda la entrega?',
-        answer: 'Despachamos al día siguiente. En Bogotá llega en 24 horas; al resto del país, de 2 a 3 días, siempre con seguimiento. Las piezas que hacemos desde cero tardan de 5 a 8 días entre fabricación y entrega.',
+        answer: 'Despachamos al día siguiente. En Bogotá llega en 24 a 48 horas; al resto del país, de 2 a 3 días, siempre con seguimiento. Las piezas que hacemos desde cero tardan de 5 a 8 días entre fabricación y entrega.',
     },
     {
         question: '¿Cómo funciona la garantía de por vida?',

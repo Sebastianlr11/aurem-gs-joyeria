@@ -375,7 +375,7 @@ const BuyModal = ({ product, onClose }) => {
             <div className="pago-confianza">
               <div>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="3" width="15" height="13"/><path d="M16 8h4l3 3v5h-7z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
-                <span>Envío 24 h en Bogotá</span>
+                <span>Envío 24 a 48 h en Bogotá</span>
               </div>
               <div>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2v6h6"/><path d="M4 22V4a2 2 0 0 1 2-2h8l6 6v14a2 2 0 0 1-2 2z"/><path d="M9 13h6M9 17h4"/></svg>
@@ -1011,7 +1011,7 @@ const ProductPage = () => {
         product.piedra ? ['Piedra', product.piedra] : null,
         product.engaste ? ['Engaste', product.engaste] : null,
         esAnillo ? ['Talla', `${product.talla_rango || '5 a 12'} · ajuste en taller sin costo`] : null,
-        ['Envío', 'Bogotá en 24 h · resto del país, 2 a 3 días'],
+        ['Envío', 'Bogotá en 24 a 48 h · resto del país, 2 a 3 días'],
         /* Una línea, no un párrafo: el detalle de las dos formas de pagar se
            lee entero en la franja de abajo. Aquí solo el titular, y con el
            límite dicho —el contraentrega no sale de Bogotá—. */
@@ -1097,7 +1097,7 @@ const ProductPage = () => {
                             </div>
                             <div className="ficha-precio-envio">
                                 <span>Pagas al recibir o en línea</span>
-                                <span>Envío 24 h Bogotá · 2 a 3 días resto</span>
+                                <span>Envío 24 a 48 h Bogotá · 2 a 3 días</span>
                             </div>
                         </div>
 
@@ -1184,7 +1184,7 @@ const ProductPage = () => {
                             Cada uno dice hasta dónde llega: la contraentrega es
                             solo Bogotá y la garantía cubre el metal. */}
                         <ul className="ficha-promesas">
-                            {['Envío 24 h en Bogotá',
+                            {['Envío 24 a 48 h en Bogotá',
                               'Contraentrega en Bogotá',
                               'Certificado opcional',
                               'Garantía de por vida en el metal'].map(t => <li key={t}>{t}</li>)}
@@ -1370,7 +1370,7 @@ const ProductPage = () => {
                         <span className="ficha-barra-nota">
                             {esAnillo
                                 ? (talla ? `Talla ${talla} · ajuste sin costo` : 'Elige tu talla o te ayudamos')
-                                : 'Envío 24 h Bogotá · 2 a 3 días resto'}
+                                : 'Envío 24 a 48 h Bogotá · 2 a 3 días'}
                         </span>
                     </div>
                     <div className="ficha-barra-acciones">
