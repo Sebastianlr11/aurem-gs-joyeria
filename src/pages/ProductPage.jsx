@@ -161,6 +161,9 @@ const BuyModal = ({ product, onClose }) => {
      un cobro escondido, y es la forma más rápida de perder una venta que ya
      estaba decidida. */
   const [abonoEnvio, setAbonoEnvio] = useState(null);
+  /* Mercado Pago abre en otra pestaña. Sin esto, la pestaña original se queda
+     mostrando un botón que ya se tocó y el cliente no sabe si algo pasó. */
+  const [pagoAbierto, setPagoAbierto] = useState(false);
   const [initPoint, setInitPoint] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -529,52 +532,123 @@ const BuyModal = ({ product, onClose }) => {
 
 
         {step === 'wallet' && initPoint && (
-          <div className="buy-modal-wallet">
-            {abono ? (
-              <>
-                <p className="buy-modal-wallet-hint">
-                  Para confirmar tu pedido abonas <strong>${fmt(abono.abono)} COP</strong>,
-                  que es lo que cuesta el envío. Se descuenta del total.
-                </p>
-                <div className="buy-abono-cuenta">
-                  <span>Abonas ahora</span><span>${fmt(abono.abono)}</span>
-                  <span>Pagas al recibir</span><span>${fmt(abono.saldo)}</span>
-                  <span className="buy-abono-total">Total</span>
-                  <span className="buy-abono-total">${fmt(abono.abono + abono.saldo)}</span>
-                </div>
-              </>
+          <div className="abono-paso">
+            {!pagoAbierto ? (
+              <div className="abono-cuerpo">
+                {abono ? (
+                  <>
+                    <p className="abono-lead">
+                      Confirmas el pedido abonando el envío. El resto lo pagas cuando
+                      tengas la pieza en tus manos.
+                    </p>
+
+                    {/* Los dos pagos como una línea de tiempo. En una tabla de
+                        cifras se leen como un total partido; acá se lee que son
+                        dos momentos distintos, que es lo que son. */}
+                    <ol className="abono-linea">
+                      <li>
+                        <span className="abono-hito">
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="3" width="15" height="13"/><path d="M16 8h4l3 3v5h-7z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+                        </span>
+                        <div>
+                          <span className="abono-cuando">Hoy</span>
+                          <span className="abono-que">Abonas el envío</span>
+                          <span className="abono-detalle">Se descuenta del total. Despachamos en 24 a 48 horas hábiles.</span>
+                        </div>
+                        <span className="abono-monto">${fmt(abono.abono)}</span>
+                      </li>
+                      <li>
+                        <span className="abono-hito">
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="6" width="20" height="12" rx="1.5"/><circle cx="12" cy="12" r="2.8"/><path d="M5 9.5v5M19 9.5v5"/></svg>
+                        </span>
+                        <div>
+                          <span className="abono-cuando">Al recibir</span>
+                          <span className="abono-que">Pagas el resto</span>
+                          <span className="abono-detalle">En efectivo, cuando te entreguen la pieza.</span>
+                        </div>
+                        <span className="abono-monto">${fmt(abono.saldo)}</span>
+                      </li>
+                    </ol>
+
+                    <div className="abono-total">
+                      <span>Total</span>
+                      <span>${fmt(abono.abono + abono.saldo)} <small>COP</small></span>
+                    </div>
+                  </>
+                ) : (
+                  <p className="abono-lead">
+                    Tu pedido está listo. Al confirmar te llevamos a Mercado Pago para
+                    completar el pago de forma segura.
+                  </p>
+                )}
+
+                <a
+                  href={initPoint}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="abono-cta"
+                  onClick={() => setPagoAbierto(true)}
+                >
+                  {abono ? `Abonar $${fmt(abono.abono)}` : 'Pagar con Mercado Pago'}
+                </a>
+
+                {abono && (
+                  /* La condición del abono, antes de pagar y no en un enlace que
+                     nadie abre. Si el cliente rechaza la entrega, la transportadora
+                     igual cobra el servicio prestado: decirlo acá evita el reclamo
+                     después, y es lo que hace que el cobro sea justo y no una
+                     sorpresa. */
+                  <p className="abono-condicion">
+                    Si rechazas la entrega, el abono no se devuelve: la transportadora
+                    cobra el envío igual por haberlo despachado. Si la recibes, se
+                    descuenta del total.
+                  </p>
+                )}
+              </div>
             ) : (
-              <p className="buy-modal-wallet-hint">Tu pedido está listo. Haz clic para completar el pago de forma segura.</p>
+              /* Mercado Pago abre en otra pestaña, y en el móvil eso se siente
+                 como que la pantalla se perdió. Esta vista dice qué pasó y deja
+                 dos salidas: escribir por WhatsApp o volver a intentarlo. */
+              <div className="abono-abierto">
+                <span className="abono-sello">
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+                </span>
+                <h3>Termina el pago en Mercado Pago</h3>
+                <p>
+                  {abono
+                    ? `Abrimos la ventana de Mercado Pago para el abono de $${fmt(abono.abono)}. Cuando confirmes, te escribimos por WhatsApp con la guía de envío.`
+                    : 'Abrimos la ventana de Mercado Pago. Cuando confirmes, te escribimos por WhatsApp.'}
+                </p>
+                <div className="abono-salidas">
+                  <a
+                    className="btn-pill light-fill abono-wa"
+                    href={waUrl({
+                      mobile: `Hola! Estoy pagando mi pedido de *${product.name}* y necesito ayuda 🙏`,
+                      desktop: `Hola! Estoy pagando mi pedido de *${product.name}* y necesito ayuda`,
+                    })}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Escribir por WhatsApp
+                  </a>
+                  <button type="button" className="abono-volver" onClick={() => setPagoAbierto(false)}>
+                    Volver al resumen
+                  </button>
+                </div>
+              </div>
             )}
-            <a
-              href={initPoint}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="buy-modal-mp-btn"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/>
-              </svg>
-              {abono ? `Abonar $${fmt(abono.abono)}` : 'Pagar con Mercado Pago'}
-            </a>
-            {abono && (
-              /* La condición del abono, antes de pagar y no en un enlace que
-                 nadie abre. Si el cliente rechaza la entrega, la transportadora
-                 igual cobra el servicio prestado: decirlo acá evita el reclamo
-                 después, y es lo que hace que el cobro sea justo y no una
-                 sorpresa. */
-              <p className="buy-abono-condicion">
-                El abono no se devuelve si rechazas la entrega: la transportadora
-                cobra el envío igual por haberlo despachado. Si lo recibes, se
-                descuenta del total.
-              </p>
-            )}
-            <p className="buy-modal-secure-note">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-              </svg>
-              Pago seguro procesado por Mercado Pago
-            </p>
+
+            <footer className="abono-pie">
+              <span className="abono-seguro">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                Pago seguro procesado por Mercado Pago
+              </span>
+              <div className="abono-logos">
+                {PAYMENT_LOGOS.slice(0, 5).map(({ name, src }) => (
+                  <div key={name} title={name}><img src={src} alt={name} /></div>
+                ))}
+              </div>
+            </footer>
           </div>
         )}
 

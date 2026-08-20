@@ -7443,50 +7443,12 @@ textarea:focus-visible {
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.buy-modal-wallet {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-  padding: 0.5rem 0;
-  width: 100%;
-}
-
-.buy-modal-mp-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.6rem;
-  width: 100%;
-  padding: 0.9rem 1.5rem;
-  background: #009ee3;
-  color: #fff;
-  font-size: 1rem;
-  font-weight: 700;
-  border-radius: 8px;
-  text-decoration: none;
-  transition: background 0.2s ease;
-}
-.buy-modal-mp-btn:hover { background: #007ab8; }
 
 /* Overlay del modal de MP por encima de todo */
 [id^="cho-container"],
 [class*="mercadopago"] {
   z-index: 99999 !important;
 }
-.buy-modal-wallet-hint {
-  font-size: 0.875rem;
-  color: var(--text-secondary);
-  text-align: center;
-}
-.buy-modal-secure-note {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.75rem;
-  color: var(--text-muted);
-}
-.buy-modal-secure-note svg { flex-shrink: 0; }
 
 .buy-modal-error {
   display: flex;
@@ -13960,42 +13922,7 @@ textarea:focus-visible {
    La cuenta partida en dos, antes de pagar. Que el saldo se lea claro es lo
    que evita el rechazo en la puerta: nadie quiere abrir sin saber cuánto
    efectivo tener listo. */
-.buy-abono-cuenta {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 8px 24px;
-  padding: 16px 20px;
-  margin-bottom: 16px;
-  background: var(--bg-marfil);
-  border: 1px solid var(--hairline);
-  border-radius: 2px;
-  font-family: var(--font-ui);
-  font-size: 0.9rem;
-  color: var(--text-secondary);
-  font-variant-numeric: tabular-nums;
-}
 
-.buy-abono-cuenta span:nth-child(even) {
-  text-align: right;
-  color: var(--ink);
-  font-weight: 600;
-}
-
-.buy-abono-total {
-  padding-top: 8px;
-  border-top: 1px solid var(--hairline);
-  color: var(--ink) !important;
-  font-weight: 700 !important;
-}
-
-.buy-abono-condicion {
-  margin-top: 12px;
-  font-family: var(--font-ui);
-  font-size: 0.78rem;
-  line-height: 1.5;
-  color: var(--text-secondary);
-  text-align: left;
-}
 
 /* ─── Modal de pago ──────────────────────────────────────────────────
    La pantalla donde se decide la compra. Rehecha con «Luz de vitrina»: el
@@ -14234,7 +14161,6 @@ textarea:focus-visible {
 /* Los pasos que siguen conservan su relleno, que el modal ya no trae. */
 .buy-modal-form,
 .buy-modal-loading,
-.buy-modal-wallet,
 .buy-modal-error { padding: 24px; }
 
 @media (max-width: 480px) {
@@ -14245,7 +14171,6 @@ textarea:focus-visible {
   .pago-confianza > div { flex-direction: row; align-items: center; gap: 10px; }
   .buy-modal-form,
   .buy-modal-loading,
-  .buy-modal-wallet,
   .buy-modal-error { padding: 20px 16px; }
 }
 
@@ -14450,4 +14375,225 @@ textarea:focus-visible {
 
 @media (prefers-reduced-motion: reduce) {
   .buy-modal-submit:hover { transform: none; }
+}
+
+/* ─── El abono ───────────────────────────────────────────────────────
+   La última pantalla antes de girar plata. Los dos pagos van como línea de
+   tiempo y no como tabla de cifras: en una tabla se leen como un total
+   partido, y acá lo que hay que entender es que son dos momentos distintos.
+   Quien entiende eso abre la puerta con el efectivo listo. */
+.abono-paso { display: flex; flex-direction: column; padding: 0; }
+.abono-cuerpo { padding: 24px 20px 20px; }
+
+.abono-lead {
+  margin: 0 0 20px;
+  font-family: var(--font-ui);
+  font-size: 1rem;
+  line-height: 1.65;
+  color: var(--text-secondary);
+  text-wrap: pretty;
+}
+
+.abono-linea { list-style: none; margin: 0 0 20px; padding: 0; }
+.abono-linea li {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+.abono-linea li:first-child { padding-bottom: 18px; }
+/* El hilo que une los dos momentos. Nace debajo del primer círculo y muere en
+   el segundo: sin él son dos filas sueltas. */
+.abono-linea li:first-child::before {
+  content: "";
+  position: absolute;
+  left: 21px;
+  top: 44px;
+  bottom: -2px;
+  width: 1px;
+  background: rgba(168, 134, 63, 0.35);
+}
+
+.abono-hito {
+  flex: none;
+  width: 42px;
+  height: 42px;
+  border: 1px solid rgba(168, 134, 63, 0.35);
+  border-radius: 100px;
+  background: var(--bg-marfil);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--oro);
+}
+
+.abono-linea li > div { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.abono-cuando {
+  font-family: var(--font-ui);
+  font-size: 0.63rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--oro-ink);
+}
+.abono-que { font-family: var(--font-ui); font-size: 1rem; font-weight: 600; color: var(--ink); }
+.abono-detalle { font-family: var(--font-ui); font-size: 0.8125rem; line-height: 1.5; color: var(--text-secondary); }
+.abono-monto {
+  flex: none;
+  padding-top: 14px;
+  font-family: var(--font-ui);
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.abono-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  padding: 14px 16px;
+  margin-bottom: 20px;
+  background: var(--bg-arena);
+  border-radius: 2px;
+}
+.abono-total span:first-child {
+  font-family: var(--font-ui);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.abono-total span:last-child {
+  font-family: var(--font-ui);
+  font-size: 1.375rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.abono-total small { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.08em; color: var(--text-secondary); }
+
+.abono-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 56px;
+  border-radius: 100px;
+  background: var(--ink);
+  color: #fff;
+  font-family: var(--font-ui);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+  transition: var(--transition-smooth);
+}
+.abono-cta:hover {
+  background: var(--ink-soft);
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px rgba(28, 23, 20, 0.18);
+}
+
+.abono-condicion {
+  margin: 16px 0 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--hairline);
+  font-family: var(--font-ui);
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  color: var(--text-secondary);
+  text-wrap: pretty;
+}
+
+/* Cuando la pasarela ya se abrió en otra pestaña. */
+.abono-abierto {
+  padding: 32px 20px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 14px;
+}
+.abono-sello {
+  width: 58px;
+  height: 58px;
+  border: 1px solid rgba(168, 134, 63, 0.35);
+  border-radius: 100px;
+  background: var(--bg-marfil);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--oro);
+}
+.abono-abierto h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.5rem;
+  line-height: 1.15;
+  color: var(--ink);
+}
+.abono-abierto p {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  text-wrap: pretty;
+}
+.abono-salidas { display: flex; flex-direction: column; gap: 10px; width: 100%; margin-top: 6px; }
+.abono-wa { justify-content: center; }
+.abono-volver {
+  background: none;
+  border: none;
+  padding: 6px;
+  font-family: var(--font-ui);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+.abono-volver:hover { color: var(--ink); }
+
+.abono-pie {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px 18px;
+  background: var(--bg-marfil);
+  border-top: 1px solid var(--hairline);
+}
+.abono-seguro {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+}
+.abono-seguro svg { color: var(--oro); flex: none; }
+.abono-logos { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+.abono-logos > div {
+  height: 34px;
+  min-width: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 7px;
+  background: var(--bg-color);
+  border: 1px solid var(--hairline);
+  border-radius: 2px;
+}
+.abono-logos img { height: 24px; width: auto; display: block; }
+
+@media (prefers-reduced-motion: reduce) {
+  .abono-cta:hover { transform: none; }
 }
