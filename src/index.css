@@ -14919,16 +14919,18 @@ textarea:focus-visible {
 
 .ficha-hero .ficha-galeria { position: static; }
 
+/* El marco cuadrado. Antes no tenía altura definida y el contenedor se
+   estiraba a la forma del archivo —9:16, cuadro de reel—, así que el cover
+   no recortaba nada: la joya salía con una franja negra encima, su propio
+   reflejo debajo, y la banda oscura crecía a 1500px de alto arrastrando una
+   columna de texto vacía al lado. */
 .ficha-hero .pg-gallery {
   border: none;
   border-radius: 0;
-  height: 100%;
-  min-height: clamp(420px, 44vw, 760px);
-  /* Anula el 9/16 que la galería tenía debajo de 900px. Entre tablet y
-     escritorio la foto se estiraba a proporción de reel al lado del texto,
-     que es justo lo que no queremos: un reel es un formato de video, no la
-     manera de mirar una pieza quieta. */
-  aspect-ratio: auto;
+  height: auto;
+  aspect-ratio: 1;
+  max-height: 86vh;
+  min-height: 0;
 }
 
 /* cover y sin relleno: la foto llena su mitad. El contain con 48px de aire
@@ -14936,7 +14938,11 @@ textarea:focus-visible {
    veía como una foto pegada encima del fondo en vez de ser el fondo. */
 .ficha-hero .pg-gallery-main > img {
   object-fit: cover;
-  object-position: center;
+  /* 35% y no el centro. Las fotos vienen encuadradas para reel: la pieza
+     ocupa el tercio de arriba y el cuarto de abajo es el reflejo sobre la
+     mesa. Recortando por el centro entraba el reflejo y se iba parte de la
+     joya; subiendo la ventana, la pieza queda centrada en el cuadrado. */
+  object-position: center 35%;
   padding: 0;
 }
 
@@ -14960,7 +14966,9 @@ textarea:focus-visible {
 
 @media (max-width: 768px) {
   .ficha-hero .ficha-grid { grid-template-columns: 1fr; }
-  .ficha-hero .pg-gallery { height: clamp(340px, 58vh, 480px); min-height: 0; }
+  /* En móvil el cuadrado ya lo da el ancho de la pantalla; solo hay que
+     evitar que se coma el viewport entero y deje los botones fuera. */
+  .ficha-hero .pg-gallery { max-height: 62vh; }
   .ficha-hero .ficha-info { padding: clamp(28px, 6vw, 40px) 24px 40px; }
 }
 
@@ -14975,3 +14983,28 @@ textarea:focus-visible {
    la misma altura que la píldora de navegación, peleando con ella. */
 .ficha-hero .pg-volver { top: clamp(84px, 9vw, 104px); }
 .ficha-hero .pg-gallery-thumbs { top: clamp(84px, 9vw, 104px); bottom: auto; }
+
+/* La etiqueta "Nuevo" sobre la foto. Se había quedado sin estilo —texto
+   blanco de 16px suelto encima del reflejo, que se lee como un descuido, no
+   como una etiqueta. Sobre cacao va con la misma cara que los punzones. */
+.ficha-hero .product-page-badges {
+  position: absolute;
+  left: clamp(16px, 3vw, 32px);
+  bottom: clamp(16px, 3vw, 32px);
+  z-index: 3;
+  display: flex;
+  gap: 8px;
+}
+
+.ficha-hero .product-badge {
+  padding: 0.42rem 0.75rem;
+  font-family: var(--font-ui);
+  font-size: 0.63rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--oro-luz);
+  background: linear-gradient(180deg, #241E1A, #1C1714);
+  border: 1px solid rgba(227, 201, 144, 0.32);
+  border-radius: 2px;
+}
