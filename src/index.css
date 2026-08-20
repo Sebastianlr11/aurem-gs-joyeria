@@ -15275,3 +15275,9 @@ textarea:focus-visible {
     backdrop-filter: blur(28px) saturate(1.2);
   }
 }
+
+/* El navegador se queda con los gestos verticales (bajar la página) y nos
+   deja los horizontales, que son los de pasar foto. Sin esto el gesto
+   compite con el scroll y a veces no llega ninguno de los dos. */
+.pg-gallery-main { touch-action: pan-y; }
+.pg-gallery-punto { touch-action: manipulation; }

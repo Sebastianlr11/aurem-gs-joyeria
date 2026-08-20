@@ -659,6 +659,37 @@ const Gallery = ({ images, badges, volver, referencia }) => {
     const prev = () => goTo((activeIdx - 1 + images.length) % images.length);
     const next = () => goTo((activeIdx + 1) % images.length);
 
+    /* Deslizar entre fotos. Los puntos prometen que hay más de una y que se
+       pasa con el dedo; sin esto la promesa es falsa y el único modo de ver
+       la segunda foto es acertarle a un punto de 6px.
+       Solo cuenta como deslizamiento si el movimiento es más horizontal que
+       vertical: si no, bajar la página cambiaría la foto sin querer. */
+    const toque = useRef(null);
+    const UMBRAL = 45;
+
+    const alTocar = (e) => {
+        const t = e.changedTouches[0];
+        toque.current = { x: t.clientX, y: t.clientY, deslizo: false };
+    };
+
+    const alSoltar = (e) => {
+        if (!toque.current) return;
+        const t = e.changedTouches[0];
+        const dx = t.clientX - toque.current.x;
+        const dy = t.clientY - toque.current.y;
+        if (Math.abs(dx) > UMBRAL && Math.abs(dx) > Math.abs(dy)) {
+            toque.current.deslizo = true;
+            dx < 0 ? next() : prev();
+        }
+    };
+
+    /* El toque en la foto abre el visor, pero un deslizamiento también acaba
+       en click: sin esto, pasar de foto abre el visor encima. */
+    const alPulsar = () => {
+        if (toque.current?.deslizo) { toque.current = null; return; }
+        setLightbox(true);
+    };
+
     const closeLightbox = () => {
         setLbClosing(true);
         setTimeout(() => { setLightbox(false); setLbClosing(false); }, 280);
@@ -691,7 +722,13 @@ const Gallery = ({ images, badges, volver, referencia }) => {
     return (
         <>
             <div className="pg-gallery hero-anim" style={{ '--hero-delay': '0s' }}>
-                <div className="pg-gallery-main" onClick={() => setLightbox(true)} style={{ cursor: 'zoom-in' }}>
+                <div
+                    className="pg-gallery-main"
+                    onClick={alPulsar}
+                    onTouchStart={alTocar}
+                    onTouchEnd={alSoltar}
+                    style={{ cursor: 'zoom-in' }}
+                >
                     <img
                         src={images[activeIdx]}
                         alt={`Imagen ${activeIdx + 1}`}
@@ -760,6 +797,8 @@ const Gallery = ({ images, badges, volver, referencia }) => {
                         src={images[activeIdx]}
                         alt={`Imagen ${activeIdx + 1}`}
                         onClick={(e) => e.stopPropagation()}
+                        onTouchStart={alTocar}
+                        onTouchEnd={alSoltar}
                         style={{ opacity: fading ? 0 : 1 }}
                     />
 
