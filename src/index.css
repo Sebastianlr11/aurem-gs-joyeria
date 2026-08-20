@@ -15014,3 +15014,25 @@ textarea:focus-visible {
   border: 1px solid rgba(227, 201, 144, 0.32);
   border-radius: 2px;
 }
+
+/* La barra de compra entra y sale deslizándose. Está fuera de cuadro por
+   defecto y solo sube cuando el botón "Comprar ahora" de la ficha ya no se
+   ve; mientras el botón real está en pantalla, la barra sobra y además le
+   come una franja a la foto. */
+.ficha-barra {
+  transform: translateY(110%);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.45s var(--ease), opacity 0.3s ease;
+  will-change: transform;
+}
+
+.ficha-barra--visible {
+  transform: none;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ficha-barra { transform: none; transition: opacity 0.2s ease; }
+}

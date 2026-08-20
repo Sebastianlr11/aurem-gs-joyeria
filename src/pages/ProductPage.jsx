@@ -815,6 +815,32 @@ const ProductPage = () => {
         }
     }, [loading, product, searchParams]);
 
+    /* La barra de compra solo aparece cuando el botón de verdad ya salió de
+       pantalla. Con los dos a la vez había dos "Comprar ahora" compitiendo a
+       diez centímetros uno del otro, y el de abajo tapando parte de la foto
+       sin necesidad: la barra existe para cuando el botón se pierde al bajar
+       a leer la ficha, no para acompañarlo. */
+    const accionesRef = useRef(null);
+    const [barraVisible, setBarraVisible] = useState(false);
+
+    useEffect(() => {
+        /* Sin IntersectionObserver la barra se queda fija y visible. Es un
+           botón de compra: vale más que estorbe un poco a que desaparezca
+           para siempre porque el navegador no soporta la API. */
+        if (typeof IntersectionObserver === 'undefined') { setBarraVisible(true); return; }
+        const el = accionesRef.current;
+        if (!el) return;
+        /* rootMargin recorta el borde de abajo por la altura de la propia
+           barra: sin eso la barra aparece cuando el botón toca el filo de la
+           pantalla, o sea justo cuando ella misma lo está tapando. */
+        const obs = new IntersectionObserver(
+            ([e]) => setBarraVisible(!e.isIntersecting),
+            { rootMargin: '0px 0px -88px 0px' },
+        );
+        obs.observe(el);
+        return () => obs.disconnect();
+    }, [loading, product]);
+
     if (loading) return <Skeleton />;
 
     if (notFound) return (
@@ -1046,7 +1072,7 @@ const ProductPage = () => {
                             </div>
                         )}
 
-                        <div className="ficha-acciones">
+                        <div className="ficha-acciones" ref={accionesRef}>
                             <button className="ficha-btn-comprar" onClick={() => setShowBuyModal(true)}>
                                 Comprar ahora
                             </button>
@@ -1187,10 +1213,12 @@ const ProductPage = () => {
                 )}
             </div>
 
-            {/* Barra fija. En el móvil el botón de comprar queda arriba y se
-                pierde apenas la persona baja a leer la ficha; sin esto hay que
-                volver a subir para comprar, y mucha gente no vuelve. */}
-            <div className="ficha-barra">
+            {/* Barra fija. El botón de comprar queda arriba y se pierde apenas
+                la persona baja a leer la ficha; sin esto hay que volver a
+                subir para comprar, y mucha gente no vuelve. Se asoma sola
+                cuando el botón de arriba sale de cuadro. */}
+            <div className={`ficha-barra${barraVisible ? ' ficha-barra--visible' : ''}`}
+                 aria-hidden={!barraVisible}>
                 <div className="container ficha-barra-fila">
                     <div className="ficha-barra-precio">
                         <div>
