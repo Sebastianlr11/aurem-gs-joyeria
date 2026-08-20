@@ -17,12 +17,34 @@ Deno.serve(async (req: Request) => {
   try {
     const url = new URL(req.url)
 
-    // MercadoPago envía el payment ID como query param
-    const paymentId = url.searchParams.get('data.id') || url.searchParams.get('id')
-    const topic = url.searchParams.get('topic') || url.searchParams.get('type')
+    /* El identificador del pago llega de dos formas según la clase de aviso.
+       El IPN antiguo lo pone en la URL (?id=…&topic=payment); el webhook
+       nuevo manda un POST con el cuerpo {type:'payment', data:{id}} y no
+       siempre repite los parámetros. Leer sólo la URL era quedarse con la
+       mitad de los avisos, y los que faltaran se descartaban en silencio con
+       un 200: el pago entra, el pedido nunca se entera. */
+    let cuerpo: Record<string, unknown> = {}
+    if (req.method === 'POST') {
+      try { cuerpo = await req.json() } catch { /* aviso sin cuerpo: normal en IPN */ }
+    }
+    const datos = (cuerpo.data ?? {}) as Record<string, unknown>
+
+    const paymentId = url.searchParams.get('data.id')
+      || url.searchParams.get('id')
+      || (datos.id != null ? String(datos.id) : null)
+
+    const topic = url.searchParams.get('topic')
+      || url.searchParams.get('type')
+      || (typeof cuerpo.type === 'string' ? cuerpo.type : null)
+      /* "payment.created", "payment.updated": nos quedamos con lo de antes
+         del punto. */
+      || (typeof cuerpo.action === 'string' ? cuerpo.action.split('.')[0] : null)
 
     // Solo procesamos notificaciones de pagos
     if (!paymentId || (topic && topic !== 'payment' && topic !== 'merchant_order')) {
+      /* Se deja rastro: un aviso descartado sin explicación fue justo lo que
+         escondió que Mercado Pago no estaba avisando. */
+      console.log('Aviso descartado:', { paymentId, topic, metodo: req.method })
       return new Response(JSON.stringify({ ok: true, skipped: true }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
