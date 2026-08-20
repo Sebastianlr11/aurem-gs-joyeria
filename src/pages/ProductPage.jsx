@@ -45,7 +45,7 @@ const useCountdown = (storageKey) => {
 
 const fmt = (price) => price?.toLocaleString('es-CO');
 
-/* ── PaymentMethods ─────────────────────────────────────────────── */
+/* Los logos de los medios de pago, para la ficha del joyero. */
 const PAYMENT_LOGOS = [
   { name: 'Visa',        src: '/assets/payment/visa.svg' },
   { name: 'Mastercard',  src: '/assets/payment/mastercard.svg' },
@@ -56,25 +56,6 @@ const PAYMENT_LOGOS = [
   { name: 'Efecty',      src: '/assets/payment/efecty.svg' },
   { name: 'Bancolombia', src: '/assets/payment/bancolombia.svg' },
 ];
-
-const PaymentMethods = () => (
-  <div className="pm-section">
-    <span className="pm-label">Medios de pago</span>
-    <div className="pm-grid">
-      {PAYMENT_LOGOS.map(({ name, src }) => (
-        <div className="pm-item" key={name} title={name}>
-          <img src={src} alt={name} />
-        </div>
-      ))}
-    </div>
-    <div className="pm-cod-tag">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
-      </svg>
-      Contraentrega en Bogotá · envíos a todo el país
-    </div>
-  </div>
-);
 
 /* El contraentrega sólo se hace en Bogotá: el taller despacha a domicilio con
    cobro únicamente en la capital. Al resto del país se le cobra por
@@ -663,7 +644,7 @@ const Skeleton = () => (
 );
 
 /* ── Gallery ───────────────────────────────────────────────────── */
-const Gallery = ({ images, badges }) => {
+const Gallery = ({ images, badges, volver }) => {
     const [activeIdx, setActiveIdx] = useState(0);
     const [fading, setFading] = useState(false);
     const [lightbox, setLightbox] = useState(false);
@@ -700,6 +681,7 @@ const Gallery = ({ images, badges }) => {
             <div className="pg-gallery hero-anim" style={{ '--hero-delay': '0s' }}>
                 <div className="pg-gallery-main">
                     <div className="product-page-placeholder"><span>✦</span></div>
+                    {volver}
                 </div>
                 {badges}
             </div>
@@ -716,39 +698,27 @@ const Gallery = ({ images, badges }) => {
                         style={{ opacity: fading ? 0 : 1, transition: 'opacity 0.22s ease' }}
                     />
                     {badges}
+                    {volver}
+                    {/* Las miniaturas van encima de la foto, verticales a la
+                        derecha. Abajo, sobre su propia barra clara, partían el
+                        fondo oscuro en dos y le quitaban a la pieza el único
+                        sitio donde tiene toda la luz. Y las flechas sobran con
+                        tres fotos a la vista. */}
                     {images.length > 1 && (
-                        <>
-                            <button className="pg-gallery-nav pg-gallery-nav--prev" onClick={(e) => { e.stopPropagation(); prev(); }} aria-label="Anterior">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                    <polyline points="15 18 9 12 15 6" />
-                                </svg>
-                            </button>
-                            <button className="pg-gallery-nav pg-gallery-nav--next" onClick={(e) => { e.stopPropagation(); next(); }} aria-label="Siguiente">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                    <polyline points="9 18 15 12 9 6" />
-                                </svg>
-                            </button>
-                        </>
-                    )}
-                </div>
-
-                {images.length > 1 && (
-                    <div className="pg-gallery-footer">
                         <div className="pg-gallery-thumbs">
                             {images.map((url, i) => (
                                 <button
                                     key={i}
                                     className={`pg-gallery-thumb ${i === activeIdx ? 'pg-gallery-thumb--active' : ''}`}
-                                    onClick={() => goTo(i)}
+                                    onClick={(e) => { e.stopPropagation(); goTo(i); }}
                                     aria-label={`Imagen ${i + 1}`}
                                 >
                                     <img src={url} alt="" />
                                 </button>
                             ))}
                         </div>
-                        <span className="pg-gallery-counter">{activeIdx + 1} / {images.length}</span>
-                    </div>
-                )}
+                    )}
+                </div>
             </div>
 
             {/* Lightbox modal */}
@@ -945,20 +915,22 @@ const ProductPage = () => {
 
             <section className="ficha-hero">
               <div className="container">
-                <div className="ficha-volver">
-                    <Link to="/catalogo">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
-                            <line x1="19" y1="12" x2="5" y2="12" />
-                            <polyline points="12 19 5 12 12 5" />
-                        </svg>
-                        Volver al catálogo
-                    </Link>
-                </div>
-
                 <div className="ficha-grid">
 
                     <div className="ficha-galeria">
-                        <Gallery images={allImages} badges={badges} />
+                        <Gallery
+                            images={allImages}
+                            badges={badges}
+                            volver={
+                                <Link to="/catalogo" className="pg-volver" onClick={(e) => e.stopPropagation()}>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+                                        <line x1="19" y1="12" x2="5" y2="12" />
+                                        <polyline points="11 6 5 12 11 18" />
+                                    </svg>
+                                    Volver al catálogo
+                                </Link>
+                            }
+                        />
                     </div>
 
                     <div className="ficha-info">
