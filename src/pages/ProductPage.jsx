@@ -889,6 +889,14 @@ const ProductPage = () => {
        joyero, que ya están escritos con precisión. Si la pieza no los tiene
        cargados se usa la primera frase de la descripción, que suele ser la que
        la presenta. */
+    /* "Anillo Majestuosa" se parte en "Anillo" y "MAJESTUOSA": la primera
+       palabra dice qué es, el resto es el nombre propio. Un nombre de una sola
+       palabra no se parte. */
+    const partes = product.name.trim().split(/\s+/);
+    const nombrePartido = partes.length > 1
+        ? { primero: partes[0], resto: partes.slice(1).join(' ') }
+        : { primero: product.name, resto: null };
+
     const material = [
         product.piedra,
         product.metal ? `sobre ${product.metal.toLowerCase()}` : null,
@@ -904,9 +912,26 @@ const ProductPage = () => {
       || (product.description || '').split(/(?<=\.)\s/)[0].trim();
     const resumenFinal = resumen && !/[.!?]$/.test(resumen) ? `${resumen}.` : resumen;
 
+    /* El punzón lleva el metal con su ley leída como la lee un joyero —"plata
+       ley 925", no "925" a secas ni "Anillos", que es una etiqueta de catálogo
+       y no un dato comprobable. */
+    const selloMetal = punzonLey
+        ? `${(product.metal || '').replace(/\s*\b(925|750|18\s?k|14\s?k|PT\s?950|950)\b/i, '').trim()} ley ${punzonLey}`.trim()
+        : product.metal;
+
+    /* De la piedra se sella solo lo que la nombra, no todo lo que la describe:
+       de "Esmeralda natural, corte rectangular" queda "Esmeralda natural" y el
+       corte se lee completo en la ficha del joyero. Un punzón es un sello
+       golpeado en el metal; una frase larga con este tracking se parte en dos
+       renglones y deja de parecerlo. */
+    const piedraCorta = (product.piedra || '').split(',')[0].trim();
+    const selloPiedra = piedraCorta && piedraCorta.split(/\s+/).length <= 3
+        ? piedraCorta
+        : null;
+
     const sellos = [
-        product.category,
-        punzonLey,
+        selloMetal,
+        selloPiedra,
         enOferta ? 'Precio de lanzamiento' : null,
         product.stock === 1 ? 'Última unidad' : null,
         'Hecha en Colombia',
@@ -933,7 +958,6 @@ const ProductPage = () => {
             {showBuyModal && <BuyModal product={product} onClose={() => setShowBuyModal(false)} />}
 
             <section className="ficha-hero">
-              <div className="container">
                 <div className="ficha-grid">
 
                     <div className="ficha-galeria">
@@ -959,7 +983,13 @@ const ProductPage = () => {
                             <span className="ficha-ref">{referencia}</span>
                         </div>
 
-                        <h1 className="ficha-nombre">{product.name}</h1>
+                        {/* El nombre partido en dos, como el resto de los
+                            titulares del sitio: el tipo de pieza en la romana y
+                            el nombre propio en versalitas espaciadas debajo. */}
+                        <h1 className="ficha-nombre">
+                            {nombrePartido.primero}
+                            {nombrePartido.resto && <em>{nombrePartido.resto}.</em>}
+                        </h1>
 
                         {/* Arriba va una frase corta armada con la ficha, no la
                             descripción de venta. La de venta son siete líneas
@@ -968,10 +998,6 @@ const ProductPage = () => {
                             queda fuera de la primera pantalla. Baja completa a
                             la ficha del joyero, donde se lee con calma. */}
                         {resumenFinal && <p className="ficha-desc">{resumenFinal}</p>}
-
-                        <div className="ficha-sellos">
-                            {sellos.map(s => <span key={s} className="punzon">{s}</span>)}
-                        </div>
 
                         <div className="ficha-precio-bloque">
                             <div className="ficha-precio">
@@ -996,6 +1022,13 @@ const ProductPage = () => {
                                 </span>
                             </div>
                         )}
+
+                        {/* Los punzones van DEBAJO del precio. Arriba se leían
+                            como etiquetas de catálogo; acá, junto a la cifra,
+                            son lo que la respalda. */}
+                        <div className="ficha-sellos">
+                            {sellos.map(s => <span key={s} className="punzon">{s}</span>)}
+                        </div>
 
                         {esAnillo && (
                             <div className="ficha-tallas">
@@ -1076,7 +1109,6 @@ const ProductPage = () => {
 
                     </div>
                 </div>
-              </div>
             </section>
 
             {/* La ficha del joyero sale de la columna y pasa a ser una tarjeta

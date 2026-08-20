@@ -14899,3 +14899,74 @@ textarea:focus-visible {
   white-space: pre-line;
   text-wrap: pretty;
 }
+
+/* ─── La ficha a sangre ──────────────────────────────────────────────
+   La pieza ocupa media pantalla completa, sin marco ni márgenes. Encerrada en
+   una caja con aire alrededor se leía como una foto pegada en un documento;
+   a sangre es una vitrina. */
+.ficha-hero {
+  /* El aire de arriba se lo queda la columna de texto, no la banda: la foto
+     pasa por debajo del navbar a propósito. */
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.ficha-hero .ficha-grid {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0;
+  align-items: stretch;
+}
+
+.ficha-hero .ficha-galeria { position: static; }
+
+.ficha-hero .pg-gallery {
+  border: none;
+  border-radius: 0;
+  height: 100%;
+  min-height: clamp(420px, 44vw, 760px);
+}
+
+/* cover y sin relleno: la foto llena su mitad. El contain con 48px de aire
+   dejaba la pieza pequeña en el centro de un cuadro vacío, y el recuadro se
+   veía como una foto pegada encima del fondo en vez de ser el fondo. */
+.ficha-hero .pg-gallery-main > img {
+  object-fit: cover;
+  object-position: center;
+  padding: 0;
+}
+
+.ficha-hero .ficha-info {
+  padding: clamp(96px, 11vw, 132px) clamp(24px, 4vw, 56px) clamp(40px, 5vw, 64px);
+}
+
+/* El nombre partido: el tipo de pieza en la romana y el nombre propio en
+   versalitas espaciadas debajo. Es el mismo gesto de los demás titulares. */
+.ficha-hero .ficha-nombre em {
+  display: block;
+  margin-top: 0.35em;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 0.62em;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.ficha-hero .ficha-sellos { margin-top: 22px; }
+
+@media (max-width: 768px) {
+  .ficha-hero .ficha-grid { grid-template-columns: 1fr; }
+  .ficha-hero .pg-gallery { height: clamp(340px, 58vh, 480px); min-height: 0; }
+  .ficha-hero .ficha-info { padding: clamp(28px, 6vw, 40px) 24px 40px; }
+}
+
+/* Las garantías sobre cacao. Se quedaron con el fondo marfil de cuando la
+   ficha era clara, y encima el texto se pasó a blanco: blanco sobre marfil,
+   invisible. Sobre oscuro el panel no necesita fondo — basta la retícula de
+   líneas de pelo en blanco tenue. */
+.ficha-hero .ficha-garantias { background: rgba(255, 255, 255, 0.14); }
+.ficha-hero .ficha-garantia { background: var(--ink); }
+
+/* Volver y miniaturas despejan el navbar. Al ir la foto a sangre quedaron a
+   la misma altura que la píldora de navegación, peleando con ella. */
+.ficha-hero .pg-volver { top: clamp(84px, 9vw, 104px); }
+.ficha-hero .pg-gallery-thumbs { top: clamp(84px, 9vw, 104px); bottom: auto; }
