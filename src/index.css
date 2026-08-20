@@ -14595,3 +14595,229 @@ textarea:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   .buy-modal-box { animation: none; }
 }
+
+/* ─── Ficha de producto: la banda oscura ─────────────────────────────
+   La pieza se ve sobre cacao y no sobre marfil. Una joya fotografiada sobre
+   fondo claro compite con el fondo; sobre cacao el metal y la piedra son lo
+   único que tiene luz, que es exactamente cómo se mira una pieza en un
+   mostrador. */
+.ficha { padding-top: 0; }
+
+.ficha-hero {
+  background: var(--ink);
+  color: #fff;
+  padding-bottom: clamp(32px, 5vw, 64px);
+}
+.ficha-hero .ficha-volver a { color: rgba(255, 255, 255, 0.72); }
+.ficha-hero .ficha-volver a:hover { color: var(--oro-luz); }
+.ficha-hero .eyebrow { color: var(--oro-luz); }
+.ficha-hero .eyebrow::before { background: var(--oro-luz); }
+.ficha-hero .ficha-ref { color: rgba(255, 255, 255, 0.45); }
+.ficha-hero .ficha-nombre { color: #fff; }
+.ficha-hero .ficha-nombre em { color: var(--oro-luz); }
+.ficha-hero .ficha-desc { color: rgba(255, 255, 255, 0.72); }
+.ficha-hero .ficha-precio-valor { color: #fff; }
+.ficha-hero .ficha-precio-moneda,
+.ficha-hero .ficha-precio-envio { color: rgba(255, 255, 255, 0.6); }
+.ficha-hero .ficha-precio-envio-fuerte { color: rgba(255, 255, 255, 0.85); }
+.ficha-hero .ficha-precio-bloque,
+.ficha-hero .ficha-garantias,
+.ficha-hero .ficha-pagos { border-color: rgba(255, 255, 255, 0.14); }
+
+/* El punzón sobre cacao invierte: oro claro sobre fondo oscuro, que es donde
+   cumple el contraste. */
+.ficha-hero .punzon {
+  color: var(--oro-luz);
+  background: linear-gradient(180deg, #241E1A 0%, var(--ink) 100%);
+  border-color: rgba(227, 201, 144, 0.4);
+  box-shadow: none;
+}
+
+.ficha-hero .ficha-tallas-titulo { color: #fff; }
+.ficha-hero .ficha-tallas-guia { color: var(--oro-luz); }
+.ficha-hero .ficha-tallas-nota { color: rgba(255, 255, 255, 0.55); }
+.ficha-hero .ficha-talla {
+  border-color: rgba(255, 255, 255, 0.28);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.85);
+}
+.ficha-hero .ficha-talla:hover { border-color: var(--oro-luz); }
+.ficha-hero .ficha-talla--on {
+  background: var(--bg-marfil);
+  border-color: var(--bg-marfil);
+  color: var(--ink);
+}
+
+.ficha-hero .ficha-btn-comprar { background: var(--bg-marfil); color: var(--ink); }
+.ficha-hero .ficha-btn-comprar:hover { background: #fff; }
+.ficha-hero .ficha-btn-wa { border-color: var(--oro-luz); color: var(--oro-luz); background: transparent; }
+.ficha-hero .ficha-btn-wa:hover { background: rgba(227, 201, 144, 0.08); }
+
+.ficha-hero .ficha-garantia-t { color: #fff; }
+.ficha-hero .ficha-garantia-s { color: rgba(255, 255, 255, 0.6); }
+.ficha-hero .pm-label { color: rgba(255, 255, 255, 0.45); }
+.ficha-hero .pm-item { background: rgba(255, 255, 255, 0.06); border-color: rgba(255, 255, 255, 0.12); }
+.ficha-hero .pm-cod-tag { background: rgba(255, 255, 255, 0.06); border-color: rgba(255, 255, 255, 0.14); color: rgba(255, 255, 255, 0.7); }
+
+/* ─── La ficha del joyero ────────────────────────────────────────────
+   El documento que respalda la compra. Sale de la columna del precio, donde
+   se leía como letra chica pegada al botón, y pasa a ser una pieza de ancho
+   completo con su propio papel. */
+.joyero { background: var(--bg-marfil); padding: clamp(40px, 6vw, 80px) 0 clamp(24px, 3vw, 40px); }
+
+.joyero-caja {
+  background: var(--bg-color);
+  border: 1px solid var(--hairline);
+  border-radius: 2px;
+  padding: clamp(24px, 3vw, 40px);
+}
+.joyero-sello { height: 28px; display: block; opacity: 0.9; margin-bottom: 20px; }
+
+.joyero-cabeza {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+.joyero-cabeza h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+}
+.joyero-cabeza h2 em {
+  display: block;
+  font-style: normal;
+  font-size: 62%;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.joyero-lista {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  gap: 0 clamp(32px, 5vw, 64px);
+  margin: 0;
+}
+.joyero-lista > div {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0 20px;
+  align-items: baseline;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--hairline);
+}
+.joyero-lista dt {
+  font-family: var(--font-ui);
+  font-size: 0.7rem;
+  line-height: 1.3;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.joyero-lista dd {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: 0.95rem;
+  line-height: 1.4;
+  text-align: right;
+  color: var(--ink);
+}
+
+.joyero-pagos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px 32px;
+  margin-top: clamp(32px, 4vw, 48px);
+  padding-top: 24px;
+  border-top: 1px solid var(--hairline);
+}
+.joyero-logos { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; }
+.joyero-logos img { height: 26px; width: auto; opacity: 0.85; }
+
+/* ─── La barra fija ──────────────────────────────────────────────────
+   En el móvil el botón de comprar queda arriba y se pierde apenas la persona
+   baja a leer la ficha. Sin esto hay que volver a subir, y mucha gente no
+   vuelve. */
+.ficha-barra {
+  position: sticky;
+  bottom: 0;
+  z-index: 40;
+  background: var(--ink-soft);
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.ficha-barra-fila {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 24px;
+  padding-top: 14px;
+  padding-bottom: 14px;
+}
+.ficha-barra-precio { flex: 1 1 140px; min-width: 0; }
+.ficha-barra-precio > div { display: flex; align-items: baseline; gap: 6px; }
+.ficha-barra-precio span {
+  font-family: var(--font-ui);
+  font-size: 1.35rem;
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+.ficha-barra-precio small {
+  font-family: var(--font-ui);
+  font-size: 0.65rem;
+  letter-spacing: 0.14em;
+  color: rgba(255, 255, 255, 0.5);
+}
+.ficha-barra-nota {
+  display: block;
+  margin-top: 3px;
+  font-family: var(--font-ui);
+  font-size: 0.78rem !important;
+  font-weight: 400 !important;
+  line-height: 1.3;
+  letter-spacing: 0 !important;
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+
+.ficha-barra-acciones { display: flex; gap: 10px; flex: 1 1 260px; }
+.ficha-barra-comprar {
+  flex: 1;
+  height: 52px;
+  border: none;
+  border-radius: 100px;
+  background: var(--bg-marfil);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+.ficha-barra-comprar:hover { background: #fff; transform: translateY(-2px); }
+.ficha-barra-wa {
+  flex: none;
+  width: 52px;
+  height: 52px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--oro-luz);
+  border-radius: 100px;
+  background: transparent;
+  transition: var(--transition-smooth);
+}
+.ficha-barra-wa:hover { background: rgba(227, 201, 144, 0.08); }
+
+@media (prefers-reduced-motion: reduce) {
+  .ficha-barra-comprar:hover { transform: none; }
+}
