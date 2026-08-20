@@ -15886,3 +15886,17 @@ textarea:focus-visible {
   .catalogo-filtros-fila--precio { padding-bottom: 0.5rem; }
   .catalogo-resumen { padding-bottom: 0.625rem; }
 }
+
+/* Último recorte. El relleno de arriba se queda en 92px: el navbar termina
+   en 88 y por debajo de eso empezaría a tapar el antetítulo. Lo que baja es
+   el titular y el aire de dentro. */
+@media (min-width: 769px) {
+  .catalogo-head { padding-bottom: 1.5rem; gap: 2rem; }
+  .catalogo-titulo { font-size: clamp(2.25rem, 3.4vw, 3rem); }
+  .catalogo-lead { margin-top: 0.875rem; font-size: 0.9rem; line-height: 1.6; }
+  .catalogo-promesa { padding: 0.625rem 0; }
+  .catalogo-promesa-valor { font-size: 0.875rem; }
+  .catalogo-filtros-fila { padding-top: 0.375rem; padding-bottom: 0.375rem; }
+  .catalogo-filtros-fila--precio { padding-bottom: 0.4375rem; }
+  .catalogo-resumen { padding-bottom: 0.5rem; }
+}
