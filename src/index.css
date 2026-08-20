@@ -15432,11 +15432,12 @@ textarea:focus-visible {
 .pg-gallery-main { touch-action: pan-y; }
 .pg-gallery-punto { touch-action: manipulation; }
 
-/* ─── "Otras piezas": un riel, no un segundo catálogo ─────────────────
-   Con las tarjetas del catálogo a ancho completo la sección medía 904px en
-   una pantalla de 900: más alta que el viewport entero para ser lo último de
-   la página. Las fotos se llevaban 524 de esos. Acá la pieza ya se eligió;
-   esto es para asomarse a lo que hay al lado. */
+/* ─── "Otras piezas": sin caja ───────────────────────────────────────
+   Se va la tarjeta blanca: la foto en 3:4 apoyada sobre el marfil y debajo
+   una sola línea de pelo. Menos cromo y foto más grande.
+   El bloque se capa a 1120px: con las tarjetas del catálogo a ancho completo
+   la sección medía 904px en una pantalla de 900, más alta que el viewport
+   entero para ser lo último de la página. */
 .ficha-relacionadas {
   max-width: 1120px;
   margin-inline: auto;
@@ -15444,11 +15445,144 @@ textarea:focus-visible {
   padding-top: 2.5rem;
 }
 
-/* Cuadrada y no 4:5: en un riel la foto es una miniatura para reconocer la
-   pieza, no la imagen con la que se decide la compra. */
-.ficha-relacionadas .pieza-foto { aspect-ratio: 1; }
+.ficha-relacionadas-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 2rem;
+}
 
-/* Sin la descripción. Para saber si vale la pena entrar bastan la categoría,
-   el nombre y el precio; el texto largo se lee en la ficha, que está a un
-   clic. Eran 60px por tarjeta para repetir lo que ya dice el nombre. */
-.ficha-relacionadas .pieza-spec { display: none; }
+.rel { display: flex; flex-direction: column; gap: 20px; }
+
+.rel-foto {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  aspect-ratio: 3 / 4;
+  border-radius: 2px;
+  background: var(--bg-arena);
+}
+
+.rel-foto img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* 38% y no el centro: en estas fotos la pieza vive en el tercio alto y el
+     cuarto de abajo es el reflejo sobre la mesa. */
+  object-position: center 38%;
+  display: block;
+  transition: transform 0.4s var(--ease);
+}
+.rel-foto:hover img { transform: scale(1.04); }
+
+.rel-foto-vacia {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--oro);
+  font-size: 1.5rem;
+}
+
+.rel-sello { position: absolute; left: 16px; bottom: 16px; }
+
+/* El cuerpo absorbe la altura sobrante y el filete se va al fondo: los
+   nombres ocupan uno o dos renglones según la pieza, y sin esto los botones
+   de las tres quedaban a alturas distintas. */
+.rel { justify-content: stretch; }
+.rel-cuerpo { display: flex; flex-direction: column; gap: 12px; flex: 1; }
+.rel-filete { margin-top: auto; }
+
+.rel-linea {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.rel-nombre {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.625rem;
+  line-height: 1.2;
+  color: var(--ink);
+}
+
+.rel-precio { display: flex; align-items: baseline; gap: 6px; flex: none; }
+.rel-precio-valor { font-size: 1.25rem; font-weight: 700; color: var(--ink); }
+.rel-precio-moneda { font-size: 0.68rem; letter-spacing: 0.12em; color: var(--text-secondary); }
+
+.rel-ficha { font-size: 0.85rem; line-height: 1.6; color: var(--text-secondary); }
+
+.rel-filete { display: block; height: 1px; background: var(--hairline); margin-top: auto; }
+
+.rel-acciones { display: flex; gap: 12px; padding-top: 4px; }
+
+.rel-btn {
+  flex: 1;
+  height: 46px;
+  border-radius: 100px;
+  background: var(--ink);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-ui);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  transition: all 0.3s var(--ease);
+}
+.rel-btn:hover {
+  background: var(--ink-soft);
+  color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px rgba(28, 23, 20, 0.18);
+}
+
+.rel-wa {
+  flex: none;
+  width: 46px;
+  height: 46px;
+  border-radius: 100px;
+  border: 1px solid var(--hairline);
+  background: var(--bg-color);
+  color: #25D366;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s var(--ease);
+}
+.rel-wa:hover {
+  background: var(--bg-arena);
+  border-color: rgba(37, 211, 102, 0.5);
+  transform: translateY(-2px);
+}
+
+@media (max-width: 900px) {
+  /* Carril: la siguiente pieza asoma por el borde y eso dice que hay más,
+     sin gastar una pantalla entera en apilarlas. */
+  .ficha-relacionadas { max-width: none; }
+
+  /* El antetítulo y el enlace dejan de compartir renglón: en 390px el
+     antetítulo se partía en dos y chocaba con "Ver el catálogo". */
+  .ficha-relacionadas-head { flex-wrap: wrap; gap: 10px 1.5rem; }
+  .ficha-relacionadas-grid {
+    display: flex;
+    gap: 20px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+  .ficha-relacionadas-grid::-webkit-scrollbar { display: none; }
+  .rel { flex: none; width: 258px; scroll-snap-align: start; gap: 16px; }
+  .rel-cuerpo { gap: 10px; }
+  .rel-nombre { font-size: 1.25rem; }
+  .rel-precio-valor { font-size: 1.0625rem; }
+  .rel-precio-moneda { font-size: 0.65rem; }
+  /* La ficha se cae: en 258px de ancho parte el nombre del precio y el
+     carril deja de leerse de un vistazo. */
+  .rel-ficha { display: none; }
+  .rel-btn, .rel-wa { height: 48px; }
+  .rel-wa { width: 48px; }
+}
