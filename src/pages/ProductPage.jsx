@@ -650,8 +650,14 @@ const Skeleton = () => (
    mirar de reojo lo que hay al lado. */
 const PiezaRelacionada = ({ product }) => {
     const sello = insignia(product);
-    const ficha = [product.metal, (product.piedra || '').split(',')[0].trim().toLowerCase()]
-        .filter(Boolean).join(' · ');
+    /* La piedra se corta en la primera coma y también en el primer "con":
+       "esmeralda natural con diamantes naturales certificados" ocupaba dos
+       renglones y, como la fila más alta manda, estiraba las tres tarjetas.
+       Lo que se corta se lee entero en la ficha de la pieza. */
+    const ficha = [
+        product.metal,
+        (product.piedra || '').split(/,| con /i)[0].trim().toLowerCase() || null,
+    ].filter(Boolean).join(' · ');
 
     const waLink = waUrl({
         mobile: `Hola! 👋 Vi esta pieza en su tienda: *${product.name}* — $${fmt(product.price)} COP. Me gustaría saber si está disponible ✨`,
@@ -1062,6 +1068,10 @@ const ProductPage = () => {
         product.engaste ? ['Engaste', product.engaste] : null,
         esAnillo ? ['Talla', `${product.talla_rango || '5 a 12'} · ajuste en taller sin costo`] : null,
         ['Envío', '24 a 48 horas hábiles, a todo el país'],
+        /* Una línea, no un párrafo: el detalle de las dos formas de pagar se
+           lee entero en la franja de abajo. Aquí solo el titular, y con el
+           límite dicho —el contraentrega no sale de Bogotá—. */
+        ['Pago', 'Contraentrega en Bogotá · o en línea'],
         ['Certificado', 'Opcional · $50.000'],
         ['Garantía', 'De por vida en el metal'],
         product.stock !== null && product.stock !== undefined
@@ -1220,10 +1230,10 @@ const ProductPage = () => {
               <div className="container">
                 {/* Sin tarjeta blanca: la ficha se apoya en el marfil y la
                     ordenan las líneas de pelo. La caja con borde y sombra
-                    encerraba un documento que ya se sostiene solo. */}
-                <img className="joyero-sello" src="/assets/logo-isotipo.svg" alt="Aurem Gs Joyería"
-                     width="120" height="44" loading="lazy" />
-
+                    encerraba un documento que ya se sostiene solo.
+                    Sin isotipo tampoco: sobre marfil y sin caja que firmar,
+                    quedaba como una marca de agua suelta ocupando un renglón
+                    entero. La marca ya la lleva el pie de página. */}
                 <header className="joyero-cabeza">
                   <div>
                     <span className="eyebrow">Lo verificable</span>

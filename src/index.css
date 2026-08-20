@@ -14635,10 +14635,6 @@ textarea:focus-visible {
    franja seguía saliéndose 44px por cada lado en el celular. */
 @media (max-width: 968px) { .joyero { --joyero-pad: 2rem; } }
 @media (max-width: 600px) { .joyero { --joyero-pad: 1.25rem; } }
-/* El sello de la casa. A 28px quedaba como una marca de agua al lado de un
-   titular de 1.75rem en romana; esto es el membrete del documento que respalda
-   la pieza y tiene que leerse como tal. */
-.joyero-sello { height: 44px; display: block; opacity: 0.9; margin-bottom: 28px; }
 
 .joyero-cabeza {
   display: flex;
@@ -14671,7 +14667,10 @@ textarea:focus-visible {
 
 .joyero-lista {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  /* Dos columnas exactas, no auto-fit: con minmax de 340px la rejilla armaba
+     tres columnas en una pantalla ancha y las ocho filas caían 3-3-2, con la
+     última fila coja y los datos en zigzag. Con dos, van cuatro y cuatro. */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   column-gap: clamp(32px, 6vw, 96px);
   margin: 0;
   border-top: 1px solid var(--hairline);
@@ -14687,6 +14686,10 @@ textarea:focus-visible {
   padding: 17px 0;
   border-bottom: 1px solid var(--hairline);
 }
+@media (max-width: 860px) {
+  .joyero-lista { grid-template-columns: minmax(0, 1fr); }
+}
+
 .joyero-lista dt {
   font-family: var(--font-ui);
   font-size: 0.6875rem;
@@ -15490,14 +15493,14 @@ textarea:focus-visible {
 /* ─── "Otras piezas": sin caja ───────────────────────────────────────
    Se va la tarjeta blanca: la foto en 3:4 apoyada sobre el marfil y debajo
    una sola línea de pelo. Menos cromo y foto más grande.
-   El bloque se capa a 1120px: con las tarjetas del catálogo a ancho completo
+   El bloque se capa a 1000px: con las tarjetas del catálogo a ancho completo
    la sección medía 904px en una pantalla de 900, más alta que el viewport
    entero para ser lo último de la página. */
 .ficha-relacionadas {
-  max-width: 1120px;
+  max-width: 1000px;
   margin-inline: auto;
-  margin-top: 4.5rem;
-  padding-top: 2.5rem;
+  margin-top: 3.5rem;
+  padding-top: 2rem;
 }
 
 .ficha-relacionadas-grid {
@@ -15505,13 +15508,16 @@ textarea:focus-visible {
   gap: 2rem;
 }
 
-.rel { display: flex; flex-direction: column; gap: 20px; }
+.rel { display: flex; flex-direction: column; gap: 16px; }
 
 .rel-foto {
   position: relative;
   display: block;
   overflow: hidden;
-  aspect-ratio: 3 / 4;
+  /* 4:5 y no 3:4. Sigue siendo vertical, pero el 3:4 en una pantalla de
+     portátil dejaba la sección más alta que el viewport para ser lo último
+     de la página. */
+  aspect-ratio: 4 / 5;
   border-radius: 2px;
   background: var(--bg-arena);
 }
@@ -15544,7 +15550,7 @@ textarea:focus-visible {
    nombres ocupan uno o dos renglones según la pieza, y sin esto los botones
    de las tres quedaban a alturas distintas. */
 .rel { justify-content: stretch; }
-.rel-cuerpo { display: flex; flex-direction: column; gap: 12px; flex: 1; }
+.rel-cuerpo { display: flex; flex-direction: column; gap: 10px; flex: 1; }
 .rel-filete { margin-top: auto; }
 
 .rel-linea {
@@ -15558,7 +15564,9 @@ textarea:focus-visible {
   margin: 0;
   font-family: var(--font-display);
   font-weight: 400;
-  font-size: 1.625rem;
+  /* 1.375 y no 1.625: a cuerpo grande "Anillo Esencia Imperial" se partía en
+     dos renglones y estiraba las tres tarjetas para igualarlas. */
+  font-size: 1.375rem;
   line-height: 1.2;
   color: var(--ink);
 }
