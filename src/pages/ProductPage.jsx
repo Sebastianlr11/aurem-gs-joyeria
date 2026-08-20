@@ -644,7 +644,7 @@ const Skeleton = () => (
 );
 
 /* ── Gallery ───────────────────────────────────────────────────── */
-const Gallery = ({ images, badges, volver }) => {
+const Gallery = ({ images, badges, volver, referencia }) => {
     const [activeIdx, setActiveIdx] = useState(0);
     const [fading, setFading] = useState(false);
     const [lightbox, setLightbox] = useState(false);
@@ -704,8 +704,30 @@ const Gallery = ({ images, badges, volver }) => {
                         Sobre su propia barra clara partían el fondo oscuro en
                         dos y le quitaban a la pieza el único sitio donde tiene
                         toda la luz. Las flechas sobran con tres a la vista. */}
+                    {/* La referencia arriba a la derecha, sobre la foto. En el
+                        celular la columna de texto empieza debajo de la imagen
+                        y ahí la referencia le robaría un renglón al nombre. */}
+                    {referencia && <span className="pg-gallery-ref">{referencia}</span>}
+
                     {images.length > 1 && (
                         <span className="pg-gallery-contador">{activeIdx + 1} / {images.length}</span>
+                    )}
+
+                    {/* Puntos para el celular: tres miniaturas de 58px se comen
+                        el borde de la foto en una pantalla de 390, y ahí no
+                        hace falta ver qué hay en cada una — basta saber
+                        cuántas son y en cuál vas. */}
+                    {images.length > 1 && (
+                        <div className="pg-gallery-puntos">
+                            {images.map((_, i) => (
+                                <button
+                                    key={i}
+                                    className={`pg-gallery-punto ${i === activeIdx ? 'pg-gallery-punto--on' : ''}`}
+                                    onClick={(e) => { e.stopPropagation(); goTo(i); }}
+                                    aria-label={`Imagen ${i + 1}`}
+                                />
+                            ))}
+                        </div>
                     )}
                     {images.length > 1 && (
                         <div className="pg-gallery-thumbs">
@@ -925,6 +947,20 @@ const ProductPage = () => {
 
     const resumenFinal = (product.description || '').trim();
 
+    /* La línea de datos del celular. En una pantalla de 390 la descripción de
+       cuatro renglones empuja el precio fuera de vista, así que arriba van
+       solo los cuatro datos que deciden —de qué es, qué piedra, cómo se paga
+       y cuándo llega— y la descripción se lee al bajar.
+       "Contraentrega en Bogotá" y no "pagas al recibir" a secas: el
+       contraentrega solo llega a Bogotá y la versión corta promete de más. */
+    const piedraCorta = (product.piedra || '').split(',')[0].trim().toLowerCase();
+    const resumenCorto = [
+        product.metal,
+        piedraCorta || null,
+        'contraentrega en Bogotá',
+        'envío 24 a 48 h',
+    ].filter(Boolean).join(' · ');
+
     const ficha = [
         product.metal ? ['Metal', product.metal + (punzonLey ? ' con punzón de ley' : '')] : null,
         product.piedra ? ['Piedra', product.piedra] : null,
@@ -952,13 +988,17 @@ const ProductPage = () => {
                         <Gallery
                             images={allImages}
                             badges={badges}
+                            referencia={referencia.replace('REF. ', '')}
                             volver={
                                 <Link to="/catalogo" className="pg-volver" onClick={(e) => e.stopPropagation()}>
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
                                         <line x1="19" y1="12" x2="5" y2="12" />
                                         <polyline points="11 6 5 12 11 18" />
                                     </svg>
-                                    Volver al catálogo
+                                    {/* En span y no suelto: en el celular el botón
+                                        se reduce a un círculo y el texto hay que
+                                        poder apagarlo. */}
+                                    <span className="pg-volver-txt">Volver al catálogo</span>
                                 </Link>
                             }
                         />
@@ -985,6 +1025,8 @@ const ProductPage = () => {
                             líneas de copy de redes con emojis, y empujaban el
                             precio y la talla debajo del pliegue. */}
                         {resumenFinal && <p className="ficha-desc">{resumenFinal}</p>}
+
+                        <p className="ficha-resumen-corto">{resumenCorto}</p>
 
                         <div className="ficha-precio-bloque">
                             <div className="ficha-precio">

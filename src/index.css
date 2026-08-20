@@ -15163,3 +15163,115 @@ textarea:focus-visible {
    al techo con un hueco debajo. "safe" para que en una pantalla más baja que
    el contenido se desborde hacia abajo y no se coma el antetítulo. */
 .ficha-hero .ficha-info { justify-content: safe center; }
+
+/* ─── Puntos, referencia y línea compacta ────────────────────────────
+   Piezas que solo existen en el celular; en escritorio se apagan abajo. */
+.pg-gallery-puntos {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 16px;
+  z-index: 3;
+  display: none;
+  justify-content: center;
+  gap: 7px;
+}
+
+.pg-gallery-punto {
+  width: 6px;
+  height: 6px;
+  padding: 0;
+  border: none;
+  border-radius: 100px;
+  background: rgba(255, 255, 255, 0.32);
+  cursor: pointer;
+  transition: width 0.3s var(--ease), background 0.3s ease;
+}
+.pg-gallery-punto--on { width: 18px; background: var(--oro-luz); }
+
+.pg-gallery-ref {
+  position: absolute;
+  right: 20px;
+  top: 26px;
+  z-index: 3;
+  display: none;
+  font-family: var(--font-ui);
+  font-size: 0.65rem;
+  font-weight: 400;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.ficha-resumen-corto { display: none; }
+
+@media (max-width: 768px) {
+  .ficha-hero .pg-gallery {
+    /* 470px de alto como el diseño, con techo por si el teléfono es bajo. */
+    aspect-ratio: auto;
+    height: min(470px, 56vh);
+    max-height: none;
+  }
+
+  /* Volver pasa a ser un círculo: en 390px de ancho la píldora con texto se
+     comía un tercio del borde de la foto. */
+  .ficha-hero .pg-volver {
+    top: 16px;
+    left: 20px;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    justify-content: center;
+    gap: 0;
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(28px);
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+  .ficha-hero .pg-volver-txt,
+  .ficha-hero .pg-gallery-thumbs,
+  .ficha-hero .pg-gallery-contador,
+  .ficha-hero .product-page-badges,
+  .ficha-hero .ficha-ref,
+  .ficha-hero .ficha-precio-envio { display: none; }
+
+  .pg-gallery-puntos,
+  .pg-gallery-ref { display: flex; }
+
+  .ficha-hero .ficha-info { padding: 8px 22px 24px; }
+
+  /* El precio sube por encima de la descripción: en el celular es el dato
+     que decide y con la descripción delante caía fuera de la pantalla. */
+  .ficha-hero .ficha-encabezado { order: 1; }
+  .ficha-hero .ficha-nombre { order: 2; margin-top: 12px; }
+  .ficha-hero .ficha-precio-bloque {
+    order: 3; margin-top: 18px;
+    /* Sin filetes: al reordenar, el de abajo quedaba entre el precio y la
+       línea de datos, partiendo en dos lo que es un solo bloque. */
+    padding: 0; border: none;
+  }
+  .ficha-hero .ficha-resumen-corto { order: 4; display: block; }
+  .ficha-hero .ficha-oferta { order: 5; }
+  .ficha-hero .ficha-desc { order: 6; }
+  .ficha-hero .ficha-tallas { order: 7; }
+  .ficha-hero .ficha-acciones { order: 8; }
+  .ficha-hero .ficha-promesas { order: 9; }
+
+  .ficha-resumen-corto {
+    margin: 10px 0 0;
+    font-family: var(--font-ui);
+    font-size: 0.82rem;
+    line-height: 1.5;
+    color: rgba(255, 255, 255, 0.66);
+  }
+
+  .ficha-hero .ficha-desc { margin-top: 26px; }
+
+  /* La barra de compra: los dos botones y nada más. El precio ya está a un
+     palmo arriba y repetirlo solo quita ancho al botón. */
+  .ficha-barra-precio { display: none; }
+  .ficha-barra-acciones { flex: 1; }
+  .ficha-barra {
+    background: rgba(42, 35, 30, 0.92);
+    backdrop-filter: blur(28px) saturate(1.2);
+  }
+}
