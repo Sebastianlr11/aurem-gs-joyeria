@@ -4,132 +4,228 @@ import { supabase } from '../lib/supabase'
 import { waUrl } from '../lib/whatsapp'
 import { pixelCompra } from '../lib/pixeles'
 
+const enPesos = (n) => `$${Math.round(Number(n) || 0).toLocaleString('es-CO')}`
+
 const Confirmacion = () => {
   const [searchParams] = useSearchParams()
-  const [updated, setUpdated] = useState(false)
+  const [pedido, setPedido] = useState(null)
+  const [copiado, setCopiado] = useState(false)
+  const [medido, setMedido] = useState(false)
 
-  const paymentId       = searchParams.get('payment_id')
-  const status          = searchParams.get('status')
-  const externalRef     = searchParams.get('external_reference')
+  const paymentId   = searchParams.get('payment_id')
+  const status      = searchParams.get('status')
+  const externalRef = searchParams.get('external_reference')
+
+  const aprobado = status === 'approved'
+  const enProceso = status === 'pending' || status === 'in_process'
+  const fallido = !aprobado && !enProceso
 
   /* Esta pantalla sólo lee. Antes escribía el estado del pedido —marcaba
      "pagado" si la URL decía approved— y eso estaba mal por dos motivos.
-     
+
      El primero es el dinero: en un contraentrega sólo entra el abono, y
      marcar "pagado" daba por cobrado el total. Medio millón que sigue en la
      puerta del cliente, contado como si estuviera en la cuenta.
-     
+
      El segundo es que corre en el navegador con la llave pública: quien
      abriera /confirmacion?external_reference=<pedido>&status=approved dejaba
      un pedido por pagado sin haber pagado.
-     
-     Quien decide el estado es el webhook, que le pregunta el pago a Mercado
-     Pago con el token del servidor y sabe distinguir un abono de un total.
-     Aquí sólo se leen los datos para el píxel del navegador, que va con el
-     mismo event_id que el del servidor y se deduplica contra él. */
-  useEffect(() => {
-    if (!externalRef || status !== 'approved' || updated) return
 
+     Quien decide el estado es el webhook, que le pregunta el pago a Mercado
+     Pago con el token del servidor y sabe distinguir un abono de un total. */
+  useEffect(() => {
+    if (!externalRef) return
     supabase
       .from('orders')
-      .select('amount, product_id, product_name')
+      .select('amount, abono_monto, payment_method, product_id, product_name')
       .eq('id', externalRef)
       .maybeSingle()
-      .then(({ data }) => {
-        setUpdated(true)
-        if (!data) return
-        pixelCompra({
-          pedidoId: externalRef,
-          /* El valor sale de la base y no de la URL: lo que llega por
-             parámetro lo puede cambiar cualquiera. */
-          valor: data.amount,
-          piezaId: data.product_id,
-          piezaNombre: data.product_name,
-        })
-      })
-  }, [externalRef, status, updated])
+      .then(({ data }) => setPedido(data ?? null))
+  }, [externalRef])
 
-  const isApproved  = status === 'approved'
-  const isPending   = status === 'pending' || status === 'in_process'
-  const isFailure   = !isApproved && !isPending
+  /* El píxel del navegador, con el mismo event_id que manda el servidor: las
+     dos plataformas los juntan y cuentan una sola venta. El valor sale de la
+     base y no de la URL, que la puede cambiar cualquiera. */
+  useEffect(() => {
+    if (!aprobado || !externalRef || !pedido || medido) return
+    setMedido(true)
+    pixelCompra({
+      pedidoId: externalRef,
+      valor: pedido.amount,
+      piezaId: pedido.product_id,
+      piezaNombre: pedido.product_name,
+    })
+  }, [aprobado, externalRef, pedido, medido])
 
-  const waContact = waUrl({ mobile: 'Hola! 🙏 Acabo de hacer un pedido en *Aurem Gs Joyería* y necesito ayuda con mi orden. Me pueden asistir?', desktop: 'Hola! Acabo de hacer un pedido en *Aurem Gs Joyería* y necesito ayuda con mi orden. Me pueden asistir?' })
+  const numero = externalRef ? externalRef.slice(0, 8).toUpperCase() : null
+
+  const copiar = () => {
+    if (!numero) return
+    navigator.clipboard?.writeText(numero).catch(() => {})
+    setCopiado(true)
+    setTimeout(() => setCopiado(false), 2400)
+  }
+
+  /* Un contraentrega no se paga entero acá: entra el abono y el resto va en
+     efectivo en la puerta. Decirle "pago recibido" a secas y callarse el
+     saldo es la sorpresa que hace que rechacen la entrega. */
+  const esAbono = pedido?.abono_monto != null
+  const saldo = esAbono ? Number(pedido.amount) - Number(pedido.abono_monto) : 0
+
+  const waContacto = waUrl({
+    mobile: `Hola! 🙏 Acabo de hacer un pedido en *Aurem Gs Joyería*${numero ? ` (orden ${numero})` : ''} y necesito ayuda. Me pueden asistir?`,
+    desktop: `Hola! Acabo de hacer un pedido en *Aurem Gs Joyería*${numero ? ` (orden ${numero})` : ''} y necesito ayuda. Me pueden asistir?`,
+  })
+
+  const Fila = ({ etiqueta, children }) => (
+    <div className="conf-fila">
+      <span>{etiqueta}</span>
+      <span>{children}</span>
+    </div>
+  )
 
   return (
-    <div className="confirmacion-page">
-      <div className={`confirmacion-card confirmacion--${isApproved ? 'success' : isPending ? 'pending' : 'failure'}`}>
+    <main className="conf">
+      <div className="conf-caja">
 
-        {/* Animated icon */}
-        <div className="confirmacion-icon-wrap">
-          {isApproved && (
-            <svg className="confirmacion-icon confirmacion-icon--check" viewBox="0 0 52 52" fill="none">
-              <circle className="confirmacion-circle" cx="26" cy="26" r="24" stroke="#22c55e" strokeWidth="2.5"/>
-              <polyline className="confirmacion-check" points="14,27 22,35 38,17" stroke="#22c55e" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          )}
-          {isPending && (
-            <svg className="confirmacion-icon" viewBox="0 0 52 52" fill="none">
-              <circle cx="26" cy="26" r="24" stroke="#f59e0b" strokeWidth="2.5"/>
-              <line x1="26" y1="14" x2="26" y2="28" stroke="#f59e0b" strokeWidth="3" strokeLinecap="round"/>
-              <circle cx="26" cy="35" r="2" fill="#f59e0b"/>
-            </svg>
-          )}
-          {isFailure && (
-            <svg className="confirmacion-icon" viewBox="0 0 52 52" fill="none">
-              <circle cx="26" cy="26" r="24" stroke="#ef4444" strokeWidth="2.5"/>
-              <line x1="17" y1="17" x2="35" y2="35" stroke="#ef4444" strokeWidth="3" strokeLinecap="round"/>
-              <line x1="35" y1="17" x2="17" y2="35" stroke="#ef4444" strokeWidth="3" strokeLinecap="round"/>
-            </svg>
-          )}
-        </div>
-
-        <h1 className="confirmacion-status">
-          {isApproved && '¡Tu pago fue confirmado! 🎉'}
-          {isPending  && 'Pago en proceso...'}
-          {isFailure  && 'Pago no completado'}
-        </h1>
-
-        <p className="confirmacion-message">
-          {isApproved && 'Gracias por tu compra. Tu pedido ha sido registrado y nos pondremos en contacto contigo a la brevedad.'}
-          {isPending  && 'Tu pago está siendo verificado por la entidad financiera. Te notificaremos en cuanto se confirme.'}
-          {isFailure  && 'No pudimos procesar tu pago. Puedes intentarlo de nuevo o comunicarte con nosotros para ayudarte.'}
-        </p>
-
-        {(paymentId || externalRef) && (
-          <div className="confirmacion-summary">
-            {externalRef && (
-              <div className="confirmacion-order-badge">
-                <span className="confirmacion-order-label">Número de orden</span>
-                <span className="confirmacion-order-number">{externalRef.slice(0, 8).toUpperCase()}</span>
-              </div>
+        <header className="conf-cabeza">
+          <span className="conf-marca" aria-hidden="true">
+            {aprobado && (
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--oro)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><polyline points="9 12 11 14 15 10" />
+              </svg>
             )}
-            {paymentId && (
-              <div className="confirmacion-summary-row">
-                <span>ID de pago</span>
-                <span>{paymentId}</span>
-              </div>
+            {enProceso && (
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--oro)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="9" /><polyline points="12 7 12 12 15 14" />
+              </svg>
             )}
+            {fallido && (
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--oro)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            )}
+          </span>
+
+          <span className="eyebrow">
+            {aprobado ? (esAbono ? 'Pedido confirmado' : 'Pago confirmado')
+              : enProceso ? 'Pago en verificación' : 'Pago no aprobado'}
+          </span>
+
+          <h1 className="conf-titulo">
+            {aprobado && <>Pago recibido,<em>empezamos tu pieza.</em></>}
+            {enProceso && <>Estamos verificando,<em>no cierres esta página.</em></>}
+            {fallido && <>El pago no pasó,<em>tu pedido sigue aquí.</em></>}
+          </h1>
+
+          <p className="conf-lead">
+            {aprobado && (esAbono
+              ? `Recibimos tu abono. Al recibir la pieza pagas ${enPesos(saldo)} en efectivo. Te escribimos por WhatsApp con la guía de envío.`
+              : 'Te escribimos por WhatsApp con la guía de envío. Llega en 24 a 48 horas en Bogotá y de 2 a 3 días al resto del país.')}
+            {enProceso && 'El banco todavía está verificando el pago. En cuanto se confirme te escribimos por WhatsApp; no hace falta que pagues otra vez.'}
+            {fallido && 'No se hizo ningún cargo a tu tarjeta. Tu pedido sigue guardado: puedes intentar de nuevo o escribirnos y lo resolvemos.'}
+          </p>
+
+          {/* Sólo lo comprobable. El certificado no va aquí: cuesta $50.000
+              aparte y prometerlo en la pantalla del pago es exactamente el
+              cobro sorpresa que evitamos en toda la ficha. */}
+          <div className="conf-punzones">
+            {aprobado && <>
+              <span className="punzon">Estuche incluido</span>
+              <span className="punzon">Garantía de por vida en el metal</span>
+            </>}
+            {fallido && <>
+              <span className="punzon">Sin cargo</span>
+              <span className="punzon">Tu pedido sigue guardado</span>
+            </>}
           </div>
+        </header>
+
+        {(numero || pedido) && (
+          <section className="conf-resumen">
+            {numero && aprobado && (
+              <div className="conf-numero">
+                <span className="conf-numero-label">Número de orden</span>
+                <span className="conf-numero-valor">{numero}</span>
+                <button type="button" onClick={copiar} className="conf-copiar">
+                  {copiado ? 'Copiado' : 'Copiar número'}
+                </button>
+              </div>
+            )}
+
+            {pedido?.product_name && <Fila etiqueta="Pieza">{pedido.product_name}</Fila>}
+            {numero && !aprobado && <Fila etiqueta="Referencia">{numero}</Fila>}
+            {pedido?.payment_method && (
+              <Fila etiqueta="Forma de pago">
+                {pedido.payment_method === 'contraentrega' ? 'Contraentrega en Bogotá' : 'Mercado Pago'}
+              </Fila>
+            )}
+            {paymentId && aprobado && <Fila etiqueta="ID de pago">{paymentId}</Fila>}
+
+            {esAbono ? (
+              <>
+                <Fila etiqueta="Abonaste">{enPesos(pedido.abono_monto)} <small>COP</small></Fila>
+                <Fila etiqueta="Pagas al recibir"><strong>{enPesos(saldo)}</strong> <small>COP</small></Fila>
+              </>
+            ) : pedido?.amount != null && (
+              <Fila etiqueta="Total">{enPesos(pedido.amount)} <small>COP</small></Fila>
+            )}
+          </section>
         )}
 
-        <div className="confirmacion-actions">
-          <Link to="/catalogo" className="confirm-btn confirm-btn--primary">
-            Ver más joyas
+        {aprobado && (
+          <section className="conf-pasos">
+            <span className="eyebrow">Qué sigue</span>
+            <div>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--oro)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.1A8.4 8.4 0 0 1 12 3a8.4 8.4 0 0 1 9 8.5z" />
+              </svg>
+              <p><strong>Hoy.</strong> Te confirmamos el pedido por WhatsApp y verificamos la talla.</p>
+            </div>
+            <div>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--oro)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 3h14v13H5z" /><path d="M8.5 19.5 12 17l3.5 2.5V16h-7z" /><path d="M8.5 7.5h7M8.5 11h4" />
+              </svg>
+              <p><strong>Antes de enviar.</strong> Revisamos la pieza, la pulimos y la empacamos en su estuche.</p>
+            </div>
+            <div>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--oro)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="1" y="3" width="15" height="13" /><path d="M16 8h4l3 3v5h-7z" />
+                <circle cx="5.5" cy="18.5" r="2.5" /><circle cx="18.5" cy="18.5" r="2.5" />
+              </svg>
+              <p><strong>24 a 48 horas en Bogotá.</strong> Al resto del país, de 2 a 3 días. Sale con número de guía.</p>
+            </div>
+          </section>
+        )}
+
+        <div className="conf-acciones">
+          <Link to={fallido ? '/catalogo' : '/catalogo'} className="btn-pill black">
+            {fallido ? 'Intentar de nuevo' : 'Ver el catálogo'}
           </Link>
-          {isFailure && (
-            <Link to="/catalogo" className="confirm-btn confirmacion-btn--retry">
-              Intentar de nuevo
-            </Link>
-          )}
-          <a href={waContact} target="_blank" rel="noopener noreferrer" className="confirm-btn confirm-btn--wa">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+          <a href={waContacto} target="_blank" rel="noopener noreferrer" className="btn-pill light conf-wa">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="#25D366" aria-hidden="true">
+              <path d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.96-.94 1.16-.17.2-.35.22-.65.07-.3-.15-1.25-.46-2.39-1.47-.88-.79-1.48-1.76-1.65-2.06-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.08-.15-.67-1.61-.92-2.21-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.01-1.04 2.47 0 1.46 1.06 2.87 1.21 3.07.15.2 2.1 3.2 5.08 4.49.71.3 1.26.49 1.69.63.71.22 1.36.19 1.87.12.57-.09 1.76-.72 2.01-1.41.25-.7.25-1.29.17-1.42-.07-.13-.27-.2-.57-.35M12.05 21.5a9.5 9.5 0 0 1-4.84-1.32l-.35-.2-3.59.94.96-3.5-.23-.36a9.44 9.44 0 0 1-1.45-5.05c0-5.23 4.27-9.49 9.51-9.49 2.54 0 4.92.99 6.72 2.78a9.42 9.42 0 0 1 2.78 6.72c0 5.23-4.27 9.49-9.51 9.49M20.5 3.49A11.4 11.4 0 0 0 12.05 0C5.77 0 .66 5.1.66 11.37c0 2 .52 3.96 1.52 5.68L.56 24l7.1-1.86a11.4 11.4 0 0 0 5.44 1.38c6.28 0 11.39-5.1 11.39-11.37 0-3.04-1.19-5.9-3.34-8.05" />
             </svg>
-            Contactar
+            Escríbenos por WhatsApp
           </a>
         </div>
+
+        {/* La salida para quien no pudo pagar en línea. Sólo Bogotá: ofrecerla
+            a todo el país sería prometer algo que el taller no hace. */}
+        {fallido && (
+          <div className="conf-cod">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--oro)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="6" width="20" height="12" rx="1.5" /><circle cx="12" cy="12" r="2.8" />
+              <path d="M5 9.5v5M19 9.5v5" />
+            </svg>
+            <p>
+              <strong>¿Estás en Bogotá?</strong> Puedes pagar contra entrega: abonas el envío
+              para confirmar el pedido y el resto lo pagas en efectivo cuando te lo lleven.
+            </p>
+          </div>
+        )}
       </div>
-    </div>
+    </main>
   )
 }
 
