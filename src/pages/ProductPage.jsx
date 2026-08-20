@@ -32,6 +32,10 @@ const useCountdown = (storageKey) => {
                 hours:   Math.floor(d / 3600000),
                 minutes: Math.floor((d % 3600000) / 60000),
                 seconds: Math.floor((d % 60000) / 1000),
+                /* Qué fracción del plazo queda, para el filete de oro. Un
+                   número diciendo "quedan 3 horas" se lee; una barra que se
+                   vacía se entiende sin leer. */
+                fraccion: d / (24 * 60 * 60 * 1000),
             });
         };
 
@@ -1095,14 +1099,38 @@ const ProductPage = () => {
 
                         {enOferta && (
                             <div className="ficha-oferta">
-                                <span>
-                                    Antes <s>${fmt(product.compare_price)}</s> — ahorras ${fmt(product.compare_price - product.price)} COP
-                                </span>
-                                <span className="ficha-oferta-tag">
-                                    {timeLeft
-                                        ? `Termina en ${pad(timeLeft.hours)}:${pad(timeLeft.minutes)}:${pad(timeLeft.seconds)}`
-                                        : 'Precio de lanzamiento'}
-                                </span>
+                                <div className="ficha-oferta-fila">
+                                    <div className="ficha-oferta-ahorro">
+                                        <span className="ficha-oferta-label">Precio de lanzamiento</span>
+                                        <div className="ficha-oferta-cifra">
+                                            {/* El ahorro primero y en grande: "antes $1.600.000"
+                                                obliga a restar, y nadie resta mirando un anuncio. */}
+                                            <strong>Ahorras ${fmt(product.compare_price - product.price)}</strong>
+                                            <span className="ficha-oferta-moneda">COP</span>
+                                            <span className="ficha-oferta-sep" aria-hidden="true" />
+                                            <span className="ficha-oferta-antes">
+                                                antes <s>${fmt(product.compare_price)}</s>
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {timeLeft && (
+                                        <div className="ficha-oferta-reloj">
+                                            <span className="ficha-oferta-label">Termina en</span>
+                                            <div className="ficha-oferta-digitos">
+                                                <b>{pad(timeLeft.hours)}</b><span>h</span>
+                                                <b>{pad(timeLeft.minutes)}</b><span>m</span>
+                                                <b>{pad(timeLeft.seconds)}</b><span>s</span>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* El filete mide lo que queda del plazo. Va a ras del
+                                    borde inferior, de lado a lado. */}
+                                <div className="ficha-oferta-plazo">
+                                    <span style={{ width: `${Math.round((timeLeft?.fraccion ?? 1) * 100)}%` }} />
+                                </div>
                             </div>
                         )}
 
