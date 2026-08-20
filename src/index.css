@@ -2319,43 +2319,36 @@ textarea:focus-visible {
   gap: 1.5rem;
 }
 
-/* Tarjeta de pieza */
+/* ─── Tarjeta de pieza, sin caja ─────────────────────────────────────
+   Se fue el recuadro blanco con borde y sombra: la foto se apoya en el marfil
+   y debajo la ordena una sola línea de pelo. El mismo tratamiento en el
+   catálogo y en el riel de "otras piezas" de la ficha. */
 .pieza {
   display: flex;
   flex-direction: column;
-  background: var(--bg-color);
-  border: 1px solid var(--hairline);
-  border-radius: 2px;
-  overflow: hidden;
-  transition: transform 0.35s var(--ease), box-shadow 0.35s var(--ease),
-    border-color 0.35s var(--ease);
-}
-
-.pieza:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 24px 50px rgba(28, 23, 20, 0.09);
-  border-color: var(--oro-hairline);
+  gap: 16px;
 }
 
 .pieza-foto {
   position: relative;
   display: block;
-  aspect-ratio: 4 / 5;
-  background: var(--bg-arena);
   overflow: hidden;
+  aspect-ratio: 4 / 5;
+  border-radius: 2px;
+  background: var(--bg-arena);
 }
 
 .pieza-foto img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  /* 38% y no el centro: en estas fotos la pieza vive en el tercio alto y el
+     cuarto de abajo es el reflejo sobre la mesa. */
+  object-position: center 38%;
   display: block;
-  transition: transform 1s var(--ease);
+  transition: transform 0.4s var(--ease);
 }
-
-.pieza:hover .pieza-foto img {
-  transform: scale(1.05);
-}
+.pieza-foto:hover img { transform: scale(1.04); }
 
 .pieza-foto-vacia {
   position: absolute;
@@ -2367,136 +2360,89 @@ textarea:focus-visible {
   font-size: 1.5rem;
 }
 
-.pieza-insignia {
-  position: absolute;
-  top: 12px;
-  left: 12px;
-  padding: 0.375rem 0.75rem;
-  background: rgba(28, 23, 20, 0.92);
-  color: var(--bg-marfil);
-  font-size: 0.63rem;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  border-radius: 2px;
-}
+.pieza-sello { position: absolute; left: 16px; bottom: 16px; }
 
-.pieza-insignia--agotada {
-  background: rgba(107, 97, 90, 0.92);
+/* Agotada no es un reclamo: se lee en gris y la foto pierde saturación. */
+.pieza-sello--agotada {
+  color: var(--text-secondary);
+  border-color: var(--hairline);
 }
+.pieza--agotada .pieza-foto img { filter: grayscale(0.7); opacity: 0.75; }
 
-.pieza-cuerpo {
+/* El cuerpo absorbe la altura sobrante y el filete se va al fondo: los
+   nombres ocupan uno o dos renglones según la pieza, y sin esto los botones
+   de la fila quedarían a alturas distintas. */
+.pieza-cuerpo { display: flex; flex-direction: column; gap: 10px; flex: 1; }
+
+.pieza-linea {
   display: flex;
-  flex-direction: column;
-  gap: 0.625rem;
-  padding: 1.25rem 1.25rem 0;
-}
-
-.pieza-categoria {
-  font-size: 0.63rem;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--oro-ink);
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
 }
 
 .pieza-nombre {
+  margin: 0;
   font-family: var(--font-display);
   font-weight: 400;
   font-size: 1.375rem;
-  line-height: 1.15;
-  letter-spacing: 0.01em;
+  line-height: 1.2;
   color: var(--ink);
 }
 
-.pieza-spec {
-  font-size: 0.85rem;
-  line-height: 1.5;
-  color: var(--text-secondary);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
+.pieza-precio-fila { display: flex; align-items: baseline; gap: 6px; flex: none; }
+.pieza-precio { font-size: 1.25rem; font-weight: 700; color: var(--ink); }
+.pieza-moneda { font-size: 0.68rem; letter-spacing: 0.12em; color: var(--text-secondary); }
 
-.pieza-pie {
+.pieza-ficha { font-size: 0.85rem; line-height: 1.6; color: var(--text-secondary); }
+
+.pieza-filete {
+  display: block;
+  height: 1px;
+  background: var(--hairline);
   margin-top: auto;
-  padding: 1.125rem 1.25rem 1.25rem;
 }
 
-.pieza-precio-fila {
-  display: flex;
-  align-items: baseline;
-  gap: 0.375rem;
-  padding: 1rem 0;
-  margin-top: 0.25rem;
-  border-top: 1px solid var(--hairline);
-}
-
-.pieza-precio {
-  font-size: 1.25rem;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  color: var(--ink);
-}
-
-.pieza-precio-antes {
-  font-size: 0.85rem;
-  color: var(--text-muted);
-  text-decoration: line-through;
-}
-
-.pieza-moneda {
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  color: var(--text-secondary);
-}
-
-.pieza-acciones {
-  display: flex;
-  gap: 0.5rem;
-}
+.pieza-acciones { display: flex; gap: 12px; padding-top: 4px; }
 
 .pieza-btn {
   flex: 1;
+  height: 46px;
+  border-radius: 100px;
+  background: var(--ink);
+  color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0.8125rem 1.25rem;
-  background: var(--ink);
-  color: var(--bg-marfil);
-  border-radius: 100px;
-  font-size: 0.875rem;
-  font-weight: 700;
+  font-family: var(--font-ui);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
   transition: all 0.3s var(--ease);
 }
-
 .pieza-btn:hover {
   background: var(--ink-soft);
-  color: var(--bg-marfil);
+  color: #fff;
   transform: translateY(-2px);
   box-shadow: 0 14px 30px rgba(28, 23, 20, 0.18);
 }
 
 .pieza-wa {
+  flex: none;
+  width: 46px;
+  height: 46px;
+  border-radius: 100px;
+  border: 1px solid var(--hairline);
+  background: var(--bg-color);
+  color: #25D366;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 46px;
-  height: 46px;
-  flex-shrink: 0;
-  border: 1px solid var(--hairline);
-  background: var(--bg-color);
-  border-radius: 100px;
-  color: #25D366;
   transition: all 0.3s var(--ease);
 }
-
 .pieza-wa:hover {
-  background: #25D366;
-  color: #fff;
-  border-color: #25D366;
+  background: var(--bg-arena);
+  border-color: rgba(37, 211, 102, 0.5);
   transform: translateY(-2px);
 }
 
@@ -15490,136 +15436,22 @@ textarea:focus-visible {
 .pg-gallery-main { touch-action: pan-y; }
 .pg-gallery-punto { touch-action: manipulation; }
 
-/* ─── "Otras piezas": sin caja ───────────────────────────────────────
-   Se va la tarjeta blanca: la foto en 3:4 apoyada sobre el marfil y debajo
-   una sola línea de pelo. Menos cromo y foto más grande.
-   El bloque se capa a 1000px: con las tarjetas del catálogo a ancho completo
-   la sección medía 904px en una pantalla de 900, más alta que el viewport
-   entero para ser lo último de la página. */
+/* ─── "Otras piezas" en la ficha ─────────────────────────────────────
+   Usa la misma tarjeta sin caja que el catálogo; aquí solo se ajusta el
+   encuadre. El bloque se capa a 1000px: a ancho completo la sección medía
+   904px en una pantalla de 900, más alta que el viewport entero para ser lo
+   último de la página. */
 .ficha-relacionadas {
   max-width: 1000px;
   margin-inline: auto;
   margin-top: 3.5rem;
   padding-top: 2rem;
+  border-top: 1px solid var(--hairline);
 }
 
 .ficha-relacionadas-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 2rem;
-}
-
-.rel { display: flex; flex-direction: column; gap: 16px; }
-
-.rel-foto {
-  position: relative;
-  display: block;
-  overflow: hidden;
-  /* 4:5 y no 3:4. Sigue siendo vertical, pero el 3:4 en una pantalla de
-     portátil dejaba la sección más alta que el viewport para ser lo último
-     de la página. */
-  aspect-ratio: 4 / 5;
-  border-radius: 2px;
-  background: var(--bg-arena);
-}
-
-.rel-foto img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  /* 38% y no el centro: en estas fotos la pieza vive en el tercio alto y el
-     cuarto de abajo es el reflejo sobre la mesa. */
-  object-position: center 38%;
-  display: block;
-  transition: transform 0.4s var(--ease);
-}
-.rel-foto:hover img { transform: scale(1.04); }
-
-.rel-foto-vacia {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--oro);
-  font-size: 1.5rem;
-}
-
-.rel-sello { position: absolute; left: 16px; bottom: 16px; }
-
-/* El cuerpo absorbe la altura sobrante y el filete se va al fondo: los
-   nombres ocupan uno o dos renglones según la pieza, y sin esto los botones
-   de las tres quedaban a alturas distintas. */
-.rel { justify-content: stretch; }
-.rel-cuerpo { display: flex; flex-direction: column; gap: 10px; flex: 1; }
-.rel-filete { margin-top: auto; }
-
-.rel-linea {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.rel-nombre {
-  margin: 0;
-  font-family: var(--font-display);
-  font-weight: 400;
-  /* 1.375 y no 1.625: a cuerpo grande "Anillo Esencia Imperial" se partía en
-     dos renglones y estiraba las tres tarjetas para igualarlas. */
-  font-size: 1.375rem;
-  line-height: 1.2;
-  color: var(--ink);
-}
-
-.rel-precio { display: flex; align-items: baseline; gap: 6px; flex: none; }
-.rel-precio-valor { font-size: 1.25rem; font-weight: 700; color: var(--ink); }
-.rel-precio-moneda { font-size: 0.68rem; letter-spacing: 0.12em; color: var(--text-secondary); }
-
-.rel-ficha { font-size: 0.85rem; line-height: 1.6; color: var(--text-secondary); }
-
-.rel-filete { display: block; height: 1px; background: var(--hairline); margin-top: auto; }
-
-.rel-acciones { display: flex; gap: 12px; padding-top: 4px; }
-
-.rel-btn {
-  flex: 1;
-  height: 46px;
-  border-radius: 100px;
-  background: var(--ink);
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--font-ui);
-  font-size: 0.8rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  transition: all 0.3s var(--ease);
-}
-.rel-btn:hover {
-  background: var(--ink-soft);
-  color: #fff;
-  transform: translateY(-2px);
-  box-shadow: 0 14px 30px rgba(28, 23, 20, 0.18);
-}
-
-.rel-wa {
-  flex: none;
-  width: 46px;
-  height: 46px;
-  border-radius: 100px;
-  border: 1px solid var(--hairline);
-  background: var(--bg-color);
-  color: #25D366;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s var(--ease);
-}
-.rel-wa:hover {
-  background: var(--bg-arena);
-  border-color: rgba(37, 211, 102, 0.5);
-  transform: translateY(-2px);
 }
 
 @media (max-width: 900px) {
@@ -15630,6 +15462,7 @@ textarea:focus-visible {
   /* El antetítulo y el enlace dejan de compartir renglón: en 390px el
      antetítulo se partía en dos y chocaba con "Ver el catálogo". */
   .ficha-relacionadas-head { flex-wrap: wrap; gap: 10px 1.5rem; }
+
   .ficha-relacionadas-grid {
     display: flex;
     gap: 20px;
@@ -15638,16 +15471,16 @@ textarea:focus-visible {
     scrollbar-width: none;
   }
   .ficha-relacionadas-grid::-webkit-scrollbar { display: none; }
-  .rel { flex: none; width: 258px; scroll-snap-align: start; gap: 16px; }
-  .rel-cuerpo { gap: 10px; }
-  .rel-nombre { font-size: 1.25rem; }
-  .rel-precio-valor { font-size: 1.0625rem; }
-  .rel-precio-moneda { font-size: 0.65rem; }
-  /* La ficha se cae: en 258px de ancho parte el nombre del precio y el
-     carril deja de leerse de un vistazo. */
-  .rel-ficha { display: none; }
-  .rel-btn, .rel-wa { height: 48px; }
-  .rel-wa { width: 48px; }
+
+  .ficha-relacionadas .pieza { flex: none; width: 258px; scroll-snap-align: start; }
+  .ficha-relacionadas .pieza-nombre { font-size: 1.25rem; }
+  .ficha-relacionadas .pieza-precio { font-size: 1.0625rem; }
+  /* La línea de metal y piedra se cae: en 258px de ancho parte el nombre del
+     precio y el carril deja de leerse de un vistazo. */
+  .ficha-relacionadas .pieza-ficha { display: none; }
+  .ficha-relacionadas .pieza-btn,
+  .ficha-relacionadas .pieza-wa { height: 48px; }
+  .ficha-relacionadas .pieza-wa { width: 48px; }
 }
 
 /* Al ser fija, la barra deja de ocupar sitio en el flujo y taparía el final

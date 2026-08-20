@@ -3,7 +3,7 @@ import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { waUrl } from '../lib/whatsapp';
 import { Wallet } from '@mercadopago/sdk-react';
-import { insignia, WhatsAppIcon } from '../components/catalog/ProductCard';
+import ProductCard from '../components/catalog/ProductCard';
 import { pixelVerPieza, pixelIniciarPago } from '../lib/pixeles'
 import { datosDeAtribucion } from '../lib/atribucion';
 
@@ -642,66 +642,6 @@ const Skeleton = () => (
         </div>
     </div>
 );
-
-/* ── La pieza del riel "Otras piezas" ─────────────────────────────
-   Sin la tarjeta blanca del catálogo: la foto en 3:4 apoyada sobre el marfil
-   y debajo una sola línea de pelo. Menos cromo, foto más grande, y el nombre
-   y el precio en el mismo renglón — que es la comparación que se hace al
-   mirar de reojo lo que hay al lado. */
-const PiezaRelacionada = ({ product }) => {
-    const sello = insignia(product);
-    /* La piedra se corta en la primera coma y también en el primer "con":
-       "esmeralda natural con diamantes naturales certificados" ocupaba dos
-       renglones y, como la fila más alta manda, estiraba las tres tarjetas.
-       Lo que se corta se lee entero en la ficha de la pieza. */
-    const ficha = [
-        product.metal,
-        (product.piedra || '').split(/,| con /i)[0].trim().toLowerCase() || null,
-    ].filter(Boolean).join(' · ');
-
-    const waLink = waUrl({
-        mobile: `Hola! 👋 Vi esta pieza en su tienda: *${product.name}* — $${fmt(product.price)} COP. Me gustaría saber si está disponible ✨`,
-        desktop: `Hola! Vi esta pieza en su tienda: *${product.name}* — $${fmt(product.price)} COP. Me gustaría saber si está disponible.`,
-    });
-
-    return (
-        <article className="rel">
-            <Link to={`/catalogo/${product.id}`} className="rel-foto" aria-label={`Ver ${product.name}`}>
-                {product.image_url
-                    ? <img src={product.image_url} alt={product.name} loading="lazy" />
-                    : <span className="rel-foto-vacia">✦</span>}
-                {/* El punzón abajo a la izquierda y no arriba: arriba tapa la
-                    pieza, que en estas fotos vive en el tercio alto. */}
-                {sello && <span className="rel-sello punzon">{sello}</span>}
-            </Link>
-
-            <div className="rel-cuerpo">
-                <div className="rel-linea">
-                    <h3 className="rel-nombre">{product.name}</h3>
-                    <div className="rel-precio">
-                        <span className="rel-precio-valor">${fmt(product.price)}</span>
-                        <span className="rel-precio-moneda">COP</span>
-                    </div>
-                </div>
-                {ficha && <span className="rel-ficha">{ficha}</span>}
-                <span className="rel-filete" />
-                <div className="rel-acciones">
-                    <Link to={`/catalogo/${product.id}`} className="rel-btn">Ver la pieza</Link>
-                    <a
-                        className="rel-wa"
-                        href={waLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        title="Consultar por WhatsApp"
-                        aria-label={`Consultar ${product.name} por WhatsApp`}
-                    >
-                        <WhatsAppIcon />
-                    </a>
-                </div>
-            </div>
-        </article>
-    );
-};
 
 /* ── Gallery ───────────────────────────────────────────────────── */
 const Gallery = ({ images, badges, volver, referencia }) => {
@@ -1375,7 +1315,7 @@ const ProductPage = () => {
                             </Link>
                         </div>
                         <div className="ficha-relacionadas-grid">
-                            {related.map(p => <PiezaRelacionada key={p.id} product={p} />)}
+                            {related.map(p => <ProductCard key={p.id} product={p} />)}
                         </div>
                     </div>
                 )}
