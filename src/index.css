@@ -15840,3 +15840,36 @@ textarea:focus-visible {
   }
   .catalogo-filtros-fila--precio .catalogo-precio-label { font-size: 0.58rem; letter-spacing: 0.16em; }
 }
+
+/* Un punto más pequeña. La franja va pegada bajo el navbar y acompaña todo
+   el scroll: cada píxel que ocupa se lo quita a las fotos, que son lo que
+   la clienta vino a ver. */
+@media (min-width: 769px) {
+  .catalogo-filtros-fila { padding-top: 0.5rem; padding-bottom: 0.5rem; gap: 0.625rem 1.125rem; }
+  .catalogo-filtros .riel-btn { min-height: 34px; padding: 0 14px; font-size: 0.8125rem; }
+  .catalogo-filtros .riel-n { font-size: 0.72rem; }
+  /* El buscador a la misma altura que las píldoras: con 40px era el elemento
+     más alto de la fila y le marcaba el alto a toda la franja. */
+  .catalogo-buscar { min-height: 34px; height: 34px; }
+
+  .catalogo-filtros-fila--precio { padding-top: 0; padding-bottom: 0.625rem; }
+  .catalogo-filtros-fila--precio .riel-btn { min-height: 30px; padding: 0 12px; font-size: 0.7625rem; }
+  .catalogo-separador { height: 20px; }
+}
+
+@media (min-width: 769px) and (max-width: 1320px) {
+  .catalogo-filtros-fila--precio .riel-btn { min-height: 28px; padding: 0 10px; font-size: 0.73rem; }
+}
+
+/* La cabecera del catálogo, a escala. Medía 430px —144 solo de relleno
+   arriba y un titular de 72— y empujaba la primera fila de fotos a 606px:
+   media pantalla gastada antes de enseñar una pieza. El navbar necesita
+   unos 88px de despeje, no 144. */
+@media (min-width: 769px) {
+  .catalogo-head { padding-top: 6.5rem; padding-bottom: 2.5rem; gap: 3rem; }
+  .catalogo-titulo { font-size: clamp(2.75rem, 4.6vw, 4rem); }
+  .catalogo-lead { margin-top: 1.125rem; }
+  .catalogo-promesa { padding: 0.875rem 0; }
+  .catalogo-resumen { padding-bottom: 0.75rem; }
+  .catalogo-grid { gap: 1.25rem; }
+}
