@@ -14615,7 +14615,10 @@ textarea:focus-visible {
   border-radius: 2px;
   padding: clamp(24px, 3vw, 40px);
 }
-.joyero-sello { height: 28px; display: block; opacity: 0.9; margin-bottom: 20px; }
+/* El sello de la casa. A 28px quedaba como una marca de agua al lado de un
+   titular de 1.75rem en romana; esto es el membrete del documento que respalda
+   la pieza y tiene que leerse como tal. */
+.joyero-sello { height: 44px; display: block; opacity: 0.9; margin-bottom: 22px; }
 
 .joyero-cabeza {
   display: flex;
