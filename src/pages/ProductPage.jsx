@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { waUrl } from '../lib/whatsapp';
@@ -161,6 +161,13 @@ const BuyModal = ({ product, onClose }) => {
      un cobro escondido, y es la forma más rápida de perder una venta que ya
      estaba decidida. */
   const [abonoEnvio, setAbonoEnvio] = useState(null);
+
+  /* Cada paso arranca desde arriba. La caja es un solo contenedor con scroll y
+     se lo queda entre pantallas: como en el selector de método hay que bajar
+     hasta el botón, el formulario aparecía ya desplazado y el título quedaba
+     fuera de vista. */
+  const cajaRef = useRef(null);
+  useEffect(() => { if (cajaRef.current) cajaRef.current.scrollTop = 0; }, [step]);
   const [initPoint, setInitPoint] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -259,7 +266,7 @@ const BuyModal = ({ product, onClose }) => {
 
   return (
     <div className="buy-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="buy-modal-box">
+      <div className="buy-modal-box" ref={cajaRef}>
         {/* Cabecera de la pieza. El cierre va DENTRO de la fila y no flotando
             encima: sobre el nombre de la pieza tapaba texto, y con el modal
             angosto obligaba a dejarle un hueco al titular. */}
