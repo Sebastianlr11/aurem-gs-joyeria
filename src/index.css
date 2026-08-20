@@ -1570,51 +1570,57 @@ textarea:focus-visible {
    ================================================================ */
 .footer {
   background-color: var(--bg-marfil);
-  padding-top: 6rem;
+  /* Medía ~1450px: casi una pantalla entera de pie. El aire vertical y la
+     banda del logotipo se llevaban el 70% sin añadir un solo enlace. */
+  padding-top: 3rem;
   overflow: hidden;
   position: relative;
 }
 
 .footer-top {
   display: flex;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 5rem;
+  gap: 4rem;
   flex-wrap: wrap;
+  padding-bottom: 3rem;
 }
 
 .footer-intro-text {
   font-family: var(--font-display);
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 400;
-  line-height: 1.417;
+  line-height: 1.35;
   color: var(--ink);
-  max-width: 25rem;
+  max-width: 17.5rem;
 }
 
 .footer-nav-columns {
-  display: flex;
-  gap: 4.5rem;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(140px, auto));
+  gap: 3rem;
 }
 
+.footer-col { display: flex; flex-direction: column; gap: 0.625rem; }
+
 .footer-col-label {
-  font-size: 0.6875rem;
-  font-weight: 700;
-  letter-spacing: 0.2em;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.24em;
   color: var(--oro-ink);
   text-transform: uppercase;
-  margin-bottom: 1.25rem;
+  margin: 0;
 }
 
 .footer-col-links {
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 0.875rem;
+  gap: 0.625rem;
 }
 
 .footer-col-links a {
-  font-size: 0.9375rem;
+  font-size: 0.9rem;
   color: var(--text-secondary);
   transition: var(--transition-smooth);
   display: inline-block;
@@ -1625,72 +1631,74 @@ textarea:focus-visible {
   transform: translateX(3px);
 }
 
-.footer-brand-wrap {
-  width: 100%;
-  overflow: hidden;
-  padding: 4.5rem 0 0;
-  line-height: 1;
+/* ─── El cierre en cacao ─────────────────────────────────────────────
+   La única banda oscura del pie. Hace el corte de temperatura del final de
+   la página, que antes no existía: todo era marfil hasta el borde. */
+.footer-cierre {
+  background: var(--ink);
+  padding: 2.5rem 0 1.75rem;
 }
 
 .footer-brand-text {
   display: block;
   font-family: var(--font-display);
-  font-size: clamp(44px, 9.2vw, 132px);
+  /* Se ajusta al ancho en una sola línea. El 9.2vw sale de medir: la marca
+     ocupa unas 9.3 veces el cuerpo, así que con el contenedor a viewport
+     menos 128px de márgenes, esto la deja llenando la banda sin tocar los
+     bordes. Con el 5.5rem literal del diseño quedaba a dos tercios y se
+     leía perdida en el cacao. */
+  font-size: clamp(22px, 9.2vw, 132px);
   font-weight: 400;
-  letter-spacing: 0.038em;
-  color: var(--ink);
+  letter-spacing: 0.02em;
+  line-height: 0.95;
+  color: var(--bg-marfil);
   white-space: nowrap;
-  line-height: 1;
-  text-align: center;
+}
+
+.footer-cierre-filete {
+  display: block;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+  margin: 1.75rem 0 1rem;
 }
 
 .footer-bottom {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  padding: 1.25rem 0;
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-  gap: 0.5rem 1.5rem;
+  align-items: baseline;
+  gap: 0.5rem 2rem;
   flex-wrap: wrap;
-  border-top: 1px solid var(--hairline);
-  margin-top: 4.5rem;
+  font-size: 0.8rem;
+  color: rgba(251, 247, 242, 0.65);
 }
 
 /* Crédito de autoría: discreto, nunca compite con la marca */
-.footer-credit {
-  color: var(--text-muted);
-}
+.footer-credit { color: rgba(251, 247, 242, 0.65); }
 
 .footer-credit a {
-  color: var(--oro-ink);
+  color: var(--oro-luz);
   border-bottom: 1px solid transparent;
   transition: border-color 0.3s ease;
 }
 
-.footer-credit a:hover {
-  border-bottom-color: var(--oro);
-}
-
-@media (max-width: 600px) {
-  .footer-bottom {
-    justify-content: center;
-    text-align: center;
-  }
-}
+.footer-credit a:hover { border-bottom-color: var(--oro-luz); color: #fff; }
 
 @media (max-width: 968px) {
-  .footer {
-    padding-top: 3.5rem;
-  }
+  .footer { padding-top: 2rem; }
+  .footer-top { gap: 2rem; padding-bottom: 2rem; }
+}
 
-  .footer-top {
-    gap: 2.5rem;
-  }
+@media (max-width: 768px) {
+  .footer-intro-text { font-size: 1.125rem; max-width: none; }
+  /* Dos columnas y no tres: apiladas, doce enlaces son doce pantallazos. */
+  .footer-nav-columns { grid-template-columns: 1fr 1fr; gap: 1.25rem; }
 
-  .footer-nav-columns {
-    gap: 2.5rem;
-  }
+  .footer-cierre { padding: 1.75rem 0 1.25rem; }
+  /* El cuerpo del logotipo no se toca aquí: la fórmula en vw ya lo ajusta
+     sola en todos los anchos. Fijarlo en 1.75rem lo dejaba al 39% del ancho
+     disponible en una tablet de 768. */
+  .footer-cierre-filete { margin: 1rem 0; }
+  .footer-bottom { font-size: 0.75rem; gap: 0.25rem 1rem; }
 }
 
 /* ================================================================
@@ -7932,23 +7940,15 @@ textarea:focus-visible {
 /* ================================================================
    FOOTER — mobile
    ================================================================ */
-@media (max-width: 600px) {
-  .footer               { padding-top: 3rem; }
-  .footer-top           { gap: 2rem; padding-bottom: 2.5rem; }
-  .footer-nav-columns   { grid-template-columns: 1fr 1fr; gap: 1.5rem 1rem; }
-  .footer-col-label     { margin-bottom: 1rem; }
-  .footer-col-links     { gap: 0.7rem; }
-  .footer-col-links a   { font-size: 0.9rem; }
-  .footer-bottom        { flex-direction: column; text-align: center; gap: 0.4rem; }
-  .footer-email-form    { max-width: 100%; }
-  /* Brand name: scale down so it fits the viewport without overflowing */
-  .footer-brand-text    { font-size: clamp(22px, 9.5vw, 38px); }
-}
-
-@media (max-width: 400px) {
-  /* Very small phones: stack nav columns vertically */
-  .footer-nav-columns   { grid-template-columns: 1fr; gap: 2rem; }
-  .footer-brand-text    { font-size: clamp(20px, 8.5vw, 30px); }
+/* El bloque de móvil del pie vivía aquí, ochomil líneas por debajo del pie
+   mismo, y pisaba por orden todo lo que se escribiera arriba: el tamaño del
+   logotipo, la rejilla de columnas y la dirección de la línea legal. Ahora
+   está junto al resto del pie y aquí solo queda lo del teléfono pequeño. */
+/* 359 y no 400: un iPhone normal mide 390 y un SE 375, así que el corte en
+   400 dejaba a casi todos los teléfonos con una sola columna y doce enlaces
+   apilados. Esto es para los de verdad estrechos. */
+@media (max-width: 359px) {
+  .footer-nav-columns { grid-template-columns: 1fr; gap: 1.5rem; }
 }
 
 /* ================================================================
@@ -15596,4 +15596,6 @@ textarea:focus-visible {
 /* Al ser fija, la barra deja de ocupar sitio en el flujo y taparía el final
    del pie de página. El hueco se lo reserva el pie, que en esta ruta es el
    hermano que sigue a la ficha. */
-.ficha ~ .footer { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
+.ficha ~ .footer .footer-cierre {
+  padding-bottom: calc(1.75rem + 96px + env(safe-area-inset-bottom));
+}

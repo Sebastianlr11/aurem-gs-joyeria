@@ -61,19 +61,22 @@ const Footer = () => {
                 </div>
             </div>
 
-            <div className="footer-brand-wrap">
-                <span className="footer-brand-text">AUREM GS JOYERÍA</span>
-            </div>
-
-            <div className="container">
-                <div className="footer-bottom">
-                    <p>© {new Date().getFullYear()} Aurem Gs Joyería. Todos los derechos reservados.</p>
-                    <p className="footer-credit">
-                        Web hecha por{' '}
-                        <a href="https://www.selffcode.com" target="_blank" rel="noopener noreferrer">
-                            selffcode
-                        </a>
-                    </p>
+            {/* El cierre en cacao. El logotipo grande se queda, pero paga su
+                espacio: la banda cambia de temperatura y hace el corte del
+                final de la página en vez de ser una franja de marfil más. */}
+            <div className="footer-cierre">
+                <div className="container">
+                    <span className="footer-brand-text">AUREM GS JOYERÍA</span>
+                    <span className="footer-cierre-filete" />
+                    <div className="footer-bottom">
+                        <p>© {new Date().getFullYear()} Aurem Gs Joyería. Todos los derechos reservados.</p>
+                        <p className="footer-credit">
+                            Web hecha por{' '}
+                            <a href="https://www.selffcode.com" target="_blank" rel="noopener noreferrer">
+                                selffcode
+                            </a>
+                        </p>
+                    </div>
                 </div>
             </div>
         </footer>
