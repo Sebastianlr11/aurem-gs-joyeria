@@ -15902,3 +15902,31 @@ textarea:focus-visible {
   .catalogo-filtros-fila--precio { flex-wrap: wrap; gap: 0.5rem 0.875rem; }
   .catalogo-filtros-fila--precio .riel { flex-wrap: nowrap; }
 }
+
+/* ─── Cinco por fila en pantallas anchas ─────────────────────────────
+   Con cuatro, cada tarjeta medía 313 y la foto 391: una fila y media por
+   pantalla. Con cinco la tarjeta baja a 246 y la foto a 308, así que entra
+   la fila entera y se ve más catálogo de un vistazo, que es de lo que vive
+   una rejilla. Explícito y no auto-fill: con minmax el número de columnas
+   cambia solo y no hay forma de garantizar cinco. */
+@media (min-width: 1320px) {
+  .catalogo-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+
+  /* A 246px de ancho el nombre y el precio ya no caben en el mismo renglón
+     —"Anillo Esencia Imperial" contra "$4.500.000"—, así que el precio baja
+     debajo del nombre en vez de estrangularlo. */
+  .catalogo-grid .pieza-linea { flex-direction: column; align-items: flex-start; gap: 4px; }
+  .catalogo-grid .pieza-nombre { font-size: 1.0625rem; }
+  .catalogo-grid .pieza-ficha { font-size: 0.76rem; }
+  .catalogo-grid .pieza-btn { font-size: 0.72rem; letter-spacing: 0.04em; }
+}
+
+/* El escalón intermedio. Sin esto, entre 1199 y 1200 la rejilla saltaba de
+   tres columnas a cinco: el auto-fill con minmax de 272 solo daba para tres
+   en 1052px de contenido, y el salto se veía como si la página cambiara de
+   diseño al mover la ventana. El corte de las cinco está en 1320 y no en
+   1200 porque ahí abajo la tarjeta caía a 198px y el botón de comprar se
+   quedaba sin sitio. */
+@media (min-width: 900px) and (max-width: 1319px) {
+  .catalogo-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
