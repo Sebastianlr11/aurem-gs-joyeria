@@ -18,6 +18,12 @@ const PROMESAS = [
     { titulo: 'Cada pieza incluye', valor: 'Certificado y garantía' },
 ];
 
+const ORDENES = [
+    { v: 'newest', label: 'Más recientes', corto: 'Más recientes' },
+    { v: 'price_asc', label: 'Precio: menor a mayor', corto: 'Menor precio' },
+    { v: 'price_desc', label: 'Precio: mayor a menor', corto: 'Mayor precio' },
+];
+
 const PER_PAGE = 8;
 
 const Catalog = () => {
@@ -29,6 +35,7 @@ const Catalog = () => {
     const [busqueda, setBusqueda] = useState('');
     const [orden, setOrden] = useState('newest');
     const [rango, setRango] = useState(0);
+    const [metal, setMetal] = useState('Todos');
     const [pagina, setPagina] = useState(1);
     const [filtrosAbiertos, setFiltrosAbiertos] = useState(false);
 
@@ -47,6 +54,19 @@ const Catalog = () => {
         fetchProducts();
     }, []);
 
+    /* Los materiales salen del catálogo, no de una lista fija: si el joyero
+       carga una pieza en platino, el filtro aparece solo. Se agrupan por la
+       primera palabra —"Oro blanco 18k" y "Oro 18k" son los dos oro— porque
+       nadie filtra por el matiz del oro, filtra por oro. */
+    const MATERIALES = useMemo(() => {
+        const vistos = new Set();
+        products.forEach(p => {
+            const raiz = (p.metal || '').trim().split(/\s+/)[0];
+            if (raiz) vistos.add(raiz.charAt(0).toUpperCase() + raiz.slice(1).toLowerCase());
+        });
+        return ['Todos', ...[...vistos].sort()];
+    }, [products]);
+
     const conteoPorCategoria = useMemo(() => {
         const mapa = { Todos: products.length };
         CATEGORIAS.slice(1).forEach(c => {
@@ -64,28 +84,43 @@ const Catalog = () => {
                 p.name.toLowerCase().includes(q) ||
                 (p.description || '').toLowerCase().includes(q);
             const matchPrecio = p.price >= min && p.price <= max;
-            return matchCat && matchBusqueda && matchPrecio;
+            const matchMetal = metal === 'Todos'
+                || (p.metal || '').toLowerCase().startsWith(metal.toLowerCase());
+            return matchCat && matchBusqueda && matchPrecio && matchMetal;
         });
 
         if (orden === 'price_asc') result.sort((a, b) => a.price - b.price);
         if (orden === 'price_desc') result.sort((a, b) => b.price - a.price);
 
         return result;
-    }, [products, categoria, busqueda, orden, rango]);
+    }, [products, categoria, busqueda, orden, rango, metal]);
 
     const visibles = filtradas.slice(0, pagina * PER_PAGE);
 
     /* Cuántos filtros hay puestos aparte de la categoría, que vive fuera del
        panel porque es el que más se usa. Va en el botón, para que en móvil se
        vea que hay algo activo sin tener que abrirlo. */
-    const filtrosActivos = (rango !== 0 ? 1 : 0)
-        + (busqueda.trim() ? 1 : 0)
-        + (orden !== 'newest' ? 1 : 0);
+    /* Un chip por filtro puesto, con su forma de quitarse. En móvil los
+       filtros viven escondidos en el panel, y sin esto no hay manera de saber
+       que están activos ni de soltarlos sin volver a abrirlo. */
+    const chips = [
+        rango !== 0 && { id: 'rango', label: RANGOS[rango].label, quitar: () => setRango(0) },
+        metal !== 'Todos' && { id: 'metal', label: metal, quitar: () => setMetal('Todos') },
+        orden !== 'newest' && {
+            id: 'orden',
+            label: ORDENES.find(o => o.v === orden).corto,
+            quitar: () => setOrden('newest'),
+        },
+        busqueda.trim() && { id: 'q', label: `“${busqueda.trim()}”`, quitar: () => setBusqueda('') },
+    ].filter(Boolean);
+
+    const filtrosActivos = chips.length;
 
     const limpiarFiltros = () => {
         setBusqueda('');
         setOrden('newest');
         setRango(0);
+        setMetal('Todos');
         setPagina(1);
     };
 
@@ -121,17 +156,44 @@ const Catalog = () => {
         </div>
     );
 
-    const selectorOrden = () => (
-        <select
-            className="catalogo-orden"
-            value={orden}
-            onChange={e => setOrden(e.target.value)}
-            aria-label="Ordenar"
-        >
-            <option value="newest">Más recientes</option>
-            <option value="price_asc">Precio: menor a mayor</option>
-            <option value="price_desc">Precio: mayor a menor</option>
-        </select>
+    const rielMaterial = () => (
+        <div className="riel" role="group" aria-label="Material">
+            {MATERIALES.map(m => (
+                <button
+                    key={m}
+                    type="button"
+                    className={`riel-btn ${metal === m ? 'riel-btn--on' : ''}`}
+                    aria-pressed={metal === m}
+                    onClick={() => { setMetal(m); setPagina(1); }}
+                >
+                    <span>{m}</span>
+                </button>
+            ))}
+        </div>
+    );
+
+    /* En el panel el orden va como lista con palomita, no como <select>: un
+       desplegable dentro de un panel deslizante abre un segundo overlay del
+       sistema encima, y en el celular eso se siente como perder el sitio. */
+    const listaOrden = () => (
+        <div className="catalogo-orden-lista" role="group" aria-label="Ordenar por">
+            {ORDENES.map(o => (
+                <button
+                    key={o.v}
+                    type="button"
+                    className={`catalogo-orden-op ${orden === o.v ? 'catalogo-orden-op--on' : ''}`}
+                    aria-pressed={orden === o.v}
+                    onClick={() => setOrden(o.v)}
+                >
+                    <span>{o.label}</span>
+                    {orden === o.v && (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--oro-ink)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="4 12 9 17 20 6" />
+                        </svg>
+                    )}
+                </button>
+            ))}
+        </div>
     );
 
     const rielPrecio = () => (
@@ -201,33 +263,48 @@ const Catalog = () => {
                         })}
                     </div>
 
-                    {/* Sólo en móvil: abre el panel con lo demás. */}
-                    <button
-                        type="button"
-                        className="catalogo-filtros-btn"
-                        onClick={() => setFiltrosAbiertos(true)}
-                        aria-expanded={filtrosAbiertos}
-                    >
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                            <line x1="4" y1="7" x2="20" y2="7" /><circle cx="15" cy="7" r="2.5" />
-                            <line x1="4" y1="17" x2="20" y2="17" /><circle cx="9" cy="17" r="2.5" />
-                        </svg>
-                        Filtros
-                        {filtrosActivos > 0 && <span className="catalogo-filtros-n">{filtrosActivos}</span>}
-                    </button>
-
                     <div className="catalogo-herramientas">
                         {campoBuscar()}
-                        {selectorOrden()}
                     </div>
                 </div>
 
+                {chips.length > 0 && (
+                    <div className="container catalogo-chips">
+                        {chips.map(c => (
+                            <button key={c.id} type="button" className="catalogo-chip"
+                                    onClick={() => { c.quitar(); setPagina(1); }}
+                                    aria-label={`Quitar filtro ${c.label}`}>
+                                <span>{c.label}</span>
+                                <span aria-hidden="true">×</span>
+                            </button>
+                        ))}
+                    </div>
+                )}
+
+                {/* Segunda fila: lo que en el celular vive dentro del panel.
+                    En escritorio sobra el ancho, así que no hay nada que
+                    abrir —se ve y se toca en el sitio. */}
                 <div className="container catalogo-filtros-fila catalogo-filtros-fila--precio">
                     <span className="catalogo-precio-label">Precio</span>
                     {rielPrecio()}
-                    <span className="catalogo-conteo">
-                        {loading ? 'Cargando…' : `${filtradas.length} pieza${filtradas.length !== 1 ? 's' : ''}`}
-                    </span>
+                    <span className="catalogo-separador" aria-hidden="true" />
+                    <span className="catalogo-precio-label">Material</span>
+                    {rielMaterial()}
+                    <div className="catalogo-orden-riel">
+                        <div className="riel" role="group" aria-label="Ordenar por">
+                            {ORDENES.map(o => (
+                                <button
+                                    key={o.v}
+                                    type="button"
+                                    className={`riel-btn ${orden === o.v ? 'riel-btn--on' : ''}`}
+                                    aria-pressed={orden === o.v}
+                                    onClick={() => setOrden(o.v)}
+                                >
+                                    <span>{o.corto}</span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -252,8 +329,12 @@ const Catalog = () => {
                                 {rielPrecio()}
                             </div>
                             <div className="catalogo-panel-grupo">
+                                <span className="catalogo-precio-label">Material</span>
+                                {rielMaterial()}
+                            </div>
+                            <div className="catalogo-panel-grupo">
                                 <span className="catalogo-precio-label">Ordenar por</span>
-                                {selectorOrden()}
+                                {listaOrden()}
                             </div>
                         </div>
 
@@ -282,6 +363,21 @@ const Catalog = () => {
                     </div>
                 ) : (
                     <>
+                        {/* Cuántas hay y cuántas se están viendo. En móvil el
+                            conteo de la franja de escritorio queda oculto, y
+                            sin esto no hay forma de saber si la lista terminó. */}
+                        <div className="catalogo-resumen">
+                            <span>{filtradas.length} pieza{filtradas.length !== 1 ? 's' : ''}</span>
+                            <div>
+                                <span>{visibles.length} de {filtradas.length}</span>
+                                {filtrosActivos > 0 && (
+                                    <button type="button" className="catalogo-limpiar" onClick={limpiarFiltros}>
+                                        Limpiar filtros
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+
                         <div className="catalogo-grid">
                             {visibles.map(p => <ProductCard key={p.id} product={p} />)}
                         </div>
@@ -300,6 +396,25 @@ const Catalog = () => {
                     </>
                 )}
             </section>
+
+            {/* Flotante y no en la fila de filtros: en el celular esa fila se va
+                con el scroll a los dos segundos y deja los filtros a un viaje
+                de vuelta arriba. Aquí está siempre a un pulgar. */}
+            <div className="catalogo-filtros-flotante">
+                <button
+                    type="button"
+                    className="catalogo-filtros-btn"
+                    onClick={() => setFiltrosAbiertos(true)}
+                    aria-expanded={filtrosAbiertos}
+                >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="4" y1="7" x2="20" y2="7" /><circle cx="15" cy="7" r="2.5" />
+                        <line x1="4" y1="17" x2="20" y2="17" /><circle cx="9" cy="17" r="2.5" />
+                    </svg>
+                    Filtros
+                    {filtrosActivos > 0 && <span className="catalogo-filtros-n">{filtrosActivos}</span>}
+                </button>
+            </div>
         </main>
     );
 };

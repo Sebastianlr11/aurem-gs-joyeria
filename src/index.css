@@ -2085,6 +2085,7 @@ textarea:focus-visible {
    CATÁLOGO — "Nuestras piezas"
    ================================================================ */
 .catalogo {
+  --catalogo-fuga: 4rem;
   background: var(--bg-marfil);
   min-height: 100vh;
   padding-bottom: 6rem;
@@ -15489,3 +15490,198 @@ textarea:focus-visible {
 .ficha ~ .footer .footer-cierre {
   padding-bottom: calc(1.75rem + 96px + env(safe-area-inset-bottom));
 }
+
+/* ─── Franja de filtros: la segunda fila ─────────────────────────────
+   Lo que en el celular vive dentro del panel, en escritorio se ve y se toca
+   en el sitio: no hay nada que abrir. */
+.catalogo-separador {
+  width: 1px;
+  height: 24px;
+  background: var(--hairline);
+  flex: none;
+}
+
+.catalogo-orden-riel { margin-left: auto; }
+
+/* Conteo sobre la rejilla. Antes vivía al final de la fila de precio, donde
+   se leía como un filtro más en vez de como el resultado de los filtros. */
+.catalogo-resumen {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 1rem;
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+.catalogo-resumen > span:first-child {
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.catalogo-resumen > div {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  color: var(--text-muted);
+}
+
+.catalogo-limpiar {
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: var(--font-ui);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--oro-ink);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.catalogo-limpiar:hover { color: var(--ink); }
+
+/* ─── Catálogo en el celular ─────────────────────────────────────────
+   Los filtros dejan de vivir en una franja que se va con el scroll. */
+
+.catalogo-chips { display: none; }
+
+/* El orden como lista con palomita: un <select> dentro del panel abre un
+   segundo overlay del sistema encima y se siente como perder el sitio. */
+.catalogo-orden-lista { display: flex; flex-direction: column; }
+
+.catalogo-orden-op {
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--hairline);
+  cursor: pointer;
+  font-family: var(--font-ui);
+  font-size: 0.9375rem;
+  text-align: left;
+  color: var(--text-secondary);
+}
+.catalogo-orden-op--on { color: var(--ink); font-weight: 600; }
+
+.catalogo-filtros-flotante { display: none; }
+
+@media (max-width: 768px) {
+  /* Las promesas en tres columnas y no en tres filas: apiladas se comían la
+     primera pantalla entera con seis renglones para decir tres datos. */
+  .catalogo-promesas {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    background: var(--bg-color);
+    border-top: 1px solid var(--hairline);
+    border-bottom: 1px solid var(--hairline);
+    margin-inline: calc(var(--catalogo-fuga, 1.25rem) * -1);
+  }
+  .catalogo-promesa {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+    padding: 12px 10px;
+    border-bottom: none;
+  }
+  .catalogo-promesa + .catalogo-promesa { border-left: 1px solid var(--hairline); }
+  .catalogo-promesa-titulo { font-size: 0.6rem; letter-spacing: 0.14em; }
+  .catalogo-promesa-valor { font-size: 0.75rem; line-height: 1.3; text-align: left; }
+
+  .catalogo-head { padding-bottom: 0; gap: 1.5rem; }
+
+  /* El riel de categorías se queda pegado arriba: es el filtro que más se
+     usa y con el scroll se perdía a los dos segundos. */
+  .catalogo-filtros {
+    position: sticky;
+    /* Debajo del navbar, no en el borde: el navbar va fijo y a top:0 el riel
+       se metía por debajo de la píldora. */
+    top: var(--navbar-espacio);
+    z-index: 20;
+    background: var(--bg-marfil);
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  /* Buscar y ordenar viven en el panel; en la franja sobran. */
+  .catalogo-herramientas,
+  .catalogo-filtros-fila--precio { display: none; }
+
+  .catalogo-chips {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 12px;
+    scrollbar-width: none;
+  }
+  .catalogo-chips::-webkit-scrollbar { display: none; }
+
+  .catalogo-chip {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 32px;
+    padding: 0 8px 0 12px;
+    border-radius: 100px;
+    border: 1px solid var(--oro-hairline);
+    background: var(--bg-arena);
+    color: var(--oro-ink);
+    font-family: var(--font-ui);
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .catalogo-chip > span:last-child { font-size: 0.875rem; line-height: 1; opacity: 0.7; }
+
+  .catalogo-resumen { padding-bottom: 10px; }
+
+  /* Dos columnas: en una sola cabía pieza y media por pantalla y recorrer el
+     catálogo era un viaje. */
+  .catalogo-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+
+  /* La tarjeta se compacta: a 170px de ancho el botón de "Ver la pieza" y el
+     círculo de WhatsApp no caben uno al lado del otro. La foto entera es el
+     enlace, así que el botón no hace falta —queda el precio y WhatsApp. */
+  .catalogo-grid .pieza { gap: 10px; }
+  .catalogo-grid .pieza-nombre { font-size: 1rem; }
+  .catalogo-grid .pieza-ficha { font-size: 0.75rem; line-height: 1.35; }
+  .catalogo-grid .pieza-linea { flex-direction: column; align-items: flex-start; gap: 4px; }
+  .catalogo-grid .pieza-precio { font-size: 0.9375rem; }
+  .catalogo-grid .pieza-filete { display: none; }
+  .catalogo-grid .pieza-btn { display: none; }
+  .catalogo-grid .pieza-acciones {
+    padding-top: 0;
+    margin-top: auto;
+    justify-content: flex-end;
+  }
+  .catalogo-grid .pieza-sello { left: 8px; bottom: 8px; }
+
+  /* El botón de filtros, siempre a un pulgar. El degradado lo despega de la
+     rejilla sin taparla con una barra opaca. */
+  .catalogo-filtros-flotante {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 30;
+    display: flex;
+    justify-content: center;
+    padding: 12px 20px calc(16px + env(safe-area-inset-bottom));
+    background: linear-gradient(to top, rgba(251, 247, 242, 0.96) 55%, rgba(251, 247, 242, 0));
+    pointer-events: none;
+  }
+  .catalogo-filtros-flotante .catalogo-filtros-btn { pointer-events: auto; }
+
+  /* Para que el flotante no tape la última fila. */
+  .catalogo-cuerpo { padding-bottom: calc(84px + env(safe-area-inset-bottom)); }
+}
+
+/* La franja de promesas sale del contenedor en el celular; su margen negativo
+   tiene que seguir al relleno de .container en cada corte. Va al final para
+   ganar por orden a la declaración base. */
+@media (max-width: 968px) { .catalogo { --catalogo-fuga: 2rem; } }
+@media (max-width: 600px) { .catalogo { --catalogo-fuga: 1.25rem; } }
