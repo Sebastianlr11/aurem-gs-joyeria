@@ -14931,6 +14931,13 @@ textarea:focus-visible {
   aspect-ratio: 1;
   max-height: 86vh;
   min-height: 0;
+  /* Sin el sticky del diseño anterior. Se pegaba a 112px del borde para que
+     la foto acompañara la lectura de una columna larga; con el hero a sangre
+     lo único que hace es meter una franja de cacao encima de la imagen y
+     empujar el botón de volver a media foto. Queda relative porque volver y
+     las miniaturas se posicionan contra ella. */
+  position: relative;
+  top: auto;
 }
 
 /* cover y sin relleno: la foto llena su mitad. El contain con 48px de aire
