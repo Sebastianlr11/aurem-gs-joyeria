@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import ProductCard from '../components/catalog/ProductCard';
 import { supabase } from '../lib/supabase';
@@ -126,6 +126,23 @@ const Catalog = () => {
         setPagina(1);
     };
 
+    /* El botón flotante de filtros solo se asoma cuando la franja ya salió de
+       pantalla. Pegada arriba tiene sentido mientras se ve; una vez fuera, un
+       botón ocupa mucho menos que dos filas de píldoras siguiéndote. */
+    const franjaRef = useRef(null);
+    const [franjaFuera, setFranjaFuera] = useState(false);
+
+    useEffect(() => {
+        const el = franjaRef.current;
+        if (!el || typeof IntersectionObserver === 'undefined') return;
+        const obs = new IntersectionObserver(
+            ([e]) => setFranjaFuera(!e.isIntersecting),
+            { rootMargin: '-8px 0px 0px 0px' },
+        );
+        obs.observe(el);
+        return () => obs.disconnect();
+    }, [loading]);
+
     /* Con el panel abierto la página de detrás no se mueve. */
     useEffect(() => {
         if (!filtrosAbiertos) return;
@@ -240,7 +257,7 @@ const Catalog = () => {
                 </div>
             </header>
 
-            <div className="catalogo-filtros">
+            <div className="catalogo-filtros" ref={franjaRef}>
                 <div className="container catalogo-filtros-fila">
                     {/* Riel segmentado: una sola fila, una sola activa. Las categorías
                         sin piezas conservan su etiqueta —el conteo ya lo dice— pero
@@ -403,7 +420,7 @@ const Catalog = () => {
             {/* Flotante y no en la fila de filtros: en el celular esa fila se va
                 con el scroll a los dos segundos y deja los filtros a un viaje
                 de vuelta arriba. Aquí está siempre a un pulgar. */}
-            <div className="catalogo-filtros-flotante">
+            <div className={`catalogo-filtros-flotante${franjaFuera ? ' catalogo-filtros-flotante--visible' : ''}`}>
                 <button
                     type="button"
                     className="catalogo-filtros-btn"
