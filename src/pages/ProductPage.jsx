@@ -161,9 +161,6 @@ const BuyModal = ({ product, onClose }) => {
      un cobro escondido, y es la forma más rápida de perder una venta que ya
      estaba decidida. */
   const [abonoEnvio, setAbonoEnvio] = useState(null);
-  /* Mercado Pago abre en otra pestaña. Sin esto, la pestaña original se queda
-     mostrando un botón que ya se tocó y el cliente no sabe si algo pasó. */
-  const [pagoAbierto, setPagoAbierto] = useState(false);
   const [initPoint, setInitPoint] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -533,8 +530,7 @@ const BuyModal = ({ product, onClose }) => {
 
         {step === 'wallet' && initPoint && (
           <div className="abono-paso">
-            {!pagoAbierto ? (
-              <div className="abono-cuerpo">
+            <div className="abono-cuerpo">
                 {abono ? (
                   <>
                     <p className="abono-lead">
@@ -582,13 +578,13 @@ const BuyModal = ({ product, onClose }) => {
                   </p>
                 )}
 
-                <a
-                  href={initPoint}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="abono-cta"
-                  onClick={() => setPagoAbierto(true)}
-                >
+                {/* Sin target="_blank". Una pestaña nueva en el móvil es lo peor
+                    de los dos mundos: el cliente pierde de vista dónde estaba y
+                    tiene que ir a buscar la pestaña original para volver.
+                    Mercado Pago se lleva la página y la devuelve sola a
+                    /confirmacion cuando termina, que es el recorrido que la
+                    gente ya conoce de cualquier tienda. */}
+                <a href={initPoint} className="abono-cta">
                   {abono ? `Abonar $${fmt(abono.abono)}` : 'Pagar con Mercado Pago'}
                 </a>
 
@@ -604,39 +600,7 @@ const BuyModal = ({ product, onClose }) => {
                     descuenta del total.
                   </p>
                 )}
-              </div>
-            ) : (
-              /* Mercado Pago abre en otra pestaña, y en el móvil eso se siente
-                 como que la pantalla se perdió. Esta vista dice qué pasó y deja
-                 dos salidas: escribir por WhatsApp o volver a intentarlo. */
-              <div className="abono-abierto">
-                <span className="abono-sello">
-                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
-                </span>
-                <h3>Termina el pago en Mercado Pago</h3>
-                <p>
-                  {abono
-                    ? `Abrimos la ventana de Mercado Pago para el abono de $${fmt(abono.abono)}. Cuando confirmes, te escribimos por WhatsApp con la guía de envío.`
-                    : 'Abrimos la ventana de Mercado Pago. Cuando confirmes, te escribimos por WhatsApp.'}
-                </p>
-                <div className="abono-salidas">
-                  <a
-                    className="btn-pill light-fill abono-wa"
-                    href={waUrl({
-                      mobile: `Hola! Estoy pagando mi pedido de *${product.name}* y necesito ayuda 🙏`,
-                      desktop: `Hola! Estoy pagando mi pedido de *${product.name}* y necesito ayuda`,
-                    })}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Escribir por WhatsApp
-                  </a>
-                  <button type="button" className="abono-volver" onClick={() => setPagoAbierto(false)}>
-                    Volver al resumen
-                  </button>
-                </div>
-              </div>
-            )}
+            </div>
 
             <footer className="abono-pie">
               <span className="abono-seguro">
