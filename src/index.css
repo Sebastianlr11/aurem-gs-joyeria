@@ -14932,6 +14932,11 @@ textarea:focus-visible {
 .ficha-hero .pg-gallery {
   border: none;
   border-radius: 0;
+  /* El diseño viejo capaba la galería a 400px y la centraba dentro de una
+     media query de 900px. Se anula aquí y no solo en la de móvil, porque
+     entre 769 y 900 —tablets— seguía aplicando y dejaba la misma franja. */
+  max-width: none;
+  margin: 0;
   /* La foto sale del flujo y llena su columna. Con height:100% no bastaba:
      la fila se dimensionaba por la foto y la foto por la fila —circular—, así
      que el navegador dejaba mandar a la imagen y la banda crecía a 2400px.
@@ -15134,6 +15139,13 @@ textarea:focus-visible {
     min-height: 0;
     aspect-ratio: 1;
     max-height: 62vh;
+    /* A sangre. El diseño viejo capaba la galería a 400px y la centraba, así
+       que en cualquier teléfono más ancho que eso —414, 428, 430— la foto
+       quedaba con una franja de cacao a cada lado. Y las esquinas redondeadas
+       remataban el efecto de marco. */
+    max-width: none;
+    margin: 0;
+    border-radius: 0;
   }
 
   .ficha-hero .ficha-grid { min-height: 0; }
