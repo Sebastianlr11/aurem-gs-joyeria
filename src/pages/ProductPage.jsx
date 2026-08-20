@@ -375,7 +375,7 @@ const BuyModal = ({ product, onClose }) => {
             <div className="pago-confianza">
               <div>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="3" width="15" height="13"/><path d="M16 8h4l3 3v5h-7z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
-                <span>Envío 24 a 48 horas hábiles</span>
+                <span>Envío 24 h en Bogotá</span>
               </div>
               <div>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2v6h6"/><path d="M4 22V4a2 2 0 0 1 2-2h8l6 6v14a2 2 0 0 1-2 2z"/><path d="M9 13h6M9 17h4"/></svg>
@@ -545,7 +545,7 @@ const BuyModal = ({ product, onClose }) => {
                         <div>
                           <span className="abono-cuando">Hoy</span>
                           <span className="abono-que">Abonas el envío</span>
-                          <span className="abono-detalle">Se descuenta del total. Despachamos en 24 a 48 horas hábiles.</span>
+                          <span className="abono-detalle">Se descuenta del total. Despachamos al día siguiente.</span>
                         </div>
                         <span className="abono-monto">${fmt(abono.abono)}</span>
                       </li>
@@ -1001,7 +1001,7 @@ const ProductPage = () => {
         product.metal,
         piedraCorta || null,
         'contraentrega en Bogotá',
-        'envío 24 a 48 h',
+        'envío 1 a 3 días',
     ].filter(Boolean).join(' · ');
 
     /* Sin "Categoría" —ya lo dice el antetítulo del hero— y sin "Referencia",
@@ -1011,12 +1011,16 @@ const ProductPage = () => {
         product.piedra ? ['Piedra', product.piedra] : null,
         product.engaste ? ['Engaste', product.engaste] : null,
         esAnillo ? ['Talla', `${product.talla_rango || '5 a 12'} · ajuste en taller sin costo`] : null,
-        ['Envío', '24 a 48 horas hábiles, a todo el país'],
+        ['Envío', 'Bogotá en 24 h · resto del país, 2 a 3 días'],
         /* Una línea, no un párrafo: el detalle de las dos formas de pagar se
            lee entero en la franja de abajo. Aquí solo el titular, y con el
            límite dicho —el contraentrega no sale de Bogotá—. */
         ['Pago', 'Contraentrega en Bogotá · o en línea'],
-        ['Certificado', 'Opcional · $50.000'],
+        /* Lo hace un laboratorio gemológico: dice de dónde viene la piedra
+           —y si es sintética—, la ley del metal y las medidas, y lleva un
+           código que se comprueba en la web del laboratorio. Decir solo
+           "Opcional · $50.000" era vender un recibo en vez de una prueba. */
+        ['Certificado', 'Opcional · $50.000 · laboratorio gemológico, con código verificable'],
         ['Garantía', 'De por vida en el metal'],
         product.stock !== null && product.stock !== undefined
             ? ['Disponibilidad', product.stock === 0 ? 'Agotada' : `${product.stock} unidad${product.stock !== 1 ? 'es' : ''}`]
@@ -1093,7 +1097,7 @@ const ProductPage = () => {
                             </div>
                             <div className="ficha-precio-envio">
                                 <span>Pagas al recibir o en línea</span>
-                                <span>Envío 24 a 48 h · toda Colombia</span>
+                                <span>Envío 24 h Bogotá · 2 a 3 días resto</span>
                             </div>
                         </div>
 
@@ -1180,7 +1184,7 @@ const ProductPage = () => {
                             Cada uno dice hasta dónde llega: la contraentrega es
                             solo Bogotá y la garantía cubre el metal. */}
                         <ul className="ficha-promesas">
-                            {['Envío 24 a 48 h',
+                            {['Envío 24 h en Bogotá',
                               'Contraentrega en Bogotá',
                               'Certificado opcional',
                               'Garantía de por vida en el metal'].map(t => <li key={t}>{t}</li>)}
@@ -1253,7 +1257,9 @@ const ProductPage = () => {
                       venta en la puerta. */}
                   <p className="incluye-no">
                     <span>No incluye</span>
-                    Certificado gemológico, que se pide aparte por $50.000.
+                    Certificado gemológico, que se pide aparte por $50.000. Lo emite un
+                    laboratorio: acredita la procedencia de la piedra —y si es sintética—,
+                    la ley del metal y las medidas, con un código verificable en su web.
                   </p>
                 </div>
 
@@ -1301,7 +1307,7 @@ const ProductPage = () => {
                         <span className="joyero-forma-t">En línea, a todo el país</span>
                         <p className="joyero-forma-s">
                           Tarjeta, PSE, Nequi, Daviplata o efectivo en Efecty.
-                          Despachamos en 24 a 48 horas hábiles.
+                          Despachamos al día siguiente.
                         </p>
                       </div>
                     </div>
@@ -1364,7 +1370,7 @@ const ProductPage = () => {
                         <span className="ficha-barra-nota">
                             {esAnillo
                                 ? (talla ? `Talla ${talla} · ajuste sin costo` : 'Elige tu talla o te ayudamos')
-                                : 'Envío 24 a 48 h · toda Colombia'}
+                                : 'Envío 24 h Bogotá · 2 a 3 días resto'}
                         </span>
                     </div>
                     <div className="ficha-barra-acciones">

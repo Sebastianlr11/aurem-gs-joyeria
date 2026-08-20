@@ -248,7 +248,7 @@ const RingSizeGuide = () => {
                             <Link to="/catalogo" className="btn-pill light">Ver el catálogo</Link>
                         </div>
                         <div className="talla-punzones">
-                            <span className="punzon">Envío 24 a 48 horas hábiles</span>
+                            <span className="punzon">Envío 24 h en Bogotá</span>
                             <span className="punzon">Pagas al recibir</span>
                         </div>
                     </div>
