@@ -15293,3 +15293,24 @@ textarea:focus-visible {
    compite con el scroll y a veces no llega ninguno de los dos. */
 .pg-gallery-main { touch-action: pan-y; }
 .pg-gallery-punto { touch-action: manipulation; }
+
+/* ─── "Otras piezas": un riel, no un segundo catálogo ─────────────────
+   Con las tarjetas del catálogo a ancho completo la sección medía 904px en
+   una pantalla de 900: más alta que el viewport entero para ser lo último de
+   la página. Las fotos se llevaban 524 de esos. Acá la pieza ya se eligió;
+   esto es para asomarse a lo que hay al lado. */
+.ficha-relacionadas {
+  max-width: 1120px;
+  margin-inline: auto;
+  margin-top: 4.5rem;
+  padding-top: 2.5rem;
+}
+
+/* Cuadrada y no 4:5: en un riel la foto es una miniatura para reconocer la
+   pieza, no la imagen con la que se decide la compra. */
+.ficha-relacionadas .pieza-foto { aspect-ratio: 1; }
+
+/* Sin la descripción. Para saber si vale la pena entrar bastan la categoría,
+   el nombre y el precio; el texto largo se lee en la ficha, que está a un
+   clic. Eran 60px por tarjeta para repetir lo que ya dice el nombre. */
+.ficha-relacionadas .pieza-spec { display: none; }
