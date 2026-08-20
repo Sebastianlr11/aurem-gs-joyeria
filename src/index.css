@@ -14826,7 +14826,13 @@ textarea:focus-visible {
    baja a leer la ficha. Sin esto hay que volver a subir, y mucha gente no
    vuelve. */
 .ficha-barra {
-  position: sticky;
+  /* Fija y no pegajosa. Con sticky, al llegar al final de su contenedor el
+     navegador la "despega" y la deja plantada en el flujo: quedaba a media
+     página, con los botones del riel cortados encima y un campo de marfil
+     vacío debajo. Fija vive siempre en el borde de la pantalla. */
+  position: fixed;
+  left: 0;
+  right: 0;
   bottom: 0;
   z-index: 40;
   background: var(--ink-soft);
@@ -15586,3 +15592,8 @@ textarea:focus-visible {
   .rel-btn, .rel-wa { height: 48px; }
   .rel-wa { width: 48px; }
 }
+
+/* Al ser fija, la barra deja de ocupar sitio en el flujo y taparía el final
+   del pie de página. El hueco se lo reserva el pie, que en esta ruta es el
+   hermano que sigue a la ficha. */
+.ficha ~ .footer { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
