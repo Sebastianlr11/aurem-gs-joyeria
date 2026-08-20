@@ -14915,9 +14915,11 @@ textarea:focus-visible {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 0;
   align-items: stretch;
-  /* El alto lo pone la columna de texto; esto es solo el piso, para que
-     la foto tenga cuerpo cuando el texto es corto. */
-  min-height: min(760px, 92vh);
+  /* Exactamente la pantalla. Con un piso menor sobraba sitio abajo y se
+     asomaba una franja marfil de la ficha del joyero: la primera pantalla
+     dejaba de ser una sola cosa. La siguiente sección empieza al hacer
+     scroll, no antes. */
+  min-height: 100vh;
 }
 
 .ficha-hero .ficha-galeria { position: relative; top: auto; display: block; }
@@ -15155,3 +15157,9 @@ textarea:focus-visible {
   .ficha-hero .ficha-acciones { margin-top: 22px; }
   .ficha-promesas { margin-top: 20px; padding-top: 16px; }
 }
+
+/* El texto centrado en su mitad. Ahora que el aire de arriba y el de abajo
+   son iguales, repartir la sobra se lee como margen y no como texto pegado
+   al techo con un hueco debajo. "safe" para que en una pantalla más baja que
+   el contenido se desborde hacia abajo y no se coma el antetítulo. */
+.ficha-hero .ficha-info { justify-content: safe center; }
