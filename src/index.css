@@ -14556,28 +14556,29 @@ textarea:focus-visible {
    teclado para escribir la dirección el botón se iba por debajo. */
 @media (max-width: 600px) {
   .buy-modal-overlay {
-    padding: 0;
+    /* El mismo aire por los cuatro lados. El área segura se suma abajo para
+       que en los iPhone con barra de gestos la hoja no quede pegada a ella. */
+    padding: 16px;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));
     align-items: flex-end;
   }
   .buy-modal-box {
     max-width: none;
-    /* Los 56px que quedan arriba son la página anterior, oscurecida. */
-    max-height: calc(100% - 56px);
-    border-radius: 2px 2px 0 0;
-    box-shadow: 0 -12px 40px rgba(28, 23, 20, 0.3);
+    max-height: 100%;
+    border-radius: 2px;
+    box-shadow: 0 18px 50px rgba(28, 23, 20, 0.34);
     animation: subirHoja 0.42s cubic-bezier(0.16, 1, 0.3, 1) both;
   }
   .pago-pieza img { width: 56px; height: 70px; }
   .pago-pieza-nombre { font-size: 1.25rem; }
   .abono-cuerpo { padding: 20px 16px 16px; }
   .abono-monto { font-size: 1rem; }
-  .abono-pie { padding: 14px 16px calc(16px + env(safe-area-inset-bottom)); }
-  .buy-modal-form { padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
+  .abono-pie { padding: 14px 16px 16px; }
 }
 
 @keyframes subirHoja {
-  from { transform: translateY(100%); }
-  to   { transform: none; }
+  from { opacity: 0; transform: translateY(calc(100% + 16px)); }
+  to   { opacity: 1; transform: none; }
 }
 
 /* En pantalla grande no sube: aparece. Arrastrar una hoja en un escritorio no
