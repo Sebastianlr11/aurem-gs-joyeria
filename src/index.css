@@ -15900,3 +15900,20 @@ textarea:focus-visible {
   .catalogo-filtros-fila--precio { padding-bottom: 0.4375rem; }
   .catalogo-resumen { padding-bottom: 0.5rem; }
 }
+
+/* La tarjeta del catálogo, más contenida. En una rejilla de cuatro el nombre
+   a 1.375rem partía en dos renglones y el precio competía con él; entre eso
+   y un botón de 46px, cada tarjeta pedía media pantalla. La foto no se toca:
+   es lo que se vino a ver. */
+@media (min-width: 769px) {
+  .catalogo-grid .pieza { gap: 12px; }
+  .catalogo-grid .pieza-cuerpo { gap: 8px; }
+  .catalogo-grid .pieza-nombre { font-size: 1.125rem; }
+  .catalogo-grid .pieza-precio { font-size: 1rem; }
+  .catalogo-grid .pieza-moneda { font-size: 0.62rem; }
+  .catalogo-grid .pieza-ficha { font-size: 0.8rem; line-height: 1.5; }
+  .catalogo-grid .pieza-acciones { gap: 10px; padding-top: 2px; }
+  .catalogo-grid .pieza-btn { height: 40px; font-size: 0.75rem; }
+  .catalogo-grid .pieza-wa { width: 40px; height: 40px; }
+  .catalogo-grid .pieza-sello { left: 12px; bottom: 12px; }
+}
