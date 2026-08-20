@@ -18,6 +18,13 @@ const WhatsAppButton = () => {
      hooks y React tumbaría la página entera. */
   if (pathname.startsWith('/admin')) return null;
 
+  /* En la ficha de producto no. Ahí la barra de compra ya va fija abajo con
+     su propio botón de WhatsApp, y el flotante se le monta encima: dos
+     botones del mismo color pisados uno sobre otro, y el de arriba tapando
+     justo el que sí lleva la pieza en el mensaje. La ficha además ofrece
+     "Preguntar por WhatsApp" en el hero, así que no se pierde ninguna vía. */
+  if (/^\/catalogo\/.+/.test(pathname)) return null;
+
   return (
     <a
       href={waUrl({ mobile: 'Hola! 👋 Estoy viendo el catálogo de *Aurem Gs Joyería* y me encanta. Me pueden asesorar? ✨', desktop: 'Hola! Estoy viendo el catálogo de *Aurem Gs Joyería* y me encanta. Me pueden asesorar?' })}

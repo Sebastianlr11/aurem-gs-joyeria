@@ -14969,6 +14969,12 @@ textarea:focus-visible {
   /* En móvil el cuadrado ya lo da el ancho de la pantalla; solo hay que
      evitar que se coma el viewport entero y deje los botones fuera. */
   .ficha-hero .pg-gallery { max-height: 62vh; }
+
+  /* Volver y miniaturas pegados al borde de la foto. El despeje del navbar
+     en móvil lo da el aire de la página, así que los 84px de escritorio se
+     sumaban a ese aire y dejaban el botón flotando a media foto. */
+  .ficha-hero .pg-volver,
+  .ficha-hero .pg-gallery-thumbs { top: 16px; }
   .ficha-hero .ficha-info { padding: clamp(28px, 6vw, 40px) 24px 40px; }
 }
 

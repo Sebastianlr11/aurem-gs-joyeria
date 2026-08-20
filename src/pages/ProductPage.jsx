@@ -885,10 +885,6 @@ const ProductPage = () => {
     const ley = (product.metal || '').match(/\b(925|750|18\s?k|14\s?k|PT\s?950|950)\b/i);
     const punzonLey = ley ? ley[0].replace(/\s/g, '').toUpperCase() : null;
 
-    /* La frase de arriba: qué es la pieza, en una línea. Sale de los datos del
-       joyero, que ya están escritos con precisión. Si la pieza no los tiene
-       cargados se usa la primera frase de la descripción, que suele ser la que
-       la presenta. */
     /* "Anillo Majestuosa" se parte en "Anillo" y "MAJESTUOSA": la primera
        palabra dice qué es, el resto es el nombre propio. Un nombre de una sola
        palabra no se parte. */
@@ -897,20 +893,7 @@ const ProductPage = () => {
         ? { primero: partes[0], resto: partes.slice(1).join(' ') }
         : { primero: product.name, resto: null };
 
-    const material = [
-        product.piedra,
-        product.metal ? `sobre ${product.metal.toLowerCase()}` : null,
-    ].filter(Boolean).join(' ');
-
-    /* El engaste va en frase aparte y no encadenado con "con": "…con halo con
-       circones laterales" es lo que salía, y dos "con" seguidos se leen como
-       un error de redacción. */
-    const resumen = [material, product.engaste]
-        .filter(Boolean)
-        .map((t) => t.replace(/^./, (c) => c.toUpperCase()).replace(/\.$/, ''))
-        .join('. ')
-      || (product.description || '').split(/(?<=\.)\s/)[0].trim();
-    const resumenFinal = resumen && !/[.!?]$/.test(resumen) ? `${resumen}.` : resumen;
+    const resumenFinal = (product.description || '').trim();
 
     /* El punzón lleva el metal con su ley leída como la lee un joyero —"plata
        ley 925", no "925" a secas ni "Anillos", que es una etiqueta de catálogo
@@ -991,12 +974,11 @@ const ProductPage = () => {
                             {nombrePartido.resto && <em>{nombrePartido.resto}.</em>}
                         </h1>
 
-                        {/* Arriba va una frase corta armada con la ficha, no la
-                            descripción de venta. La de venta son siete líneas
-                            con emojis que empujan el precio y la talla debajo
-                            del pliegue: lo que la persona necesita para decidir
-                            queda fuera de la primera pantalla. Baja completa a
-                            la ficha del joyero, donde se lee con calma. */}
+                        {/* La descripción, tal cual está escrita en el panel. Se
+                            arma en dos frases —qué es la pieza y qué recibes—
+                            y así cabe entera antes del precio. Antes eran siete
+                            líneas de copy de redes con emojis, y empujaban el
+                            precio y la talla debajo del pliegue. */}
                         {resumenFinal && <p className="ficha-desc">{resumenFinal}</p>}
 
                         <div className="ficha-precio-bloque">
@@ -1124,9 +1106,6 @@ const ProductPage = () => {
                     <h2>Ficha del<em>joyero.</em></h2>
                     {product.category && <span className="punzon">{product.category}</span>}
                   </div>
-                  {product.description && (
-                    <p className="joyero-desc">{product.description}</p>
-                  )}
                   <dl className="joyero-lista">
                     {ficha.map(([k, v]) => (
                       <div key={k}>
