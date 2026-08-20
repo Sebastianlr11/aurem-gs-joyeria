@@ -15699,8 +15699,11 @@ textarea:focus-visible {
     border-bottom: 1px solid var(--hairline);
   }
 
-  /* Buscar y ordenar viven en el panel; en la franja sobran. */
+  /* Buscar, precio, material y orden viven en el panel; en la franja sobran.
+     El orden subió a la primera fila para escritorio y aquí hay que taparlo:
+     si no, se cuela en el riel de categorías. */
   .catalogo-herramientas,
+  .catalogo-orden-riel,
   .catalogo-filtros-fila--precio { display: none; }
 
   .catalogo-chips {
@@ -15788,14 +15791,19 @@ textarea:focus-visible {
 @media (min-width: 769px) {
   .catalogo-filtros .riel {
     display: flex;
-    flex-wrap: wrap;
+    /* Se desplaza, no se parte. Con wrap, seis categorías en 471px de ancho
+       caían en dos renglones dentro del propio riel y estiraban la fila a
+       100px aunque la fila no envolviera. */
+    flex-wrap: nowrap;
     gap: 8px;
     padding: 0;
     background: none;
     border: none;
     border-radius: 0;
-    overflow: visible;
+    overflow-x: auto;
+    scrollbar-width: none;
   }
+  .catalogo-filtros .riel::-webkit-scrollbar { display: none; }
 
   .catalogo-filtros .riel-btn {
     min-height: 40px;
@@ -15824,42 +15832,9 @@ textarea:focus-visible {
     padding: 0 14px;
     font-size: 0.8125rem;
   }
-  .catalogo-filtros-fila--precio .riel { flex-wrap: nowrap; }
 }
 
-/* Entre 769 y 1320 el ancho ya no da para precio, material y orden con el
-   cuerpo de 1440: el orden se descolgaba a un tercer renglón. Se aprieta el
-   aire, no se quita ningún filtro. */
-@media (min-width: 769px) and (max-width: 1320px) {
-  .catalogo-filtros-fila--precio { gap: 0.625rem; }
-  .catalogo-filtros-fila--precio .riel { gap: 6px; }
-  .catalogo-filtros-fila--precio .riel-btn {
-    min-height: 34px;
-    padding: 0 11px;
-    font-size: 0.78rem;
-  }
-  .catalogo-filtros-fila--precio .catalogo-precio-label { font-size: 0.58rem; letter-spacing: 0.16em; }
-}
 
-/* Un punto más pequeña. La franja va pegada bajo el navbar y acompaña todo
-   el scroll: cada píxel que ocupa se lo quita a las fotos, que son lo que
-   la clienta vino a ver. */
-@media (min-width: 769px) {
-  .catalogo-filtros-fila { padding-top: 0.5rem; padding-bottom: 0.5rem; gap: 0.625rem 1.125rem; }
-  .catalogo-filtros .riel-btn { min-height: 34px; padding: 0 14px; font-size: 0.8125rem; }
-  .catalogo-filtros .riel-n { font-size: 0.72rem; }
-  /* El buscador a la misma altura que las píldoras: con 40px era el elemento
-     más alto de la fila y le marcaba el alto a toda la franja. */
-  .catalogo-buscar { min-height: 34px; height: 34px; }
-
-  .catalogo-filtros-fila--precio { padding-top: 0; padding-bottom: 0.625rem; }
-  .catalogo-filtros-fila--precio .riel-btn { min-height: 30px; padding: 0 12px; font-size: 0.7625rem; }
-  .catalogo-separador { height: 20px; }
-}
-
-@media (min-width: 769px) and (max-width: 1320px) {
-  .catalogo-filtros-fila--precio .riel-btn { min-height: 28px; padding: 0 10px; font-size: 0.73rem; }
-}
 
 /* La cabecera se queda como estaba: el recorte que le hice salió de leer mal
    la petición —lo que había que reducir eran las tarjetas—. Aquí solo queda
@@ -15902,4 +15877,28 @@ textarea:focus-visible {
   .catalogo-grid .pieza-btn { height: 40px; font-size: 0.75rem; }
   .catalogo-grid .pieza-wa { width: 40px; height: 40px; }
   .catalogo-grid .pieza-sello { left: 12px; bottom: 12px; }
+}
+
+/* La franja, con el orden arriba. Estaba en la segunda fila junto a precio y
+   material, y ahí no cabía: se descolgaba a un tercer renglón y yo lo tapaba
+   apretando las píldoras hasta 28px. Subirlo al primer renglón —donde sobra
+   sitio al lado de las categorías— arregla la causa, no el síntoma. */
+@media (min-width: 769px) {
+  .catalogo-orden-riel { margin-left: auto; flex: 0 0 auto; }
+  .catalogo-orden-riel .riel-btn { font-size: 0.78rem; }
+
+  /* La fila no envuelve: con wrap, flexbox parte la línea antes de encoger
+     nada, así que por debajo de 1200 el buscador se caía a un segundo
+     renglón y la franja pasaba de 102 a 158 por 40px de campo de texto.
+     Sin wrap, lo que sobra se lo reparten el riel de categorías —que ya
+     sabe desplazarse— y el buscador. */
+  .catalogo-filtros-fila { flex-wrap: nowrap; }
+  .catalogo-filtros-fila > .riel { min-width: 0; flex: 0 1 auto; }
+  .catalogo-herramientas { flex: 0 1 230px; min-width: 0; }
+  .catalogo-buscar { width: 100%; min-width: 0; }
+
+  /* La segunda fila se queda con precio y material, y ya puede envolver sin
+     que la franja crezca de golpe. */
+  .catalogo-filtros-fila--precio { flex-wrap: wrap; gap: 0.5rem 0.875rem; }
+  .catalogo-filtros-fila--precio .riel { flex-wrap: nowrap; }
 }

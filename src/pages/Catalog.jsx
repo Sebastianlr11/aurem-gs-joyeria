@@ -263,6 +263,22 @@ const Catalog = () => {
                         })}
                     </div>
 
+                    <div className="catalogo-orden-riel">
+                        <div className="riel" role="group" aria-label="Ordenar por">
+                            {ORDENES.map(o => (
+                                <button
+                                    key={o.v}
+                                    type="button"
+                                    className={`riel-btn ${orden === o.v ? 'riel-btn--on' : ''}`}
+                                    aria-pressed={orden === o.v}
+                                    onClick={() => setOrden(o.v)}
+                                >
+                                    <span>{o.corto}</span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
                     <div className="catalogo-herramientas">
                         {campoBuscar()}
                     </div>
@@ -290,21 +306,6 @@ const Catalog = () => {
                     <span className="catalogo-separador" aria-hidden="true" />
                     <span className="catalogo-precio-label">Material</span>
                     {rielMaterial()}
-                    <div className="catalogo-orden-riel">
-                        <div className="riel" role="group" aria-label="Ordenar por">
-                            {ORDENES.map(o => (
-                                <button
-                                    key={o.v}
-                                    type="button"
-                                    className={`riel-btn ${orden === o.v ? 'riel-btn--on' : ''}`}
-                                    aria-pressed={orden === o.v}
-                                    onClick={() => setOrden(o.v)}
-                                >
-                                    <span>{o.corto}</span>
-                                </button>
-                            ))}
-                        </div>
-                    </div>
                 </div>
             </div>
 
