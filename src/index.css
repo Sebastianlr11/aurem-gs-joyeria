@@ -14924,6 +14924,11 @@ textarea:focus-visible {
   border-radius: 0;
   height: 100%;
   min-height: clamp(420px, 44vw, 760px);
+  /* Anula el 9/16 que la galería tenía debajo de 900px. Entre tablet y
+     escritorio la foto se estiraba a proporción de reel al lado del texto,
+     que es justo lo que no queremos: un reel es un formato de video, no la
+     manera de mirar una pieza quieta. */
+  aspect-ratio: auto;
 }
 
 /* cover y sin relleno: la foto llena su mitad. El contain con 48px de aire
