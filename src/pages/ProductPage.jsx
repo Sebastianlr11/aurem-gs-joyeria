@@ -275,7 +275,11 @@ const BuyModal = ({ product, onClose }) => {
           <div className="pago-pieza-info">
             <span className="pago-eyebrow">Tu pieza</span>
             <h3 className="pago-pieza-nombre">{product.name}</h3>
-            <span className="pago-pieza-cat">{product.category}</span>
+            <span className="pago-pieza-cat">
+              {/* La ley junto al nombre, en el momento de pagar. Es el dato que
+                  más tranquiliza en joyería, y hasta ahora no se guardaba. */}
+              {product.metal ? `${product.category} · ${product.metal}` : product.category}
+            </span>
           </div>
           <button type="button" className="pago-cerrar" onClick={onClose} aria-label="Cerrar">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
@@ -903,20 +907,32 @@ const ProductPage = () => {
     const enOferta = product.compare_price && product.compare_price > product.price;
     const referencia = `REF. AG-${String(product.id).replace(/\D/g, '').slice(-4).padStart(4, '0')}`;
 
+    /* El punzón de ley: la marca que un orfebre golpea dentro de la pieza. Sale
+       del metal escrito en el catálogo, recortado a la ley sola —"Plata 925"
+       se muestra como 925— porque eso es lo que dice el punzón real. Si la
+       pieza no tiene metal cargado, no hay punzón: uno inventado es peor que
+       ninguno. */
+    const ley = (product.metal || '').match(/\b(925|750|18\s?k|14\s?k|PT\s?950|950)\b/i);
+    const punzonLey = ley ? ley[0].replace(/\s/g, '').toUpperCase() : null;
+
     const sellos = [
         product.category,
+        punzonLey,
         enOferta ? 'Precio de lanzamiento' : null,
         product.stock === 1 ? 'Última unidad' : null,
         'Hecha en Colombia',
     ].filter(Boolean);
 
     const ficha = [
+        product.metal ? ['Metal', product.metal + (punzonLey ? ' con punzón de ley' : '')] : null,
+        product.piedra ? ['Piedra', product.piedra] : null,
+        product.engaste ? ['Engaste', product.engaste] : null,
         ['Categoría', product.category],
         ['Referencia', referencia.replace('REF. ', '')],
         product.stock !== null && product.stock !== undefined
             ? ['Disponibilidad', product.stock === 0 ? 'Agotada' : `${product.stock} unidad${product.stock !== 1 ? 'es' : ''}`]
             : null,
-        esAnillo ? ['Talla', '5 a 12 · ajuste en taller sin costo'] : null,
+        esAnillo ? ['Talla', `${product.talla_rango || '5 a 12'} · ajuste en taller sin costo`] : null,
         ['Envío', '24 a 48 horas hábiles'],
         ['Certificado', 'Opcional · $50.000'],
         ['Garantía', 'De por vida en el metal'],
@@ -1090,6 +1106,46 @@ const ProductPage = () => {
                     ))}
                   </dl>
                 </div>
+
+                {/* Qué incluye el precio. Se arma con lo que la pieza tenga
+                    cargado: la que no lleva piedra no muestra esa columna. La
+                    última es la única que va siempre, porque el taller y la
+                    garantía sí aplican a todo. */}
+                {(product.piedra || product.metal || product.engaste) && (
+                  <div className="incluye">
+                    <span className="eyebrow">Qué incluye el precio</span>
+                    <div className="incluye-grid">
+                      {product.piedra && (
+                        <div>
+                          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--oro)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/><polyline points="10 8 11.5 10 14 7"/></svg>
+                          <p className="incluye-t">{product.piedra.split(',')[0]}</p>
+                          <p className="incluye-s">{product.piedra}</p>
+                        </div>
+                      )}
+                      {product.metal && (
+                        <div>
+                          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--oro)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 3h14v13H5z"/><path d="M8.5 19.5 12 17l3.5 2.5V16h-7z"/><path d="M8.5 7.5h7M8.5 11h4"/></svg>
+                          <p className="incluye-t">{product.metal}</p>
+                          <p className="incluye-s">
+                            {punzonLey ? `Punzón de ley ${punzonLey} marcado en la pieza.` : 'Metal trabajado en nuestro taller.'}
+                          </p>
+                        </div>
+                      )}
+                      {product.engaste && (
+                        <div>
+                          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--oro)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+                          <p className="incluye-t">Engaste a mano</p>
+                          <p className="incluye-s">{product.engaste}</p>
+                        </div>
+                      )}
+                      <div>
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--oro)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+                        <p className="incluye-t">Taller y garantía</p>
+                        <p className="incluye-s">Ajuste de talla, pulido y garantía de por vida en el metal.</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <div className="joyero-pagos">
                   <span className="eyebrow">Pagas al recibir o con</span>

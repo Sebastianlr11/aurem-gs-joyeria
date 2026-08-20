@@ -14821,3 +14821,33 @@ textarea:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   .ficha-barra-comprar:hover { transform: none; }
 }
+
+/* ─── Qué incluye el precio ──────────────────────────────────────────
+   Contra la objeción que no se dice en voz alta: por qué esto cuesta lo que
+   cuesta. Cada columna nombra una cosa que está en la pieza y que no se ve en
+   una foto. */
+.incluye { margin-top: clamp(32px, 4vw, 48px); }
+.incluye .eyebrow { margin-bottom: 22px; }
+
+.incluye-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr));
+  gap: clamp(20px, 3vw, 32px);
+}
+.incluye-grid > div { padding-top: 20px; border-top: 1px solid var(--hairline); }
+
+.incluye-t {
+  margin: 12px 0 0;
+  font-family: var(--font-ui);
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--ink);
+}
+.incluye-s {
+  margin: 4px 0 0;
+  font-family: var(--font-ui);
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}

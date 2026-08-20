@@ -59,7 +59,13 @@ const REVENUE_STATUSES = ['pagado', 'procesando', 'enviado', 'entregado'];
 const fmt = n => Number(n || 0).toLocaleString('es-CO');
 const fmtDate = d => new Date(d).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
 
-const EMPTY_PRODUCT  = { name:'', category:'Anillos', price:'', compare_price:'', description:'', image_url:'', is_new:false, is_featured:false, stock:'' };
+/* Los metales que trabaja el taller. Van como sugerencia y no como lista
+   cerrada —una pieza puede llevar algo que no está— pero escribirlos siempre
+   igual importa: de este texto sale el punzón de ley que se muestra junto a
+   la pieza, y "Plata 925" y "plata .925" darían dos punzones distintos. */
+const METALES = ['Plata 925', 'Oro 18k', 'Oro blanco 18k', 'Oro rosa 18k', 'Platino PT950'];
+
+const EMPTY_PRODUCT  = { name:'', category:'Anillos', price:'', compare_price:'', description:'', image_url:'', is_new:false, is_featured:false, stock:'', metal:'', piedra:'', engaste:'', talla_rango:'' };
 const EMPTY_ORDER    = { customer_name:'', customer_phone:'', customer_email:'', product_id:'', product_name:'', amount:'', status:'pendiente', payment_method:'', notes:'', carrier:'', tracking_number:'', shipping_address:'', shipping_city:'', shipping_department:'' };
 const PAYMENT_METHODS = ['MercadoPago', 'Nequi', 'Daviplata', 'Transferencia', 'Efectivo', 'Contraentrega'];
 const EMPTY_CUSTOMER = { name:'', phone:'', email:'', notes:'' };
@@ -171,6 +177,10 @@ const ProductModal = ({ product, onClose, onSaved }) => {
             description: texto(form.description) || null,
             images, image_url: images[0] || texto(form.image_url) || null,
             is_new: form.is_new, is_featured: form.is_featured,
+            metal: texto(form.metal) || null,
+            piedra: texto(form.piedra) || null,
+            engaste: texto(form.engaste) || null,
+            talla_rango: texto(form.talla_rango) || null,
             // Vacío = sin control de inventario (null). 0 = agotado.
             stock: form.stock === '' || form.stock === null || form.stock === undefined
                 ? null
@@ -231,6 +241,41 @@ const ProductModal = ({ product, onClose, onSaved }) => {
                             </p>
                         </div>
                     </div>
+                    {/* La ficha del joyero. Es lo que el sitio muestra como
+                        respaldo de la compra: el punzón de ley junto al nombre,
+                        y las filas de metal, piedra y engaste. Todo opcional —
+                        una pieza sin piedra no muestra esa fila. */}
+                    <div className="modal-row">
+                        <div className="modal-field">
+                            <label>Metal y ley</label>
+                            <input list="metales-sugeridos" value={form.metal || ''}
+                                onChange={e => set('metal', e.target.value)} placeholder="Ej. Plata 925" />
+                            <datalist id="metales-sugeridos">
+                                {METALES.map(m => <option key={m} value={m} />)}
+                            </datalist>
+                            <p className="modal-img-hint">De acá sale el punzón que se ve junto a la pieza.</p>
+                        </div>
+                        <div className="modal-field">
+                            <label>Piedra</label>
+                            <input value={form.piedra || ''} onChange={e => set('piedra', e.target.value)}
+                                placeholder="Ej. Esmeralda natural, corte rectangular" />
+                            <p className="modal-img-hint">Vacío si la pieza no lleva piedra.</p>
+                        </div>
+                    </div>
+                    <div className="modal-row">
+                        <div className="modal-field">
+                            <label>Engaste</label>
+                            <input value={form.engaste || ''} onChange={e => set('engaste', e.target.value)}
+                                placeholder="Ej. Halo con circones laterales" />
+                        </div>
+                        <div className="modal-field">
+                            <label>Tallas en las que se fabrica</label>
+                            <input value={form.talla_rango || ''} onChange={e => set('talla_rango', e.target.value)}
+                                placeholder="Ej. 5 a 12" />
+                            <p className="modal-img-hint">Sólo para anillos.</p>
+                        </div>
+                    </div>
+
                     <div className="modal-field">
                         <label>Descripcion</label>
                         <textarea rows={3} value={form.description} onChange={e => set('description', e.target.value)} placeholder="Descripcion breve de la pieza..." />
