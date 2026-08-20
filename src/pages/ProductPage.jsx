@@ -699,11 +699,14 @@ const Gallery = ({ images, badges, volver }) => {
                     />
                     {badges}
                     {volver}
-                    {/* Las miniaturas van encima de la foto, verticales a la
-                        derecha. Abajo, sobre su propia barra clara, partían el
-                        fondo oscuro en dos y le quitaban a la pieza el único
-                        sitio donde tiene toda la luz. Y las flechas sobran con
-                        tres fotos a la vista. */}
+                    {/* Las miniaturas van encima de la foto, en fila abajo a
+                        la izquierda, con el contador en la esquina opuesta.
+                        Sobre su propia barra clara partían el fondo oscuro en
+                        dos y le quitaban a la pieza el único sitio donde tiene
+                        toda la luz. Las flechas sobran con tres a la vista. */}
+                    {images.length > 1 && (
+                        <span className="pg-gallery-contador">{activeIdx + 1} / {images.length}</span>
+                    )}
                     {images.length > 1 && (
                         <div className="pg-gallery-thumbs">
                             {images.map((url, i) => (
@@ -860,9 +863,7 @@ const ProductPage = () => {
         ? product.images
         : product.image_url ? [product.image_url] : [];
 
-    const notaTalla = talla && talla !== 'No sé mi talla'
-        ? `\n- Talla: ${talla}`
-        : talla === 'No sé mi talla' ? '\n- No sé mi talla, ¿me ayudan a medirla?' : '';
+    const notaTalla = talla ? `\n- Talla: ${talla}` : '';
 
     const waLink = waUrl({
         mobile: `Hola! 😊 Vi la pieza *${product.name}* en su tienda y me encantó.\n\n💰 Precio: $${fmt(product.price)} COP${notaTalla}\n\nMe gustaría comprarla, está disponible? 💎`,
@@ -898,7 +899,10 @@ const ProductPage = () => {
        no del producto: viaja en el mensaje de WhatsApp y se confirma antes
        de enviar, porque el checkout todavía no la captura. */
     const esAnillo = product.category === 'Anillos';
-    const TALLAS = ['5', '6', '7', '8', '9', '10', '11', '12', 'No sé mi talla'];
+    /* Sin el botón "No sé mi talla": ocupaba el ancho de tres tallas para
+       decir algo que se dice mejor en una línea de texto. La talla nunca fue
+       obligatoria para comprar, así que quien no la sepa sigue pudiendo. */
+    const TALLAS = ['5', '6', '7', '8', '9', '10', '11', '12'];
 
     const enOferta = product.compare_price && product.compare_price > product.price;
     const referencia = `REF. AG-${String(product.id).replace(/\D/g, '').slice(-4).padStart(4, '0')}`;
@@ -920,31 +924,6 @@ const ProductPage = () => {
         : { primero: product.name, resto: null };
 
     const resumenFinal = (product.description || '').trim();
-
-    /* El punzón lleva el metal con su ley leída como la lee un joyero —"plata
-       ley 925", no "925" a secas ni "Anillos", que es una etiqueta de catálogo
-       y no un dato comprobable. */
-    const selloMetal = punzonLey
-        ? `${(product.metal || '').replace(/\s*\b(925|750|18\s?k|14\s?k|PT\s?950|950)\b/i, '').trim()} ley ${punzonLey}`.trim()
-        : product.metal;
-
-    /* De la piedra se sella solo lo que la nombra, no todo lo que la describe:
-       de "Esmeralda natural, corte rectangular" queda "Esmeralda natural" y el
-       corte se lee completo en la ficha del joyero. Un punzón es un sello
-       golpeado en el metal; una frase larga con este tracking se parte en dos
-       renglones y deja de parecerlo. */
-    const piedraCorta = (product.piedra || '').split(',')[0].trim();
-    const selloPiedra = piedraCorta && piedraCorta.split(/\s+/).length <= 3
-        ? piedraCorta
-        : null;
-
-    const sellos = [
-        selloMetal,
-        selloPiedra,
-        enOferta ? 'Precio de lanzamiento' : null,
-        product.stock === 1 ? 'Última unidad' : null,
-        'Hecha en Colombia',
-    ].filter(Boolean);
 
     const ficha = [
         product.metal ? ['Metal', product.metal + (punzonLey ? ' con punzón de ley' : '')] : null,
@@ -1013,8 +992,8 @@ const ProductPage = () => {
                                 <span className="ficha-precio-moneda">COP</span>
                             </div>
                             <div className="ficha-precio-envio">
-                                <span className="ficha-precio-envio-fuerte">Envío a toda Colombia</span>
                                 <span>Pagas al recibir o en línea</span>
+                                <span>Envío 24 a 48 h · toda Colombia</span>
                             </div>
                         </div>
 
@@ -1031,23 +1010,11 @@ const ProductPage = () => {
                             </div>
                         )}
 
-                        {/* Los punzones van DEBAJO del precio. Arriba se leían
-                            como etiquetas de catálogo; acá, junto a la cifra,
-                            son lo que la respalda. */}
-                        <div className="ficha-sellos">
-                            {sellos.map(s => <span key={s} className="punzon">{s}</span>)}
-                        </div>
-
                         {esAnillo && (
                             <div className="ficha-tallas">
                                 <div className="ficha-tallas-head">
                                     <span className="ficha-tallas-titulo">Talla</span>
                                     <Link to="/guia-de-tallas" className="ficha-tallas-guia">
-                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
-                                            <circle cx="12" cy="12" r="9" />
-                                            <line x1="12" y1="11" x2="12" y2="16" />
-                                            <line x1="12" y1="8" x2="12" y2="8.01" />
-                                        </svg>
                                         Ver guía de tallas
                                     </Link>
                                 </div>
@@ -1063,11 +1030,9 @@ const ProductPage = () => {
                                     ))}
                                 </div>
                                 <p className="ficha-tallas-nota">
-                                    {talla === 'No sé mi talla'
-                                        ? 'Sin problema: te ayudamos a medirla por WhatsApp antes de enviar.'
-                                        : talla
-                                            ? `Talla ${talla} · la confirmamos por WhatsApp antes de enviar`
-                                            : 'Elige tu talla o dinos que no la sabes.'}
+                                    {talla
+                                        ? `Talla ${talla} · la confirmamos por WhatsApp antes de enviar`
+                                        : '¿No la sabes? La medimos por WhatsApp en dos minutos.'}
                                 </p>
                             </div>
                         )}
@@ -1080,40 +1045,22 @@ const ProductPage = () => {
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="#25D366">
                                     <path d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.96-.94 1.16-.17.2-.35.22-.65.07-.3-.15-1.25-.46-2.39-1.47-.88-.79-1.48-1.76-1.65-2.06-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.08-.15-.67-1.61-.92-2.21-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.01-1.04 2.47 0 1.46 1.06 2.87 1.21 3.07.15.2 2.1 3.2 5.08 4.49.71.3 1.26.49 1.69.63.71.22 1.36.19 1.87.12.57-.09 1.76-.72 2.01-1.41.25-.7.25-1.29.17-1.42-.07-.13-.27-.2-.57-.35M12.05 21.5a9.5 9.5 0 0 1-4.84-1.32l-.35-.2-3.59.94.96-3.5-.23-.36a9.44 9.44 0 0 1-1.45-5.05c0-5.23 4.27-9.49 9.51-9.49 2.54 0 4.92.99 6.72 2.78a9.42 9.42 0 0 1 2.78 6.72c0 5.23-4.27 9.49-9.51 9.49M20.5 3.49A11.4 11.4 0 0 0 12.05 0C5.77 0 .66 5.1.66 11.37c0 2 .52 3.96 1.52 5.68L.56 24l7.1-1.86a11.4 11.4 0 0 0 5.44 1.38c6.28 0 11.39-5.1 11.39-11.37 0-3.04-1.19-5.9-3.34-8.05" />
                                 </svg>
-                                Preguntar por WhatsApp
+                                WhatsApp
                             </a>
                         </div>
 
-                        <div className="ficha-garantias">
-                            <div className="ficha-garantia">
-                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--oro)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="3" width="15" height="13" /><polygon points="16 8 20 8 23 11 23 16 16 16 16 8" /><circle cx="5.5" cy="18.5" r="2.5" /><circle cx="18.5" cy="18.5" r="2.5" /></svg>
-                                <div>
-                                    <span className="ficha-garantia-t">Envío en 24 a 48 horas</span>
-                                    <span className="ficha-garantia-s">Hábiles, a toda Colombia</span>
-                                </div>
-                            </div>
-                            <div className="ficha-garantia">
-                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--oro)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>
-                                <div>
-                                    <span className="ficha-garantia-t">Pagas al recibir</span>
-                                    <span className="ficha-garantia-s">Contraentrega en Bogotá</span>
-                                </div>
-                            </div>
-                            <div className="ficha-garantia">
-                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--oro)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="6" /><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88" /></svg>
-                                <div>
-                                    <span className="ficha-garantia-t">Certificado disponible</span>
-                                    <span className="ficha-garantia-s">Materiales y quilataje · $50.000</span>
-                                </div>
-                            </div>
-                            <div className="ficha-garantia">
-                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--oro)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
-                                <div>
-                                    <span className="ficha-garantia-t">Garantía de por vida</span>
-                                    <span className="ficha-garantia-s">En el metal, contra defectos</span>
-                                </div>
-                            </div>
-                        </div>
+                        {/* Las cuatro garantías en una sola línea de texto. En
+                            rejilla de dos por dos con iconos ocupaban un tercio
+                            de la pantalla para decir cuatro datos cortos, y
+                            empujaban los botones contra el borde de abajo.
+                            Cada uno dice hasta dónde llega: la contraentrega es
+                            solo Bogotá y la garantía cubre el metal. */}
+                        <ul className="ficha-promesas">
+                            {['Envío 24 a 48 h',
+                              'Contraentrega en Bogotá',
+                              'Certificado opcional',
+                              'Garantía de por vida en el metal'].map(t => <li key={t}>{t}</li>)}
+                        </ul>
 
                     </div>
                 </div>
@@ -1130,7 +1077,14 @@ const ProductPage = () => {
                     onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                   <div className="joyero-cabeza">
                     <h2>Ficha del<em>joyero.</em></h2>
-                    {product.category && <span className="punzon">{product.category}</span>}
+                    {/* El punzón de la tarjeta lleva la ley, no la categoría:
+                        "Anillos" es una etiqueta de catálogo y esto es el
+                        documento que respalda la pieza. */}
+                    {punzonLey && product.metal && (
+                      <span className="punzon">
+                        {`${product.metal.replace(/\s*\b(925|750|18\s?k|14\s?k|PT\s?950|950)\b/i, '').trim()} ley ${punzonLey}`}
+                      </span>
+                    )}
                   </div>
                   <dl className="joyero-lista">
                     {ficha.map(([k, v]) => (

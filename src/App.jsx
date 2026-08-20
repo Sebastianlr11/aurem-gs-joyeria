@@ -75,9 +75,12 @@ function App() {
             </>
           } />
 
+          {/* La ficha va sin navbar: es la pantalla donde se decide la
+              compra y la píldora de navegación le quitaba sitio a la pieza
+              sin ofrecer nada que haga falta ahí. El camino de vuelta es el
+              botón "Volver al catálogo" sobre la foto. */}
           <Route path="/catalogo/:id" element={
             <>
-              <Navbar />
               <ProductPage />
               <Footer />
             </>

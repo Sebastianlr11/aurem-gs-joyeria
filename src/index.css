@@ -14915,9 +14915,12 @@ textarea:focus-visible {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 0;
   align-items: stretch;
+  /* El alto lo pone la columna de texto; esto es solo el piso, para que
+     la foto tenga cuerpo cuando el texto es corto. */
+  min-height: min(760px, 92vh);
 }
 
-.ficha-hero .ficha-galeria { position: static; }
+.ficha-hero .ficha-galeria { position: relative; top: auto; display: block; }
 
 /* El marco cuadrado. Antes no tenía altura definida y el contenedor se
    estiraba a la forma del archivo —9:16, cuadro de reel—, así que el cover
@@ -14927,17 +14930,17 @@ textarea:focus-visible {
 .ficha-hero .pg-gallery {
   border: none;
   border-radius: 0;
+  /* La foto sale del flujo y llena su columna. Con height:100% no bastaba:
+     la fila se dimensionaba por la foto y la foto por la fila —circular—, así
+     que el navegador dejaba mandar a la imagen y la banda crecía a 2400px.
+     Absoluta no aporta nada al alto de la fila, y la fila la fijan el
+     min-height de 100vh y la columna de texto. */
+  position: absolute;
+  inset: 0;
   height: auto;
-  aspect-ratio: 1;
-  max-height: 86vh;
+  aspect-ratio: auto;
   min-height: 0;
-  /* Sin el sticky del diseño anterior. Se pegaba a 112px del borde para que
-     la foto acompañara la lectura de una columna larga; con el hero a sangre
-     lo único que hace es meter una franja de cacao encima de la imagen y
-     empujar el botón de volver a media foto. Queda relative porque volver y
-     las miniaturas se posicionan contra ella. */
-  position: relative;
-  top: auto;
+  max-height: none;
 }
 
 /* cover y sin relleno: la foto llena su mitad. El contain con 48px de aire
@@ -14954,7 +14957,8 @@ textarea:focus-visible {
 }
 
 .ficha-hero .ficha-info {
-  padding: clamp(96px, 11vw, 132px) clamp(24px, 4vw, 56px) clamp(40px, 5vw, 64px);
+  /* 64px arriba, no 132: aquellos eran despeje del navbar, que ya no está. */
+  padding: clamp(40px, 5vw, 64px) clamp(24px, 4vw, 56px);
 }
 
 /* El nombre partido: el tipo de pieza en la romana y el nombre propio en
@@ -14994,8 +14998,8 @@ textarea:focus-visible {
 
 /* Volver y miniaturas despejan el navbar. Al ir la foto a sangre quedaron a
    la misma altura que la píldora de navegación, peleando con ella. */
-.ficha-hero .pg-volver { top: clamp(84px, 9vw, 104px); }
-.ficha-hero .pg-gallery-thumbs { top: clamp(84px, 9vw, 104px); bottom: auto; }
+.ficha-hero .pg-volver { top: clamp(16px, 2.5vw, 28px); }
+
 
 /* La etiqueta "Nuevo" sobre la foto. Se había quedado sin estilo —texto
    blanco de 16px suelto encima del reflejo, que se lee como un descuido, no
@@ -15042,4 +15046,112 @@ textarea:focus-visible {
 
 @media (prefers-reduced-motion: reduce) {
   .ficha-barra { transform: none; transition: opacity 0.2s ease; }
+}
+
+/* ─── La ficha a pantalla completa ───────────────────────────────────
+   Sin navbar, la banda oscura es toda la primera pantalla. */
+
+/* Miniaturas en fila abajo a la izquierda, contador en la esquina opuesta.
+   Verticales arriba a la derecha se cruzaban con el arranque del texto. */
+.ficha-hero .pg-gallery-thumbs {
+  flex-direction: row;
+  top: auto;
+  right: auto;
+  bottom: clamp(16px, 2.5vw, 28px);
+  left: clamp(16px, 2.5vw, 28px);
+}
+
+.pg-gallery-contador {
+  position: absolute;
+  right: clamp(16px, 2.5vw, 28px);
+  bottom: clamp(22px, 3vw, 36px);
+  z-index: 3;
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.62);
+  font-variant-numeric: tabular-nums;
+}
+
+/* El sello "Nuevo" se pasa a la derecha: abajo a la izquierda ahora viven
+   las miniaturas. */
+.ficha-hero .product-page-badges {
+  left: auto;
+  right: clamp(16px, 3vw, 32px);
+  bottom: auto;
+  top: clamp(16px, 3vw, 32px);
+}
+
+/* Los dos botones a lo ancho, uno al lado del otro. Apilados a ancho completo
+   pesaban lo mismo, y solo uno es la acción principal. */
+.ficha-hero .ficha-acciones {
+  display: flex;
+  /* En fila y no en columna: el bloque base apila, y con flex:1 en dirección
+     columna los botones no se ensanchan sino que se estiran a lo alto. */
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.ficha-hero .ficha-btn-comprar,
+.ficha-hero .ficha-btn-wa {
+  flex: 1 1 180px;
+  width: auto;
+}
+
+/* Las promesas: una línea de datos separados por punto medio. */
+.ficha-promesas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 0;
+  margin: clamp(20px, 2.6vw, 30px) 0 0;
+  padding: clamp(18px, 2.2vw, 24px) 0 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  list-style: none;
+  font-family: var(--font-ui);
+  font-size: 0.8125rem;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.ficha-promesas li + li::before {
+  content: '·';
+  margin: 0 0.7em;
+  color: rgba(227, 201, 144, 0.5);
+}
+
+@media (max-width: 768px) {
+  /* Ya no hay navbar que despejar. */
+  .ficha { padding-top: 0; }
+
+  /* La foto vuelve al flujo. En escritorio va absoluta para no arrastrar el
+     alto de la fila, pero en una sola columna su contenedor se queda sin
+     nada que lo mida y colapsa a cero: la imagen desaparece. */
+  .ficha-hero .pg-gallery {
+    position: relative;
+    inset: auto;
+    height: auto;
+    min-height: 0;
+    aspect-ratio: 1;
+    max-height: 62vh;
+  }
+
+  .ficha-hero .ficha-grid { min-height: 0; }
+}
+
+/* El antetítulo de la ficha va sin el filete de oro: al lado del nombre en
+   romana, dos elementos dorados en la misma esquina se estorban. */
+.ficha-hero .ficha-encabezado .eyebrow::before { display: none; }
+.ficha-hero .ficha-encabezado .eyebrow { padding-left: 0; }
+
+/* Portátiles de pantalla baja. Con el ritmo de escritorio la columna mide
+   853px contra 778 de pantalla, y lo que queda debajo del pliegue son las
+   miniaturas y el contador: justo lo que dice que hay más de una foto.
+   Se aprieta el aire, no el contenido. */
+@media (min-width: 769px) and (max-height: 860px) {
+  .ficha-hero .ficha-info { padding-top: 36px; padding-bottom: 36px; }
+  .ficha-hero .ficha-nombre { margin-top: 14px; }
+  .ficha-hero .ficha-desc { margin-top: 18px; }
+  .ficha-hero .ficha-precio-bloque { margin-top: 24px; padding-top: 20px; }
+  .ficha-hero .ficha-tallas { margin-top: 22px; }
+  .ficha-hero .ficha-acciones { margin-top: 22px; }
+  .ficha-promesas { margin-top: 20px; padding-top: 16px; }
 }
