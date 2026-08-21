@@ -623,6 +623,35 @@ const ChatPanel = () => {
                     fetchContactsTimerRef.current = setTimeout(() => fetchContactsRef.current(true), 800);
                 }
             )
+            /* Los mensajes cambian DESPUÉS de guardarse, y hasta ahora eso no
+               llegaba: el panel sólo escuchaba INSERT.
+
+               Una foto se guarda al instante como "[image]" y sin imagen,
+               porque descargarla de Meta y describirla tarda unos segundos.
+               Lo mismo una nota de voz, que entra como "[audio]" hasta que se
+               transcribe. Quien tuviera el chat abierto se quedaba mirando el
+               marcador para siempre, aunque en la base ya estuviera todo.
+
+               También trae los acuses de entrega, que antes sólo aparecían al
+               recargar. */
+            .on('postgres_changes',
+                { event: 'UPDATE', schema: 'public', table: 'whatsapp_conversaciones' },
+                (payload) => {
+                    const cambiado = payload.new;
+                    if (!cambiado) return;
+
+                    const phone = activeContactRef.current;
+                    if (!phone || cambiado.phone_number !== phone) return;
+
+                    setMessages(prev => {
+                        const i = prev.findIndex(m => m.id === cambiado.id);
+                        if (i === -1) return prev;
+                        const copia = [...prev];
+                        copia[i] = { ...copia[i], ...cambiado };
+                        return copia;
+                    });
+                }
+            )
             .subscribe((status, err) => {
                 console.log('[Realtime] Estado:', status, err || '');
                 setRealtimeStatus(status);
