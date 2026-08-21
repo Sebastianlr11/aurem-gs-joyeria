@@ -13570,9 +13570,11 @@ textarea:focus-visible {
     padding-bottom: 0.75rem;
   }
 
-  /* Lo que se va al panel */
-  .catalogo-herramientas,
-  .catalogo-filtros-fila--precio { display: none; }
+  /* El buscador se queda fuera también en el celular: es el único filtro
+     que se usa sin haber decidido antes que se quiere filtrar —se escribe lo
+     que se busca y ya—, y esconderlo detrás de un botón le cobra dos toques
+     a la acción más directa de la pantalla. Lo demás sí vive en el panel. */
+  .catalogo-herramientas { width: 100%; }
 
   .catalogo-filtros-btn {
     display: inline-flex;
@@ -15611,12 +15613,8 @@ textarea:focus-visible {
     border-bottom: 1px solid var(--hairline);
   }
 
-  /* Buscar, precio, material y orden viven en el panel; en la franja sobran.
-     El orden subió a la primera fila para escritorio y aquí hay que taparlo:
-     si no, se cuela en el riel de categorías. */
-  .catalogo-herramientas,
-  .catalogo-orden-riel,
-  .catalogo-filtros-fila--precio { display: none; }
+  /* El buscador se queda visible; ver la nota del corte de 768px. */
+  .catalogo-herramientas { width: 100%; margin-left: 0; }
 
   .catalogo-chips {
     display: flex;
@@ -16105,4 +16103,66 @@ textarea:focus-visible {
 
 @media (prefers-reduced-motion: reduce) {
   .catalogo-filtros-flotante { transform: none; transition: opacity 0.2s ease; }
+}
+
+
+/* ─── El botón de filtros tiene dos casas ────────────────────────────
+   En celular flota, a un pulgar del borde inferior. En escritorio vive en la
+   fila del buscador: flotando se quedaba encima de la tercera foto de forma
+   permanente —ya no se asoma sólo al bajar— y dejaba esa banda con el
+   buscador solo a un lado.
+
+   Va al final del archivo a propósito: las reglas del flotante viven dentro
+   de un @media de escritorio y hay que ganarles por orden, no subiendo la
+   especificidad. */
+.catalogo-filtros-btn-fila { display: none; }
+
+@media (min-width: 769px) {
+  .catalogo-filtros-flotante { display: none; }
+
+  .catalogo-filtros-btn-fila { display: flex; margin-right: auto; }
+  .catalogo-filtros-btn-fila .catalogo-filtros-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 40px;
+    padding: 0 18px;
+    border: 1px solid var(--hairline);
+    border-radius: 100px;
+    background: var(--bg-color);
+    color: var(--ink);
+    font-family: var(--font-ui);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+  }
+  /* Sin sombra ni elevación: aquí no flota sobre nada, es un control más de
+     la fila y competir con la píldora oscura del navbar sería ruido. */
+  .catalogo-filtros-btn-fila .catalogo-filtros-btn:hover {
+    background: var(--bg-arena);
+    border-color: rgba(168, 134, 63, 0.32);
+  }
+  .catalogo-filtros-btn-fila .catalogo-filtros-n {
+    min-width: 18px;
+    height: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 100px;
+    background: var(--ink);
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 700;
+  }
+}
+
+/* Dentro del panel los rieles se envuelven en vez de desplazarse. En la
+   franja el desplazamiento tenía sentido —el ancho era el recurso escaso—;
+   aquí sobra alto y falta ancho, y con seis categorías en 560px "Dijes"
+   quedaba cortado contra el borde sin nada que dijera que había más. */
+.catalogo-panel .riel {
+  flex-wrap: wrap;
+  overflow-x: visible;
+  height: auto;
 }
