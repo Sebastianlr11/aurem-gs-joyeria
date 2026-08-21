@@ -61,6 +61,26 @@ async function conocimiento(): Promise<string> {
 }
 
 /**
+ * Hasta cuánto se despacha contra entrega.
+ *
+ * Se lee de taller_precios, que es de donde lo lee create-preference al
+ * cobrar. Podría escribirse en taller_conocimiento y ahorrarse la consulta,
+ * pero entonces el número viviría en dos sitios y algún día dirían cosas
+ * distintas: Valentina prometiendo un contraentrega que la pasarela rechaza
+ * es peor que no ofrecerlo.
+ *
+ * Si falla, se devuelve null y las instrucciones le dicen que no lo ofrezca.
+ * Perder un contraentrega es una molestia; despachar medio millón que no
+ * debía salir así es plata.
+ */
+async function topeContraentrega(): Promise<number | null> {
+  const { data } = await admin()
+    .from('taller_precios').select('tope_contraentrega').maybeSingle()
+  const tope = Number(data?.tope_contraentrega)
+  return Number.isFinite(tope) && tope > 0 ? tope : null
+}
+
+/**
  * El anuncio del que vino esta conversación, si vino de uno.
  *
  * Meta manda el referral sólo en el primer mensaje, así que se busca el más
@@ -142,7 +162,7 @@ async function refDeMensajes(telefono: string): Promise<string | null> {
   return marca ? marca[1].toLowerCase() : null
 }
 
-function instrucciones(piezas: string, politicas: string, deDonde: string): string {
+function instrucciones(piezas: string, politicas: string, deDonde: string, topeCod: number | null): string {
   return `Eres Valentina, la asesora de Aurem Gs Joyería, una joyería colombiana.
 Escribes por WhatsApp a clientes reales. Hablas en español de Colombia, con
 cercanía y sin adular. Mensajes cortos: dos o tres frases, salvo que estés
@@ -173,12 +193,26 @@ REGLAS QUE NO SE ROMPEN
    entonces le llega todo por WhatsApp. NUNCA dejes un pedido sin cerrar por
    un correo — vale mucho más la venta que el dato.
 6. Cuando tengas todo, recapitula y usa la herramienta crear_pedido.
+6b. EL CONTRAENTREGA TIENE TOPE: ${topeCod ? `hasta ${enPesos(topeCod)}` : 'no lo ofrezcas, no tengo el tope a mano'}.
+   Por encima de eso la pieza se paga en línea y no hay excepción: si la
+   rechazan en la puerta, el taller pierde el viaje de ida y vuelta de una
+   joya cara. No lo ofrezcas para una pieza que pase el tope, ni lo prometas
+   "consultando". Si te lo piden, dilo derecho y sin disculparte de más: en
+   piezas de ese valor el pago va por adelantado, y de ahí en más el envío
+   corre por cuenta nuestra y llega asegurado. La herramienta también lo
+   rechaza, así que ofrecerlo sólo consigue que quedes mal.
 7. Si te piden algo que no puedes resolver —un reclamo, un cambio, un precio
    especial, hablar con una persona— usa escalar_a_humano y dilo con calma.
 8. No prometas descuentos que no estén en esta lista.
-9. No des por hecho el género de quien te escribe. Habla en formas neutras
-   ("¿cómo te ayudo?", "quedas atendido/a") y evita "bienvenida", "linda" o
-   "reina". Si te dicen su nombre o cómo prefieren que les hablen, sigue eso.
+9. EL NOMBRE, TEMPRANO. En el primer o segundo mensaje pregúntalo con
+   naturalidad — "¿con quién tengo el gusto?" — y a partir de ahí úsalo.
+   Llamar a alguien por su nombre da más cercanía que cualquier fórmula.
+   Pero NO deduzcas el género del nombre ni de lo que compra. Mucha gente
+   compra joyería de regalo, y arrancar con "bienvenida, linda" cuando es un
+   señor comprándole a su esposa arruina el primer mensaje. Habla en formas
+   neutras ("¿cómo te ayudo?", "quedas atendido/a") y evita "bienvenida",
+   "linda" o "reina". Si la persona dice cómo quiere que le hablen, o se
+   nombra a sí misma en femenino o masculino, síguelo: ahí ya no adivinas.
 10. TIENES FOTOS. Cuando pidan ver algo, cuando duden entre piezas o cuando
    una imagen ayude a decidir, usa mostrar_pieza. No describas una pieza
    pudiendo mostrarla. Nunca digas que no puedes mandar fotos.
@@ -626,6 +660,20 @@ async function ejecutarHerramienta(
         }),
       })
       respuesta = await res.json().catch(() => ({}))
+
+      /* El tope del contraentrega, rechazado por el servidor. No es un fallo
+         técnico y no se debe tratar como tal: es una regla del negocio, y
+         Valentina tiene que poder seguir la conversación ofreciendo el pago
+         en línea en vez de mandar el pedido a una persona. */
+      if (res.status === 422 && respuesta?.error === 'contraentrega_no_disponible') {
+        const tope = enPesos(Number(respuesta.tope ?? 0))
+        return `Esta pieza pasa el tope del contraentrega (${tope}), así que no se puede ` +
+               `despachar así. NO escales: explícale con naturalidad que en piezas de este ` +
+               `valor el pago va en línea, que por eso el envío va asegurado y por cuenta ` +
+               `nuestra, y ofrécele el enlace de Mercado Pago. Si acepta, vuelve a llamar ` +
+               `crear_pedido con metodo_pago "Mercado Pago".`
+      }
+
       if (!res.ok) throw new Error(respuesta?.error || `HTTP ${res.status}`)
     } catch (e) {
       console.error('create-preference falló:', e instanceof Error ? e.message : e)
@@ -701,14 +749,14 @@ export async function responder(
     .filter((m) => m.content)
     .map((m) => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.content }))
 
-  // En paralelo: son tres consultas independientes.
-  const [piezas, politicas, referral] = await Promise.all([
-    catalogo(), conocimiento(), referralDe(telefono),
+  // En paralelo: son cuatro consultas independientes.
+  const [piezas, politicas, referral, topeCod] = await Promise.all([
+    catalogo(), conocimiento(), referralDe(telefono), topeContraentrega(),
   ])
   const deDonde = origen(referral)
 
   const mensajes: any[] = [
-    { role: 'system', content: instrucciones(piezas, politicas, deDonde) },
+    { role: 'system', content: instrucciones(piezas, politicas, deDonde, topeCod) },
     ...conversacion,
   ]
 
