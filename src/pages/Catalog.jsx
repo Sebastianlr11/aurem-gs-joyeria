@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import ProductCard from '../components/catalog/ProductCard';
 import { supabase } from '../lib/supabase';
 import { waUrl } from '../lib/whatsapp';
+import { ponerMeta } from '../lib/meta';
 
 const CATEGORIAS = ['Todos', 'Anillos', 'Collares', 'Aretes', 'Pulseras', 'Dijes'];
 
@@ -50,6 +51,14 @@ const Catalog = () => {
        cerrar. Sin esto, quien navega con teclado cierra el panel y aparece
        al principio de la página. */
     const focoPrevioRef = useRef(null);
+
+    /* El catálogo tiene su propio título y su propia canónica. Sin esto
+       comparte los de la home, y para Google son la misma página. */
+    useEffect(() => ponerMeta({
+        titulo: 'Catálogo de joyas con esmeralda colombiana | Aurem Gs',
+        descripcion: 'Anillos y dijes en plata 925 y oro 18k con esmeralda colombiana natural. Cada pieza se fotografía como llega a tus manos. Estuche incluido y garantía en el metal.',
+        ruta: '/catalogo',
+    }), []);
 
     /* Se traen todas las piezas de una vez: el catálogo es pequeño y así
        los chips pueden mostrar cuántas hay en cada categoría. */
