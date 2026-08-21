@@ -120,7 +120,7 @@ Deno.serve(async (req: Request) => {
       })
       .eq('id', orderId)
       .is('conversion_enviada_en', null)
-      .select('customer_phone, customer_email, customer_name, product_id, product_name, amount, abono_monto, ttclid, ttp, fbc, fbp, client_ua, client_ip, ctwa_clid')
+      .select('customer_phone, customer_email, customer_name, product_id, product_name, amount, abono_monto, shipping_address, shipping_city, notes, ttclid, ttp, fbc, fbp, client_ua, client_ip, ctwa_clid')
       .maybeSingle()
 
     if (updateError) {
@@ -245,6 +245,27 @@ Deno.serve(async (req: Request) => {
       }
     }
 
+    /* Y el mismo aviso por correo, que es el que queda como documento: lo que
+       la clienta reenvía, guarda para el seguro, o busca dos años después
+       para la garantía. WhatsApp es la conversación; esto es el respaldo.
+
+       Va detrás del WhatsApp a propósito. Si algo se cae, que se caiga lo que
+       menos duele: el chat es donde la clienta está mirando ahora mismo.
+
+       No se manda desde acá directamente porque las plantillas son
+       componentes React y esto es Deno. La función de Vercel las renderiza y
+       las envía; ver api/correo.js. */
+    if (orden?.customer_email) {
+      try {
+        await avisarPorCorreo(supabase, orden, orderId, esAbono)
+      } catch (e) {
+        /* Nunca tumba el webhook. El pago ya está cobrado y registrado; que
+           no salga un correo no puede hacer que Mercado Pago reintente ni que
+           la venta quede sin contar. */
+        console.error('No se pudo avisar el pago por correo:', e instanceof Error ? e.message : e)
+      }
+    }
+
     return new Response(JSON.stringify({ ok: true }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -258,3 +279,80 @@ Deno.serve(async (req: Request) => {
     })
   }
 })
+
+/**
+ * Le pide a la función de Vercel que mande la confirmación por correo.
+ *
+ * Trae la foto y la ficha de la pieza porque el correo las enseña: una
+ * tarjeta con el nombre a secas se lee como una factura, y en una joyería el
+ * producto es la mitad del mensaje. Si la consulta falla, el correo sale
+ * igual con el rombo de la marca en vez de la foto — mejor eso que no
+ * mandarlo.
+ */
+async function avisarPorCorreo(
+  supabase: ReturnType<typeof createClient>,
+  orden: Record<string, any>,
+  orderId: string,
+  esAbono: boolean,
+) {
+  const base = Deno.env.get('APP_URL') ?? 'https://www.auremgsjoyeria.com'
+  const secreto = Deno.env.get('CORREO_SECRETO')
+  if (!secreto) {
+    console.error('correo: falta CORREO_SECRETO, no se manda')
+    return
+  }
+
+  let pieza: Record<string, any> | null = null
+  try {
+    const { data } = await supabase
+      .from('products').select('images, image_url, metal, piedra')
+      .eq('id', orden.product_id).maybeSingle()
+    pieza = data
+  } catch { /* sin foto, el correo sale igual */ }
+
+  const imagen = (Array.isArray(pieza?.images) && pieza.images[0]) || pieza?.image_url || null
+  const ficha = [pieza?.metal, pieza?.piedra].filter(Boolean).join(' · ') || null
+
+  /* La talla vive en las notas del pedido, no en una columna: la captura
+     Valentina al tomarlo y el checkout de la web todavía no la pide. */
+  const talla = /Talla:\s*([^|·]+)/i.exec(String(orden.notes ?? ''))?.[1]?.trim() || null
+
+  /* La referencia que ve la clienta es la misma que enseña la ficha de la
+     pieza en el sitio. Si acá saliera otra, un reclamo por correo y otro por
+     WhatsApp parecerían dos pedidos distintos. */
+  const referencia = `AG-${String(orden.product_id).replace(/\D/g, '').slice(-4).padStart(4, '0')}`
+
+  const fecha = new Date().toLocaleDateString('es-CO', {
+    day: 'numeric', month: 'long', year: 'numeric', timeZone: 'America/Bogota',
+  })
+
+  const res = await fetch(`${base}/api/correo`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-correo-secreto': secreto },
+    body: JSON.stringify({
+      plantilla: 'pedido-confirmado',
+      para: orden.customer_email,
+      /* La referencia del pedido y no la de la pieza: es lo que hace que un
+         reenvío del webhook no mande el correo dos veces. */
+      referencia: orderId,
+      datos: {
+        nombre: orden.customer_name,
+        pieza: orden.product_name,
+        referencia,
+        total: Number(orden.amount),
+        abono: esAbono ? Number(orden.abono_monto) : null,
+        ciudad: orden.shipping_city ?? 'Colombia',
+        direccion: orden.shipping_address ?? '',
+        imagen,
+        ficha,
+        talla,
+        fecha,
+      },
+    }),
+  })
+
+  if (!res.ok) {
+    throw new Error(`api/correo respondió ${res.status}: ${(await res.text()).slice(0, 160)}`)
+  }
+  console.log('Confirmación por correo enviada:', orderId)
+}
