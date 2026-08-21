@@ -29,6 +29,44 @@ const STATUS_PEDIDO = {
    este año, y la fecha completa si es más viejo. */
 /* Qué significa cada acuse al pasar el cursor. */
 /**
+ * Lo que se lee bajo la foto de un cliente.
+ *
+ * El contenido guardado es "📷 <lo que vio el modelo>" y, si el cliente
+ * escribió un pie, sus palabras entre comillas al final. Esa descripción
+ * existe para Valentina: es lo que lee en su siguiente turno, y sin ella
+ * vería "[image]" y perdería el hilo. Pero con la foto delante, al joyero no
+ * le aporta nada — le quita sitio a lo único que importa, que es la pieza y
+ * lo que el cliente pidió con sus palabras.
+ *
+ * Así que se enseña el pie del cliente y la descripción queda a un clic, por
+ * si alguna vez hay que revisar qué entendió el modelo.
+ */
+function PieDeFoto({ contenido }) {
+    const [abierta, setAbierta] = useState(false);
+
+    const texto = String(contenido || '');
+    if (!texto) return null;
+
+    const conPie = texto.match(/^📷\s*([\s\S]*?)\n\n"([\s\S]*)"$/);
+    const descripcion = conPie ? conPie[1].trim() : texto.replace(/^📷\s*/, '').trim();
+    const pie = conPie ? conPie[2].trim() : null;
+
+    return (
+        <div className="chat-bubble-content">
+            {pie ? <span>{pie}</span> : null}
+            {descripcion ? (
+                <div className="chat-foto-visto">
+                    <button type="button" onClick={() => setAbierta(v => !v)}>
+                        {abierta ? 'Ocultar lo que vio Valentina' : 'Lo que vio Valentina'}
+                    </button>
+                    {abierta ? <p>{descripcion}</p> : null}
+                </div>
+            ) : null}
+        </div>
+    );
+}
+
+/**
  * La imagen de un mensaje, venga de donde venga.
  *
  * Hay dos clases y se distinguen por la forma: las que mandamos nosotros son
@@ -1307,7 +1345,9 @@ const ChatPanel = () => {
                                                             {msg.message_type === 'image' && msg.media_url ? (
                                                                 <ImagenDelChat ruta={msg.media_url} onAbrir={openLightbox} />
                                                             ) : null}
-                                                            {msg.content ? <div className="chat-bubble-content"><span>{msg.content}</span></div> : null}
+                                                            {msg.message_type === 'image' && msg.media_url && msg.role === 'user'
+                                                                ? <PieDeFoto contenido={msg.content} />
+                                                                : msg.content ? <div className="chat-bubble-content"><span>{msg.content}</span></div> : null}
                                                         </div>
                                                             {(msg._failed || showTime) && (
                                                             <div className="chat-bubble-time">
