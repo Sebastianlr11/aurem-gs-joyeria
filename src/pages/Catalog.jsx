@@ -232,23 +232,6 @@ const Catalog = () => {
         };
     }, [fallo, termino, filtrosActivos, categoria]);
 
-    /* El botón flotante de filtros solo se asoma cuando la franja ya salió de
-       pantalla. Pegada arriba tiene sentido mientras se ve; una vez fuera, un
-       botón ocupa mucho menos que dos filas de píldoras siguiéndote. */
-    const franjaRef = useRef(null);
-    const [franjaFuera, setFranjaFuera] = useState(false);
-
-    useEffect(() => {
-        const el = franjaRef.current;
-        if (!el || typeof IntersectionObserver === 'undefined') return;
-        const obs = new IntersectionObserver(
-            ([e]) => setFranjaFuera(!e.isIntersecting),
-            { rootMargin: '-8px 0px 0px 0px' },
-        );
-        obs.observe(el);
-        return () => obs.disconnect();
-    }, [loading]);
-
     /* Con el panel abierto la página de detrás no se mueve, y el foco se
        queda dentro.
 
@@ -363,6 +346,38 @@ const Catalog = () => {
         </div>
     );
 
+    /* Riel segmentado: una sola fila, una sola activa.
+
+       Las categorías sin piezas SÍ se pueden tocar, y no muestran el cero.
+       Antes iban en disabled con un "0" al lado, y eso las convertía en tres
+       etiquetas muertas: hoy el catálogo tiene Anillos y Dijes, así que
+       Collares, Aretes y Pulseras —la mitad del riel— no llevaban a ninguna
+       parte.
+
+       El taller trabaja por encargo, así que "no hay" es "no lo tenemos
+       hecho", y esa es una conversación, no un callejón. Al tocarlas se llega
+       a la pantalla que lo ofrece. El cero no aporta: no es un dato que sirva
+       para comprar, y sí frena el toque. */
+    const rielCategorias = () => (
+        <div className="riel" role="group" aria-label="Categorías">
+            {CATEGORIAS.map(c => {
+                const n = conteoPorCategoria[c] ?? 0;
+                return (
+                    <button
+                        key={c}
+                        type="button"
+                        className={`riel-btn ${categoria === c ? 'riel-btn--on' : ''}`}
+                        aria-pressed={categoria === c}
+                        onClick={() => { setCategoria(c); setPagina(1); }}
+                    >
+                        <span>{c}</span>
+                        {n > 0 && <span className="riel-n">{n}</span>}
+                    </button>
+                );
+            })}
+        </div>
+    );
+
     const rielPrecio = () => (
         <div className="riel" role="group" aria-label="Rango de precio">
             {RANGOS.map((r, i) => (
@@ -413,56 +428,36 @@ const Catalog = () => {
                 </div>
             </header>
 
-            <div className="catalogo-filtros" ref={franjaRef}>
+            {/* Sólo el buscador. La franja llevaba categorías, orden, precio
+                y material en tres filas que se comían 145px del primer
+                viewport en celular — y con cinco piezas en catálogo, filtrar
+                por precio entre cinco anillos no le resuelve nada a nadie.
+                Todo eso vive ahora en el panel, a un toque del botón flotante.
+
+                El buscador se queda fuera porque es el único que se usa sin
+                saber de antemano que se quiere filtrar: se escribe lo que se
+                busca y ya. */}
+            <div className="catalogo-filtros">
                 <div className="container catalogo-filtros-fila">
-                    {/* Riel segmentado: una sola fila, una sola activa.
-
-                        Las categorías sin piezas SÍ se pueden tocar, y no
-                        muestran el cero. Antes iban en disabled con un "0" al
-                        lado, y eso las convertía en tres etiquetas muertas:
-                        hoy el catálogo tiene Anillos y Dijes, así que Collares,
-                        Aretes y Pulseras —la mitad del riel— no llevaban a
-                        ninguna parte.
-
-                        El taller trabaja por encargo, así que "no hay" es "no
-                        lo tenemos hecho", y esa es una conversación, no un
-                        callejón. Al tocarlas se llega a la pantalla que lo
-                        ofrece. El cero no aporta: no es un dato que sirva para
-                        comprar, y sí frena el toque. */}
-                    <div className="riel" role="group" aria-label="Categorías">
-                        {CATEGORIAS.map(c => {
-                            const n = conteoPorCategoria[c] ?? 0;
-                            return (
-                                <button
-                                    key={c}
-                                    type="button"
-                                    className={`riel-btn ${categoria === c ? 'riel-btn--on' : ''}`}
-                                    aria-pressed={categoria === c}
-                                    onClick={() => { setCategoria(c); setPagina(1); }}
-                                >
-                                    <span>{c}</span>
-                                    {n > 0 && <span className="riel-n">{n}</span>}
-                                </button>
-                            );
-                        })}
+                    {/* En escritorio el botón vive aquí, en la fila. Flotando
+                        se quedaba encima de la tercera foto para siempre, y
+                        dejaba esta banda con el buscador solo a un lado. En
+                        celular manda el flotante, que está a un pulgar. */}
+                    <div className="catalogo-filtros-btn-fila">
+                        <button
+                        type="button"
+                        className="catalogo-filtros-btn"
+                        onClick={() => setFiltrosAbiertos(true)}
+                        aria-expanded={filtrosAbiertos}
+                    >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="4" y1="7" x2="20" y2="7" /><circle cx="15" cy="7" r="2.5" />
+                            <line x1="4" y1="17" x2="20" y2="17" /><circle cx="9" cy="17" r="2.5" />
+                        </svg>
+                        Filtros
+                        {filtrosActivos > 0 && <span className="catalogo-filtros-n">{filtrosActivos}</span>}
+                    </button>
                     </div>
-
-                    <div className="catalogo-orden-riel">
-                        <div className="riel" role="group" aria-label="Ordenar por">
-                            {ORDENES.map(o => (
-                                <button
-                                    key={o.v}
-                                    type="button"
-                                    className={`riel-btn ${orden === o.v ? 'riel-btn--on' : ''}`}
-                                    aria-pressed={orden === o.v}
-                                    onClick={() => setOrden(o.v)}
-                                >
-                                    <span>{o.corto}</span>
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
                     <div className="catalogo-herramientas">
                         {campoBuscar()}
                     </div>
@@ -481,16 +476,6 @@ const Catalog = () => {
                     </div>
                 )}
 
-                {/* Segunda fila: lo que en el celular vive dentro del panel.
-                    En escritorio sobra el ancho, así que no hay nada que
-                    abrir —se ve y se toca en el sitio. */}
-                <div className="container catalogo-filtros-fila catalogo-filtros-fila--precio">
-                    <span className="catalogo-precio-label">Precio</span>
-                    {rielPrecio()}
-                    <span className="catalogo-separador" aria-hidden="true" />
-                    <span className="catalogo-precio-label">Material</span>
-                    {rielMaterial()}
-                </div>
             </div>
 
             {/* Panel de filtros, sólo en móvil */}
@@ -505,9 +490,13 @@ const Catalog = () => {
                         </div>
 
                         <div className="catalogo-panel-cuerpo">
+                            {/* Primero, y con su propio nombre: la categoría no
+                                es un filtro más, es por donde se empieza a
+                                mirar una joyería. Vivía en la franja; al
+                                quitarla se habría quedado sin ningún sitio. */}
                             <div className="catalogo-panel-grupo">
-                                <span className="catalogo-precio-label">Buscar</span>
-                                {campoBuscar()}
+                                <span className="catalogo-precio-label">Categoría</span>
+                                {rielCategorias()}
                             </div>
                             <div className="catalogo-panel-grupo">
                                 <span className="catalogo-precio-label">Precio</span>
@@ -629,7 +618,11 @@ const Catalog = () => {
             {/* Flotante y no en la fila de filtros: en el celular esa fila se va
                 con el scroll a los dos segundos y deja los filtros a un viaje
                 de vuelta arriba. Aquí está siempre a un pulgar. */}
-            <div className={`catalogo-filtros-flotante${franjaFuera ? ' catalogo-filtros-flotante--visible' : ''}`}>
+            {/* Siempre visible, no sólo al bajar. Antes se asomaba cuando la
+                franja salía de pantalla; ahora no hay franja que salga, así
+                que sin esto el botón no aparecería nunca y el catálogo se
+                quedaría sin filtros. */}
+            <div className="catalogo-filtros-flotante catalogo-filtros-flotante--visible">
                 <button
                     type="button"
                     className="catalogo-filtros-btn"
