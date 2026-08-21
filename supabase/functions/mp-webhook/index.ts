@@ -1,6 +1,6 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { createClient } from 'jsr:@supabase/supabase-js@2'
-import { enviarTexto, numeroPropioDe } from '../_shared/wa.ts'
+import { enviarTexto, enviarPlantilla, ventanaAbierta, numeroPropioDe } from '../_shared/wa.ts'
 import { avisarVenta } from '../_shared/conversiones.ts'
 
 const corsHeaders = {
@@ -167,20 +167,78 @@ Deno.serve(async (req: Request) => {
       try {
         const enPesos = (n: number) => `$${Math.round(n).toLocaleString('es-CO')}`
         const total = Number(orden.amount)
+        const abono = Number(orden.abono_monto)
+        const saldo = total - abono
         const desdeId = await numeroPropioDe(orden.customer_phone)
 
-        /* Se le repite el saldo exacto. Es el número que va a tener que tener
-           listo en efectivo cuando toquen la puerta, y no saberlo es el motivo
-           más tonto por el que se rechaza una entrega. */
-        const texto = esAbono
-          ? `¡Listo! Recibimos tu abono de ${enPesos(Number(orden.abono_monto))} y tu ` +
-            `${orden.product_name} queda confirmado. Al recibirlo pagas ` +
-            `${enPesos(total - Number(orden.abono_monto))} en efectivo. ` +
-            `Te aviso apenas se despache con el número de guía. 🌿`
-          : `¡Listo! Recibimos tu pago de ${enPesos(total)} por ${orden.product_name}. ` +
-            `Ya lo estamos preparando y te aviso apenas se despache. 🌿`
+        /* Por dónde sale el aviso depende de la ventana de 24 horas de Meta.
 
-        await enviarTexto(orden.customer_phone, texto, 'ia', desdeId)
+           Dentro de ella se puede escribir texto libre. Fuera, Meta lo rechaza
+           con el error 131047 y sólo pasan plantillas aprobadas de antemano.
+
+           Y "fuera" es el caso normal, no la excepción: entre que el cliente
+           escribió por última vez y que el pago se aprueba pueden pasar días
+           —sobre todo si la pieza se cotizó, se pensó y se pagó después—. En
+           la primera prueba con plata real la ventana llevaba 28 horas
+           cerrada: el pago entró y el cliente no recibió nada.
+
+           Cuando la ventana está abierta se prefiere el texto libre porque
+           dice más y no cuesta; la plantilla es el plan B, no el plan A. */
+        const { abierta, minutosRestantes } = await ventanaAbierta(orden.customer_phone)
+
+        if (abierta) {
+          /* Se le repite el saldo exacto. Es el número que va a tener que
+             tener listo en efectivo cuando toquen la puerta, y no saberlo es
+             el motivo más tonto por el que se rechaza una entrega. */
+          const texto = esAbono
+            ? `¡Listo! Recibimos tu abono de ${enPesos(abono)} y tu ` +
+              `${orden.product_name} queda confirmado. Al recibirlo pagas ` +
+              `${enPesos(saldo)} en efectivo. ` +
+              `Te aviso apenas se despache con el número de guía. 🌿`
+            : `¡Listo! Recibimos tu pago de ${enPesos(total)} por ${orden.product_name}. ` +
+              `Ya lo estamos preparando y te aviso apenas se despache. 🌿`
+
+          await enviarTexto(orden.customer_phone, texto, 'ia', desdeId)
+          console.log(`Pago avisado por texto (ventana abierta, ${minutosRestantes} min):`, orderId)
+        } else {
+          /* Sólo el primer nombre: la plantilla saluda con él y "Hola María
+             Fernanda Rodríguez Gómez," no lo dice nadie. */
+          const nombre = String(orden.customer_name ?? '').trim().split(/\s+/)[0]
+
+          if (!nombre) {
+            /* Meta rechaza una variable vacía, y un "Hola ," es peor que el
+               silencio. No debería pasar —el checkout exige el nombre— pero
+               si pasa, que quede dicho en el log y no se pierda callando. */
+            console.error('Ventana cerrada y pedido sin nombre: no se pudo avisar', orderId)
+          } else {
+            /* El orden de las variables es el de la plantilla aprobada en
+               Meta, y cambiarlo aquí sin cambiarlo allá manda el saldo donde
+               va el abono. Si alguna vez se reaprueba la plantilla, revisar
+               este orden es lo primero. */
+            const envio = esAbono
+              ? await enviarPlantilla(
+                  orden.customer_phone,
+                  'pedido_confirmado_abono',
+                  // {{1}} nombre · {{2}} abono · {{3}} pieza · {{4}} saldo
+                  [nombre, enPesos(abono), String(orden.product_name), enPesos(saldo)],
+                  desdeId,
+                )
+              : await enviarPlantilla(
+                  orden.customer_phone,
+                  'pedido_confirmado',
+                  // {{1}} nombre · {{2}} total · {{3}} pieza
+                  [nombre, enPesos(total), String(orden.product_name)],
+                  desdeId,
+                )
+
+            console.log(
+              envio.ok
+                ? 'Pago avisado por plantilla (ventana cerrada):'
+                : `Plantilla rechazada (${envio.error}):`,
+              orderId,
+            )
+          }
+        }
       } catch (e) {
         // El pago ya quedó registrado: que falle el aviso no lo invalida.
         console.error('No se pudo avisar el pago por WhatsApp:', e instanceof Error ? e.message : e)
