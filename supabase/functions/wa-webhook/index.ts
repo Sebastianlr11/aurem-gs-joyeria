@@ -9,7 +9,7 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { admin, enModoManual, enviarTextoNatural, idDestino, mantenerEscribiendo } from '../_shared/wa.ts'
 import { responder } from '../_shared/bot.ts'
-import { describirImagen, transcribir } from '../_shared/medios.ts'
+import { transcribir, verYGuardarImagen } from '../_shared/medios.ts'
 
 /* Cuánto se espera antes de contestar. La gente reparte una idea en tres o
    cuatro mensajes seguidos: si se responde al primero, Valentina interrumpe,
@@ -194,14 +194,23 @@ Deno.serve(async (req: Request) => {
       }
 
       if (idImagen) {
-        const visto = await describirImagen(idImagen)
-        if (!visto && !texto) return             // se queda en la bandeja
-        if (visto) {
-          /* Se guarda la descripción junto al pie de foto: el pie es lo que
-             el cliente escribió, y la descripción es lo que Valentina "vio". */
-          const contenido = texto ? `📷 ${visto}\n\n"${texto}"` : `📷 ${visto}`
+        const { descripcion, ruta } = await verYGuardarImagen(idImagen, telefono)
+        if (!descripcion && !ruta && !texto) return   // se queda en la bandeja
+
+        /* La descripción es para que Valentina siga la conversación; la ruta
+           es para que el joyero vea la pieza en el panel y pueda cotizarla.
+           Se guarda lo que haya salido: si falla una, la otra sirve igual. */
+        const parche: Record<string, unknown> = {}
+        if (descripcion) {
+          /* El pie es lo que el cliente escribió, y la descripción es lo que
+             Valentina "vio". */
+          parche.content = texto ? `📷 ${descripcion}\n\n"${texto}"` : `📷 ${descripcion}`
+        }
+        if (ruta) parche.media_url = ruta
+
+        if (Object.keys(parche).length) {
           await db.from('whatsapp_conversaciones')
-            .update({ content: contenido })
+            .update(parche)
             .eq('wa_message_id', mensaje.id)
         }
       }

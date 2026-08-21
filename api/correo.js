@@ -41,7 +41,16 @@ export default async function handler(req, res) {
   if (!NOMBRES.includes(plantilla)) {
     return res.status(400).json({ error: `Plantilla desconocida: ${plantilla}` })
   }
-  if (!para || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(para).trim())) {
+  /* Uno o varios. Los avisos internos van a todo el equipo, y mandarlos en
+     envíos separados no funcionaría: comparten clave de idempotencia, así
+     que el segundo se descartaría como repetido del primero. Van en un solo
+     envío con varios destinatarios. */
+  const CORREO = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
+  const destinos = (Array.isArray(para) ? para : [para])
+    .map((d) => String(d ?? '').trim())
+    .filter((d) => CORREO.test(d))
+
+  if (!destinos.length) {
     return res.status(400).json({ error: 'Destinatario inválido' })
   }
 
@@ -62,14 +71,14 @@ export default async function handler(req, res) {
      devuelve el envío original en vez de mandar otro.
 
      Dura 24 horas, que cubre de sobra la ventana de reintentos. */
-  const idempotencia = `${plantilla}/${referencia ?? String(para).trim()}`.slice(0, 256)
+  const idempotencia = `${plantilla}/${referencia ?? destinos.join(',')}`.slice(0, 256)
 
   /* El SDK de Resend NO lanza excepciones: devuelve { data, error }. Un
      try/catch aquí no atraparía nada y el fallo pasaría por bueno. */
   const { data, error } = await resend.emails.send(
     {
       from: REMITENTE,
-      to: [String(para).trim()],
+      to: destinos,
       subject: compuesto.asunto,
       html: compuesto.html,
       text: compuesto.texto,
@@ -82,7 +91,7 @@ export default async function handler(req, res) {
     return res.status(502).json({ error: error.message })
   }
 
-  console.log(`correo: ${plantilla} → ${enmascarar(para)} · ${data.id}`)
+  console.log(`correo: ${plantilla} → ${destinos.map(enmascarar).join(', ')} · ${data.id}`)
   return res.status(200).json({ ok: true, id: data.id })
 }
 

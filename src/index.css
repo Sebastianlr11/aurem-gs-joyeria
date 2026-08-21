@@ -16203,3 +16203,14 @@ textarea:focus-visible {
   line-height: 1.5;
   color: var(--text-secondary);
 }
+
+/* El hueco de la foto del chat mientras se firma su URL. Ocupa el sitio para
+   que el hilo no salte cuando la imagen entra. */
+.chat-bubble-image--cargando {
+  width: 200px;
+  aspect-ratio: 3 / 4;
+  border-radius: 2px;
+  background: linear-gradient(100deg, var(--bg-arena) 30%, #f8f3ec 50%, var(--bg-arena) 70%);
+  background-size: 200% 100%;
+  animation: esqueleto 1.4s ease-in-out infinite;
+}

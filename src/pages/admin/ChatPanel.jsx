@@ -28,6 +28,43 @@ const STATUS_PEDIDO = {
 /* El separador del hilo: "Hoy", "Ayer", el día de la semana si es de
    este año, y la fecha completa si es más viejo. */
 /* Qué significa cada acuse al pasar el cursor. */
+/**
+ * La imagen de un mensaje, venga de donde venga.
+ *
+ * Hay dos clases y se distinguen por la forma: las que mandamos nosotros son
+ * fotos del catálogo y llevan URL pública completa; las que manda el cliente
+ * viven en un bucket privado y sólo se guarda su ruta, porque son
+ * correspondencia suya —mandan comprobantes, capturas, fotos de su mano— y
+ * eso no puede quedar colgando de un enlace público.
+ *
+ * La firma dura una hora, de sobra para mirar un chat, y se pide sólo cuando
+ * la burbuja se pinta: firmar todo el historial de entrada sería pedir
+ * decenas de URLs que nadie va a abrir.
+ */
+function ImagenDelChat({ ruta, onAbrir }) {
+    const [src, setSrc] = useState(() => (String(ruta).startsWith('http') ? ruta : null));
+
+    useEffect(() => {
+        if (String(ruta).startsWith('http')) { setSrc(ruta); return; }
+        let vivo = true;
+        supabase.storage.from('chat-media').createSignedUrl(ruta, 3600)
+            .then(({ data }) => { if (vivo && data?.signedUrl) setSrc(data.signedUrl); });
+        return () => { vivo = false; };
+    }, [ruta]);
+
+    // Mientras se firma se deja el hueco, para que el hilo no salte al cargar.
+    if (!src) return <div className="chat-bubble-image chat-bubble-image--cargando" />;
+
+    return (
+        <img
+            src={src}
+            alt=""
+            className="chat-bubble-image chat-bubble-image--clickable"
+            onClick={() => onAbrir(src)}
+        />
+    );
+}
+
 const ACUSE = {
     sending: 'Enviando…',
     sent: 'Enviado a WhatsApp',
@@ -1239,7 +1276,7 @@ const ChatPanel = () => {
                                                         <div className={`chat-msg chat-msg--${msg.role || 'user'}`}>
                                                         <div className={`chat-bubble chat-bubble--${msg.role || 'user'}${msg.enviado_por === 'humano' ? ' chat-bubble--admin' : ''}${msg._failed ? ' chat-bubble--error' : ''}`}>
                                                             {msg.message_type === 'image' && msg.media_url ? (
-                                                                <img src={msg.media_url} alt="" className="chat-bubble-image chat-bubble-image--clickable" onClick={() => openLightbox(msg.media_url)} />
+                                                                <ImagenDelChat ruta={msg.media_url} onAbrir={openLightbox} />
                                                             ) : null}
                                                             {msg.content ? <div className="chat-bubble-content"><span>{msg.content}</span></div> : null}
                                                         </div>

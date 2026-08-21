@@ -13,10 +13,12 @@ import * as React from 'react'
 import { render } from '@react-email/components'
 import PedidoConfirmado from './pedido-confirmado'
 import PedidoDespachado from './pedido-despachado'
+import ChatEscalado from './chat-escalado'
 
 const PLANTILLAS = {
   'pedido-confirmado': PedidoConfirmado,
   'pedido-despachado': PedidoDespachado,
+  'chat-escalado': ChatEscalado,
 } as const
 
 export type Plantilla = keyof typeof PLANTILLAS
@@ -31,6 +33,14 @@ export const NOMBRES = Object.keys(PLANTILLAS) as Plantilla[]
 export function asunto(plantilla: Plantilla, datos: Record<string, unknown>): string {
   const pieza = String(datos.pieza ?? 'tu pieza')
   const pesos = (n: unknown) => `$${Math.round(Number(n) || 0).toLocaleString('es-CO')}`
+
+  if (plantilla === 'chat-escalado') {
+    /* El asunto lleva el nombre porque este correo se lee en la lista, sin
+       abrirlo: "Martín necesita que le respondas" dice más de un vistazo que
+       "Una conversación necesita atención". */
+    const quien = String(datos.nombre || '').trim() || String(datos.telefono || 'Un cliente')
+    return `${quien} necesita que le respondas`
+  }
 
   if (plantilla === 'pedido-despachado') {
     return `Tu ${pieza} va en camino`

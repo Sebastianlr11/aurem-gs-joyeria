@@ -623,6 +623,11 @@ async function ejecutarHerramienta(
       { phone_number: telefono, is_active: true, admin_email: 'valentina@bot', reason: args?.motivo ?? null },
       { onConflict: 'phone_number' },
     )
+    /* Y se avisa. Marcar la conversación no sirve de nada si nadie mira el
+       panel: hasta ahora Valentina decía "te comunico con alguien del equipo"
+       y ese alguien no se enteraba. El cliente quedaba esperando a una
+       persona que no sabía que la estaban esperando. */
+    await avisarQueEsperan(telefono, String(args?.motivo ?? 'Sin motivo anotado'))
     return 'Dile que en un momento alguien del equipo se comunica. No sigas preguntando.'
   }
 
@@ -750,6 +755,86 @@ async function ejecutarHerramienta(
   }
 
   return 'Esa herramienta no existe.'
+}
+
+/**
+ * Le avisa al equipo que hay una conversación esperando.
+ *
+ * Va a quien tenga acceso al panel, leído de auth.users, y no a una lista
+ * escrita a mano: así el día que entre alguien nuevo al equipo empieza a
+ * recibir los avisos sin que nadie se acuerde de configurarlo.
+ *
+ * Nunca lanza. El cliente ya recibió su respuesta y la conversación ya quedó
+ * marcada; que falle el correo no puede deshacer nada de eso, sólo dejarlo
+ * anotado en el log.
+ */
+async function avisarQueEsperan(telefono: string, motivo: string): Promise<void> {
+  try {
+    const secreto = Deno.env.get('CORREO_SECRETO')
+    if (!secreto) {
+      console.error('escalada: falta CORREO_SECRETO, nadie se entera')
+      return
+    }
+    const base = Deno.env.get('APP_URL') ?? 'https://www.auremgsjoyeria.com'
+    const db = admin()
+
+    const { data: usuarios } = await db.auth.admin.listUsers()
+    const destinos = (usuarios?.users ?? [])
+      .map((u) => u.email)
+      .filter((e): e is string => !!e)
+
+    if (!destinos.length) {
+      console.error('escalada: no hay a quién avisar')
+      return
+    }
+
+    const { data: cliente } = await db
+      .from('customers').select('name').eq('phone', telefono).maybeSingle()
+
+    /* Los últimos mensajes van dentro del correo. Sin ellos habría que abrir
+       el panel sólo para saber si corre prisa, y el aviso serviría nada más
+       para mandar a mirar a otro sitio. */
+    const { data: hilo } = await db
+      .from('whatsapp_conversaciones')
+      .select('role, content')
+      .eq('phone_number', telefono)
+      .order('created_at', { ascending: false })
+      .limit(4)
+
+    const ultimos = (hilo ?? []).reverse()
+      .filter((m) => m.content)
+      .map((m) => ({
+        de: m.role === 'user' ? 'cliente' : 'valentina',
+        texto: String(m.content).slice(0, 400),
+      }))
+
+    const hora = new Date().toLocaleString('es-CO', {
+      day: 'numeric', month: 'long', hour: 'numeric', minute: '2-digit',
+      timeZone: 'America/Bogota',
+    })
+
+    const res = await fetch(`${base}/api/correo`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-correo-secreto': secreto },
+      body: JSON.stringify({
+        plantilla: 'chat-escalado',
+        para: destinos,
+        /* El teléfono más la hora redondeada al minuto: dos escaladas
+           seguidas del mismo chat no llenan la bandeja, pero una de mañana
+           sí vuelve a avisar. */
+        referencia: `${telefono}:${new Date().toISOString().slice(0, 16)}`,
+        datos: { nombre: cliente?.name ?? null, telefono, motivo, ultimos, hora },
+      }),
+    })
+
+    if (!res.ok) {
+      console.error(`escalada: api/correo respondió ${res.status}`)
+      return
+    }
+    console.log(`Escalada avisada a ${destinos.length} persona(s):`, telefono)
+  } catch (e) {
+    console.error('No se pudo avisar la escalada:', e instanceof Error ? e.message : e)
+  }
 }
 
 /**
