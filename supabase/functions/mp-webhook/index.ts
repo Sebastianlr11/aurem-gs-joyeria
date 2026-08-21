@@ -310,22 +310,50 @@ Deno.serve(async (req: Request) => {
 /**
  * Saca el pago aprobado de una orden comercial.
  *
- * Devuelve null cuando la orden todavía no tiene ninguno —pasa de verdad: el
- * aviso de la orden suele llegar antes de que el pago se acredite—. Eso no es
- * un error, es "todavía no", y el aviso del pago llegará después.
+ * Devuelve null en dos casos que NO son errores:
+ *
+ * - La orden todavía no tiene pago aprobado. Pasa de verdad: su aviso suele
+ *   llegar antes de que el pago se acredite, y el aviso del pago vendrá
+ *   después.
+ * - No la podemos leer. El primer intento con el host de Mercado Pago
+ *   devolvió 403 con el mismo token que sí lee los pagos, así que se prueba
+ *   también el host de MercadoLibre, que es contra el que los avisos IPN
+ *   antiguos resuelven sus recursos.
+ *
+ * Si ninguno responde no se rompe nada: el aviso del pago es el que hace el
+ * trabajo y siempre ha llegado. Esto es red de seguridad, no camino
+ * principal, y una red que no se puede tender no puede tumbar el trapecio.
  */
+const HOSTS_ORDEN = [
+  'https://api.mercadopago.com/merchant_orders',
+  'https://api.mercadolibre.com/merchant_orders',
+]
+
 async function pagoAprobadoDe(ordenId: string, token: string): Promise<string | null> {
-  const res = await fetch(`https://api.mercadopago.com/merchant_orders/${ordenId}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  })
-  if (!res.ok) {
-    console.error('Error consultando la orden comercial:', ordenId, res.status)
-    return null
+  const fallos: string[] = []
+
+  for (const host of HOSTS_ORDEN) {
+    let res: Response
+    try {
+      res = await fetch(`${host}/${ordenId}`, { headers: { Authorization: `Bearer ${token}` } })
+    } catch (e) {
+      fallos.push(`${host}: ${e instanceof Error ? e.message : e}`)
+      continue
+    }
+    if (!res.ok) {
+      fallos.push(`${host}: ${res.status}`)
+      continue
+    }
+    const orden = await res.json()
+    const pagos = Array.isArray(orden?.payments) ? orden.payments : []
+    const aprobado = pagos.find((p: Record<string, unknown>) => p?.status === 'approved')
+    return aprobado?.id != null ? String(aprobado.id) : null
   }
-  const orden = await res.json()
-  const pagos = Array.isArray(orden?.payments) ? orden.payments : []
-  const aprobado = pagos.find((p: Record<string, unknown>) => p?.status === 'approved')
-  return aprobado?.id != null ? String(aprobado.id) : null
+
+  /* Un log, no uno por host, y sin console.error: no es una falla del cobro
+     y no quiero que encienda alarmas por algo que no las merece. */
+  console.log(`No se pudo leer la orden ${ordenId} (${fallos.join(' · ')}); manda el aviso del pago`)
+  return null
 }
 
 /**
