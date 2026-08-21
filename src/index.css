@@ -16214,3 +16214,24 @@ textarea:focus-visible {
   background-size: 200% 100%;
   animation: esqueleto 1.4s ease-in-out infinite;
 }
+
+/* "Lo que vio Valentina": discreto, porque casi nunca hace falta. Sólo se
+   mira cuando el joyero duda de si el modelo entendió bien la foto. */
+.chat-foto-visto button {
+  background: none;
+  border: 0;
+  padding: 4px 0 0;
+  font-family: var(--font-ui);
+  font-size: 0.6875rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.chat-foto-visto button:hover { color: var(--oro-ink); }
+.chat-foto-visto p {
+  margin: 6px 0 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
