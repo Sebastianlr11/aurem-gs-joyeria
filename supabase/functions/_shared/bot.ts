@@ -193,8 +193,14 @@ REGLAS QUE NO SE ROMPEN
 3. Sobre envíos, pagos, garantía y plazos di SÓLO lo que está arriba, tal
    como está. Si te preguntan algo que no aparece ahí, no lo deduzcas ni lo
    inventes: dilo con naturalidad y usa escalar_a_humano.
-4. Para cerrar un pedido necesitas: pieza, talla si es anillo, nombre completo,
-   dirección, ciudad y correo. Pídelos de a poco, no todos de golpe.
+4. Para cerrar un pedido necesitas: las piezas, la talla de cada anillo,
+   nombre completo, dirección, ciudad y correo. Pídelos de a poco, no todos
+   de golpe.
+4b. UN PEDIDO PUEDE LLEVAR VARIAS PIEZAS. Si quiere dos o tres, van todas en
+   el mismo pedido y en un solo pago, no en pedidos separados. Y cada anillo
+   lleva SU talla: si son para personas distintas, pregunta la de cada uno y
+   no supongas que es la misma. Si quiere dos iguales, eso es cantidad 2 de
+   la misma pieza, no dos piezas.
 5. EL CORREO. Pídelo siempre y di para qué es: ahí le llega el comprobante
    del pago y la confirmación del pedido con el detalle de la pieza. Si no lo
    da, o escribe algo que no parece un correo, insiste UNA sola vez.
@@ -380,8 +386,23 @@ const HERRAMIENTAS = [
       parameters: {
         type: 'object',
         properties: {
-          producto: { type: 'string', description: 'Nombre exacto de la pieza, tal como aparece en el catálogo' },
-          monto: { type: 'number', description: 'Precio en COP, el del catálogo' },
+          /* Una lista, aunque casi siempre traiga una sola. Un pedido de dos
+             anillos para dos personas lleva dos tallas distintas, y por eso
+             la talla va DENTRO de cada pieza y no suelta en el pedido: con
+             una sola talla para todo, alguna se fabrica mal. */
+          piezas: {
+            type: 'array',
+            description: 'Las piezas del pedido. Una sola casi siempre; varias si pidió más de una.',
+            items: {
+              type: 'object',
+              properties: {
+                producto: { type: 'string', description: 'Nombre exacto de la pieza, tal como aparece en el catálogo' },
+                talla: { type: 'string', description: 'Sólo si es anillo. La de ESTA pieza.' },
+                cantidad: { type: 'number', description: 'Cuántas de esta misma pieza. Por defecto una.' },
+              },
+              required: ['producto'],
+            },
+          },
           nombre: { type: 'string' },
           direccion: { type: 'string' },
           ciudad: { type: 'string' },
@@ -392,10 +413,9 @@ const HERRAMIENTAS = [
              instrucciones, que sí saben cuándo parar; el esquema sólo define
              qué es posible. */
           correo: { type: 'string', description: 'Correo del cliente. Se le pide, pero si no lo da el pedido se crea igual.' },
-          talla: { type: 'string', description: 'Sólo si es anillo' },
           metodo_pago: { type: 'string', enum: ['Mercado Pago', 'Contra entrega'] },
         },
-        required: ['producto', 'monto', 'nombre', 'direccion', 'ciudad', 'metodo_pago'],
+        required: ['piezas', 'nombre', 'direccion', 'ciudad', 'metodo_pago'],
       },
     },
   },
@@ -646,10 +666,47 @@ async function ejecutarHerramienta(
   }
 
   if (nombre === 'crear_pedido') {
-    // El precio se toma del catálogo, no de lo que diga el modelo.
-    const pieza = await buscarPieza(args.producto)
+    /* Se acepta la lista y también el formato viejo de una pieza suelta: el
+       modelo tiene el historial de la conversación delante y a veces repite
+       la forma que vio antes. Rechazar un pedido bien tomado por la forma de
+       los argumentos sería perder una venta por una tecnicidad. */
+    const pedidas: any[] = Array.isArray(args?.piezas) && args.piezas.length
+      ? args.piezas
+      : args?.producto
+      ? [{ producto: args.producto, talla: args.talla }]
+      : []
 
-    if (!pieza) return `Esa pieza no está en el catálogo. Dile que revisas y ofrécele las que sí hay.`
+    if (!pedidas.length) {
+      return 'No dijiste qué piezas. Recapitula con el cliente qué quiere y vuelve a intentarlo.'
+    }
+
+    /* El precio sale del catálogo, no de lo que diga el modelo. Es la
+       diferencia entre cobrar lo que vale y cobrar lo que el modelo recordó. */
+    const items: Array<{ id: string; name: string; price: number; quantity: number; talla: string | null }> = []
+    const noEncontradas: string[] = []
+
+    for (const p of pedidas) {
+      const encontrada = await buscarPieza(p?.producto)
+      if (!encontrada) { noEncontradas.push(String(p?.producto ?? '(sin nombre)')); continue }
+      if (encontrada.stock === 0) { noEncontradas.push(`${encontrada.name} (agotada)`); continue }
+
+      const cantidad = Number(p?.cantidad)
+      items.push({
+        id: encontrada.id,
+        name: encontrada.name,
+        price: Number(encontrada.price),
+        quantity: Number.isFinite(cantidad) && cantidad > 0 ? Math.min(Math.floor(cantidad), 20) : 1,
+        talla: p?.talla ? String(p.talla).trim() : null,
+      })
+    }
+
+    /* Si alguna falla NO se crea nada. Un pedido a medias es peor que
+       ninguno: el cliente cree que lleva dos piezas, paga por una, y el
+       reclamo llega cuando abre la caja. */
+    if (noEncontradas.length) {
+      return `No pude tomar el pedido: ${noEncontradas.join(', ')} no está en el catálogo o está agotada. ` +
+             `Díselo, ofrécele lo que sí hay, y vuelve a crear el pedido cuando esté claro.`
+    }
 
     const contraEntrega = String(args.metodo_pago || '').toLowerCase().includes('entrega')
 
@@ -677,7 +734,7 @@ async function ejecutarHerramienta(
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          items: [{ id: pieza.id, name: pieza.name, price: Number(pieza.price) }],
+          items,
           buyer: {
             name: args.nombre,
             phone: telefono,
@@ -694,7 +751,10 @@ async function ejecutarHerramienta(
              se cobre y para poder contar ventas por origen. */
           atribucion: { ...atribucionDe(referral), utm_source: await refDeMensajes(telefono) },
           notes: [
-            args.talla ? `Talla: ${args.talla}` : null,
+            /* Un resumen legible para el panel. Las tallas de verdad viven
+               en order_items, una por pieza; esto es para que quien mire el
+               pedido de un vistazo las vea sin abrir nada. */
+            items.filter((i) => i.talla).map((i) => `${i.name}: talla ${i.talla}`).join(' · ') || null,
             'Pedido tomado por Valentina',
             // Legible en el panel; el dato que se mide va en `atribucion`.
             anuncio,
@@ -722,7 +782,8 @@ async function ejecutarHerramienta(
       return 'Hubo un problema al registrar el pedido. Discúlpate y usa escalar_a_humano.'
     }
 
-    const monto = enPesos(Number(pieza.price))
+    const total = items.reduce((suma, i) => suma + i.price * i.quantity, 0)
+    const monto = enPesos(total)
     const enlace = respuesta?.initPoint
 
     if (!enlace) {

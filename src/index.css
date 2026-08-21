@@ -16235,3 +16235,32 @@ textarea:focus-visible {
   line-height: 1.5;
   color: var(--text-secondary);
 }
+
+/* Las piezas de un pedido de varias. Una línea por pieza, con la talla al
+   lado del nombre y no perdida en las notas: es el dato que el taller mira
+   antes de fabricar, y equivocarlo es un anillo que no entra. */
+.od-piezas { list-style: none; margin: 6px 0 0; padding: 0; }
+.od-piezas li {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--hairline);
+  font-family: var(--font-ui);
+  font-size: 0.9375rem;
+}
+.od-piezas li:last-child { border-bottom: 0; }
+.od-pieza-nombre { color: var(--ink); }
+.od-pieza-talla {
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--oro-ink);
+  white-space: nowrap;
+}
+.od-pieza-precio {
+  margin-left: auto;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}

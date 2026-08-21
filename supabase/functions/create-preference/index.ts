@@ -16,13 +16,31 @@ Deno.serve(async (req: Request) => {
   try {
     const { items, product, buyer, paymentMethod = 'mp', notes: orderNotes, atribucion } = await req.json()
 
-    // Soporta formato nuevo (items array) y formato legacy (product objeto)
-    const productItems: Array<{ id: string; name: string; price: number }> =
-      items?.length
-        ? items
-        : product?.id
-        ? [{ id: product.id, name: product.name, price: Number(product.price) }]
-        : []
+    /* Soporta formato nuevo (items array) y formato legacy (product objeto).
+
+       La cantidad y la talla van POR PIEZA. Dos anillos para dos personas
+       distintas llevan dos tallas, y meterlas en las notas del pedido —que
+       es donde vivían— era garantizar que alguna se fabricara mal. */
+    const crudos = items?.length
+      ? items
+      : product?.id
+      ? [{ id: product.id, name: product.name, price: Number(product.price) }]
+      : []
+
+    type Pieza = { id: string; name: string; price: number; quantity: number; talla: string | null }
+
+    const productItems: Pieza[] = (crudos as any[])
+      .filter((i) => i?.id && i?.name && Number(i.price) >= 0)
+      .map((i) => ({
+        id: String(i.id),
+        name: String(i.name),
+        price: Number(i.price),
+        // Sin cantidad válida se asume una: es el caso de siempre.
+        quantity: Number.isFinite(Number(i.quantity)) && Number(i.quantity) > 0
+          ? Math.min(Math.floor(Number(i.quantity)), 20)
+          : 1,
+        talla: i.talla ? String(i.talla).trim().slice(0, 20) : null,
+      }))
 
     /* Basta con uno de los dos: correo o teléfono. Los pedidos que entran por
        WhatsApp pueden no traer correo, y bloquear la venta por eso sería
@@ -44,8 +62,15 @@ Deno.serve(async (req: Request) => {
     const supabase = createClient(supabaseUrl, supabaseKey)
 
     // Calcular totales combinados
-    const totalAmount = productItems.reduce((sum, item) => sum + Number(item.price), 0)
-    const combinedName = productItems.map(i => i.name).join(' + ')
+    const totalAmount = productItems.reduce((sum, i) => sum + i.price * i.quantity, 0)
+
+    /* El nombre pegado sigue existiendo porque medio sistema lo lee: el
+       panel, los avisos de WhatsApp, la búsqueda de duplicados. Lo que
+       cambia es que ahora es un resumen, no la única verdad — las piezas de
+       verdad viven en order_items. */
+    const combinedName = productItems
+      .map((i) => (i.quantity > 1 ? `${i.name} x${i.quantity}` : i.name))
+      .join(' + ')
     const firstProductId = productItems[0].id
 
     const esContraEntrega = paymentMethod === 'cod'
@@ -160,6 +185,29 @@ Deno.serve(async (req: Request) => {
 
     const orderId = order.id
 
+    /* Las piezas, una fila cada una, con el nombre y el precio congelados.
+       Si el joyero sube un precio el mes que viene, este pedido tiene que
+       seguir diciendo lo que se cobró: un pedido es un hecho del pasado, no
+       una consulta al catálogo de hoy.
+
+       Si falla, el pedido igual quedó creado y cobrable —el total y el
+       nombre pegado están en orders— así que no se tumba la venta por esto.
+       Pero se grita, porque sin las filas el correo enseña una pieza sola y
+       el taller no sabe qué fabricar. */
+    const { error: errorPiezas } = await supabase.from('order_items').insert(
+      productItems.map((i) => ({
+        order_id: orderId,
+        product_id: i.id,
+        nombre: i.name,
+        precio: i.price,
+        cantidad: i.quantity,
+        talla: i.talla,
+      })),
+    )
+    if (errorPiezas) {
+      console.error('No se pudieron guardar las piezas del pedido:', orderId, errorPiezas.message)
+    }
+
     /* Se le avisa a TikTok y a Meta que alguien se comprometió a comprar,
        ahora mismo y no cuando entre la plata.
        
@@ -181,6 +229,7 @@ Deno.serve(async (req: Request) => {
       correo: buyer.email ?? null,
       telefono: buyer.phone ?? null,
       piezaId: firstProductId,
+      piezaIds: productItems.map((i) => i.id),
       piezaNombre: combinedName,
       ttclid: atribucion?.ttclid ?? null,
       ttp: atribucion?.ttp ?? null,
@@ -217,11 +266,11 @@ Deno.serve(async (req: Request) => {
           unit_price: abono,
           currency_id: 'COP',
         }]
-      : productItems.map(item => ({
+      : productItems.map((item) => ({
           id: item.id,
-          title: item.name,
-          quantity: 1,
-          unit_price: Number(item.price),
+          title: item.talla ? `${item.name} (talla ${item.talla})` : item.name,
+          quantity: item.quantity,
+          unit_price: item.price,
           currency_id: 'COP',
         }))
 

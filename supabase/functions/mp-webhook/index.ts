@@ -2,6 +2,7 @@ import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { enviarTexto, enviarPlantilla, ventanaAbierta, numeroPropioDe } from '../_shared/wa.ts'
 import { avisarVenta } from '../_shared/conversiones.ts'
+import { piezasDelPedido } from '../_shared/pedidos.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -164,6 +165,10 @@ Deno.serve(async (req: Request) => {
       console.log(esAbono ? 'Abono recibido, pedido confirmado:' : 'Orden actualizada a pagado:', orderId)
     }
 
+    /* Qué piezas lleva el pedido. Se leen una vez y sirven para todo lo que
+       viene: la venta que se le cuenta a Meta y TikTok, y el correo. */
+    const piezas = orden ? await piezasDelPedido(supabase, orderId, orden) : []
+
     /* La venta a TikTok y a Meta. Va antes del aviso por WhatsApp porque no
        depende de él y porque es lo que tiene ventana de tiempo: cuanto más
        cerca del pago llegue, mejor atribuye. Nunca lanza. */
@@ -174,6 +179,7 @@ Deno.serve(async (req: Request) => {
         correo: orden.customer_email,
         telefono: orden.customer_phone,
         piezaId: orden.product_id,
+        piezaIds: piezas.map((p) => p.productId).filter((id): id is string => !!id),
         piezaNombre: orden.product_name,
         ttclid: orden.ttclid,
         ttp: orden.ttp,
@@ -284,7 +290,7 @@ Deno.serve(async (req: Request) => {
        las envía; ver api/correo.js. */
     if (orden?.customer_email) {
       try {
-        await avisarPorCorreo(supabase, orden, orderId, esAbono)
+        await avisarPorCorreo(orden, orderId, esAbono, piezas)
       } catch (e) {
         /* Nunca tumba el webhook. El pago ya está cobrado y registrado; que
            no salga un correo no puede hacer que Mercado Pago reintente ni que
@@ -366,10 +372,10 @@ async function pagoAprobadoDe(ordenId: string, token: string): Promise<string | 
  * mandarlo.
  */
 async function avisarPorCorreo(
-  supabase: ReturnType<typeof createClient>,
   orden: Record<string, any>,
   orderId: string,
   esAbono: boolean,
+  piezas: PiezaDePedido[],
 ) {
   const base = Deno.env.get('APP_URL') ?? 'https://www.auremgsjoyeria.com'
   const secreto = Deno.env.get('CORREO_SECRETO')
@@ -377,21 +383,6 @@ async function avisarPorCorreo(
     console.error('correo: falta CORREO_SECRETO, no se manda')
     return
   }
-
-  let pieza: Record<string, any> | null = null
-  try {
-    const { data } = await supabase
-      .from('products').select('images, image_url, metal, piedra')
-      .eq('id', orden.product_id).maybeSingle()
-    pieza = data
-  } catch { /* sin foto, el correo sale igual */ }
-
-  const imagen = (Array.isArray(pieza?.images) && pieza.images[0]) || pieza?.image_url || null
-  const ficha = [pieza?.metal, pieza?.piedra].filter(Boolean).join(' · ') || null
-
-  /* La talla vive en las notas del pedido, no en una columna: la captura
-     Valentina al tomarlo y el checkout de la web todavía no la pide. */
-  const talla = /Talla:\s*([^|·]+)/i.exec(String(orden.notes ?? ''))?.[1]?.trim() || null
 
   /* La referencia que ve la clienta es la misma que enseña la ficha de la
      pieza en el sitio. Si acá saliera otra, un reclamo por correo y otro por
@@ -419,9 +410,7 @@ async function avisarPorCorreo(
         abono: esAbono ? Number(orden.abono_monto) : null,
         ciudad: orden.shipping_city ?? 'Colombia',
         direccion: orden.shipping_address ?? '',
-        imagen,
-        ficha,
-        talla,
+        piezas,
         fecha,
       },
     }),

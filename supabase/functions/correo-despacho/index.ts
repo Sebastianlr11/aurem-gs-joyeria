@@ -16,6 +16,7 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { rastreoDe } from '../_shared/envios.ts'
+import { piezasDelPedido } from '../_shared/pedidos.ts'
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -81,19 +82,10 @@ Deno.serve(async (req: Request) => {
     return json({ ok: true, enviado: false, motivo: 'El pedido no tiene número de guía' })
   }
 
-  /* La foto y la ficha, igual que en la confirmación: una tarjeta con el
-     nombre a secas se lee como una factura. Si falla, sale el rombo. */
-  let pieza: Record<string, unknown> | null = null
-  try {
-    const { data } = await admin
-      .from('products').select('images, image_url, metal, piedra')
-      .eq('id', orden.product_id).maybeSingle()
-    pieza = data
-  } catch { /* sin foto, el correo sale igual */ }
-
-  const imagenes = pieza?.images
-  const imagen = (Array.isArray(imagenes) && imagenes[0]) || pieza?.image_url || null
-  const ficha = [pieza?.metal, pieza?.piedra].filter(Boolean).join(' · ') || null
+  /* Las piezas con su foto y su ficha, las mismas que enseñó la
+     confirmación. Una tarjeta con el nombre a secas se lee como una factura,
+     y en una joyería el producto es la mitad del mensaje. */
+  const piezas = await piezasDelPedido(admin, pedidoId, orden)
 
   /* Cuánto falta por pagar en la puerta.
 
@@ -141,8 +133,7 @@ Deno.serve(async (req: Request) => {
         urlRastreo,
         ciudad: orden.shipping_city ?? 'Colombia',
         saldo,
-        imagen,
-        ficha,
+        piezas,
         fecha,
       },
     }),

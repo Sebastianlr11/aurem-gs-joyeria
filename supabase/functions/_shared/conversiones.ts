@@ -41,6 +41,11 @@ export type Venta = {
   correo?: string | null
   telefono?: string | null
   piezaId?: string | null
+  /* Todas las piezas del pedido, cuando lleva más de una. Meta y TikTok
+     aceptan varios content_ids, y mandar sólo la primera hacía que un pedido
+     de dos anillos le enseñara a los anuncios interés en uno solo — el
+     algoritmo aprende de lo que se le cuenta. */
+  piezaIds?: string[] | null
   piezaNombre?: string | null
   ttclid?: string | null
   ttp?: string | null
@@ -120,6 +125,12 @@ function telefonoNormal(telefono: string): string | null {
   return `+${digitos}`
 }
 
+/** Los ids de las piezas, sin repetidos y sin vacíos. */
+const piezasDe = (venta: Venta): string[] => {
+  const todas = venta.piezaIds?.length ? venta.piezaIds : (venta.piezaId ? [venta.piezaId] : [])
+  return [...new Set(todas.filter((id): id is string => !!id))]
+}
+
 async function identificadores(venta: Venta) {
   const correo = venta.correo ? await sha256(correoNormal(venta.correo)) : null
   const telefonoLimpio = venta.telefono ? telefonoNormal(venta.telefono) : null
@@ -173,14 +184,15 @@ async function aTikTok(venta: Venta, momento: number): Promise<string> {
       properties: limpio({
         currency: 'COP',
         value: venta.monto,
-        contents: venta.piezaId
-          ? [limpio({
-              content_id: venta.piezaId,
+        contents: piezasDe(venta).length
+          ? piezasDe(venta).map((id) => limpio({
+              content_id: id,
               content_type: 'product',
-              content_name: venta.piezaNombre,
-              quantity: 1,
-              price: venta.monto,
-            })]
+              /* El nombre sólo cuando es una: con varias, piezaNombre es el
+                 resumen pegado del pedido entero y ponérselo a cada una
+                 sería decir que cada pieza se llama como todas juntas. */
+              content_name: piezasDe(venta).length === 1 ? venta.piezaNombre : undefined,
+            }))
           : undefined,
       }),
       page: limpio({ url: venta.url }),
@@ -264,8 +276,8 @@ async function aMeta(venta: Venta, momento: number): Promise<string> {
       custom_data: limpio({
         currency: 'COP',
         value: venta.monto,
-        content_type: venta.piezaId ? 'product' : undefined,
-        content_ids: venta.piezaId ? [venta.piezaId] : undefined,
+        content_type: piezasDe(venta).length ? 'product' : undefined,
+        content_ids: piezasDe(venta).length ? piezasDe(venta) : undefined,
         content_name: venta.piezaNombre,
       }),
     }],
