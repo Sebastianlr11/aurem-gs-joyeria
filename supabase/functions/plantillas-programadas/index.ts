@@ -307,8 +307,47 @@ async function marketingDeHoy(): Promise<number> {
   return count ?? 0
 }
 
+/**
+ * Comparación de largo constante: con un === normal, lo que tarda en fallar
+ * delata cuántos caracteres se acertaron.
+ */
+function iguales(a: string, b: string): boolean {
+  if (a.length !== b.length) return false
+  let dif = 0
+  for (let i = 0; i < a.length; i++) dif |= a.charCodeAt(i) ^ b.charCodeAt(i)
+  return dif === 0
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
+
+  /* Un secreto propio, además del JWT.
+  
+     El JWT lo satisface la clave anónima del proyecto, que es pública por
+     diseño: cualquiera que mire el sitio la tiene. Con los envíos apagados
+     eso da igual, pero encendidos significa que un desconocido puede
+     dispararla cuando quiera — y una de las tres plantillas es de marketing
+     y se cobra por mensaje.
+
+     El candado de la base impide que un mismo aviso salga dos veces, así que
+     lo peor que lograría es adelantar mensajes que igual iban a salir. Pero
+     no hay razón para dejar la puerta abierta.
+
+     Vive en ajustes_internos y no en una variable de entorno para que no
+     tenga que pasar por ninguna mano: lo generó la base, lo lee el cron para
+     firmar su llamada, y lo lee esta función para verificarla. Rotarlo es un
+     UPDATE, sin redesplegar nada. */
+  const { data: ajuste } = await admin()
+    .from('ajustes_internos').select('valor').eq('clave', 'cron_secreto').maybeSingle()
+
+  const secreto = String(ajuste?.valor ?? '')
+  if (!secreto) {
+    console.error('Falta el secreto del cron en ajustes_internos: se rechaza todo')
+    return json({ error: 'sin configurar' }, 500)
+  }
+  if (!iguales(String(req.headers.get('x-cron-secreto') ?? ''), secreto)) {
+    return json({ error: 'no autorizado' }, 401)
+  }
 
   const t0 = Date.now()
   const resultado: Record<string, unknown> = { activas: ACTIVAS, enviadas: 0, saltadas: 0, detalle: [] as unknown[] }
