@@ -25,17 +25,27 @@ const cors = {
 const json = (cuerpo: unknown, status = 200) =>
   new Response(JSON.stringify(cuerpo), { status, headers: { ...cors, 'Content-Type': 'application/json' } })
 
-/* Páginas de rastreo. Son las de inicio de cada transportadora y no enlaces
-   directos a la guía: los directos de estas tres cambian de forma cada tanto
-   y un botón que lleva a un 404 es peor que no tener botón. El correo enseña
-   el número justo encima, así que se copia y se pega.
+/* Páginas de rastreo, las tres comprobadas una por una contra el sitio real.
+
+   La primera versión las puse de memoria y dos de las tres daban 404. No es
+   un detalle: es el botón que pulsa una clienta que ya pagó y está esperando
+   su pieza, y caer en un "esta dirección no existe" es exactamente el
+   momento en que se pregunta si la tienda es real.
+
+   Ninguna lleva a la guía concreta. Los enlaces directos de estas tres
+   cambian de forma cada tanto, y prefiero una página viva donde se pega el
+   número —que el correo enseña justo encima— a un enlace exacto que se rompa
+   en seis meses sin que nos enteremos.
+
+   Inter Rapidísimo va a su portada a propósito: el buscador de guías está
+   ahí mismo, no en una página aparte. Por eso ninguna de sus rutas existía.
 
    Si la transportadora es "Otro" o está vacía no hay página, y la plantilla
    se encarga: sin URL, el botón de rastrear no se pinta. */
 const RASTREO: Record<string, string> = {
   servientrega: 'https://www.servientrega.com/wps/portal/rastreo-envio',
-  interrapidisimo: 'https://www.interrapidisimo.com/sigue-tu-envio/',
-  coordinadora: 'https://www.coordinadora.com/portafolio-de-servicios/servicios-en-linea/rastrear-guia/',
+  interrapidisimo: 'https://www.interrapidisimo.com/',
+  coordinadora: 'https://coordinadora.com/rastreo/',
 }
 
 const sinTildes = (s: string) =>
