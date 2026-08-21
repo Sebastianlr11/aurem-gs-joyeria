@@ -33,3 +33,7 @@ public/sitemap.xml
 
 # Se genera en cada compilación desde emails/; ver scripts/correos.mjs
 api/_plantillas.mjs
+
+# Herramientas locales, no del proyecto
+.agents/
+skills-lock.json
