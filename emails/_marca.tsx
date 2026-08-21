@@ -45,12 +45,12 @@ export const pesos = (n: number | string) =>
 
 export function Cabecera() {
   return (
-    <Section style={{ padding: '32px 32px 24px', textAlign: 'center' as const }}>
+    <Section style={{ padding: '34px 32px 4px', textAlign: 'center' as const }}>
       <Text
         style={{
           margin: 0,
           fontFamily: fuenteDisplay,
-          fontSize: '22px',
+          fontSize: '19px',
           letterSpacing: '0.18em',
           textTransform: 'uppercase' as const,
           color: c.ink,
@@ -124,10 +124,10 @@ export function Titular({
           </tr>
         </tbody>
       </table>
-      <div style={{ paddingTop: '18px', fontFamily: fuenteDisplay, fontSize: '40px', lineHeight: '46px', color: c.ink }}>
+      <div style={{ paddingTop: '14px', fontFamily: fuenteDisplay, fontSize: '31px', lineHeight: '37px', color: c.ink }}>
         {primera}
         <br />
-        <span style={{ fontSize: '26px', lineHeight: '46px', letterSpacing: '0.06em', textTransform: 'uppercase' as const }}>
+        <span style={{ fontSize: '20px', lineHeight: '37px', letterSpacing: '0.06em', textTransform: 'uppercase' as const }}>
           {segunda}
         </span>
       </div>
@@ -231,9 +231,9 @@ export function Boton({ href, children }: { href: string; children: React.ReactN
         href={href}
         style={{
           display: 'block',
-          padding: '15px 30px',
+          padding: '13px 26px',
           fontFamily: fuenteUI,
-          fontSize: '15px',
+          fontSize: '14px',
           lineHeight: '18px',
           fontWeight: 700,
           color: c.marfil,
@@ -265,15 +265,15 @@ export function Pie({ referencia }: { referencia?: string | null }) {
         style={{
           margin: 0,
           fontFamily: fuenteDisplay,
-          fontSize: '15px',
-          lineHeight: '1.55',
+          fontSize: '17px',
+          lineHeight: '26px',
           color: c.oroLuz,
         }}
       >
         Piezas hechas a mano en Colombia, para durar generaciones.
       </Text>
       <Hr style={{ borderColor: 'rgba(227,201,144,0.24)', margin: '20px 0' }} />
-      <Text style={{ margin: 0, fontFamily: fuenteUI, fontSize: '13px', lineHeight: '1.7', color: '#B9AEA4' }}>
+      <Text style={{ margin: 0, fontFamily: fuenteUI, fontSize: '13px', lineHeight: '21px', color: '#D8CFC4' }}>
         ¿Alguna duda con tu pedido?{' '}
         <Link href={WHATSAPP} style={{ color: c.oroLuz, textDecoration: 'underline' }}>
           Escríbenos por WhatsApp
@@ -311,7 +311,7 @@ export function Trazado({
   pasos: { titulo: string; pie: string; hecho: boolean }[]
 }) {
   return (
-    <Section style={{ padding: '32px 40px 0' }}>
+    <Section style={{ padding: '32px 32px 0' }}>
       <table role="presentation" cellPadding={0} cellSpacing={0} border={0} width="100%" style={{ width: '100%' }}>
         <tbody>
           <tr>
@@ -351,21 +351,24 @@ export function TarjetaPieza({
   nombre, detalle, imagen,
 }: { nombre: string; detalle?: string | null; imagen?: string | null }) {
   return (
-    <Section style={{ padding: '32px 40px 0' }}>
+    <Section style={{ padding: '32px 32px 0' }}>
       <table role="presentation" cellPadding={0} cellSpacing={0} border={0} width="100%" style={{ width: '100%', background: c.marfil, border: `1px solid ${c.filete}` }}>
         <tbody>
           <tr>
-            <td width={120} align="center" style={{ width: '120px', height: '150px', background: c.arena, verticalAlign: 'middle' as const }}>
+            {/* El atributo width y el estilo tienen que decir lo mismo: Outlook
+                ignora el CSS y se queda con el atributo, así que si difieren la
+                foto sale de un tamaño en Gmail y de otro en Outlook. */}
+            <td width={104} align="center" style={{ width: '104px', height: '128px', background: c.arena, verticalAlign: 'middle' as const }}>
               {imagen ? (
-                <Img src={imagen} alt={nombre} width="120" height="150" style={{ display: 'block', width: '120px', height: '150px', objectFit: 'cover' as const }} />
+                <Img src={imagen} alt={nombre} width="104" height="128" style={{ display: 'block', width: '104px', height: '128px', objectFit: 'cover' as const }} />
               ) : (
                 <span style={{ fontFamily: fuenteDisplay, fontSize: '22px', color: c.oro }}>&#10022;</span>
               )}
             </td>
             <td style={{ padding: '20px 20px 20px 22px', verticalAlign: 'middle' as const }}>
-              <div style={{ fontFamily: fuenteDisplay, fontSize: '22px', lineHeight: '28px', color: c.ink }}>{nombre}</div>
+              <div style={{ fontFamily: fuenteDisplay, fontSize: '19px', lineHeight: '25px', color: c.ink }}>{nombre}</div>
               {detalle && (
-                <div style={{ fontFamily: fuenteUI, fontSize: '14px', lineHeight: '22px', color: c.texto, paddingTop: '6px' }}>
+                <div style={{ fontFamily: fuenteUI, fontSize: '13px', lineHeight: '20px', color: c.texto, paddingTop: '5px' }}>
                   {detalle}
                 </div>
               )}
@@ -383,12 +386,12 @@ export function TarjetaPieza({
 /** El aviso al margen: filete de oro a la izquierda sobre fondo marfil. */
 export function Nota({ children }: { children: React.ReactNode }) {
   return (
-    <Section style={{ padding: '12px 40px 0' }}>
+    <Section style={{ padding: '12px 32px 0' }}>
       <table role="presentation" cellPadding={0} cellSpacing={0} border={0} width="100%" style={{ width: '100%' }}>
         <tbody>
           <tr>
             <td width={3} style={{ width: '3px', background: c.oro, fontSize: 0, lineHeight: 0 }}>&nbsp;</td>
-            <td style={{ padding: '14px 18px', background: c.marfil, fontFamily: fuenteUI, fontSize: '14px', lineHeight: '22px', color: '#4A423C' }}>
+            <td style={{ padding: '14px 18px', background: c.marfil, fontFamily: fuenteUI, fontSize: '13px', lineHeight: '21px', color: '#4A423C' }}>
               {children}
             </td>
           </tr>
@@ -402,7 +405,7 @@ export function Nota({ children }: { children: React.ReactNode }) {
 export function BotonClaro({ href, children }: { href: string; children: React.ReactNode }) {
   return (
     <td align="center" style={{ border: `1px solid ${c.oro}`, borderRadius: '100px' }}>
-      <a href={href} style={{ display: 'block', padding: '14px 28px', fontFamily: fuenteUI, fontSize: '15px', lineHeight: '18px', fontWeight: 700, color: c.oroInk, textDecoration: 'none', borderRadius: '100px' }}>
+      <a href={href} style={{ display: 'block', padding: '12px 24px', fontFamily: fuenteUI, fontSize: '14px', lineHeight: '18px', fontWeight: 700, color: c.oroInk, textDecoration: 'none', borderRadius: '100px' }}>
         {children}
       </a>
     </td>

@@ -60,7 +60,7 @@ export default function PedidoConfirmado({
         <Container style={{ maxWidth: '600px', margin: '0 auto', background: c.blanco }}>
           <Cabecera />
 
-          <Section style={{ padding: '36px 40px 0' }}>
+          <Section style={{ padding: '36px 32px 0' }}>
             <Titular
               antetitulo={esAbono ? 'Pedido confirmado' : 'Pago recibido'}
               primera={esAbono ? 'Tu pieza entra' : 'Empezamos'}
@@ -70,8 +70,8 @@ export default function PedidoConfirmado({
               style={{
                 margin: '16px 0 0',
                 fontFamily: fuenteUI,
-                fontSize: '16px',
-                lineHeight: '26px',
+                fontSize: '15px',
+                lineHeight: '24px',
                 color: '#4A423C',
               }}
             >
@@ -92,14 +92,14 @@ export default function PedidoConfirmado({
 
           <TarjetaPieza nombre={pieza} detalle={detalle} imagen={imagen} />
 
-          <Section style={{ padding: '28px 40px 0' }}>
+          <Section style={{ padding: '28px 32px 0' }}>
             <Dato etiqueta="Entrega">{direccion}, {ciudad}</Dato>
             {esAbono && <Dato etiqueta="Abonaste">{pesos(abono)} <small style={{ fontSize: '12px', color: c.texto }}>COP</small></Dato>}
           </Section>
 
           {/* El bloque grande. En contraentrega es el saldo que va a pagar en
               la puerta; si ya pagó todo, es el recibo de lo que pagó. */}
-          <Section style={{ padding: '20px 40px 0' }}>
+          <Section style={{ padding: '20px 32px 0' }}>
             <table role="presentation" cellPadding={0} cellSpacing={0} border={0} width="100%" style={{ width: '100%', background: c.arena }}>
               <tbody>
                 <tr>
@@ -111,7 +111,7 @@ export default function PedidoConfirmado({
                       {esAbono ? 'En efectivo, al domiciliario' : 'Pago confirmado'}
                     </div>
                   </td>
-                  <td align="right" style={{ padding: '22px 24px', verticalAlign: 'middle', fontFamily: fuenteUI, fontSize: '30px', lineHeight: '34px', fontWeight: 700, color: c.ink, whiteSpace: 'nowrap' }}>
+                  <td align="right" style={{ padding: '22px 24px', verticalAlign: 'middle', fontFamily: fuenteUI, fontSize: '26px', lineHeight: '30px', fontWeight: 700, color: c.ink, whiteSpace: 'nowrap' }}>
                     {pesos(esAbono ? saldo : total)}{' '}
                     <span style={{ fontSize: '14px', fontWeight: 400, color: c.texto }}>COP</span>
                   </td>
@@ -131,7 +131,7 @@ export default function PedidoConfirmado({
               $50.000 aparte y prometerlo aquí sería el cobro sorpresa que
               evitamos en toda la web. El punzón de ley sí — va grabado en el
               metal de cada pieza. */}
-          <Section style={{ padding: '24px 40px 0' }}>
+          <Section style={{ padding: '24px 32px 0' }}>
             <table role="presentation" cellPadding={0} cellSpacing={0} border={0}>
               <tbody>
                 <tr>
@@ -143,7 +143,7 @@ export default function PedidoConfirmado({
             </table>
           </Section>
 
-          <Section style={{ padding: '30px 40px 46px' }}>
+          <Section style={{ padding: '30px 32px 46px' }}>
             <table role="presentation" cellPadding={0} cellSpacing={0} border={0}>
               <tbody>
                 <tr>

@@ -52,9 +52,9 @@ export default function PedidoDespachado({
         <Container style={{ maxWidth: '600px', margin: '0 auto', background: c.blanco }}>
           <Cabecera />
 
-          <Section style={{ padding: '36px 40px 0' }}>
+          <Section style={{ padding: '36px 32px 0' }}>
             <Titular antetitulo="Pedido despachado" primera="Tu pieza va" segunda="en camino." />
-            <p style={{ margin: '16px 0 0', fontFamily: fuenteUI, fontSize: '16px', lineHeight: '26px', color: '#4A423C' }}>
+            <p style={{ margin: '16px 0 0', fontFamily: fuenteUI, fontSize: '15px', lineHeight: '24px', color: '#4A423C' }}>
               {primerNombre}, tu {pieza} salió del taller.{' '}
               {enBogota
                 ? 'En Bogotá llega entre 24 y 48 horas.'
@@ -74,7 +74,7 @@ export default function PedidoDespachado({
 
           <TarjetaPieza nombre={pieza} detalle={[ficha, `ref. ${referencia}`].filter(Boolean).join(' · ')} imagen={imagen} />
 
-          <Section style={{ padding: '28px 40px 0' }}>
+          <Section style={{ padding: '28px 32px 0' }}>
             <Dato etiqueta="Transportadora">{transportadora}</Dato>
             <Dato etiqueta="Número de guía" fuerte>{guia}</Dato>
             <Dato etiqueta="Destino">{ciudad}</Dato>
@@ -82,7 +82,7 @@ export default function PedidoDespachado({
 
           {porPagar && (
             <>
-              <Section style={{ padding: '20px 40px 0' }}>
+              <Section style={{ padding: '20px 32px 0' }}>
                 <table role="presentation" cellPadding={0} cellSpacing={0} border={0} width="100%" style={{ width: '100%', background: c.arena }}>
                   <tbody>
                     <tr>
@@ -94,7 +94,7 @@ export default function PedidoDespachado({
                           En efectivo, al domiciliario
                         </div>
                       </td>
-                      <td align="right" style={{ padding: '22px 24px', verticalAlign: 'middle', fontFamily: fuenteUI, fontSize: '30px', lineHeight: '34px', fontWeight: 700, color: c.ink, whiteSpace: 'nowrap' }}>
+                      <td align="right" style={{ padding: '22px 24px', verticalAlign: 'middle', fontFamily: fuenteUI, fontSize: '26px', lineHeight: '30px', fontWeight: 700, color: c.ink, whiteSpace: 'nowrap' }}>
                         {pesos(saldo)} <span style={{ fontSize: '14px', fontWeight: 400, color: c.texto }}>COP</span>
                       </td>
                     </tr>
@@ -108,7 +108,7 @@ export default function PedidoDespachado({
             </>
           )}
 
-          <Section style={{ padding: '30px 40px 0' }}>
+          <Section style={{ padding: '30px 32px 0' }}>
             <table role="presentation" cellPadding={0} cellSpacing={0} border={0}>
               <tbody>
                 <tr>
@@ -120,7 +120,7 @@ export default function PedidoDespachado({
             </table>
           </Section>
 
-          <Section style={{ padding: '24px 40px 46px' }}>
+          <Section style={{ padding: '24px 32px 46px' }}>
             <p style={{ margin: 0, fontFamily: fuenteUI, fontSize: '15px', lineHeight: '25px', color: c.texto }}>
               Cuando la recibas, revísala con calma. Si algo no está como esperabas, escríbenos el
               mismo día y lo resolvemos.
