@@ -1,5 +1,4 @@
 {
-  "cleanUrls": true,
   "rewrites": [
     {
       "source": "/((?!assets/)(?!.*\\.[a-zA-Z0-9]{2,5}$).*)",
