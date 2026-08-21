@@ -78,14 +78,30 @@ async function mandar(e: Envio): Promise<'enviada' | 'repetida' | 'apagada' | st
   }
 
   if (!ACTIVAS) {
-    /* Modo prueba: se anotó para ver el recorrido completo, pero no se manda.
-       Se borra la anotación para que la corrida real sí pueda hacerlo. */
-    await db.from('plantillas_enviadas')
-      .delete()
-      .eq('phone_number', e.telefono)
-      .eq('plantilla', e.plantilla)
-      .is('pedido_id', e.pedidoId === null ? null : undefined)
-      .eq('pedido_id', e.pedidoId ?? '00000000-0000-0000-0000-000000000000')
+    /* Modo prueba: se anota para recorrer el camino completo —incluido el
+       candado, que es lo que se quiere ver funcionar— y después se borra,
+       para que la corrida de verdad sí pueda mandar.
+
+       El borrado estaba mal escrito: filtraba por `pedido_id` con `.is(…,
+       undefined)` y con un uuid inventado a la vez, así que no borraba nada
+       y fallaba callado. La consecuencia era que cada prueba quemaba el
+       aviso real de ese pedido para siempre — un modo prueba que saboteaba
+       justo lo que decía estar probando, y sin dejar rastro.
+
+       Ahora el filtro se arma según haya pedido o no, y si el borrado falla
+       se dice, porque una anotación que sobrevive es un cliente que no
+       recibe su aviso. */
+    const borrado = e.pedidoId
+      ? await db.from('plantillas_enviadas').delete()
+          .eq('phone_number', e.telefono).eq('plantilla', e.plantilla).eq('pedido_id', e.pedidoId)
+      : await db.from('plantillas_enviadas').delete()
+          .eq('phone_number', e.telefono).eq('plantilla', e.plantilla).is('pedido_id', null)
+
+    if (borrado.error) {
+      console.error('MODO PRUEBA: no se pudo borrar la anotación, este aviso ya no saldrá:',
+                    e.plantilla, e.pedidoId, borrado.error.message)
+      return 'apagada, pero quedó anotada'
+    }
     return 'apagada'
   }
 
