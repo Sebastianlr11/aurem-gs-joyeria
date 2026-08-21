@@ -2486,6 +2486,27 @@ textarea:focus-visible {
 .catalogo-vacio-texto {
   color: var(--text-secondary);
   font-size: 0.95rem;
+  /* El texto no se estira a lo ancho de la rejilla: a 1440px la frase se
+     leería de un borde al otro y en un bloque centrado eso se pierde. */
+  max-width: 42ch;
+  margin: 0 auto;
+  line-height: 1.65;
+}
+
+.catalogo-vacio-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 2rem;
+}
+
+@media (max-width: 480px) {
+  /* Apilados y a lo ancho: dos píldoras lado a lado en 390px dejan el texto
+     de cada una partido en dos renglones. */
+  .catalogo-vacio { padding: 4rem 1.25rem; }
+  .catalogo-vacio-acciones { flex-direction: column; }
+  .catalogo-vacio-acciones .btn-pill { justify-content: center; }
 }
 
 .catalogo-mas {
