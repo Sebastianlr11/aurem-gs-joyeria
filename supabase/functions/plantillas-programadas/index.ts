@@ -146,34 +146,42 @@ async function despachados(): Promise<Envio[]> {
   const envios: Envio[] = []
 
   for (const o of data ?? []) {
-    /* Sin transportadora reconocida no se manda.
-    
-       La plantilla dice "va por X" y "para seguirlo entra a Y": las dos cosas
-       son promesas concretas, y con una transportadora que no conocemos no
-       hay ni nombre honesto ni sitio donde rastrear. Antes el nombre estaba
-       escrito fijo en la plantilla —siempre Interrapidísimo—, así que un
-       pedido despachado por Servientrega le decía al cliente algo falso y lo
-       mandaba a buscar su guía donde no estaba.
-       
-       El correo de despacho sí sale igual: ahí el botón de rastrear
-       simplemente no se pinta, y el resto del mensaje se sostiene solo. */
-    const rastreo = rastreoDe(o.carrier)
-    if (!rastreo) {
-      console.log(`Despacho sin transportadora reconocida (${o.carrier ?? 'vacía'}), no se avisa por WhatsApp:`, o.id)
+    /* Sin transportadora no se manda.
+
+       La plantilla dice "va por X con la guía Y": las dos son promesas
+       concretas. Antes el nombre estaba escrito fijo dentro de la plantilla
+       —siempre Interrapidísimo—, así que un pedido despachado por
+       Servientrega le decía al cliente algo falso y lo mandaba a buscar su
+       guía donde no estaba.
+
+       El enlace de rastreo NO va acá: Meta rechazó la plantilla que lo
+       llevaba dentro de una variable, y es entendible —una variable que
+       inyecta una dirección es el vector clásico de phishing—. El enlace lo
+       lleva el correo de despacho, que no tiene esa restricción y además
+       puede ponerlo en un botón. Cada canal hace lo que puede hacer.
+
+       El correo sale igual aunque la transportadora sea "Otro": ahí el botón
+       de rastrear simplemente no se pinta. */
+    const transportadora = String(o.carrier ?? '').trim()
+    if (!transportadora || !rastreoDe(transportadora)) {
+      console.log(`Despacho sin transportadora reconocida (${transportadora || 'vacía'}), no se avisa por WhatsApp:`, o.id)
       continue
     }
 
     envios.push({
-      plantilla: 'pedido_despachado',
+      /* Nombre nuevo, no 'pedido_despachado'. Aquella se rechazó por llevar
+         el enlace de rastreo dentro de una variable, y una plantilla
+         rechazada no se puede editar. Reusar el nombre tampoco: Meta lo
+         bloquea 30 días después de borrarla. */
+      plantilla: 'pedido_en_camino',
       telefono: o.customer_phone!,
       pedidoId: o.id,
-      // {{1}} nombre · {{2}} pieza · {{3}} transportadora · {{4}} guía · {{5}} dónde rastrear
+      // {{1}} nombre · {{2}} pieza · {{3}} transportadora · {{4}} guía
       variables: [
         primerNombre(o.customer_name),
         o.product_name,
-        String(o.carrier),
+        transportadora,
         o.tracking_number!,
-        rastreo.corto,
       ],
     })
   }
