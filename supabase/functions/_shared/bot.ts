@@ -392,8 +392,19 @@ const HERRAMIENTAS = [
       description: 'Pasa la conversación a una persona del equipo y deja de responder. Úsala también para cotizar plata, piezas con piedras, o cualquier cosa a medida que no puedas calcular.',
       parameters: {
         type: 'object',
-        properties: { motivo: { type: 'string' } },
-        required: ['motivo'],
+        properties: {
+          motivo: { type: 'string', description: 'Para el equipo, no para el cliente: qué pidió y por qué no lo pudiste resolver.' },
+          /* Lo que de verdad lee el cliente. Antes salía siempre la misma
+             frase suelta, sin importar de qué venían hablando: alguien
+             mandaba una foto de su anillo y lo único que recibía era "te
+             comunico con alguien del equipo". Se lee como una puerta que se
+             cierra, justo cuando acaba de enseñar lo que quiere. */
+          mensaje: {
+            type: 'string',
+            description: 'Lo que se le dice al cliente, en tu voz. Reconoce primero lo que pidió —si mandó una foto, di qué viste en ella— y después que lo pasas con alguien del equipo. Dos frases cortas.',
+          },
+        },
+        required: ['motivo', 'mensaje'],
       },
     },
   },
@@ -725,9 +736,12 @@ async function ejecutarHerramienta(
       return `Pedido registrado por ${monto} COP contra entrega, y el enlace del abono YA se lo ` +
              `enviaste — no lo repitas ni lo escribas tú. Explícale con tus palabras que abona ` +
              `${enPesos(abono)} del envío para confirmar, que eso se descuenta, y que al recibir ` +
-             `paga ${enPesos(saldo)}. Si pregunta por qué se cobra: porque la transportadora cobra ` +
-             `el envío igual, aunque el pedido se rechace. Dile que apenas entre el abono le ` +
-             `confirmas y le mandas la guía al despachar.`
+             `paga ${enPesos(saldo)}. Si pregunta por qué se cobra, cuéntalo de frente: antes ` +
+             `no se cobraba, pasaba que la pieza llegaba hasta la puerta y la persona ya no ` +
+             `estaba o había cambiado de opinión, y el envío de ida y vuelta lo perdía el ` +
+             `taller. Sin reprochar, y cerrando siempre en que no es plata de más porque se ` +
+             `descuenta. Dile que apenas entre el abono le confirmas y le mandas la guía al ` +
+             `despachar.`
     }
 
     return `Pedido registrado por ${monto} COP y el enlace de pago YA se lo enviaste — no lo repitas ` +
@@ -802,7 +816,11 @@ export async function responder(
       // Escalar corta el bucle: a partir de acá contesta una persona.
       if (llamada.function.name === 'escalar_a_humano') {
         await ejecutarHerramienta(llamada.function.name, args, telefono, desdeId)
-        return 'Dame un momento, te comunico con alguien del equipo que te ayuda con eso. 🌿'
+        /* Lo que escribió el modelo, que sabe de qué venían hablando. El
+           respaldo sólo aparece si no escribió nada: mejor una frase genérica
+           que un silencio. */
+        const suyo = String(args?.mensaje ?? '').trim()
+        return suyo || 'Dame un momento, te comunico con alguien del equipo que te ayuda con eso. 🌿'
       }
 
       /* Se registra qué herramienta y cuánto tardó. Sin esto, un turno de
