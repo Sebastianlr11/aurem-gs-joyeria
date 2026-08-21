@@ -88,6 +88,27 @@ const avisarConversion = async (orderId) => {
     }
 };
 
+/**
+ * El correo de "tu pieza va en camino".
+ *
+ * Devuelve el motivo cuando no se manda, en vez de un booleano pelado: hay
+ * dos casos legítimos —el pedido no tiene correo, o no tiene guía— y quien
+ * despacha necesita saber cuál de los dos fue. Un silencio se lee como
+ * "salió", y ahí es donde el cliente se queda esperando un correo que nunca
+ * se escribió.
+ */
+const avisarDespachoPorCorreo = async (orderId) => {
+    try {
+        const { data, error } = await supabase.functions.invoke('correo-despacho', {
+            body: { pedidoId: orderId },
+        });
+        if (error) return { enviado: false, motivo: error.message };
+        return data ?? { enviado: false, motivo: 'Respuesta vacía' };
+    } catch (e) {
+        return { enviado: false, motivo: e?.message || 'No se pudo conectar' };
+    }
+};
+
 const fireWebhook = async (order, newStatus, extraFields = {}) => {
     const url = localStorage.getItem('admin_webhook_url');
     if (!url) return;
@@ -1426,6 +1447,14 @@ const OrdersSection = ({ orders, products, loading, onRefresh }) => {
             tracking_number: trackingNumber || null,
         });
         closeModal();
+
+        /* El correo va DESPUÉS de guardar y de cerrar, nunca antes: el
+           despacho ya quedó registrado y no puede depender de que salga un
+           correo. Si falla, se avisa —pero el pedido sigue enviado. */
+        const r = await avisarDespachoPorCorreo(order.id);
+        if (!r.enviado) {
+            alert(`El pedido quedó marcado como enviado, pero el correo no salió.\n\n${r.motivo || 'Motivo desconocido'}`);
+        }
     };
 
     const getWaLink = (o) => {
