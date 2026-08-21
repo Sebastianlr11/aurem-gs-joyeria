@@ -24,11 +24,14 @@ Deno.serve(async (req: Request) => {
         ? [{ id: product.id, name: product.name, price: Number(product.price) }]
         : []
 
-    /* El correo es obligatorio si no hay teléfono, y no al revés. Los pedidos
-       que entran por WhatsApp no traen correo —pedirlo es fricción y mucha
-       gente no lo tiene a mano— y no hace falta: la preferencia de Mercado
-       Pago usa un payer fijo, y el correo sólo se guarda en la orden y sirve
-       para deduplicar, que con el teléfono también funciona. */
+    /* Basta con uno de los dos: correo o teléfono. Los pedidos que entran por
+       WhatsApp pueden no traer correo, y bloquear la venta por eso sería
+       cambiar plata por un dato.
+
+       Sí conviene tenerlo, y por eso se le pide: es donde Mercado Pago manda
+       el comprobante del pago (ver el pagador, más abajo). Cuando no lo hay,
+       el pedido sigue y el comprobante se pierde — que es peor que antes,
+       pero mucho mejor que no vender. */
     if (!productItems.length || !buyer?.name || (!buyer?.email && !buyer?.phone)) {
       return new Response(
         JSON.stringify({ error: 'Faltan campos requeridos' }),
@@ -200,10 +203,47 @@ Deno.serve(async (req: Request) => {
           currency_id: 'COP',
         }))
 
+    /* Quién paga, con sus datos reales.
+
+       Antes iba una dirección fija inventada —comprador@auremgsjoyeria.com—
+       porque el campo es obligatorio y los pedidos de WhatsApp podían no
+       traer correo. El efecto era que Mercado Pago le mandaba el comprobante
+       del pago a un buzón que no existe: la clienta pagaba y no le llegaba
+       ningún respaldo del medio de pago.
+
+       Ahora se usa el suyo cuando lo hay, y el de relleno sólo cuando no.
+
+       OJO al probar: Mercado Pago no deja que alguien se pague a sí mismo.
+       Si el correo del comprador es el mismo de la cuenta que cobra, el
+       botón de pagar sale deshabilitado. Para probar hay que usar otro
+       correo, no el de la cuenta del negocio.
+
+       El nombre y el teléfono van también: llegan precargados a la pantalla
+       de pago y son tres campos menos que teclear con el pulgar.
+
+       Y sólo si parece un correo. Con el valor fijo no había forma de que
+       fallara; ahora que viene del formulario, uno mal escrito hace que
+       Mercado Pago rechace la preferencia entera y la clienta vea "Error al
+       crear preferencia de pago" en vez de la pantalla de pago. Ante la duda,
+       el de relleno: peor es no poder cobrar. */
+    const correoValido = typeof buyer.email === 'string'
+      && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(buyer.email.trim())
+
+    const [nombrePila, ...resto] = String(buyer.name).trim().split(/\s+/)
+    const soloDigitos = String(buyer.phone ?? '').replace(/\D/g, '')
+    /* En E.164 colombiano el indicativo son los dos primeros dígitos si el
+       número viene con prefijo; si no, son los diez de siempre. */
+    const numeroLocal = soloDigitos.length > 10 ? soloDigitos.slice(-10) : soloDigitos
+
     const preference: Record<string, unknown> = {
       items: mpItems,
       payer: {
-        email: 'comprador@auremgsjoyeria.com',
+        email: correoValido ? buyer.email.trim() : 'comprador@auremgsjoyeria.com',
+        name: nombrePila,
+        ...(resto.length ? { surname: resto.join(' ') } : {}),
+        ...(numeroLocal.length === 10
+          ? { phone: { area_code: '57', number: numeroLocal } }
+          : {}),
       },
       back_urls: {
         success: `${appUrl}/confirmacion`,
