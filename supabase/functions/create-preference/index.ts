@@ -219,12 +219,13 @@ Deno.serve(async (req: Request) => {
        correo, no el de la cuenta del negocio.
 
        El nombre y el teléfono van también: llegan precargados a la pantalla
-       de pago y son tres campos menos que teclear con el pulgar. */
-    /* Sólo si parece un correo. Hoy el campo es fijo y no puede fallar; en
-       cuanto pasa a venir del formulario, uno mal escrito haría que Mercado
-       Pago rechace la preferencia entera y la clienta vea "Error al crear
-       preferencia de pago" en vez de la pantalla de pago. Ante la duda, el
-       de relleno: peor es no poder cobrar. */
+       de pago y son tres campos menos que teclear con el pulgar.
+
+       Y sólo si parece un correo. Con el valor fijo no había forma de que
+       fallara; ahora que viene del formulario, uno mal escrito hace que
+       Mercado Pago rechace la preferencia entera y la clienta vea "Error al
+       crear preferencia de pago" en vez de la pantalla de pago. Ante la duda,
+       el de relleno: peor es no poder cobrar. */
     const correoValido = typeof buyer.email === 'string'
       && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(buyer.email.trim())
 
