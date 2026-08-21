@@ -61,23 +61,32 @@ async function conocimiento(): Promise<string> {
 }
 
 /**
- * Hasta cuánto se despacha contra entrega.
+ * Las dos cifras del contraentrega: hasta cuánto se despacha así, y cuánto
+ * se abona para confirmarlo.
  *
- * Se lee de taller_precios, que es de donde lo lee create-preference al
- * cobrar. Podría escribirse en taller_conocimiento y ahorrarse la consulta,
- * pero entonces el número viviría en dos sitios y algún día dirían cosas
- * distintas: Valentina prometiendo un contraentrega que la pasarela rechaza
- * es peor que no ofrecerlo.
+ * Salen de taller_precios, que es de donde las lee create-preference al
+ * cobrar. Podrían escribirse en taller_conocimiento y ahorrarse la consulta,
+ * pero entonces vivirían en dos sitios y algún día dirían cosas distintas.
  *
- * Si falla, se devuelve null y las instrucciones le dicen que no lo ofrezca.
- * Perder un contraentrega es una molestia; despachar medio millón que no
- * debía salir así es plata.
+ * El abono está acá porque Valentina lo inventó en la primera prueba real:
+ * le dijo a un cliente que eran "unos $15.000" y cincuenta segundos después
+ * le mandó un enlace de $20.000. No tenía el dato, así que lo adivinó — y un
+ * modelo al que le falta un número no calla, rellena. La única defensa es
+ * dárselo.
+ *
+ * Si falla, van null y las instrucciones le dicen que no ofrezca
+ * contraentrega. Perder uno es una molestia; prometer una cifra equivocada
+ * sobre plata ajena es otra cosa.
  */
-async function topeContraentrega(): Promise<number | null> {
+async function cifrasContraentrega(): Promise<{ tope: number | null; abono: number | null }> {
   const { data } = await admin()
-    .from('taller_precios').select('tope_contraentrega').maybeSingle()
-  const tope = Number(data?.tope_contraentrega)
-  return Number.isFinite(tope) && tope > 0 ? tope : null
+    .from('taller_precios').select('tope_contraentrega, abono_envio').maybeSingle()
+
+  const valido = (v: unknown) => {
+    const n = Number(v)
+    return Number.isFinite(n) && n > 0 ? n : null
+  }
+  return { tope: valido(data?.tope_contraentrega), abono: valido(data?.abono_envio) }
 }
 
 /**
@@ -162,7 +171,7 @@ async function refDeMensajes(telefono: string): Promise<string | null> {
   return marca ? marca[1].toLowerCase() : null
 }
 
-function instrucciones(piezas: string, politicas: string, deDonde: string, topeCod: number | null): string {
+function instrucciones(piezas: string, politicas: string, deDonde: string, cod: { tope: number | null; abono: number | null }): string {
   return `Eres Valentina, la asesora de Aurem Gs Joyería, una joyería colombiana.
 Escribes por WhatsApp a clientes reales. Hablas en español de Colombia, con
 cercanía y sin adular. Mensajes cortos: dos o tres frases, salvo que estés
@@ -193,9 +202,12 @@ REGLAS QUE NO SE ROMPEN
    entonces le llega todo por WhatsApp. NUNCA dejes un pedido sin cerrar por
    un correo — vale mucho más la venta que el dato.
 6. Cuando tengas todo, recapitula y usa la herramienta crear_pedido.
-6b. EL CONTRAENTREGA TIENE TOPE: ${topeCod ? `hasta ${enPesos(topeCod)}` : 'no lo ofrezcas, no tengo el tope a mano'}.
-   Por encima de eso la pieza se paga en línea y no hay excepción: si la
-   rechazan en la puerta, el taller pierde el viaje de ida y vuelta de una
+6b. EL CONTRAENTREGA: ${cod.tope ? `hasta ${enPesos(cod.tope)}` : 'no lo ofrezcas, no tengo el tope a mano'}${cod.abono ? `, con un abono de ${enPesos(cod.abono)} que confirma el pedido y se descuenta del total` : ''}.
+   ESE ABONO ES ${cod.abono ? enPesos(cod.abono) : 'UN DATO QUE NO TIENES'} — no lo redondees, no digas "unos", no digas
+   "aproximadamente" y NUNCA des otra cifra. Si no lo tienes, di que lo
+   confirmas y no inventes un número.
+   Y el tope no tiene excepción. Por encima de eso la pieza se paga en
+   línea, porque si la rechazan en la puerta el taller pierde el viaje de ida y vuelta de una
    joya cara. No lo ofrezcas para una pieza que pase el tope, ni lo prometas
    "consultando". Si te lo piden, dilo derecho y sin disculparte de más: en
    piezas de ese valor el pago va por adelantado, y de ahí en más el envío
@@ -750,13 +762,13 @@ export async function responder(
     .map((m) => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.content }))
 
   // En paralelo: son cuatro consultas independientes.
-  const [piezas, politicas, referral, topeCod] = await Promise.all([
-    catalogo(), conocimiento(), referralDe(telefono), topeContraentrega(),
+  const [piezas, politicas, referral, cod] = await Promise.all([
+    catalogo(), conocimiento(), referralDe(telefono), cifrasContraentrega(),
   ])
   const deDonde = origen(referral)
 
   const mensajes: any[] = [
-    { role: 'system', content: instrucciones(piezas, politicas, deDonde, topeCod) },
+    { role: 'system', content: instrucciones(piezas, politicas, deDonde, cod) },
     ...conversacion,
   ]
 
