@@ -3,7 +3,7 @@
  * precios y los pedidos salen de la base, no del modelo, para que no
  * invente nada.
  */
-import { admin, enviarImagen, enviarTexto } from './wa.ts'
+import { admin, enviarImagen, enviarPlantilla, enviarTexto } from './wa.ts'
 
 const MODELO = Deno.env.get('OPENROUTER_MODEL') || 'openai/gpt-5.6-luna-pro'
 const MENSAJES_DE_CONTEXTO = 20
@@ -783,14 +783,33 @@ async function ejecutarHerramienta(
  * anotado en el log.
  */
 async function avisarQueEsperan(telefono: string, motivo: string): Promise<void> {
+  const db = admin()
+
+  const { data: cliente } = await db
+    .from('customers').select('name').eq('phone', telefono).maybeSingle()
+
+  /* Las dos vías van por separado a propósito. Antes el WhatsApp colgaba de
+     que hubiera correos de admin, y si algún día no los hubiera se caerían
+     las dos por el mismo motivo. Un aviso que no sale es un cliente
+     esperando; no puede depender de la otra mitad.
+
+     El WhatsApp primero, que es el que suena. El correo queda como registro
+     y con los últimos mensajes, pero nadie mira el correo cada diez minutos:
+     una conversación que espera dos horas es un cliente que se enfrió, y con
+     campañas encendidas, un cliente por el que se pagó. */
+  try {
+    await avisarPorWhatsApp(telefono, cliente?.name ?? null, motivo)
+  } catch (e) {
+    console.error('No se pudo avisar la escalada por WhatsApp:', e instanceof Error ? e.message : e)
+  }
+
   try {
     const secreto = Deno.env.get('CORREO_SECRETO')
     if (!secreto) {
-      console.error('escalada: falta CORREO_SECRETO, nadie se entera')
+      console.error('escalada: falta CORREO_SECRETO, no sale el correo')
       return
     }
     const base = Deno.env.get('APP_URL') ?? 'https://www.auremgsjoyeria.com'
-    const db = admin()
 
     const { data: usuarios } = await db.auth.admin.listUsers()
     const destinos = (usuarios?.users ?? [])
@@ -798,12 +817,9 @@ async function avisarQueEsperan(telefono: string, motivo: string): Promise<void>
       .filter((e): e is string => !!e)
 
     if (!destinos.length) {
-      console.error('escalada: no hay a quién avisar')
+      console.error('escalada: no hay a qué correo avisar')
       return
     }
-
-    const { data: cliente } = await db
-      .from('customers').select('name').eq('phone', telefono).maybeSingle()
 
     /* Los últimos mensajes van dentro del correo. Sin ellos habría que abrir
        el panel sólo para saber si corre prisa, y el aviso serviría nada más
@@ -848,6 +864,53 @@ async function avisarQueEsperan(telefono: string, motivo: string): Promise<void>
     console.log(`Escalada avisada a ${destinos.length} persona(s):`, telefono)
   } catch (e) {
     console.error('No se pudo avisar la escalada:', e instanceof Error ? e.message : e)
+  }
+}
+
+/**
+ * El mismo aviso, al celular de quien tiene que atender.
+ *
+ * Va por plantilla porque el equipo no le escribe al número de la joyería:
+ * su ventana de 24 horas está cerrada siempre, y fuera de ella Meta sólo
+ * deja plantillas aprobadas.
+ *
+ * NO se anota en el hilo de conversaciones. Si se anotara, cada aviso
+ * abriría una conversación falsa en la bandeja —el joyero apareciendo como
+ * cliente suyo— y el inbox de atención se llenaría de ruido justo el día que
+ * más clientes escriben.
+ *
+ * Los números viven en ajustes_internos, no en el código: cambian cuando
+ * entra o sale alguien del equipo, y eso no puede exigir un despliegue.
+ */
+async function avisarPorWhatsApp(
+  telefono: string,
+  nombre: string | null,
+  motivo: string,
+): Promise<void> {
+  const { data } = await admin()
+    .from('ajustes_internos').select('valor').eq('clave', 'telefonos_avisos').maybeSingle()
+
+  const numeros = String(data?.valor ?? '')
+    .split(/[,\s]+/).map((n) => n.replace(/\D/g, '')).filter((n) => n.length >= 10)
+
+  if (!numeros.length) return   // nadie configurado: el correo ya salió
+
+  const quien = String(nombre ?? '').trim() || telefono
+  /* Meta rechaza una variable vacía y corta los mensajes largos: el motivo
+     lo escribe el modelo y puede irse de largo. */
+  const porque = motivo.trim().slice(0, 180) || 'Sin motivo anotado'
+
+  for (const numero of numeros) {
+    const envio = await enviarPlantilla(
+      numero,
+      'aviso_equipo',
+      // {{1}} a quién se avisa · {{2}} el cliente · {{3}} por qué
+      ['Equipo', quien, porque],
+      null,
+      undefined,
+      false,   // sin anotar en la bandeja
+    )
+    if (!envio.ok) console.error(`No se pudo avisar a ${numero}:`, envio.error)
   }
 }
 
