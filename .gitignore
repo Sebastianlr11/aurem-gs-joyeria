@@ -37,3 +37,6 @@ api/_plantillas.mjs
 # Herramientas locales, no del proyecto
 .agents/
 skills-lock.json
+
+# Basura del CLI de Supabase
+supabase/.temp/
