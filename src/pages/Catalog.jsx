@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import ProductCard from '../components/catalog/ProductCard';
 import { supabase } from '../lib/supabase';
+import { waUrl } from '../lib/whatsapp';
 
 const CATEGORIAS = ['Todos', 'Anillos', 'Collares', 'Aretes', 'Pulseras', 'Dijes'];
 
@@ -125,6 +126,84 @@ const Catalog = () => {
         setMetal('Todos');
         setPagina(1);
     };
+
+    /* Lo que la clienta escribió, si escribió algo. Es lo que separa "filtré
+       de más" de "esto no existe en el catálogo", y las dos cosas se resuelven
+       al revés. */
+    const termino = busqueda.trim();
+
+    /* El mensaje se lleva lo que buscó. Es el dato más valioso del momento
+       —dice exactamente qué quiere y no lo encontró— y sin él Valentina abre
+       la conversación desde cero. Si no hubo búsqueda, al menos va la
+       categoría, que también acota. */
+    const waCotizar = useMemo(() => {
+        const que = termino
+            ? `Busqué "${termino}" en el catálogo y no encontré nada.`
+            : categoria !== 'Todos'
+                ? `Estuve viendo ${categoria.toLowerCase()} en el catálogo y no encontré lo que buscaba.`
+                : 'Estuve viendo el catálogo y no encontré lo que buscaba.';
+        return waUrl(`Hola 🙏 ${que} ¿Me pueden cotizar una pieza a la medida?`);
+    }, [termino, categoria]);
+
+    /* Qué decir cuando no hay nada que mostrar. Son tres situaciones, no una,
+       y la salida de cada una es distinta:
+
+       - Buscó algo que no existe. Limpiar filtros no se lo va a traer; lo que
+         resuelve es cotizarlo.
+       - Apretó los filtros de más. La solución está en su mano y limpiarlos
+         va primero.
+       - Entró a una categoría sin piezas. No hay filtro que quitar —la
+         categoría no cuenta como tal, vive en su propio riel— así que la
+         salida es abrir el catálogo entero.
+
+       El taller trabaja por encargo, así que "no hay" siempre significa "no
+       lo tenemos hecho", y eso es lo que dice el texto en los tres casos. */
+    const vacio = useMemo(() => {
+        /* Sin pronombre y sin género: esta frase se pega detrás de textos que
+           hablan de "una pieza" y de categorías que pueden ser masculinas o
+           femeninas —aretes, pulseras—. Con "cómo la quieres" salía "los
+           hacemos por encargo… cómo la quieres". */
+        const aMedida = 'Cuéntanos qué tienes en mente y te cotizamos; una pieza desde cero toma de 5 a 8 días.';
+
+        if (termino) return {
+            titulo: 'Eso no está en el catálogo',
+            texto: `Pero se puede hacer. ${aMedida}`,
+            cotizarPrimero: true,
+            arreglable: filtrosActivos > 0,
+            arreglarTexto: 'Limpiar filtros',
+            arreglar: limpiarFiltros,
+        };
+
+        if (filtrosActivos > 0) return {
+            titulo: 'Ninguna pieza cumple esos filtros',
+            texto: 'Quita alguno para ver más. O cuéntanos qué buscas y la hacemos a tu medida.',
+            cotizarPrimero: false,
+            arreglable: true,
+            arreglarTexto: 'Limpiar filtros',
+            arreglar: limpiarFiltros,
+        };
+
+        if (categoria !== 'Todos') return {
+            titulo: `Todavía no tenemos ${categoria.toLowerCase()}`,
+            /* "Se hacen" y no "los hacemos": la categoría puede ser masculina
+               o femenina y la frase tiene que servir para las cinco. */
+            texto: `Pero se hacen por encargo. ${aMedida}`,
+            cotizarPrimero: true,
+            arreglable: true,
+            arreglarTexto: 'Ver todo el catálogo',
+            arreglar: () => { setCategoria('Todos'); setPagina(1); },
+        };
+
+        /* Catálogo entero vacío. No debería pasar nunca —si pasa, es que la
+           consulta falló o el taller no tiene nada cargado— y decir "sin
+           resultados" ahí sería culpar a la clienta de algo que no hizo. */
+        return {
+            titulo: 'Estamos surtiendo el catálogo',
+            texto: `Mientras tanto, todo se puede hacer por encargo. ${aMedida}`,
+            cotizarPrimero: true,
+            arreglable: false,
+        };
+    }, [termino, filtrosActivos, categoria]);
 
     /* El botón flotante de filtros solo se asoma cuando la franja ya salió de
        pantalla. Pegada arriba tiene sentido mientras se ve; una vez fuera, un
@@ -376,10 +455,48 @@ const Catalog = () => {
                         {[...Array(8)].map((_, i) => <div key={i} className="pieza-esqueleto" />)}
                     </div>
                 ) : filtradas.length === 0 ? (
+                    /* Un catálogo vacío no es un callejón: quien filtró y no
+                       encontró es quien más claro tiene lo que quiere, y ya
+                       nos dijo qué es. El taller trabaja por encargo, así que
+                       "no hay" en realidad significa "no lo tenemos hecho".
+
+                       Se separan dos casos porque la salida es la contraria.
+                       Si apretó los filtros, la solución está en su mano y
+                       limpiarlos va primero. Si buscó un término que no
+                       existe, limpiar filtros no se lo va a traer: el camino
+                       real es cotizarlo. */
                     <div className="catalogo-vacio">
                         <span className="catalogo-vacio-icono">✦</span>
-                        <p className="catalogo-vacio-titulo">Sin resultados</p>
-                        <p className="catalogo-vacio-texto">Prueba con otra categoría o busca otro término.</p>
+                        <p className="catalogo-vacio-titulo">{vacio.titulo}</p>
+                        <p className="catalogo-vacio-texto">{vacio.texto}</p>
+                        {/* El botón oscuro va primero, como en el resto del
+                            sitio. Cuál de los dos es el oscuro depende del
+                            caso: cuando el catálogo no tiene la pieza,
+                            limpiar filtros no se la trae y manda la
+                            cotización. */}
+                        <div className="catalogo-vacio-acciones">
+                            {vacio.cotizarPrimero ? (
+                                <>
+                                    <a href={waCotizar} target="_blank" rel="noopener noreferrer" className="btn-pill black">
+                                        Cotizar por WhatsApp
+                                    </a>
+                                    {vacio.arreglable && (
+                                        <button type="button" className="btn-pill light" onClick={vacio.arreglar}>
+                                            {vacio.arreglarTexto}
+                                        </button>
+                                    )}
+                                </>
+                            ) : (
+                                <>
+                                    <button type="button" className="btn-pill black" onClick={vacio.arreglar}>
+                                        {vacio.arreglarTexto}
+                                    </button>
+                                    <a href={waCotizar} target="_blank" rel="noopener noreferrer" className="btn-pill light">
+                                        Cotizar por WhatsApp
+                                    </a>
+                                </>
+                            )}
+                        </div>
                     </div>
                 ) : (
                     <>
