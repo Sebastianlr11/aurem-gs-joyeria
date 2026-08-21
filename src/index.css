@@ -1846,7 +1846,14 @@ textarea:focus-visible {
   background: none;
   border: none;
   cursor: pointer;
-  padding: 8px;
+  /* Medía 38x31. Es el único control de navegación que hay en el celular y
+     estaba por debajo del objetivo táctil; las tres rayas siguen midiendo
+     22px, lo que crece es la zona que responde al dedo. */
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  align-items: center;
+  justify-content: center;
   flex-direction: column;
   gap: 5px;
   z-index: 10001;
@@ -2261,6 +2268,10 @@ textarea:focus-visible {
   display: flex;
   align-items: center;
   gap: 0.5625rem;
+  /* 44px de alto mínimo: es el objetivo táctil, y el <label> hace que toda
+     la cápsula —no sólo la banda del input— sea tocable. */
+  min-height: 44px;
+  cursor: text;
   padding: 0.625rem 1.125rem;
   background: var(--bg-color);
   border: 1px solid var(--hairline);
@@ -15649,20 +15660,22 @@ textarea:focus-visible {
      catálogo era un viaje. */
   .catalogo-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 
-  /* La tarjeta se compacta: a 170px de ancho el botón de "Ver la pieza" y el
-     círculo de WhatsApp no caben uno al lado del otro. La foto entera es el
-     enlace, así que el botón no hace falta —queda el precio y WhatsApp. */
+  /* La tarjeta se compacta, pero el botón se queda.
+     Antes se escondía aquí, con la excusa de que a 170px no cabía al lado del
+     círculo de WhatsApp. Medido: la tarjeta da 167px, el círculo ocupa 46 y
+     el texto 79 —sobran 29—. Cabía. Y la regla tapaba el botón hasta en
+     tablets de 768px, donde la tarjeta mide 344px. El resultado era una
+     rejilla cuya única acción visible era irse a WhatsApp: la foto seguía
+     siendo enlace, pero eso no se ve, y lo que no se ve no se toca. */
   .catalogo-grid .pieza { gap: 10px; }
   .catalogo-grid .pieza-nombre { font-size: 1rem; }
   .catalogo-grid .pieza-ficha { font-size: 0.75rem; line-height: 1.35; }
   .catalogo-grid .pieza-linea { flex-direction: column; align-items: flex-start; gap: 4px; }
   .catalogo-grid .pieza-precio { font-size: 0.9375rem; }
-  .catalogo-grid .pieza-filete { display: none; }
-  .catalogo-grid .pieza-btn { display: none; }
   .catalogo-grid .pieza-acciones {
     padding-top: 0;
     margin-top: auto;
-    justify-content: flex-end;
+    gap: 8px;
   }
   .catalogo-grid .pieza-sello { left: 8px; bottom: 8px; }
 
@@ -15684,6 +15697,19 @@ textarea:focus-visible {
 
   /* Para que el flotante no tape la última fila. */
   .catalogo-cuerpo { padding-bottom: calc(84px + env(safe-area-inset-bottom)); }
+}
+
+/* Por debajo de 400px la tarjeta baja de 152px y "Ver la pieza" empezaba a
+   partirse en dos renglones dentro de un botón de altura fija. Un punto menos
+   de letra y 44px —el mínimo táctil, no menos— lo devuelven a un solo
+   renglón hasta los 320px, que es el celular más angosto que queda en uso. */
+@media (max-width: 400px) {
+  .catalogo-grid .pieza-btn {
+    height: 44px;
+    font-size: 0.72rem;
+    letter-spacing: 0.03em;
+  }
+  .catalogo-grid .pieza-wa { width: 44px; height: 44px; }
 }
 
 /* La franja de promesas sale del contenedor en el celular; su margen negativo

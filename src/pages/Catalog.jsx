@@ -299,8 +299,13 @@ const Catalog = () => {
     /* Los mismos controles se pintan dos veces: en la franja de escritorio y
        dentro del panel de móvil. Comparten estado, así que no hay nada que
        sincronizar; el que no toca se oculta con CSS. */
+    /* Es un <label> y no un <div> a propósito: así toca el campo cualquier
+       parte de la cápsula. Como <div>, sólo respondía la banda de 20px del
+       <input>; el relleno de arriba y abajo —la mitad visible de la caja— no
+       hacía nada, y en el celular eso se siente como que la búsqueda está
+       rota. */
     const campoBuscar = () => (
-        <div className="catalogo-buscar">
+        <label className="catalogo-buscar">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="11" cy="11" r="8" />
                 <line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -312,7 +317,7 @@ const Catalog = () => {
                 onChange={e => { setBusqueda(e.target.value); setPagina(1); }}
                 aria-label="Buscar pieza"
             />
-        </div>
+        </label>
     );
 
     const rielMaterial = () => (
