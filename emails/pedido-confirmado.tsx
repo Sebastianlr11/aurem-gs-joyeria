@@ -23,16 +23,21 @@ export interface PedidoConfirmadoProps {
   abono?: number | null
   ciudad: string
   direccion: string
-  /** La foto real de la pieza. Sin ella queda el rombo de la marca. */
-  imagen?: string | null
-  /** "Oro 18k · esmeralda natural", tal como en la ficha. */
-  ficha?: string | null
-  talla?: string | null
+  /** Las piezas del pedido, que pueden ser varias. */
+  piezas?: Array<{
+    nombre: string
+    cantidad?: number
+    talla?: string | null
+    /** La foto real. Sin ella queda el rombo de la marca. */
+    imagen?: string | null
+    /** "Oro 18k · esmeralda natural", tal como en la ficha. */
+    ficha?: string | null
+  }> | null
   fecha?: string | null
 }
 
 export default function PedidoConfirmado({
-  nombre, pieza, referencia, total, abono, ciudad, direccion, imagen, ficha, talla, fecha,
+  nombre, pieza, referencia, total, abono, ciudad, direccion, piezas, fecha,
 }: PedidoConfirmadoProps) {
   const esAbono = abono != null && abono > 0
   const saldo = esAbono ? total - abono : 0
@@ -44,8 +49,18 @@ export default function PedidoConfirmado({
      tarda de 2 a 3 días. */
   const plazo = enBogota ? '24 a 48 horas' : '2 a 3 días'
 
-  const detalle = [ficha, talla ? `talla ${talla}` : null, `ref. ${referencia}`]
-    .filter(Boolean).join(' · ')
+  /* Una tarjeta por pieza. La referencia va sólo en la última, porque
+     identifica al pedido entero y repetirla en cada una la haría parecer un
+     número de producto. */
+  const lista = piezas?.length ? piezas : [{ nombre: pieza }]
+  const varias = lista.length > 1
+
+  const detalleDe = (p: typeof lista[number], ultima: boolean) => [
+    p.ficha,
+    p.talla ? `talla ${p.talla}` : null,
+    (p.cantidad ?? 1) > 1 ? `${p.cantidad} unidades` : null,
+    ultima ? `ref. ${referencia}` : null,
+  ].filter(Boolean).join(' · ')
 
   return (
     <Html lang="es">
@@ -63,8 +78,8 @@ export default function PedidoConfirmado({
           <Section style={{ padding: '36px 32px 0' }}>
             <Titular
               antetitulo={esAbono ? 'Pedido confirmado' : 'Pago recibido'}
-              primera={esAbono ? 'Tu pieza entra' : 'Empezamos'}
-              segunda={esAbono ? 'al taller.' : 'tu pieza.'}
+              primera={esAbono ? (varias ? 'Tus piezas entran' : 'Tu pieza entra') : 'Empezamos'}
+              segunda={esAbono ? 'al taller.' : varias ? 'tus piezas.' : 'tu pieza.'}
             />
             <p
               style={{
@@ -90,7 +105,14 @@ export default function PedidoConfirmado({
             ]}
           />
 
-          <TarjetaPieza nombre={pieza} detalle={detalle} imagen={imagen} />
+          {lista.map((p, i) => (
+            <TarjetaPieza
+              key={i}
+              nombre={p.nombre}
+              detalle={detalleDe(p, i === lista.length - 1)}
+              imagen={p.imagen}
+            />
+          ))}
 
           <Section style={{ padding: '28px 32px 0' }}>
             <Dato etiqueta="Entrega">{direccion}, {ciudad}</Dato>
@@ -175,8 +197,9 @@ PedidoConfirmado.PreviewProps = {
   abono: 20000,
   ciudad: 'Bogotá',
   direccion: 'Calle 26 Sur 79A 38',
-  imagen: null,
-  ficha: 'Plata 925 · esmeralda natural',
-  talla: '14',
+  piezas: [
+    { nombre: 'Anillo Majestuosa', ficha: 'Plata 925 · esmeralda natural', talla: '14' },
+    { nombre: 'Anillo Trinidad', ficha: 'Plata 925 · tres esmeraldas', talla: '7', cantidad: 2 },
+  ],
   fecha: '21 de agosto de 2026',
 } satisfies PedidoConfirmadoProps

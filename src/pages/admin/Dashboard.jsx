@@ -1673,7 +1673,26 @@ const OrdersSection = ({ orders, products, loading, onRefresh }) => {
                                     )}
                                 </div>
                                 <p className="od-hero-amount">${fmt(o.amount)}</p>
-                                <p className="od-hero-product">{o.product_name}</p>
+                                {o.piezas?.length > 1 ? (
+                                    <ul className="od-piezas">
+                                        {[...o.piezas]
+                                            .sort((a, b) => String(a.creado_en).localeCompare(String(b.creado_en)))
+                                            .map((p, i) => (
+                                                <li key={i}>
+                                                    <span className="od-pieza-nombre">
+                                                        {p.cantidad > 1 ? `${p.cantidad} × ` : ''}{p.nombre}
+                                                    </span>
+                                                    {p.talla ? <span className="od-pieza-talla">talla {p.talla}</span> : null}
+                                                    <span className="od-pieza-precio">${fmt(p.precio * p.cantidad)}</span>
+                                                </li>
+                                            ))}
+                                    </ul>
+                                ) : (
+                                    <p className="od-hero-product">
+                                        {o.product_name}
+                                        {o.piezas?.[0]?.talla ? ` · talla ${o.piezas[0].talla}` : ''}
+                                    </p>
+                                )}
                                 <p className="od-hero-date">{fmtDate(o.created_at)}</p>
                             </div>
 
@@ -3628,9 +3647,17 @@ const Dashboard = () => {
         setProducts(data || []); setLoadingP(false);
     }, []);
 
+    /* Las piezas vienen con el pedido, en la misma consulta.
+       Un pedido puede llevar varias desde que existe order_items, y el nombre
+       pegado que guarda orders —"Anillo A + Anillo B x2"— sirve para leerlo
+       de un vistazo pero no para saber qué talla lleva cada una. Eso es
+       justo lo que el taller necesita antes de fabricar. */
     const fetchOrders = useCallback(async () => {
         setLoadingO(true);
-        const { data } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
+        const { data } = await supabase
+            .from('orders')
+            .select('*, piezas:order_items(nombre, precio, cantidad, talla, creado_en)')
+            .order('created_at', { ascending: false });
         setOrders(data || []); setLoadingO(false);
     }, []);
 

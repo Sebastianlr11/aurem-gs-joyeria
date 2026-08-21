@@ -26,13 +26,19 @@ export interface PedidoDespachadoProps {
   ciudad: string
   /** Lo que falta por pagar en la puerta. Ausente si ya pagó todo. */
   saldo?: number | null
-  imagen?: string | null
-  ficha?: string | null
+  /** Las piezas del pedido, que pueden ser varias. */
+  piezas?: Array<{
+    nombre: string
+    cantidad?: number
+    talla?: string | null
+    imagen?: string | null
+    ficha?: string | null
+  }> | null
   fecha?: string | null
 }
 
 export default function PedidoDespachado({
-  nombre, pieza, referencia, guia, transportadora, urlRastreo, ciudad, saldo, imagen, ficha, fecha,
+  nombre, pieza, referencia, guia, transportadora, urlRastreo, ciudad, saldo, piezas, fecha,
 }: PedidoDespachadoProps) {
   const porPagar = saldo != null && saldo > 0
   const primerNombre = String(nombre || '').trim().split(/\s+/)[0]
@@ -53,9 +59,13 @@ export default function PedidoDespachado({
           <Cabecera />
 
           <Section style={{ padding: '36px 32px 0' }}>
-            <Titular antetitulo="Pedido despachado" primera="Tu pieza va" segunda="en camino." />
+            <Titular
+              antetitulo="Pedido despachado"
+              primera={(piezas?.length ?? 1) > 1 ? 'Tus piezas van' : 'Tu pieza va'}
+              segunda="en camino."
+            />
             <p style={{ margin: '16px 0 0', fontFamily: fuenteUI, fontSize: '15px', lineHeight: '24px', color: '#4A423C' }}>
-              {primerNombre}, tu {pieza} salió del taller.{' '}
+              {primerNombre}, {(piezas?.length ?? 1) > 1 ? 'tu pedido salió' : `tu ${pieza} salió`} del taller.{' '}
               {enBogota
                 ? 'En Bogotá llega entre 24 y 48 horas.'
                 : 'Fuera de Bogotá llega entre 2 y 3 días.'}
@@ -72,7 +82,21 @@ export default function PedidoDespachado({
             ]}
           />
 
-          <TarjetaPieza nombre={pieza} detalle={[ficha, `ref. ${referencia}`].filter(Boolean).join(' · ')} imagen={imagen} />
+          {(piezas?.length ? piezas : [{ nombre: pieza } as NonNullable<typeof piezas>[number]]).map((p, i, todas) => (
+            <TarjetaPieza
+              key={i}
+              nombre={p.nombre}
+              detalle={[
+                p.ficha,
+                p.talla ? `talla ${p.talla}` : null,
+                (p.cantidad ?? 1) > 1 ? `${p.cantidad} unidades` : null,
+                /* La referencia identifica al pedido, no a la pieza: va sólo
+                   en la última para no parecer un número de producto. */
+                i === todas.length - 1 ? `ref. ${referencia}` : null,
+              ].filter(Boolean).join(' · ')}
+              imagen={p.imagen}
+            />
+          ))}
 
           <Section style={{ padding: '28px 32px 0' }}>
             <Dato etiqueta="Transportadora">{transportadora}</Dato>
@@ -148,7 +172,8 @@ PedidoDespachado.PreviewProps = {
   urlRastreo: 'https://interrapidisimo.com/sigue-tu-envio/',
   ciudad: 'Bogotá',
   saldo: 480000,
-  imagen: null,
-  ficha: 'Plata 925 · esmeralda natural',
+  piezas: [
+    { nombre: 'Anillo Majestuosa', ficha: 'Plata 925 · esmeralda natural', talla: '14' },
+  ],
   fecha: '21 de agosto de 2026',
 } satisfies PedidoDespachadoProps
