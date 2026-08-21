@@ -1,0 +1,19 @@
+# Aurem Gs Joyería
+
+User-agent: *
+Allow: /
+
+# El panel del taller: pedidos, clientes y conversaciones. Nada de eso va al
+# índice de nadie.
+Disallow: /admin
+Disallow: /admin/
+
+# La confirmación de pago lleva el número de pedido en la URL. No es contenido
+# y no debería aparecer en resultados.
+Disallow: /confirmacion
+
+# Los buscadores con IA se dejan pasar a propósito. Cada uno tiene su propio
+# user-agent y bloquearlos sólo saca a la joyería de sus respuestas; para un
+# taller que vive de que lo encuentren, eso es perder, no proteger.
+
+Sitemap: https://www.auremgsjoyeria.com/sitemap.xml

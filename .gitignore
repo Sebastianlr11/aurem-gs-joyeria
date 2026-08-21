@@ -27,3 +27,6 @@ dist-ssr
 *.sw?
 .vercel
 .env*
+
+# Se genera en cada compilación desde la base; ver scripts/sitemap.mjs
+public/sitemap.xml
