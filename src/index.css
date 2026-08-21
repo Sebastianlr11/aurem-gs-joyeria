@@ -8645,158 +8645,6 @@ textarea:focus-visible {
   transform: translateY(3px);
 }
 
-/* ================================================================
-   CONFIRMACION — redesigned celebratory page
-   ================================================================ */
-.confirmacion-page {
-  min-height: 80vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 4rem 1rem;
-  background: linear-gradient(160deg, #fafafa 0%, #ffffff 100%);
-}
-
-.confirmacion-card {
-  background: #fff;
-  border-radius: 24px;
-  padding: 3.5rem 2.5rem;
-  max-width: 520px;
-  width: 100%;
-  text-align: center;
-  box-shadow: 0 12px 60px rgba(0, 0, 0, 0.08);
-  border: 1px solid var(--border-color);
-}
-
-/* Icon wrapper */
-.confirmacion-icon-wrap {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 1.75rem;
-}
-
-.confirmacion-icon {
-  width: 80px;
-  height: 80px;
-}
-
-/* Animated check circle — stroke-dashoffset technique */
-.confirmacion-icon--check .confirmacion-circle {
-  stroke-dasharray: 160;
-  stroke-dashoffset: 160;
-  animation: confirmacion-draw-circle 0.6s ease forwards;
-}
-.confirmacion-icon--check .confirmacion-check {
-  stroke-dasharray: 50;
-  stroke-dashoffset: 50;
-  animation: confirmacion-draw-check 0.4s ease 0.55s forwards;
-}
-
-@keyframes confirmacion-draw-circle {
-  to { stroke-dashoffset: 0; }
-}
-@keyframes confirmacion-draw-check {
-  to { stroke-dashoffset: 0; }
-}
-
-/* Status heading */
-.confirmacion-status {
-  font-size: 1.75rem;
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  line-height: 1.2;
-  margin-bottom: 0.75rem;
-  color: var(--text-primary);
-}
-
-.confirmacion--success .confirmacion-status { color: #16a34a; }
-.confirmacion--pending .confirmacion-status { color: #b45309; }
-.confirmacion--failure .confirmacion-status { color: #dc2626; }
-
-/* Message */
-.confirmacion-message {
-  font-size: 1rem;
-  color: var(--text-secondary);
-  line-height: 1.6;
-  margin-bottom: 2rem;
-  max-width: 380px;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-/* Order badge */
-.confirmacion-summary {
-  background: #fafafa;
-  border: 1px solid var(--border-color);
-  border-radius: 14px;
-  padding: 1.25rem 1.5rem;
-  margin-bottom: 2rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.confirmacion-order-badge {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.3rem;
-}
-
-.confirmacion-order-label {
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--text-muted);
-  font-weight: 600;
-}
-
-.confirmacion-order-number {
-  font-size: 1.5rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  font-family: 'Courier New', monospace;
-  color: var(--text-primary);
-}
-
-.confirmacion-summary-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 0.85rem;
-  color: var(--text-muted);
-  border-top: 1px solid var(--border-color);
-  padding-top: 0.5rem;
-}
-
-.confirmacion-summary-row span:last-child {
-  font-family: 'Courier New', monospace;
-  color: var(--text-primary);
-  font-weight: 600;
-}
-
-/* Actions */
-.confirmacion-actions {
-  display: flex;
-  gap: 0.75rem;
-  justify-content: center;
-  flex-wrap: wrap;
-}
-
-.confirmacion-btn--retry {
-  background: #fef2f2;
-  color: #ef4444;
-  border: 1px solid #fca5a5;
-}
-.confirmacion-btn--retry:hover {
-  background: #fee2e2;
-}
-
-@media (max-width: 768px) {
-  .confirmacion-card { padding: 2.5rem 1.5rem; }
-  .confirmacion-status { font-size: 1.4rem; }
-  .confirmacion-icon { width: 64px; height: 64px; }
-}
 
 /* ═══════════════════════════════════════════════════════════════════
    CHAT PANEL — /admin/chat  (Premium Redesign)
@@ -15930,3 +15778,170 @@ textarea:focus-visible {
 @media (min-width: 900px) and (max-width: 1319px) {
   .catalogo-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
+
+/* ─── Confirmación del pago ──────────────────────────────────────────
+   Una sola tarjeta centrada, con los tres estados —aprobado, en proceso y
+   fallido— compartiendo estructura. El anterior usaba verde, ámbar y rojo de
+   semáforo, que en una joyería se leen como una alerta del sistema; aquí el
+   estado lo dice el texto y el único color es el oro de siempre. */
+.conf {
+  min-height: 100vh;
+  background: var(--bg-marfil);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(88px, 12vh, 120px) 24px 64px;
+  box-sizing: border-box;
+}
+
+.conf-caja {
+  width: 100%;
+  max-width: 540px;
+  background: var(--bg-color);
+  border: 1px solid var(--hairline);
+  border-radius: 2px;
+  padding: clamp(36px, 6vw, 56px) clamp(24px, 6vw, 48px);
+  box-sizing: border-box;
+  animation: confSube 0.4s var(--ease) both;
+}
+@keyframes confSube { from { opacity: 0; transform: translateY(24px) } to { opacity: 1; transform: none } }
+
+.conf-cabeza {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  text-align: center;
+}
+
+.conf-marca {
+  width: 58px;
+  height: 58px;
+  border: 1px solid var(--oro-hairline);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.conf-cabeza .eyebrow { margin: 0; }
+.conf-cabeza .eyebrow::before { display: none; }
+
+.conf-titulo {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(1.875rem, 6vw, 2.5rem);
+  line-height: 1.12;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  text-wrap: pretty;
+}
+.conf-titulo em {
+  display: block;
+  margin-top: 6px;
+  font-style: normal;
+  font-size: 0.62em;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--oro-ink);
+}
+
+.conf-lead {
+  margin: 0;
+  max-width: 40ch;
+  font-size: 1rem;
+  line-height: 1.65;
+  color: var(--text-secondary);
+  text-wrap: pretty;
+}
+
+.conf-punzones { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.conf-punzones:empty { display: none; }
+
+/* El resumen del pedido, con la retícula de líneas de pelo de la ficha. */
+.conf-resumen {
+  margin-top: 36px;
+  border: 1px solid var(--hairline);
+  border-radius: 2px;
+  background: var(--bg-marfil);
+}
+
+.conf-numero {
+  padding: 24px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  border-bottom: 1px solid var(--hairline);
+}
+.conf-numero-label {
+  font-family: var(--font-ui);
+  font-size: 0.68rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--oro-ink);
+}
+.conf-numero-valor {
+  font-family: var(--font-ui);
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--ink);
+  /* Cifras de ancho fijo: es un número que la clienta va a leer en voz alta
+     por teléfono, y así no baila. */
+  font-variant-numeric: tabular-nums;
+}
+.conf-copiar {
+  margin-top: 2px;
+  background: none;
+  border: 0;
+  padding: 4px 0;
+  font-family: var(--font-ui);
+  font-size: 0.8125rem;
+  color: var(--oro-ink);
+  cursor: pointer;
+}
+.conf-copiar:hover { color: var(--ink); }
+
+.conf-fila {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--hairline);
+}
+.conf-fila:last-child { border-bottom: none; }
+.conf-fila > span:first-child { font-size: 0.8125rem; color: var(--text-secondary); flex: none; }
+.conf-fila > span:last-child {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--ink);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.conf-fila small { font-size: 0.75rem; font-weight: 400; color: var(--text-muted); }
+
+.conf-pasos { margin-top: 32px; display: flex; flex-direction: column; gap: 18px; }
+.conf-pasos .eyebrow { margin: 0; }
+.conf-pasos > div { display: flex; gap: 14px; align-items: flex-start; }
+.conf-pasos svg { flex: none; margin-top: 2px; }
+.conf-pasos p { margin: 0; font-size: 0.9375rem; line-height: 1.6; color: var(--text-secondary); }
+.conf-pasos strong { color: var(--ink); font-weight: 700; }
+
+.conf-acciones { margin-top: 32px; display: flex; flex-direction: column; gap: 12px; }
+.conf-acciones .btn-pill { width: 100%; justify-content: center; min-height: 52px; }
+.conf-wa { display: inline-flex; align-items: center; justify-content: center; gap: 10px; }
+
+.conf-cod {
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px solid var(--hairline);
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+.conf-cod svg { flex: none; margin-top: 2px; }
+.conf-cod p { margin: 0; font-size: 0.9375rem; line-height: 1.6; color: var(--text-secondary); }
+.conf-cod strong { color: var(--ink); font-weight: 700; }
