@@ -34,6 +34,10 @@ const Catalog = () => {
 
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
+    /* Que la consulta falle y que el taller no tenga piezas son cosas
+       distintas y la pantalla tiene que decirlo. Sin esto, un corte de red
+       le anuncia a la clienta que no hay inventario. */
+    const [fallo, setFallo] = useState(false);
     const [categoria, setCategoria] = useState(searchParams.get('categoria') || 'Todos');
     const [busqueda, setBusqueda] = useState('');
     const [orden, setOrden] = useState('newest');
@@ -51,7 +55,13 @@ const Catalog = () => {
                 .from('products')
                 .select('*')
                 .order('created_at', { ascending: false });
-            if (!error) setProducts(data || []);
+            if (error) {
+                console.error('No se pudo cargar el catálogo:', error.message);
+                setFallo(true);
+            } else {
+                setProducts(data || []);
+                setFallo(false);
+            }
             setLoading(false);
         };
         fetchProducts();
@@ -159,6 +169,18 @@ const Catalog = () => {
        El taller trabaja por encargo, así que "no hay" siempre significa "no
        lo tenemos hecho", y eso es lo que dice el texto en los tres casos. */
     const vacio = useMemo(() => {
+        /* Primero el fallo, antes que cualquier lectura de los filtros: si la
+           consulta no llegó, hablar de filtros o de encargos es inventar. Lo
+           que hay que decir es qué pasó, por qué y cómo salir. */
+        if (fallo) return {
+            titulo: 'No pudimos cargar el catálogo',
+            texto: 'Puede ser tu conexión. Recarga la página y vuelve a intentarlo; si sigue igual, escríbenos y te mostramos las piezas por WhatsApp.',
+            cotizarPrimero: false,
+            arreglable: true,
+            arreglarTexto: 'Recargar',
+            arreglar: () => window.location.reload(),
+        };
+
         /* Sin pronombre y sin género: esta frase se pega detrás de textos que
            hablan de "una pieza" y de categorías que pueden ser masculinas o
            femeninas —aretes, pulseras—. Con "cómo la quieres" salía "los
@@ -203,7 +225,7 @@ const Catalog = () => {
             cotizarPrimero: true,
             arreglable: false,
         };
-    }, [termino, filtrosActivos, categoria]);
+    }, [fallo, termino, filtrosActivos, categoria]);
 
     /* El botón flotante de filtros solo se asoma cuando la franja ya salió de
        pantalla. Pegada arriba tiene sentido mientras se ve; una vez fuera, un
@@ -320,9 +342,17 @@ const Catalog = () => {
                         Nuestras piezas,
                         <em>una por una.</em>
                     </h1>
+                    {/* La primera frase sólo en escritorio. En celular ocupaba
+                        dos de las tres líneas del párrafo, y lo que dice
+                        —plata, oro, esmeralda— ya está en la barra de abajo y
+                        en la ficha de cada tarjeta. La que se queda es la que
+                        no repite nada y es la que construye confianza: que la
+                        foto es la pieza. */}
                     <p className="catalogo-lead">
-                        Plata ley 925, oro 18k y esmeralda colombiana natural. Cada pieza se fotografía
-                        como llega a tus manos.
+                        <span className="catalogo-lead-larga">
+                            Plata ley 925, oro 18k y esmeralda colombiana natural.{' '}
+                        </span>
+                        Cada pieza se fotografía como llega a tus manos.
                     </p>
                 </div>
 
@@ -338,24 +368,33 @@ const Catalog = () => {
 
             <div className="catalogo-filtros" ref={franjaRef}>
                 <div className="container catalogo-filtros-fila">
-                    {/* Riel segmentado: una sola fila, una sola activa. Las categorías
-                        sin piezas conservan su etiqueta —el conteo ya lo dice— pero
-                        se les quita el toque. */}
+                    {/* Riel segmentado: una sola fila, una sola activa.
+
+                        Las categorías sin piezas SÍ se pueden tocar, y no
+                        muestran el cero. Antes iban en disabled con un "0" al
+                        lado, y eso las convertía en tres etiquetas muertas:
+                        hoy el catálogo tiene Anillos y Dijes, así que Collares,
+                        Aretes y Pulseras —la mitad del riel— no llevaban a
+                        ninguna parte.
+
+                        El taller trabaja por encargo, así que "no hay" es "no
+                        lo tenemos hecho", y esa es una conversación, no un
+                        callejón. Al tocarlas se llega a la pantalla que lo
+                        ofrece. El cero no aporta: no es un dato que sirva para
+                        comprar, y sí frena el toque. */}
                     <div className="riel" role="group" aria-label="Categorías">
                         {CATEGORIAS.map(c => {
                             const n = conteoPorCategoria[c] ?? 0;
-                            const vacia = n === 0;
                             return (
                                 <button
                                     key={c}
                                     type="button"
-                                    className={`riel-btn ${categoria === c ? 'riel-btn--on' : ''} ${vacia ? 'riel-btn--vacia' : ''}`}
+                                    className={`riel-btn ${categoria === c ? 'riel-btn--on' : ''}`}
                                     aria-pressed={categoria === c}
-                                    disabled={vacia}
-                                    onClick={vacia ? undefined : () => { setCategoria(c); setPagina(1); }}
+                                    onClick={() => { setCategoria(c); setPagina(1); }}
                                 >
                                     <span>{c}</span>
-                                    <span className="riel-n">{n}</span>
+                                    {n > 0 && <span className="riel-n">{n}</span>}
                                 </button>
                             );
                         })}

@@ -15554,7 +15554,28 @@ textarea:focus-visible {
   .catalogo-promesa-titulo { font-size: 0.6rem; letter-spacing: 0.14em; }
   .catalogo-promesa-valor { font-size: 0.75rem; line-height: 1.3; text-align: left; }
 
-  .catalogo-head { padding-bottom: 0; gap: 1.5rem; }
+  /* Todo lo de abajo persigue una sola cosa: que en el primer viewport se vea
+     una joya.
+
+     Medido antes: la primera foto empezaba en el píxel 605 de 844. El 72% de
+     la primera pantalla era cabecera, párrafo, barra de confianza y filtros,
+     y de la tarjeta asomaban 239px —un tercio—. La clienta llega de un anuncio,
+     en celular, con medio segundo de atención, y lo primero que ve no es
+     producto. Es el error más caro de esta pantalla.
+
+     No se quita nada: se recorta el aire, se acorta el párrafo y la barra de
+     confianza deja de necesitar dos renglones por dato. */
+
+  /* El navbar mide 72px y ocupa la esquina superior; 7rem dejaba 40px de aire
+     muerto encima del antetítulo. */
+  .catalogo-head { padding-top: 5.5rem; padding-bottom: 0; gap: 1rem; }
+
+  /* La primera frase del párrafo vive sólo en escritorio: ver el JSX. */
+  .catalogo-lead-larga { display: none; }
+  .catalogo-lead { margin-top: 0.5rem; }
+
+  .catalogo-promesa { padding: 9px 10px; }
+  .catalogo-promesa-valor { font-size: 0.7rem; }
 
   /* El riel de categorías se queda pegado arriba: es el filtro que más se
      usa y con el scroll se perdía a los dos segundos. */
