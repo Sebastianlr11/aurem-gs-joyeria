@@ -23,7 +23,15 @@ const WhatsAppButton = () => {
      botones del mismo color pisados uno sobre otro, y el de arriba tapando
      justo el que sí lleva la pieza en el mensaje. La ficha además ofrece
      "Preguntar por WhatsApp" en el hero, así que no se pierde ninguna vía. */
-  if (/^\/catalogo\/.+/.test(pathname)) return null;
+  /* Y en el catálogo tampoco, por la misma razón multiplicada. Cada tarjeta
+     lleva su propio botón de WhatsApp con el nombre de la pieza en el
+     mensaje, así que en una pantalla de cinco piezas el flotante es el
+     séptimo enlace al mismo sitio —y el único que no dice cuál pieza—. En
+     escritorio se posa encima de la quinta foto; en celular comparte la
+     banda de abajo con el botón de filtros.
+
+     Se corta la rama entera y no sólo la ficha: /catalogo y /catalogo/:id. */
+  if (/^\/catalogo/.test(pathname)) return null;
 
   return (
     <a
