@@ -30,3 +30,6 @@ dist-ssr
 
 # Se genera en cada compilación desde la base; ver scripts/sitemap.mjs
 public/sitemap.xml
+
+# Se genera en cada compilación desde emails/; ver scripts/correos.mjs
+api/_plantillas.mjs

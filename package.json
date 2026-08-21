@@ -5,11 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "node scripts/sitemap.mjs && tsc -b && vite build",
+    "build": "node scripts/sitemap.mjs && node scripts/correos.mjs && tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "sitemap": "node scripts/sitemap.mjs",
-    "email": "email dev --dir emails --port 3010"
+    "email": "email dev --dir emails --port 3010",
+    "correos": "node scripts/correos.mjs"
   },
   "dependencies": {
     "@mercadopago/sdk-react": "^1.0.7",
