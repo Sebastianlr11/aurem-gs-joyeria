@@ -57,7 +57,29 @@ Deno.serve(async (req: Request) => {
     let abono = 0
     if (esContraEntrega) {
       const { data: precios } = await supabase
-        .from('taller_precios').select('abono_envio').maybeSingle()
+        .from('taller_precios').select('abono_envio, tope_contraentrega').maybeSingle()
+
+      /* El tope. Por encima de este monto la pieza no sale contra entrega:
+         si la rechazan en la puerta, el taller paga ida y vuelta de media
+         joya y el abono del envío no alcanza ni de lejos a cubrirlo.
+
+         El candado va acá y no sólo en la interfaz porque acá es donde nace
+         el pedido de verdad. La web puede esconder el botón y Valentina
+         puede tener la regla en sus instrucciones, pero un modelo se puede
+         equivocar y una pantalla se puede saltar; esto no.
+
+         Si la fila no existe se usa un respaldo conservador: mejor rechazar
+         un contraentrega legítimo que despachar medio millón a ciegas. */
+      const tope = Number(precios?.tope_contraentrega ?? 500000)
+      if (totalAmount > tope) {
+        console.log(`Contraentrega rechazado: $${totalAmount} pasa el tope de $${tope}`)
+        return new Response(JSON.stringify({
+          error: 'contraentrega_no_disponible',
+          tope,
+          mensaje: `Los pedidos de más de $${tope.toLocaleString('es-CO')} se pagan en línea, no contra entrega.`,
+        }), { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      }
+
       abono = Number(precios?.abono_envio ?? 20000)
       if (!(abono > 0) || abono >= totalAmount) {
         console.error('Abono inválido:', abono, 'sobre un total de', totalAmount)

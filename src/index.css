@@ -16192,3 +16192,14 @@ textarea:focus-visible {
   overflow-x: visible;
   height: auto;
 }
+
+/* Por qué esta pieza no se puede pagar contra entrega. Va en gris cálido y
+   pequeña: es una aclaración, no una advertencia, y pintarla como error
+   sembraría la duda que viene a despejar. */
+.pago-sin-cod {
+  margin: 12px 0 0;
+  font-family: var(--font-ui);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}

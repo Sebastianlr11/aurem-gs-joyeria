@@ -147,6 +147,10 @@ const BuyModal = ({ product, onClose }) => {
      un cobro escondido, y es la forma más rápida de perder una venta que ya
      estaba decidida. */
   const [abonoEnvio, setAbonoEnvio] = useState(null);
+  /* Hasta cuánto se despacha contra entrega. Empieza en null y no en un
+     número: mientras no se sepa, la opción no se pinta. Enseñarla y quitarla
+     medio segundo después es peor que tardar medio segundo en ofrecerla. */
+  const [topeCod, setTopeCod] = useState(null);
 
   /* Cada paso arranca desde arriba. La caja es un solo contenedor con scroll y
      se lo queda entre pantallas: como en el selector de método hay que bajar
@@ -164,10 +168,20 @@ const BuyModal = ({ product, onClose }) => {
 
   useEffect(() => {
     let vivo = true;
-    supabase.from('envio_publico').select('abono_envio').maybeSingle()
-      .then(({ data }) => { if (vivo && data?.abono_envio) setAbonoEnvio(Number(data.abono_envio)); });
+    supabase.from('envio_publico').select('abono_envio, tope_contraentrega').maybeSingle()
+      .then(({ data }) => {
+        if (!vivo || !data) return;
+        if (data.abono_envio) setAbonoEnvio(Number(data.abono_envio));
+        if (data.tope_contraentrega) setTopeCod(Number(data.tope_contraentrega));
+      });
     return () => { vivo = false; };
   }, []);
+
+  /* Contra entrega sólo hasta el tope. Mientras no se sepa cuál es, no se
+     ofrece: es la única forma de no enseñar una opción que después se quita.
+     El candado de verdad está en create-preference; esto es para que nadie
+     llegue hasta el final para que le digan que no. */
+  const codDisponible = topeCod !== null && Number(product?.price ?? 0) <= topeCod;
 
   const selectMethod = (method) => {
     setPaymentMethod(method);
@@ -305,32 +319,44 @@ const BuyModal = ({ product, onClose }) => {
                 </div>
               </div>
 
-              <div
-                role="radio"
-                tabIndex={0}
-                aria-checked={paymentMethod === 'cod'}
-                className={`pago-op ${paymentMethod === 'cod' ? 'pago-op--on' : ''}`}
-                onClick={() => setPaymentMethod('cod')}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setPaymentMethod('cod'); } }}
-              >
-                <span className="pago-radio"><span /></span>
-                <div className="pago-op-cuerpo">
-                  <div className="pago-op-fila">
-                    <span className="pago-op-nombre">Contraentrega</span>
-                    <span className="pago-op-solo">Sólo Bogotá</span>
-                  </div>
-                  <span className="pago-op-sub">
-                    {abonoEnvio ? (
-                      <>Abonas <strong>${fmt(abonoEnvio)}</strong> del envío hoy y pagas el resto al recibir</>
-                    ) : 'Pagas en efectivo al recibir'}
-                  </span>
-                  <div className="pago-op-precio">
-                    <span className="pago-op-valor">${fmt(product.price)}</span>
-                    <span className="pago-op-nota">sin descuento</span>
+              {codDisponible && (
+                <div
+                  role="radio"
+                  tabIndex={0}
+                  aria-checked={paymentMethod === 'cod'}
+                  className={`pago-op ${paymentMethod === 'cod' ? 'pago-op--on' : ''}`}
+                  onClick={() => setPaymentMethod('cod')}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setPaymentMethod('cod'); } }}
+                >
+                  <span className="pago-radio"><span /></span>
+                  <div className="pago-op-cuerpo">
+                    <div className="pago-op-fila">
+                      <span className="pago-op-nombre">Contraentrega</span>
+                      <span className="pago-op-solo">Sólo Bogotá</span>
+                    </div>
+                    <span className="pago-op-sub">
+                      {abonoEnvio ? (
+                        <>Abonas <strong>${fmt(abonoEnvio)}</strong> del envío hoy y pagas el resto al recibir</>
+                      ) : 'Pagas en efectivo al recibir'}
+                    </span>
+                    <div className="pago-op-precio">
+                      <span className="pago-op-valor">${fmt(product.price)}</span>
+                      <span className="pago-op-nota">sin descuento</span>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
+
+            {/* Se dice por qué falta, y no se calla. El sitio promete
+                contraentrega en varios sitios; encontrar que aquí no está y
+                no saber por qué se lee como que algo no cuadra. Dicho, es
+                sólo una regla de la casa. */}
+            {topeCod !== null && !codDisponible && (
+              <p className="pago-sin-cod">
+                Esta pieza se paga en línea. El contraentrega va hasta ${fmt(topeCod)}.
+              </p>
+            )}
 
             {paymentMethod === 'mp' ? (
               <div className="pago-total">
