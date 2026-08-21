@@ -381,12 +381,6 @@ textarea:focus-visible {
   overflow: hidden;
 }
 
-.hero-content-grid {
-  display: grid;
-  grid-template-columns: 1fr 604px;
-  gap: 4rem;
-  align-items: center;
-}
 
 .hero-left-col {
   display: flex;
@@ -4348,20 +4342,7 @@ textarea:focus-visible {
   gap: 1px;
 }
 
-.admin-sidebar-logo-text span:first-child {
-  font-size: 0.98rem;
-  font-weight: 900;
-  letter-spacing: 0.06em;
-  color: #fff;
-}
 
-.admin-sidebar-logo-sub {
-  font-size: 0.65rem;
-  font-weight: 700;
-  color: var(--accent-gold);
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
 
 .admin-sidebar-nav {
   display: flex;
@@ -4389,16 +4370,7 @@ textarea:focus-visible {
   position: relative;
 }
 
-.admin-nav-item:hover {
-  background: rgba(255,255,255,0.06);
-  color: #c8d4e4;
-}
 
-.admin-nav-item--active {
-  background: rgba(255,255,255,0.1);
-  color: #fff;
-  font-weight: 700;
-}
 
 .admin-nav-item--active::before {
   content: '';
@@ -5808,11 +5780,6 @@ textarea:focus-visible {
 .admin-badge--offer    { background: rgba(234,67,53,0.1);   color: var(--accent-red); }
 
 /* ── Product Grid Cards ── */
-.prod-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 1.25rem;
-}
 
 .prod-card {
   background: #fff;
@@ -5886,13 +5853,6 @@ textarea:focus-visible {
   flex: 1;
 }
 
-.prod-card-cat {
-  font-size: 0.65rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: #94a3b8;
-}
 
 .prod-card-name {
   font-size: 0.9rem;
@@ -8775,12 +8735,6 @@ textarea:focus-visible {
   border-bottom: 1px solid rgba(255,255,255,0.04);
   position: relative;
 }
-.chat-contact-item:hover {
-  background: rgba(255,255,255,0.04);
-}
-.chat-contact-item--active {
-  background: rgba(212, 175, 55, 0.08);
-}
 .chat-contact-item--active::before {
   content: '';
   position: absolute;
@@ -9088,9 +9042,6 @@ textarea:focus-visible {
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   background: #f8f7f4;
   color: #1a1a1a;
-}
-.chat-input-field::placeholder {
-  color: #aaa;
 }
 .chat-input-field:focus {
   border-color: #D4AF37;
@@ -12245,9 +12196,6 @@ textarea:focus-visible {
 }
 
 .chat-contact-preview,
-.chat-contact-time {
-  color: var(--text-secondary);
-}
 
 .chat-contact-time {
   color: var(--text-muted);
@@ -13531,12 +13479,6 @@ textarea:focus-visible {
      que al bajar dejaba 412px para ver piezas y se sentía encima todo el
      rato. En móvil se desplaza con la página. En escritorio sigue pegada,
      que allí es una sola franja y hay altura de sobra. */
-  .catalogo-filtros {
-    position: static;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    background: var(--bg-marfil);
-  }
 
   /* En 375px el valor de cada promesa llegaba pegado al borde. Se apilan
      bajo su rótulo, que además es como se leen en el resto del sitio. */
@@ -14995,11 +14937,6 @@ textarea:focus-visible {
 .ficha-hero .pg-gallery-thumb--active { border-color: var(--oro-luz); }
 
 /* Las insignias bajan: arriba chocaban con el botón de volver. */
-.ficha-hero .product-page-badges {
-  top: auto;
-  bottom: clamp(16px, 3vw, 32px);
-  left: clamp(16px, 3vw, 32px);
-}
 
 @media (max-width: 900px) {
   .ficha-hero .pg-gallery { position: static; height: clamp(320px, 56vh, 460px); }
