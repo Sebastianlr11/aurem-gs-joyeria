@@ -15,6 +15,7 @@
  */
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { createClient } from 'jsr:@supabase/supabase-js@2'
+import { rastreoDe } from '../_shared/envios.ts'
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -24,32 +25,6 @@ const cors = {
 
 const json = (cuerpo: unknown, status = 200) =>
   new Response(JSON.stringify(cuerpo), { status, headers: { ...cors, 'Content-Type': 'application/json' } })
-
-/* Páginas de rastreo, las tres comprobadas una por una contra el sitio real.
-
-   La primera versión las puse de memoria y dos de las tres daban 404. No es
-   un detalle: es el botón que pulsa una clienta que ya pagó y está esperando
-   su pieza, y caer en un "esta dirección no existe" es exactamente el
-   momento en que se pregunta si la tienda es real.
-
-   Ninguna lleva a la guía concreta. Los enlaces directos de estas tres
-   cambian de forma cada tanto, y prefiero una página viva donde se pega el
-   número —que el correo enseña justo encima— a un enlace exacto que se rompa
-   en seis meses sin que nos enteremos.
-
-   Inter Rapidísimo va a su portada a propósito: el buscador de guías está
-   ahí mismo, no en una página aparte. Por eso ninguna de sus rutas existía.
-
-   Si la transportadora es "Otro" o está vacía no hay página, y la plantilla
-   se encarga: sin URL, el botón de rastrear no se pinta. */
-const RASTREO: Record<string, string> = {
-  servientrega: 'https://www.servientrega.com/wps/portal/rastreo-envio',
-  interrapidisimo: 'https://www.interrapidisimo.com/',
-  coordinadora: 'https://coordinadora.com/rastreo/',
-}
-
-const sinTildes = (s: string) =>
-  s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
@@ -135,7 +110,7 @@ Deno.serve(async (req: Request) => {
   const saldo = esContraentrega && bruto > 0 ? bruto : null
 
   const transportadora = String(orden.carrier ?? '').trim()
-  const urlRastreo = RASTREO[sinTildes(transportadora)] ?? null
+  const urlRastreo = rastreoDe(transportadora)?.url ?? null
 
   const referencia = `AG-${String(orden.product_id).replace(/\D/g, '').slice(-4).padStart(4, '0')}`
 

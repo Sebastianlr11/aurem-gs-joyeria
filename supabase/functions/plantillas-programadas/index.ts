@@ -21,6 +21,7 @@
  */
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { admin, enviarPlantilla } from '../_shared/wa.ts'
+import { rastreoDe } from '../_shared/envios.ts'
 
 const ACTIVAS = Deno.env.get('PLANTILLAS_ACTIVAS') === 'true'
 
@@ -120,18 +121,48 @@ async function sePuede(telefono: string): Promise<boolean> {
 async function despachados(): Promise<Envio[]> {
   const { data } = await admin()
     .from('orders')
-    .select('id, customer_name, customer_phone, product_name, tracking_number, status_updated_at')
+    .select('id, customer_name, customer_phone, product_name, tracking_number, carrier, status_updated_at')
     .eq('status', 'enviado')
     .not('tracking_number', 'is', null)
     .not('customer_phone', 'is', null)
     .gte('status_updated_at', new Date(Date.now() - 48 * HORA).toISOString())
 
-  return (data ?? []).map((o) => ({
-    plantilla: 'pedido_despachado',
-    telefono: o.customer_phone!,
-    pedidoId: o.id,
-    variables: [primerNombre(o.customer_name), o.product_name, o.tracking_number!],
-  }))
+  const envios: Envio[] = []
+
+  for (const o of data ?? []) {
+    /* Sin transportadora reconocida no se manda.
+    
+       La plantilla dice "va por X" y "para seguirlo entra a Y": las dos cosas
+       son promesas concretas, y con una transportadora que no conocemos no
+       hay ni nombre honesto ni sitio donde rastrear. Antes el nombre estaba
+       escrito fijo en la plantilla —siempre Interrapidísimo—, así que un
+       pedido despachado por Servientrega le decía al cliente algo falso y lo
+       mandaba a buscar su guía donde no estaba.
+       
+       El correo de despacho sí sale igual: ahí el botón de rastrear
+       simplemente no se pinta, y el resto del mensaje se sostiene solo. */
+    const rastreo = rastreoDe(o.carrier)
+    if (!rastreo) {
+      console.log(`Despacho sin transportadora reconocida (${o.carrier ?? 'vacía'}), no se avisa por WhatsApp:`, o.id)
+      continue
+    }
+
+    envios.push({
+      plantilla: 'pedido_despachado',
+      telefono: o.customer_phone!,
+      pedidoId: o.id,
+      // {{1}} nombre · {{2}} pieza · {{3}} transportadora · {{4}} guía · {{5}} dónde rastrear
+      variables: [
+        primerNombre(o.customer_name),
+        o.product_name,
+        String(o.carrier),
+        o.tracking_number!,
+        rastreo.corto,
+      ],
+    })
+  }
+
+  return envios
 }
 
 /* ─── 2. Pago pendiente ─────────────────────────────────────────────
