@@ -29,7 +29,9 @@ Deno.serve(async (req: Request) => {
     }
     const datos = (cuerpo.data ?? {}) as Record<string, unknown>
 
-    const paymentId = url.searchParams.get('data.id')
+    /* Ojo: esto es el id del AVISO, que no siempre es el id del pago. Si el
+       aviso es de una orden comercial, este número es el de la orden. */
+    const avisoId = url.searchParams.get('data.id')
       || url.searchParams.get('id')
       || (datos.id != null ? String(datos.id) : null)
 
@@ -41,10 +43,10 @@ Deno.serve(async (req: Request) => {
       || (typeof cuerpo.action === 'string' ? cuerpo.action.split('.')[0] : null)
 
     // Solo procesamos notificaciones de pagos
-    if (!paymentId || (topic && topic !== 'payment' && topic !== 'merchant_order')) {
+    if (!avisoId || (topic && topic !== 'payment' && topic !== 'merchant_order')) {
       /* Se deja rastro: un aviso descartado sin explicación fue justo lo que
          escondió que Mercado Pago no estaba avisando. */
-      console.log('Aviso descartado:', { paymentId, topic, metodo: req.method })
+      console.log('Aviso descartado:', { avisoId, topic, metodo: req.method })
       return new Response(JSON.stringify({ ok: true, skipped: true }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -52,6 +54,31 @@ Deno.serve(async (req: Request) => {
     }
 
     const mpAccessToken = Deno.env.get('MP_ACCESS_TOKEN')!
+
+    /* Mercado Pago avisa por dos vías distintas del mismo hecho: una por el
+       pago y otra por la orden comercial que lo contiene. La segunda trae el
+       número de la ORDEN, y buscarlo en /v1/payments/ devuelve 404 —que es
+       justo lo que veníamos haciendo tres veces por compra—.
+
+       Se podría ignorar y ya. Pero las dos vías son independientes, y el día
+       que el aviso del pago se pierda, el de la orden va a llegar igual: si
+       lo botamos, ese cliente pagó y nadie se entera. Así que en vez de
+       descartarlo se abre la orden y se saca de ahí el pago aprobado.
+
+       No hay riesgo de procesar dos veces: el candado de la base
+       —conversion_enviada_en— sólo deja pasar al primero que llegue. */
+    let paymentId = avisoId
+    if (topic === 'merchant_order') {
+      paymentId = await pagoAprobadoDe(avisoId, mpAccessToken)
+      if (!paymentId) {
+        console.log('Orden comercial sin pago aprobado todavía:', avisoId)
+        return new Response(JSON.stringify({ ok: true, skipped: true }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
+      console.log(`Orden ${avisoId} → pago ${paymentId}`)
+    }
 
     // Consultar el pago en la API de MercadoPago para verificar su estado
     const mpRes = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
@@ -279,6 +306,55 @@ Deno.serve(async (req: Request) => {
     })
   }
 })
+
+/**
+ * Saca el pago aprobado de una orden comercial.
+ *
+ * Devuelve null en dos casos que NO son errores:
+ *
+ * - La orden todavía no tiene pago aprobado. Pasa de verdad: su aviso suele
+ *   llegar antes de que el pago se acredite, y el aviso del pago vendrá
+ *   después.
+ * - No la podemos leer. El primer intento con el host de Mercado Pago
+ *   devolvió 403 con el mismo token que sí lee los pagos, así que se prueba
+ *   también el host de MercadoLibre, que es contra el que los avisos IPN
+ *   antiguos resuelven sus recursos.
+ *
+ * Si ninguno responde no se rompe nada: el aviso del pago es el que hace el
+ * trabajo y siempre ha llegado. Esto es red de seguridad, no camino
+ * principal, y una red que no se puede tender no puede tumbar el trapecio.
+ */
+const HOSTS_ORDEN = [
+  'https://api.mercadopago.com/merchant_orders',
+  'https://api.mercadolibre.com/merchant_orders',
+]
+
+async function pagoAprobadoDe(ordenId: string, token: string): Promise<string | null> {
+  const fallos: string[] = []
+
+  for (const host of HOSTS_ORDEN) {
+    let res: Response
+    try {
+      res = await fetch(`${host}/${ordenId}`, { headers: { Authorization: `Bearer ${token}` } })
+    } catch (e) {
+      fallos.push(`${host}: ${e instanceof Error ? e.message : e}`)
+      continue
+    }
+    if (!res.ok) {
+      fallos.push(`${host}: ${res.status}`)
+      continue
+    }
+    const orden = await res.json()
+    const pagos = Array.isArray(orden?.payments) ? orden.payments : []
+    const aprobado = pagos.find((p: Record<string, unknown>) => p?.status === 'approved')
+    return aprobado?.id != null ? String(aprobado.id) : null
+  }
+
+  /* Un log, no uno por host, y sin console.error: no es una falla del cobro
+     y no quiero que encienda alarmas por algo que no las merece. */
+  console.log(`No se pudo leer la orden ${ordenId} (${fallos.join(' · ')}); manda el aviso del pago`)
+  return null
+}
 
 /**
  * Le pide a la función de Vercel que mande la confirmación por correo.
