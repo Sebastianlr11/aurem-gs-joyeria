@@ -6,6 +6,26 @@ import { capturarClic } from './lib/atribucion'
 
 initMercadoPago(import.meta.env.VITE_MP_PUBLIC_KEY, { locale: 'es-CO' })
 
+/* Los píxeles arrancan aquí, al evaluar el módulo, y no dentro de un efecto
+   de App.
+
+   React ejecuta los efectos de los hijos ANTES que los del padre. Con la
+   carga metida en el efecto de App, <ContadorDePaginas /> llamaba a
+   pixelPagina() cuando window.fbq y window.ttq todavía no existían: la
+   llamada se descartaba en silencio y la primera vista de cada carga de
+   página se perdía, en Meta y en TikTok a la vez. Sólo se contaban las
+   vistas de los cambios de ruta posteriores, y las páginas a las que se
+   entra directo —/confirmacion viniendo de Mercado Pago, una pieza abierta
+   desde un anuncio— no contaban ninguna.
+
+   Acá no hay orden que respetar: las dos funciones se protegen solas si no
+   hay window, e iniciarPixeles() es idempotente.
+
+   El clic va primero porque el identificador viene en la URL de esta visita
+   y hay que guardarlo aunque la compra sea otro día. */
+capturarClic()
+iniciarPixeles()
+
 const ScrollToTop = () => {
   const { pathname } = useLocation();
   useEffect(() => { window.scrollTo(0, 0); }, [pathname]);
@@ -47,11 +67,6 @@ function ContadorDePaginas() {
 }
 
 function App() {
-  /* El clic se captura antes de cargar los píxeles: el identificador viene
-     en la URL de esta visita y hay que guardarlo aunque la compra sea otro
-     día. */
-  useEffect(() => { capturarClic(); iniciarPixeles(); }, []);
-
   return (
     <div className="app">
       <ScrollToTop />
