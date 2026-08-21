@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Marcellus&family=Mulish:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body {
+    width:100%; height:100%;
+    background:#1C1714;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .tarjeta {
+    width:1200px; height:630px;
+    background:#1C1714;
+    position:relative; overflow:hidden;
+    display:flex; align-items:center;
+  }
+  /* La foto sangra por la derecha. El degradado la funde con el cacao en vez
+     de dejar un borde recto, que delataría que son dos cosas pegadas. */
+  .foto {
+    position:absolute; top:0; right:0; width:600px; height:100%;
+    background:url('https://suqwfpyeegcucflfutxd.supabase.co/storage/v1/object/public/product-images/1773937030637-h8roblpd8o8.jpeg')
+               center 44% / 128% no-repeat;
+  }
+  .velo {
+    position:absolute; top:0; right:0; width:620px; height:100%;
+    background:linear-gradient(90deg, #1C1714 0%, rgba(28,23,20,0.72) 26%, rgba(28,23,20,0) 62%);
+  }
+  .texto { position:relative; padding:0 0 0 88px; max-width:660px; }
+  .antetitulo {
+    display:flex; align-items:center; gap:18px;
+    font-family:Mulish, sans-serif; font-size:15px; font-weight:700;
+    letter-spacing:0.24em; text-transform:uppercase; color:#E3C990;
+  }
+  .antetitulo::before { content:''; width:44px; height:1px; background:#A8863F; }
+  .marca {
+    font-family:Marcellus, Georgia, serif; font-size:82px; line-height:1;
+    color:#FBF7F2; letter-spacing:0.02em; margin-top:26px;
+  }
+  .marca span {
+    display:block; font-size:23px; letter-spacing:0.42em;
+    color:#E3C990; margin-top:16px;
+  }
+  .frase {
+    font-family:Mulish, sans-serif; font-size:25px; line-height:1.5;
+    color:#D8CFC6; margin-top:34px; max-width:520px;
+  }
+  .punzones { display:flex; gap:12px; margin-top:38px; }
+  .punzon {
+    font-family:Mulish, sans-serif; font-size:14px; font-weight:700;
+    letter-spacing:0.16em; color:#E3C990; padding:10px 20px;
+    border:1px solid rgba(227,201,144,0.34);
+    clip-path:polygon(9px 0, calc(100% - 9px) 0, 100% 50%, calc(100% - 9px) 100%, 9px 100%, 0 50%);
+  }
+</style></head>
+<body><div class="tarjeta">
+  <div class="foto"></div><div class="velo"></div>
+  <div class="texto">
+    <div class="antetitulo">Joyería colombiana</div>
+    <div class="marca">Aurem Gs<span>JOYERÍA</span></div>
+    <p class="frase">Esmeraldas naturales engastadas a mano, una por una.</p>
+    <div class="punzones">
+      <span class="punzon">PLATA 925</span>
+      <span class="punzon">ORO 18K</span>
+    </div>
+  </div>
+</div></body></html>
