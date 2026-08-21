@@ -15945,3 +15945,100 @@ textarea:focus-visible {
 .conf-cod svg { flex: none; margin-top: 2px; }
 .conf-cod p { margin: 0; font-size: 0.9375rem; line-height: 1.6; color: var(--text-secondary); }
 .conf-cod strong { color: var(--ink); font-weight: 700; }
+/* ─── La franja deja de perseguirte ──────────────────────────────────
+   Pegada arriba tenía sentido mientras se veía, pero al bajar se quedaba
+   ahí ocupando dos filas de píldoras sobre las fotos —y con el riel de
+   categorías cortando "Dijes" por la mitad contra el borde—. Ahora vive
+   donde nace y, cuando sale de pantalla, la sustituye un botón. */
+@media (min-width: 769px) {
+  .catalogo-filtros { position: static; }
+
+  /* El riel ya no recorta: sin la franja pegada hay sitio para envolver, y
+     media píldora cortada contra el borde se lee como un fallo. */
+  .catalogo-filtros-fila { flex-wrap: wrap; }
+  .catalogo-filtros .riel { flex-wrap: wrap; overflow: visible; }
+
+  .catalogo-filtros-flotante {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 30;
+    display: flex;
+    justify-content: center;
+    padding: 16px 24px 24px;
+    background: linear-gradient(to top, rgba(251, 247, 242, 0.94) 55%, rgba(251, 247, 242, 0));
+    pointer-events: none;
+    /* Fuera de cuadro hasta que la franja se va. */
+    opacity: 0;
+    transform: translateY(120%);
+    transition: transform 0.45s var(--ease), opacity 0.3s ease;
+  }
+  .catalogo-filtros-flotante--visible { opacity: 1; transform: none; }
+  .catalogo-filtros-flotante .catalogo-filtros-btn {
+    pointer-events: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 48px;
+    padding: 0 24px;
+    border: none;
+    border-radius: 100px;
+    background: var(--ink);
+    color: #fff;
+    font-family: var(--font-ui);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 14px 30px rgba(28, 23, 20, 0.18);
+    transition: all 0.3s var(--ease);
+  }
+  .catalogo-filtros-flotante .catalogo-filtros-btn:hover {
+    background: var(--ink-soft);
+    transform: translateY(-2px);
+  }
+  .catalogo-filtros-flotante .catalogo-filtros-n {
+    min-width: 20px;
+    height: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 100px;
+    background: var(--oro-luz);
+    color: var(--ink);
+    font-size: 0.7rem;
+    font-weight: 700;
+  }
+
+  /* El panel, centrado y no como cajón de abajo: en escritorio un panel que
+     sube desde el borde inferior se lee como una notificación del sistema.
+
+     El `display: flex` no es redundante: más arriba, en otro bloque de este
+     mismo ancho, el velo se apaga con `display: none` —de cuando el panel era
+     sólo para móvil—. Sin reanularlo aquí el botón flotante abre la nada. */
+  .catalogo-panel-velo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px;
+  }
+  .catalogo-panel {
+    width: min(560px, 100%);
+    max-height: min(80vh, 720px);
+    border: 1px solid var(--hairline);
+    border-radius: 2px;
+    animation: panelEntra 0.3s var(--ease);
+  }
+  @keyframes panelEntra {
+    from { opacity: 0; transform: translateY(12px) }
+    to   { opacity: 1; transform: none }
+  }
+
+  /* Y dentro del panel, buscar y ordenar vuelven a hacer falta. */
+  .catalogo-panel .catalogo-herramientas,
+  .catalogo-panel .catalogo-orden-riel { display: flex; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .catalogo-filtros-flotante { transform: none; transition: opacity 0.2s ease; }
+}
