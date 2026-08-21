@@ -10,7 +10,7 @@
  * y sólo da un id → se pide la URL firmada → se descarga con el token → se
  * manda al modelo que corresponda.
  */
-import { GRAFO } from './wa.ts'
+import { admin, GRAFO } from './wa.ts'
 
 const MODELO_AUDIO = Deno.env.get('OPENROUTER_AUDIO_MODEL') || 'mistralai/voxtral-small-24b-2507'
 const MODELO_VISION = Deno.env.get('OPENROUTER_VISION_MODEL') || Deno.env.get('OPENROUTER_MODEL') || 'openai/gpt-5.6-luna-pro'
@@ -134,21 +134,66 @@ export async function transcribir(mediaId: string): Promise<string | null> {
   return dicho
 }
 
+const EXTENSIONES: Record<string, string> = {
+  'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif',
+}
+
 /**
- * Describe la foto que mandó el cliente, en términos que le sirvan a
- * Valentina para seguir la conversación.
+ * Guarda la foto del cliente y la describe, descargándola UNA sola vez.
+ *
+ * Las dos cosas juntas porque el archivo vive en Meta detrás de una URL
+ * firmada que caduca en minutos: pedirlo dos veces es pagar dos descargas y
+ * arriesgarse a que la segunda llegue tarde.
+ *
+ * Guardarla importa tanto como describirla. El joyero cotiza mirando la
+ * pieza, y hasta ahora en el panel sólo aparecía el párrafo que escribió el
+ * modelo — que sirve para que Valentina siga la conversación, pero no para
+ * decidir cuánto vale replicar un anillo.
+ *
+ * Devuelve la ruta dentro del bucket, no una URL: el bucket es privado y
+ * quien la pinta la firma en ese momento.
+ */
+export async function verYGuardarImagen(
+  mediaId: string,
+  telefono: string,
+): Promise<{ descripcion: string | null; ruta: string | null }> {
+  const t0 = Date.now()
+  const archivo = await descargarDeMeta(mediaId)
+  if (!archivo) return { descripcion: null, ruta: null }
+
+  const mime = archivo.mime.split(';')[0].trim() || 'image/jpeg'
+
+  /* La subida y la descripción, en paralelo. Son independientes y la
+     descripción se lleva varios segundos; encadenarlas sólo sumaría espera
+     al cliente, que está mirando el "escribiendo…". */
+  const ruta = `${telefono}/${mediaId}.${EXTENSIONES[mime] ?? 'jpg'}`
+
+  const [subida, descripcion] = await Promise.all([
+    admin().storage.from('chat-media').upload(ruta, archivo.bytes, {
+      contentType: mime,
+      upsert: true,
+    }),
+    describir(archivo.bytes, mime),
+  ])
+
+  if (subida.error) {
+    // Sin foto guardada la conversación sigue igual: no se tumba por esto.
+    console.error('No se pudo guardar la foto del chat:', subida.error.message)
+  }
+
+  console.log(`imagen · ${Date.now() - t0} ms · descrita ${descripcion ? 'ok' : 'no'} · guardada ${subida.error ? 'no' : 'ok'}`)
+  return { descripcion, ruta: subida.error ? null : ruta }
+}
+
+/**
+ * Describe la foto, en términos que le sirvan a Valentina para seguir la
+ * conversación.
  *
  * Deliberadamente NO opina sobre quilates, peso ni calidad: eso lo dice el
  * taller con la piedra en la mano, y afirmarlo desde una foto es la forma
  * más rápida de prometer algo que después no se cumple.
  */
-export async function describirImagen(mediaId: string): Promise<string | null> {
-  const t0 = Date.now()
-  const archivo = await descargarDeMeta(mediaId)
-  if (!archivo) return null
-
-  const mime = archivo.mime.split(';')[0].trim() || 'image/jpeg'
-
+async function describir(bytes: Uint8Array, mime: string): Promise<string | null> {
   const visto = await pedirAlModelo(MODELO_VISION, [
     {
       type: 'text',
@@ -168,10 +213,9 @@ Responde en español, sin preámbulos.`,
     },
     {
       type: 'image_url',
-      image_url: { url: `data:${mime};base64,${aBase64(archivo.bytes)}` },
+      image_url: { url: `data:${mime};base64,${aBase64(bytes)}` },
     },
   ], 'visión')
 
-  console.log(`descripción de imagen · ${Date.now() - t0} ms · ${visto ? 'ok' : 'falló'}`)
   return visto
 }

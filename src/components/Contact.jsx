@@ -20,7 +20,7 @@ const WhatsAppIcon = () => (
     </svg>
 );
 
-const EMAIL = 'auremgsjoyeria@gmail.com';
+const EMAIL = 'hola@auremgsjoyeria.com';
 
 const interestOptions = ['Anillos', 'Collares', 'Pulseras', 'Personalizado'];
 

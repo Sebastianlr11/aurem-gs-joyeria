@@ -191,7 +191,7 @@ const Login = () => {
                                         className="admin-login-input"
                                         type="email"
                                         autoComplete="username"
-                                        placeholder="auremgsjoyeria@gmail.com"
+                                        placeholder="tu@correo.com"
                                         value={email}
                                         onChange={e => setEmail(e.target.value)}
                                         required

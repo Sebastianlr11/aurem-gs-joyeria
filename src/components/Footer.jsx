@@ -53,7 +53,7 @@ const Footer = () => {
                                         WhatsApp
                                     </a>
                                 </li>
-                                <li><a href="mailto:auremgsjoyeria@gmail.com">Correo</a></li>
+                                <li><a href="mailto:hola@auremgsjoyeria.com">Correo</a></li>
                             </ul>
                         </div>
 
