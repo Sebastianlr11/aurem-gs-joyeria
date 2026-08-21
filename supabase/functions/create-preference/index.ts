@@ -24,11 +24,14 @@ Deno.serve(async (req: Request) => {
         ? [{ id: product.id, name: product.name, price: Number(product.price) }]
         : []
 
-    /* El correo es obligatorio si no hay teléfono, y no al revés. Los pedidos
-       que entran por WhatsApp no traen correo —pedirlo es fricción y mucha
-       gente no lo tiene a mano— y no hace falta: la preferencia de Mercado
-       Pago usa un payer fijo, y el correo sólo se guarda en la orden y sirve
-       para deduplicar, que con el teléfono también funciona. */
+    /* Basta con uno de los dos: correo o teléfono. Los pedidos que entran por
+       WhatsApp pueden no traer correo, y bloquear la venta por eso sería
+       cambiar plata por un dato.
+
+       Sí conviene tenerlo, y por eso se le pide: es donde Mercado Pago manda
+       el comprobante del pago (ver el pagador, más abajo). Cuando no lo hay,
+       el pedido sigue y el comprobante se pierde — que es peor que antes,
+       pero mucho mejor que no vender. */
     if (!productItems.length || !buyer?.name || (!buyer?.email && !buyer?.phone)) {
       return new Response(
         JSON.stringify({ error: 'Faltan campos requeridos' }),
