@@ -15997,8 +15997,17 @@ textarea:focus-visible {
   }
 
   /* El panel, centrado y no como cajón de abajo: en escritorio un panel que
-     sube desde el borde inferior se lee como una notificación del sistema. */
-  .catalogo-panel-velo { align-items: center; justify-content: center; padding: 32px; }
+     sube desde el borde inferior se lee como una notificación del sistema.
+
+     El `display: flex` no es redundante: más arriba, en otro bloque de este
+     mismo ancho, el velo se apaga con `display: none` —de cuando el panel era
+     sólo para móvil—. Sin reanularlo aquí el botón flotante abre la nada. */
+  .catalogo-panel-velo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px;
+  }
   .catalogo-panel {
     width: min(560px, 100%);
     max-height: min(80vh, 720px);
