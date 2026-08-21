@@ -1,7 +1,18 @@
 {
   "rewrites": [
     {
-      "source": "/((?!assets/)(?!.*\\.[a-zA-Z0-9]{2,5}$).*)",
+      "source": "/catalogo/:id",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": "(?i).*(whatsapp|facebookexternalhit|facebookcatalog|instagram|twitterbot|telegrambot|slackbot|linkedinbot|discordbot|pinterest|redditbot|skypeuripreview|bitlybot|vkshare|tiktok|bytespider).*"
+        }
+      ],
+      "destination": "/api/ficha?id=:id"
+    },
+    {
+      "source": "/((?!api/)(?!assets/)(?!.*\\.[a-zA-Z0-9]{2,5}$).*)",
       "destination": "/index.html"
     }
   ]

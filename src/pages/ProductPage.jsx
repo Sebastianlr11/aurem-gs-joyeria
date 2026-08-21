@@ -5,6 +5,7 @@ import { waUrl } from '../lib/whatsapp';
 import { Wallet } from '@mercadopago/sdk-react';
 import ProductCard from '../components/catalog/ProductCard';
 import { pixelVerPieza, pixelIniciarPago } from '../lib/pixeles'
+import { ponerMeta, ponerProductoJsonLd } from '../lib/meta'
 import { datosDeAtribucion } from '../lib/atribucion';
 
 /* ── Countdown hook: 24 h rolling, persiste en localStorage ─────── */
@@ -876,6 +877,28 @@ const ProductPage = () => {
 
         fetchData();
     }, [id]);
+
+    /* El <head> de esta pieza. Sin esto las cinco fichas se titulan igual que
+       la home, y para Google —que sí ejecuta JavaScript antes de indexar— son
+       cinco páginas idénticas.
+
+       La limpieza que devuelve importa: al volver al catálogo hay que soltar
+       el título del anillo, o se queda puesto. */
+    useEffect(() => {
+        if (!product) return;
+        const pesos = `$${Math.round(Number(product.price) || 0).toLocaleString('es-CO')}`;
+        const ficha = [product.metal, product.piedra].filter(Boolean).join(' · ');
+        const soltarMeta = ponerMeta({
+            titulo: `${product.name} — ${pesos} | Aurem Gs Joyería`,
+            descripcion: (product.description || '').trim().replace(/\s+/g, ' ').slice(0, 155)
+                || `${product.name} en ${ficha || 'plata 925'}. Estuche incluido y garantía de por vida en el metal.`,
+            imagen: (Array.isArray(product.images) && product.images[0]) || product.image_url,
+            ruta: `/catalogo/${product.id}`,
+            tipo: 'product',
+        });
+        const soltarJsonLd = ponerProductoJsonLd(product);
+        return () => { soltarMeta(); soltarJsonLd(); };
+    }, [product]);
 
     useEffect(() => {
         if (!loading && product && searchParams.get('buy') === '1') {
