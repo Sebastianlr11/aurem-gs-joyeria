@@ -19,7 +19,11 @@
  */
 
 const RAIZ = 'https://www.auremgsjoyeria.com'
-const FOTO_POR_DEFECTO = `${RAIZ}/assets/pen-hero.jpg`
+/* Horizontal 1200x630, que es lo que esperan WhatsApp, Facebook e Instagram.
+   La de antes era vertical y la recortaban por el centro: cada vez que
+   alguien compartía el sitio salía una tira de una foto, sin marca ni
+   contexto. Se compone desde scripts/og/tarjeta.html. */
+const FOTO_POR_DEFECTO = `${RAIZ}/assets/og-compartir.jpg`
 
 const esc = (t) => String(t ?? '')
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
