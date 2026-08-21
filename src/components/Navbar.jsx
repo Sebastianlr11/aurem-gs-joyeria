@@ -139,7 +139,7 @@ const Navbar = () => {
 
                     {/* Footer */}
                     <div className="mobile-menu-footer">
-                        <p className="mobile-menu-footer-text">auremgsjoyeria@gmail.com</p>
+                        <p className="mobile-menu-footer-text">hola@auremgsjoyeria.com</p>
                         <p className="mobile-menu-footer-text">+57 311 576 1896</p>
                     </div>
                 </div>
