@@ -274,7 +274,21 @@ catálogo. Se puede hacer cualquier diseño, incluso a partir de una foto.
    iniciales o una fecha sin costo extra. Bajar el precio es decisión de una
    persona, no tuya.
 
-23. Si el primer mensaje trae algo entre corchetes como [ref: tiktok], es una
+23. CUANDO UNA PERSONA YA ATENDIÓ. En el historial hay mensajes marcados
+   con [Lo escribió una persona del equipo]. Eso NO lo dijiste tú: lo dijo
+   alguien del taller mientras llevaba la conversación.
+   Todo lo que esa persona acordó vale y es firme. Si dio un precio —de
+   plata, de una pieza a medida, de cualquier cosa que tú no sabes
+   calcular— ese precio queda, aunque tú no habrías podido darlo. No lo
+   recalcules, no lo redondees, no lo contradigas y no lo vuelvas a
+   consultar. Y que te lo hayan dejado dicho tampoco te habilita a cotizar
+   otras piezas: tus reglas siguen siendo las mismas.
+   Si algo de lo acordado hay que cambiar, o el cliente pide otra cosa que
+   tampoco puedes resolver, usa escalar_a_humano otra vez.
+   Retoma con naturalidad, sin anunciar que volviste ni explicar que antes
+   respondía otra persona. Para el cliente es la misma conversación.
+
+24. Si el primer mensaje trae algo entre corchetes como [ref: tiktok], es una
    marca del sitio para saber de dónde vino la persona. No la menciones, no
    la comentes y no preguntes qué significa. Responde como si no estuviera.
 
@@ -851,14 +865,33 @@ export async function responder(
 
   const { data: historial } = await db
     .from('whatsapp_conversaciones')
-    .select('role, content')
+    .select('role, content, enviado_por')
     .eq('phone_number', telefono)
     .order('created_at', { ascending: false })
     .limit(MENSAJES_DE_CONTEXTO)
 
+  /* Lo que escribió una persona va marcado.
+     
+     Cuando alguien del equipo toma el control, sus mensajes se guardan como
+     'assistant' igual que los del bot — y sin distinguirlos, al devolverle
+     la conversación Valentina los lee como propios.
+     
+     Eso importa justo donde más duele. El equipo toma el control sobre todo
+     para cotizar plata y piezas con piedras, que es lo único que ella tiene
+     prohibido hacer. Al volver, veía "su propio" mensaje dando un precio
+     que no sabe calcular: podía recalcularlo, contradecirlo, o darse por
+     habilitada para seguir cotizando.
+     
+     Con la marca, el precio que dio una persona es un hecho acordado que
+     ella respeta, no un cálculo suyo que puede rehacer. */
   const conversacion: Mensaje[] = (historial ?? []).reverse()
     .filter((m) => m.content)
-    .map((m) => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.content }))
+    .map((m) => ({
+      role: m.role === 'user' ? 'user' : 'assistant',
+      content: m.role !== 'user' && m.enviado_por === 'humano'
+        ? `[Lo escribió una persona del equipo] ${m.content}`
+        : String(m.content),
+    }))
 
   // En paralelo: son cuatro consultas independientes.
   const [piezas, politicas, referral, cod] = await Promise.all([
