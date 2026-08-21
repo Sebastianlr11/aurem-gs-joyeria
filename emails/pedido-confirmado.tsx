@@ -8,10 +8,10 @@
  * abre la puerta sin el efectivo listo y la entrega se cae.
  */
 import * as React from 'react'
-import { Body, Container, Head, Html, Preview, Section, Text } from '@react-email/components'
+import { Body, Container, Head, Html, Preview, Section } from '@react-email/components'
 import {
-  Antetitulo, Boton, Cabecera, Dato, Parrafo, Pie, Punzon, Titular,
-  c, fuenteUI, pesos, SITIO,
+  Boton, BotonClaro, Cabecera, Dato, Nota, Pie, Punzon, TarjetaPieza, Titular, Trazado,
+  c, fuenteUI, pesos, SITIO, WHATSAPP,
 } from './_marca'
 
 export interface PedidoConfirmadoProps {
@@ -23,95 +23,145 @@ export interface PedidoConfirmadoProps {
   abono?: number | null
   ciudad: string
   direccion: string
+  /** La foto real de la pieza. Sin ella queda el rombo de la marca. */
+  imagen?: string | null
+  /** "Oro 18k · esmeralda natural", tal como en la ficha. */
+  ficha?: string | null
+  talla?: string | null
+  fecha?: string | null
 }
 
 export default function PedidoConfirmado({
-  nombre, pieza, referencia, total, abono, ciudad, direccion,
+  nombre, pieza, referencia, total, abono, ciudad, direccion, imagen, ficha, talla, fecha,
 }: PedidoConfirmadoProps) {
   const esAbono = abono != null && abono > 0
   const saldo = esAbono ? total - abono : 0
   const primerNombre = String(nombre || '').trim().split(/\s+/)[0]
+  const enBogota = /bogot/i.test(ciudad || '')
+
+  /* El plazo depende de a dónde va. El diseño traía "24 a 48 horas hábiles"
+     fijo, y eso sólo es cierto en Bogotá: al resto del país la transportadora
+     tarda de 2 a 3 días. */
+  const plazo = enBogota ? '24 a 48 horas' : '2 a 3 días'
+
+  const detalle = [ficha, talla ? `talla ${talla}` : null, `ref. ${referencia}`]
+    .filter(Boolean).join(' · ')
 
   return (
     <Html lang="es">
       <Head />
       <Body style={{ margin: 0, padding: 0, background: c.arena }}>
-        {/* Lo que se lee en la bandeja antes de abrir. En contraentrega se
-            adelanta el saldo: es el dato que la clienta necesita recordar. */}
         <Preview>
           {esAbono
-            ? `Tu ${pieza} queda confirmado. Al recibirlo pagas ${pesos(saldo)}.`
+            ? `Recibimos tu abono de ${pesos(abono)}. Al recibir la pieza pagas ${pesos(saldo)}.`
             : `Recibimos tu pago. Ya estamos preparando tu ${pieza}.`}
         </Preview>
 
         <Container style={{ maxWidth: '600px', margin: '0 auto', background: c.blanco }}>
           <Cabecera />
 
-          <Section style={{ padding: '0 32px' }}>
-            <Antetitulo>{esAbono ? 'Pedido confirmado' : 'Pago recibido'}</Antetitulo>
-            <Titular>
-              {esAbono ? 'Tu pieza entra al taller.' : 'Empezamos tu pieza.'}
-            </Titular>
-
-            <Parrafo>
+          <Section style={{ padding: '36px 40px 0' }}>
+            <Titular
+              antetitulo={esAbono ? 'Pedido confirmado' : 'Pago recibido'}
+              primera={esAbono ? 'Tu pieza entra' : 'Empezamos'}
+              segunda={esAbono ? 'al taller.' : 'tu pieza.'}
+            />
+            <p
+              style={{
+                margin: '16px 0 0',
+                fontFamily: fuenteUI,
+                fontSize: '16px',
+                lineHeight: '26px',
+                color: '#4A423C',
+              }}
+            >
               {primerNombre}, {esAbono
                 ? `recibimos tu abono de ${pesos(abono)} y tu pedido queda confirmado.`
                 : 'recibimos tu pago completo y tu pedido queda confirmado.'}{' '}
               Te escribimos por WhatsApp apenas se despache, con el número de guía.
-            </Parrafo>
+            </p>
           </Section>
 
-          <Section style={{ padding: '24px 32px 0' }}>
-            <Dato etiqueta="Pieza">{pieza}</Dato>
-            <Dato etiqueta="Referencia">{referencia}</Dato>
-            <Dato etiqueta="Entrega">{direccion}, {ciudad}</Dato>
+          <Trazado
+            pasos={[
+              { titulo: esAbono ? 'Abono recibido' : 'Pago recibido', pie: fecha || 'Hoy', hecho: true },
+              { titulo: 'En el taller', pie: 'Revisión y empaque', hecho: true },
+              { titulo: 'En camino', pie: plazo, hecho: false },
+            ]}
+          />
 
-            {esAbono ? (
-              <>
-                <Dato etiqueta="Abonaste">{pesos(abono)} COP</Dato>
-                {/* El saldo va en grande y de último. Es lo que tiene que
-                    tener en efectivo cuando toquen la puerta. */}
-                <Dato etiqueta="Pagas al recibir" fuerte>{pesos(saldo)} COP</Dato>
-              </>
-            ) : (
-              <Dato etiqueta="Total pagado" fuerte>{pesos(total)} COP</Dato>
-            )}
+          <TarjetaPieza nombre={pieza} detalle={detalle} imagen={imagen} />
+
+          <Section style={{ padding: '28px 40px 0' }}>
+            <Dato etiqueta="Entrega">{direccion}, {ciudad}</Dato>
+            {esAbono && <Dato etiqueta="Abonaste">{pesos(abono)} <small style={{ fontSize: '12px', color: c.texto }}>COP</small></Dato>}
+          </Section>
+
+          {/* El bloque grande. En contraentrega es el saldo que va a pagar en
+              la puerta; si ya pagó todo, es el recibo de lo que pagó. */}
+          <Section style={{ padding: '20px 40px 0' }}>
+            <table role="presentation" cellPadding={0} cellSpacing={0} border={0} width="100%" style={{ width: '100%', background: c.arena }}>
+              <tbody>
+                <tr>
+                  <td style={{ padding: '22px 24px', verticalAlign: 'middle' }}>
+                    <div style={{ fontFamily: fuenteUI, fontSize: '10px', lineHeight: '14px', letterSpacing: '0.2em', fontWeight: 700, color: c.oroInk }}>
+                      {esAbono ? 'PAGAS AL RECIBIR' : 'TOTAL PAGADO'}
+                    </div>
+                    <div style={{ fontFamily: fuenteUI, fontSize: '13px', lineHeight: '20px', color: c.texto, paddingTop: '4px' }}>
+                      {esAbono ? 'En efectivo, al domiciliario' : 'Pago confirmado'}
+                    </div>
+                  </td>
+                  <td align="right" style={{ padding: '22px 24px', verticalAlign: 'middle', fontFamily: fuenteUI, fontSize: '30px', lineHeight: '34px', fontWeight: 700, color: c.ink, whiteSpace: 'nowrap' }}>
+                    {pesos(esAbono ? saldo : total)}{' '}
+                    <span style={{ fontSize: '14px', fontWeight: 400, color: c.texto }}>COP</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </Section>
 
           {esAbono && (
-            <Section style={{ padding: '20px 32px 0' }}>
-              <Text
-                style={{
-                  margin: 0,
-                  padding: '14px 16px',
-                  background: c.marfil,
-                  borderLeft: `3px solid ${c.oro}`,
-                  fontFamily: fuenteUI,
-                  fontSize: '14px',
-                  lineHeight: '1.6',
-                  color: c.ink,
-                }}
-              >
-                Ten listos <strong>{pesos(saldo)}</strong> en efectivo para el momento de la
-                entrega. El domiciliario no da cambio de billetes grandes.
-              </Text>
-            </Section>
+            <Nota>
+              Ten listos <strong style={{ color: c.ink }}>{pesos(saldo)}</strong> en efectivo para el
+              momento de la entrega: el domiciliario no da cambio de billetes grandes.
+            </Nota>
           )}
 
-          {/* Sólo lo comprobable. El certificado no va: cuesta $50.000 aparte
-              y prometerlo aquí sería el cobro sorpresa que evitamos en toda
-              la web. */}
-          <Section style={{ padding: '24px 32px 0' }}>
-            <Punzon>Estuche incluido</Punzon>
-            <Punzon>Garantía en el metal</Punzon>
+          {/* Sólo lo comprobable. El certificado gemológico NO va: cuesta
+              $50.000 aparte y prometerlo aquí sería el cobro sorpresa que
+              evitamos en toda la web. El punzón de ley sí — va grabado en el
+              metal de cada pieza. */}
+          <Section style={{ padding: '24px 40px 0' }}>
+            <table role="presentation" cellPadding={0} cellSpacing={0} border={0}>
+              <tbody>
+                <tr>
+                  <Punzon>Estuche incluido</Punzon>
+                  <td width={10} style={{ width: '10px', fontSize: 0, lineHeight: 0 }}>&nbsp;</td>
+                  <Punzon>Garantía en el metal</Punzon>
+                </tr>
+              </tbody>
+            </table>
           </Section>
 
-          <Section style={{ padding: '28px 32px 0' }}>
-            <Boton href={`${SITIO}/catalogo`}>Ver otras piezas</Boton>
+          <Section style={{ padding: '30px 40px 46px' }}>
+            <table role="presentation" cellPadding={0} cellSpacing={0} border={0}>
+              <tbody>
+                <tr>
+                  <Boton href={`${SITIO}/catalogo`}>Ver el catálogo</Boton>
+                  <td width={12} style={{ width: '12px', fontSize: 0, lineHeight: 0 }}>&nbsp;</td>
+                  <BotonClaro href={WHATSAPP}>Escribir por WhatsApp</BotonClaro>
+                </tr>
+              </tbody>
+            </table>
           </Section>
 
-          <Pie />
+          <Pie referencia={referencia} />
         </Container>
+
+        <div style={{ textAlign: 'center', fontFamily: fuenteUI, fontSize: '11px', lineHeight: '18px', color: '#8A7F74', padding: '18px 12px 32px' }}>
+          Pedido {referencia}
+          {fecha ? ` · ${fecha}` : ''}
+        </div>
       </Body>
     </Html>
   )
@@ -124,5 +174,9 @@ PedidoConfirmado.PreviewProps = {
   total: 500000,
   abono: 20000,
   ciudad: 'Bogotá',
-  direccion: 'Calle 93 # 13-24, apto 502',
+  direccion: 'Calle 26 Sur 79A 38',
+  imagen: null,
+  ficha: 'Plata 925 · esmeralda natural',
+  talla: '14',
+  fecha: '21 de agosto de 2026',
 } satisfies PedidoConfirmadoProps

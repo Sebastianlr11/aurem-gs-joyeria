@@ -104,19 +104,34 @@ export function Antetitulo({ children }: { children: React.ReactNode }) {
   )
 }
 
-export function Titular({ children }: { children: React.ReactNode }) {
+/**
+ * El titular parte en dos, como en el sitio: la primera línea en romana
+ * grande y la segunda en versalitas espaciadas. Es el gesto que más ata el
+ * correo con la web, y el que hace que se reconozca la marca antes de leer.
+ */
+export function Titular({
+  antetitulo, primera, segunda,
+}: { antetitulo: string; primera: string; segunda: string }) {
   return (
-    <Text
-      style={{
-        margin: '14px 0 0',
-        fontFamily: fuenteDisplay,
-        fontSize: '28px',
-        lineHeight: '1.15',
-        color: c.ink,
-      }}
-    >
-      {children}
-    </Text>
+    <>
+      <table role="presentation" cellPadding={0} cellSpacing={0} border={0}>
+        <tbody>
+          <tr>
+            <td width={28} style={{ width: '28px', borderTop: `1px solid ${c.oro}`, fontSize: 0, lineHeight: 0 }}>&nbsp;</td>
+            <td style={{ paddingLeft: '12px', fontFamily: fuenteUI, fontSize: '10px', lineHeight: '12px', letterSpacing: '0.24em', fontWeight: 700, color: c.oroInk, textTransform: 'uppercase' as const }}>
+              {antetitulo}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <div style={{ paddingTop: '18px', fontFamily: fuenteDisplay, fontSize: '40px', lineHeight: '46px', color: c.ink }}>
+        {primera}
+        <br />
+        <span style={{ fontSize: '26px', lineHeight: '46px', letterSpacing: '0.06em', textTransform: 'uppercase' as const }}>
+          {segunda}
+        </span>
+      </div>
+    </>
   )
 }
 
@@ -191,45 +206,44 @@ export function Dato({
  */
 export function Punzon({ children }: { children: React.ReactNode }) {
   return (
-    <span
+    <td
       style={{
-        display: 'inline-block',
-        padding: '7px 12px',
-        marginRight: '8px',
-        border: `1px solid rgba(168,134,63,0.32)`,
-        background: c.marfil,
+        border: `1px solid ${c.filete}`,
+        padding: '9px 14px',
         fontFamily: fuenteUI,
         fontSize: '10px',
-        fontWeight: 700,
+        lineHeight: '12px',
         letterSpacing: '0.16em',
+        fontWeight: 700,
         textTransform: 'uppercase' as const,
         color: c.oroInk,
       }}
     >
       {children}
-    </span>
+    </td>
   )
 }
 
 export function Boton({ href, children }: { href: string; children: React.ReactNode }) {
   return (
-    <a
-      href={href}
-      style={{
-        display: 'inline-block',
-        boxSizing: 'border-box' as const,
-        padding: '14px 28px',
-        background: c.ink,
-        color: c.blanco,
-        fontFamily: fuenteUI,
-        fontSize: '14px',
-        fontWeight: 600,
-        textDecoration: 'none',
-        borderRadius: '100px',
-      }}
-    >
-      {children}
-    </a>
+    <td align="center" bgcolor={c.ink} style={{ background: c.ink, borderRadius: '100px' }}>
+      <a
+        href={href}
+        style={{
+          display: 'block',
+          padding: '15px 30px',
+          fontFamily: fuenteUI,
+          fontSize: '15px',
+          lineHeight: '18px',
+          fontWeight: 700,
+          color: c.marfil,
+          textDecoration: 'none',
+          borderRadius: '100px',
+        }}
+      >
+        {children}
+      </a>
+    </td>
   )
 }
 
@@ -238,7 +252,7 @@ export function Boton({ href, children }: { href: string; children: React.ReactN
  * porque es donde de verdad contesta el negocio: un correo que no ofrece
  * cómo responder obliga a buscar el teléfono en otra parte.
  */
-export function Pie() {
+export function Pie({ referencia }: { referencia?: string | null }) {
   return (
     <Section
       style={{
@@ -266,12 +280,131 @@ export function Pie() {
         </Link>{' '}
         o responde a este correo.
       </Text>
-      <Text style={{ margin: '14px 0 0', fontFamily: fuenteUI, fontSize: '11px', color: '#7E736A' }}>
+      <Text style={{ margin: '22px 0 0', fontFamily: fuenteUI, fontSize: '12px', lineHeight: '20px', color: '#8A7F74' }}>
         Aurem Gs Joyería · Bogotá, Colombia ·{' '}
-        <Link href={SITIO} style={{ color: '#7E736A' }}>
+        <Link href={SITIO} style={{ color: '#8A7F74', textDecoration: 'none' }}>
           auremgsjoyeria.com
         </Link>
+        {referencia && (
+          <>
+            <br />
+            {/* Por qué le llega esto. Un correo transaccional que no dice de
+                dónde sale se parece demasiado a uno no solicitado. */}
+            Recibes este correo porque hiciste el pedido {referencia}.
+          </>
+        )}
       </Text>
     </Section>
+  )
+}
+
+/**
+ * Los tres pasos del pedido. No es decoración: dice dónde está la pieza sin
+ * que haya que leer un párrafo, y sobre todo dice que hay un proceso detrás —
+ * que es justo lo que separa una tienda seria de un chat.
+ *
+ * Con filete de oro los pasos hechos y de pelo el que falta.
+ */
+export function Trazado({
+  pasos,
+}: {
+  pasos: { titulo: string; pie: string; hecho: boolean }[]
+}) {
+  return (
+    <Section style={{ padding: '32px 40px 0' }}>
+      <table role="presentation" cellPadding={0} cellSpacing={0} border={0} width="100%" style={{ width: '100%' }}>
+        <tbody>
+          <tr>
+            {pasos.map((p, i) => (
+              <td
+                key={p.titulo}
+                width="33%"
+                style={{
+                  width: '33.33%',
+                  verticalAlign: 'top' as const,
+                  borderTop: `2px solid ${p.hecho ? c.oro : c.filete}`,
+                  padding: i === 0 ? '12px 12px 0 0' : i === pasos.length - 1 ? '12px 0 0 12px' : '12px 12px 0 12px',
+                }}
+              >
+                <div style={{ fontFamily: fuenteUI, fontSize: '10px', lineHeight: '14px', letterSpacing: '0.16em', fontWeight: 700, textTransform: 'uppercase' as const, color: p.hecho ? c.oroInk : c.texto }}>
+                  {p.titulo}
+                </div>
+                <div style={{ fontFamily: fuenteUI, fontSize: '13px', lineHeight: '20px', color: c.texto, paddingTop: '4px' }}>
+                  {p.pie}
+                </div>
+              </td>
+            ))}
+          </tr>
+        </tbody>
+      </table>
+    </Section>
+  )
+}
+
+/**
+ * La pieza, con su foto. La foto es la de verdad, la misma del catálogo: en
+ * una joyería el producto es la mitad del mensaje, y una tarjeta con el
+ * nombre a secas se lee como una factura. Si falta, queda el rombo de la
+ * marca en vez de un hueco roto.
+ */
+export function TarjetaPieza({
+  nombre, detalle, imagen,
+}: { nombre: string; detalle?: string | null; imagen?: string | null }) {
+  return (
+    <Section style={{ padding: '32px 40px 0' }}>
+      <table role="presentation" cellPadding={0} cellSpacing={0} border={0} width="100%" style={{ width: '100%', background: c.marfil, border: `1px solid ${c.filete}` }}>
+        <tbody>
+          <tr>
+            <td width={120} align="center" style={{ width: '120px', height: '150px', background: c.arena, verticalAlign: 'middle' as const }}>
+              {imagen ? (
+                <Img src={imagen} alt={nombre} width="120" height="150" style={{ display: 'block', width: '120px', height: '150px', objectFit: 'cover' as const }} />
+              ) : (
+                <span style={{ fontFamily: fuenteDisplay, fontSize: '22px', color: c.oro }}>&#10022;</span>
+              )}
+            </td>
+            <td style={{ padding: '20px 20px 20px 22px', verticalAlign: 'middle' as const }}>
+              <div style={{ fontFamily: fuenteDisplay, fontSize: '22px', lineHeight: '28px', color: c.ink }}>{nombre}</div>
+              {detalle && (
+                <div style={{ fontFamily: fuenteUI, fontSize: '14px', lineHeight: '22px', color: c.texto, paddingTop: '6px' }}>
+                  {detalle}
+                </div>
+              )}
+              <div style={{ fontFamily: fuenteUI, fontSize: '10px', lineHeight: '14px', letterSpacing: '0.16em', fontWeight: 700, color: c.oroInk, paddingTop: '14px' }}>
+                CON PUNZÓN DE LEY
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </Section>
+  )
+}
+
+/** El aviso al margen: filete de oro a la izquierda sobre fondo marfil. */
+export function Nota({ children }: { children: React.ReactNode }) {
+  return (
+    <Section style={{ padding: '12px 40px 0' }}>
+      <table role="presentation" cellPadding={0} cellSpacing={0} border={0} width="100%" style={{ width: '100%' }}>
+        <tbody>
+          <tr>
+            <td width={3} style={{ width: '3px', background: c.oro, fontSize: 0, lineHeight: 0 }}>&nbsp;</td>
+            <td style={{ padding: '14px 18px', background: c.marfil, fontFamily: fuenteUI, fontSize: '14px', lineHeight: '22px', color: '#4A423C' }}>
+              {children}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </Section>
+  )
+}
+
+/** El botón secundario: contorno de oro, sin relleno. */
+export function BotonClaro({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <td align="center" style={{ border: `1px solid ${c.oro}`, borderRadius: '100px' }}>
+      <a href={href} style={{ display: 'block', padding: '14px 28px', fontFamily: fuenteUI, fontSize: '15px', lineHeight: '18px', fontWeight: 700, color: c.oroInk, textDecoration: 'none', borderRadius: '100px' }}>
+        {children}
+      </a>
+    </td>
   )
 }
