@@ -299,6 +299,14 @@ export async function enviarPlantilla(
   variables: string[] = [],
   desdeId?: string | null,
   idioma = IDIOMA_PLANTILLAS,
+  /* Si se anota en el hilo de conversaciones. Por defecto sí, porque casi
+     siempre le escribimos a un cliente y el panel tiene que enseñarlo.
+
+     Los avisos internos son la excepción: van a los celulares del equipo, y
+     anotarlos abriría una conversación falsa en la bandeja por cada aviso —
+     el joyero apareciendo como cliente suyo, y el inbox de atención lleno de
+     ruido justo el día que más clientes escriben. */
+  registrar = true,
 ): Promise<{ ok: boolean; wamid?: string; error?: string }> {
   const token = Deno.env.get('WA_TOKEN')
   const phoneId = desdeId || Deno.env.get('WA_PHONE_NUMBER_ID')
@@ -336,19 +344,23 @@ export async function enviarPlantilla(
   if (!res.ok) {
     const error = cuerpo?.error?.message || `HTTP ${res.status}`
     console.error(`Meta rechazó la plantilla ${plantilla}:`, error)
-    await admin().from('whatsapp_conversaciones').insert({
-      phone_number: para, role: 'assistant', content: resumen,
-      enviado_por: 'ia', delivery_status: 'failed', wa_phone_id: phoneId,
-    })
+    if (registrar) {
+      await admin().from('whatsapp_conversaciones').insert({
+        phone_number: para, role: 'assistant', content: resumen,
+        enviado_por: 'ia', delivery_status: 'failed', wa_phone_id: phoneId,
+      })
+    }
     return { ok: false, error }
   }
 
   const wamid = cuerpo?.messages?.[0]?.id ?? null
-  await admin().from('whatsapp_conversaciones').insert({
-    phone_number: para, role: 'assistant', content: resumen,
-    enviado_por: 'ia', delivery_status: 'sent', wa_message_id: wamid,
-    wa_phone_id: phoneId,
-  })
+  if (registrar) {
+    await admin().from('whatsapp_conversaciones').insert({
+      phone_number: para, role: 'assistant', content: resumen,
+      enviado_por: 'ia', delivery_status: 'sent', wa_message_id: wamid,
+      wa_phone_id: phoneId,
+    })
+  }
   return { ok: true, wamid }
 }
 
