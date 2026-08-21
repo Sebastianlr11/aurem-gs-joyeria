@@ -45,6 +45,11 @@ const Catalog = () => {
     const [metal, setMetal] = useState('Todos');
     const [pagina, setPagina] = useState(1);
     const [filtrosAbiertos, setFiltrosAbiertos] = useState(false);
+    const panelRef = useRef(null);
+    /* Quién tenía el foco antes de abrir el panel, para devolvérselo al
+       cerrar. Sin esto, quien navega con teclado cierra el panel y aparece
+       al principio de la página. */
+    const focoPrevioRef = useRef(null);
 
     /* Se traen todas las piezas de una vez: el catálogo es pequeño y así
        los chips pueden mostrar cuántas hay en cada categoría. */
@@ -244,16 +249,58 @@ const Catalog = () => {
         return () => obs.disconnect();
     }, [loading]);
 
-    /* Con el panel abierto la página de detrás no se mueve. */
+    /* Con el panel abierto la página de detrás no se mueve, y el foco se
+       queda dentro.
+
+       El panel se anuncia con aria-modal="true", que le promete a un lector
+       de pantalla que lo de detrás no existe. Pero eso es sólo una etiqueta:
+       si el foco no se mueve ni se encierra, quien navega con teclado abre el
+       panel y sigue tabulando por los filtros de la franja y las tarjetas que
+       tiene tapadas. La promesa hay que cumplirla a mano. */
     useEffect(() => {
         if (!filtrosAbiertos) return;
+
+        focoPrevioRef.current = document.activeElement;
         const previo = document.body.style.overflow;
         document.body.style.overflow = 'hidden';
-        const alEscape = (e) => { if (e.key === 'Escape') setFiltrosAbiertos(false); };
-        window.addEventListener('keydown', alEscape);
+
+        const enfocables = () => [...(panelRef.current?.querySelectorAll(
+            'a[href], button:not([disabled]), input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])'
+        ) ?? [])].filter(el => el.offsetParent !== null);
+
+        /* El primero del panel, no el botón de cerrar: quien lo abrió quiere
+           filtrar, no salir. */
+        enfocables()[0]?.focus();
+
+        const alTeclado = (e) => {
+            if (e.key === 'Escape') { setFiltrosAbiertos(false); return; }
+            if (e.key !== 'Tab') return;
+
+            const lista = enfocables();
+            if (!lista.length) return;
+            const primero = lista[0];
+            const ultimo = lista[lista.length - 1];
+
+            /* El ciclo. Si el foco se escapó del panel —por un clic en el
+               fondo, por ejemplo— se devuelve al principio. */
+            if (!panelRef.current?.contains(document.activeElement)) {
+                e.preventDefault();
+                primero.focus();
+            } else if (e.shiftKey && document.activeElement === primero) {
+                e.preventDefault();
+                ultimo.focus();
+            } else if (!e.shiftKey && document.activeElement === ultimo) {
+                e.preventDefault();
+                primero.focus();
+            }
+        };
+
+        window.addEventListener('keydown', alTeclado);
         return () => {
             document.body.style.overflow = previo;
-            window.removeEventListener('keydown', alEscape);
+            window.removeEventListener('keydown', alTeclado);
+            /* De vuelta al botón que lo abrió. */
+            focoPrevioRef.current?.focus?.();
         };
     }, [filtrosAbiertos]);
 
@@ -449,7 +496,7 @@ const Catalog = () => {
             {/* Panel de filtros, sólo en móvil */}
             {filtrosAbiertos && (
                 <div className="catalogo-panel-velo" onClick={e => e.target === e.currentTarget && setFiltrosAbiertos(false)}>
-                    <div className="catalogo-panel" role="dialog" aria-modal="true" aria-label="Filtros">
+                    <div className="catalogo-panel" ref={panelRef} role="dialog" aria-modal="true" aria-label="Filtros">
                         <div className="catalogo-panel-head">
                             <h2>Filtros</h2>
                             <button type="button" className="catalogo-panel-cerrar" onClick={() => setFiltrosAbiertos(false)} aria-label="Cerrar filtros">
@@ -545,7 +592,13 @@ const Catalog = () => {
                         <div className="catalogo-resumen">
                             <span>{filtradas.length} pieza{filtradas.length !== 1 ? 's' : ''}</span>
                             <div>
-                                <span>{visibles.length} de {filtradas.length}</span>
+                                {/* Sólo cuando falta algo por cargar. Con todo a
+                                    la vista decía "5 de 5" junto a "5 piezas":
+                                    el mismo dato dos veces, y en el tono más
+                                    claro de la paleta. */}
+                                {visibles.length < filtradas.length && (
+                                    <span>{visibles.length} de {filtradas.length}</span>
+                                )}
                                 {filtrosActivos > 0 && (
                                     <button type="button" className="catalogo-limpiar" onClick={limpiarFiltros}>
                                         Limpiar filtros

@@ -19,7 +19,12 @@
   --ink-soft: #2A231E;
   --text-primary: #1C1714;
   --text-secondary: #6B615A;
-  --text-muted: #9C938B;
+  /* Aclarado de #9C938B a #766D66. El anterior daba 2.83:1 sobre marfil y se
+     usa en 45 sitios: cualquier texto con este token fallaba el mínimo AA de
+     4.5:1. Ahora da 4.74:1. Sigue siendo más claro que --text-secondary
+     (5.52:1), así que la jerarquía de tonos se conserva, aunque más
+     comprimida: es lo que cuesta cumplir. */
+  --text-muted: #766D66;
 
   /* Metal */
   --oro: #A8863F;
@@ -15291,7 +15296,11 @@ textarea:focus-visible {
   z-index: 3;
   display: none;
   justify-content: center;
-  gap: 7px;
+  /* 18px y no 7px: con el área de toque en 24px, un hueco menor haría que los
+     objetivos de dos puntos vecinos se solaparan, y un toque ambiguo es peor
+     que uno pequeño. Con 18px los centros quedan a 24px y se tocan sin
+     pisarse. */
+  gap: 18px;
 }
 
 .pg-gallery-punto {
@@ -15299,10 +15308,23 @@ textarea:focus-visible {
   height: 6px;
   padding: 0;
   border: none;
+  /* El punto se ve de 6px y se toca de 24. Sin esto el objetivo real medía
+     6x6 —muy por debajo del mínimo de 24x24— y fallaba para cualquiera con
+     el pulso menos fino. El ::after es transparente: nada cambia en pantalla. */
+  position: relative;
   border-radius: 100px;
   background: rgba(255, 255, 255, 0.32);
   cursor: pointer;
   transition: width 0.3s var(--ease), background 0.3s ease;
+}
+.pg-gallery-punto::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 24px;
+  height: 24px;
 }
 .pg-gallery-punto--on { width: 18px; background: var(--oro-luz); }
 
