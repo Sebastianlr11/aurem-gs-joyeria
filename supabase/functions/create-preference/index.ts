@@ -200,10 +200,46 @@ Deno.serve(async (req: Request) => {
           currency_id: 'COP',
         }))
 
+    /* Quién paga, con sus datos reales.
+
+       Antes iba una dirección fija inventada —comprador@auremgsjoyeria.com—
+       porque el campo es obligatorio y los pedidos de WhatsApp podían no
+       traer correo. El efecto era que Mercado Pago le mandaba el comprobante
+       del pago a un buzón que no existe: la clienta pagaba y no le llegaba
+       ningún respaldo del medio de pago.
+
+       Ahora se usa el suyo cuando lo hay, y el de relleno sólo cuando no.
+
+       OJO al probar: Mercado Pago no deja que alguien se pague a sí mismo.
+       Si el correo del comprador es el mismo de la cuenta que cobra, el
+       botón de pagar sale deshabilitado. Para probar hay que usar otro
+       correo, no el de la cuenta del negocio.
+
+       El nombre y el teléfono van también: llegan precargados a la pantalla
+       de pago y son tres campos menos que teclear con el pulgar. */
+    /* Sólo si parece un correo. Hoy el campo es fijo y no puede fallar; en
+       cuanto pasa a venir del formulario, uno mal escrito haría que Mercado
+       Pago rechace la preferencia entera y la clienta vea "Error al crear
+       preferencia de pago" en vez de la pantalla de pago. Ante la duda, el
+       de relleno: peor es no poder cobrar. */
+    const correoValido = typeof buyer.email === 'string'
+      && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(buyer.email.trim())
+
+    const [nombrePila, ...resto] = String(buyer.name).trim().split(/\s+/)
+    const soloDigitos = String(buyer.phone ?? '').replace(/\D/g, '')
+    /* En E.164 colombiano el indicativo son los dos primeros dígitos si el
+       número viene con prefijo; si no, son los diez de siempre. */
+    const numeroLocal = soloDigitos.length > 10 ? soloDigitos.slice(-10) : soloDigitos
+
     const preference: Record<string, unknown> = {
       items: mpItems,
       payer: {
-        email: 'comprador@auremgsjoyeria.com',
+        email: correoValido ? buyer.email.trim() : 'comprador@auremgsjoyeria.com',
+        name: nombrePila,
+        ...(resto.length ? { surname: resto.join(' ') } : {}),
+        ...(numeroLocal.length === 10
+          ? { phone: { area_code: '57', number: numeroLocal } }
+          : {}),
       },
       back_urls: {
         success: `${appUrl}/confirmacion`,
