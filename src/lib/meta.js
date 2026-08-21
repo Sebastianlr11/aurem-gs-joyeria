@@ -94,15 +94,28 @@ export function ponerProductoJsonLd(pieza) {
   const id = 'jsonld-producto';
   document.getElementById(id)?.remove();
 
-  const foto = (Array.isArray(pieza.images) && pieza.images[0]) || pieza.image_url || '';
+  /* Todas las fotos, no sólo la primera: Google puede elegir cuál enseñar en
+     el resultado, y con una sola no le damos opción. */
+  /* Sin repetir: image_url suele ser la misma que images[0], y una lista con
+     la misma foto dos veces es una señal de descuido para quien la lea. */
+  const fotos = [...new Set([
+    ...(Array.isArray(pieza.images) ? pieza.images : []),
+    ...(pieza.image_url ? [pieza.image_url] : []),
+  ].filter(Boolean))];
   const material = [pieza.metal, pieza.piedra].filter(Boolean).join(' · ');
+
+  /* La misma referencia que se enseña en la ficha. Le da a Google un
+     identificador estable de la pieza, distinto de la URL. */
+  const sku = `AG-${String(pieza.id).replace(/\D/g, '').slice(-4).padStart(4, '0')}`;
 
   const datos = {
     '@context': 'https://schema.org',
     '@type': 'Product',
     name: pieza.name,
-    ...(foto ? { image: foto } : {}),
+    sku,
+    ...(fotos.length ? { image: fotos } : {}),
     ...(pieza.description ? { description: pieza.description } : {}),
+    ...(pieza.category ? { category: pieza.category } : {}),
     ...(material ? { material } : {}),
     brand: { '@type': 'Brand', name: 'Aurem Gs Joyería' },
     offers: {
@@ -114,6 +127,9 @@ export function ponerProductoJsonLd(pieza) {
       availability: pieza.stock === 0
         ? 'https://schema.org/OutOfStock'
         : 'https://schema.org/InStock',
+      seller: { '@type': 'Organization', name: 'Aurem Gs Joyería' },
+      /* Con www, igual que la canónica. El bloque que había en la ficha la
+         ponía sin www y eso le decía a Google que era otra página. */
       url: `${RAIZ}/catalogo/${pieza.id}`,
     },
   };

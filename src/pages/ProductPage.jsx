@@ -965,24 +965,6 @@ const ProductPage = () => {
         </div>
     );
 
-    const jsonLd = {
-        '@context': 'https://schema.org',
-        '@type': 'Product',
-        name: product.name,
-        description: product.description || `${product.name} — ${product.category} de lujo. Aurem Gs Joyería.`,
-        image: allImages,
-        brand: { '@type': 'Brand', name: 'Aurem Gs Joyería' },
-        category: product.category,
-        offers: {
-            '@type': 'Offer',
-            priceCurrency: 'COP',
-            price: product.price,
-            availability: 'https://schema.org/InStock',
-            seller: { '@type': 'Organization', name: 'Aurem Gs Joyería' },
-            url: `https://auremgsjoyeria.com/catalogo/${product.id}`,
-        },
-    };
-
     /* La talla solo tiene sentido en anillos y es un dato del cliente,
        no del producto: viaja en el mensaje de WhatsApp y se confirma antes
        de enviar, porque el checkout todavía no la captura. */
@@ -1063,7 +1045,6 @@ const ProductPage = () => {
 
     return (
         <div className="ficha">
-            <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
             {showBuyModal && <BuyModal product={product} onClose={() => setShowBuyModal(false)} />}
 
             <section className="ficha-hero">
