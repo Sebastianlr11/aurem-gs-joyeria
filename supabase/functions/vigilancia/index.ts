@@ -51,6 +51,17 @@ Deno.serve(async (req: Request) => {
   const ahora = Date.now()
   const hace = (min: number) => new Date(ahora - min * 60_000).toISOString()
 
+  /* Español, no "cliente(s)". Este bloque se lee con prisa y en el celular:
+     el paréntesis obliga a resolver la concordancia mentalmente justo cuando
+     lo que hace falta es entender qué pasó. */
+  const plural = (n: number, uno: string, varios: string) =>
+    n === 1 ? `1 ${uno}` : `${n} ${varios}`
+
+  /* 573167414801 no se lee. 316 741 4801 sí, y además es como está guardado
+     en el celular de quien va a llamar. */
+  const telLegible = (t: string) =>
+    (t || '').replace(/^57/, '').replace(/(\d{3})(\d{3})(\d{4})/, '$1 $2 $3')
+
   /* ── 1. Mensajes que Meta no entregó ────────────────────────────────
      Esta es la que habría cazado el fallo de las fotos WebP el mismo día:
      Meta aceptaba la petición y después no entregaba, y en la base quedaba
@@ -64,7 +75,9 @@ Deno.serve(async (req: Request) => {
   if (fallidos?.length) {
     const tipos = [...new Set(fallidos.map((m) => m.message_type ?? 'texto'))].join(', ')
     hallazgos.push({
-      que: `${fallidos.length} mensaje(s) de WhatsApp no se entregaron`,
+      que: fallidos.length === 1
+        ? 'Un mensaje de WhatsApp no se entregó'
+        : `${fallidos.length} mensajes de WhatsApp no se entregaron`,
       detalle: `Tipo: ${tipos}. Ejemplo: "${String(fallidos[0].content ?? '').slice(0, 90)}"`,
       grave: true,
     })
@@ -94,8 +107,10 @@ Deno.serve(async (req: Request) => {
   }
   if (esperando.length) {
     hallazgos.push({
-      que: `${esperando.length} cliente(s) escribieron y nadie respondió`,
-      detalle: esperando.slice(0, 5).join(', '),
+      que: esperando.length === 1
+        ? 'Una clienta escribió y nadie respondió'
+        : `${esperando.length} clientas escribieron y nadie respondió`,
+      detalle: esperando.slice(0, 5).map(telLegible).join(' · '),
       grave: true,
     })
   }
@@ -113,7 +128,9 @@ Deno.serve(async (req: Request) => {
 
   if (colgados?.length) {
     hallazgos.push({
-      que: `${colgados.length} pago(s) cobrados sin procesar`,
+      que: colgados.length === 1
+        ? 'Un pago cobrado y sin procesar'
+        : `${colgados.length} pagos cobrados y sin procesar`,
       detalle: colgados.map((o) => `${o.customer_name} · $${Number(o.amount).toLocaleString('es-CO')}`).join(' | '),
       grave: true,
     })
@@ -155,7 +172,7 @@ Deno.serve(async (req: Request) => {
     if (quietos.length) {
       const dias = Math.round(plazo.horas / 24)
       hallazgos.push({
-        que: `${quietos.length} pedido(s) ${plazo.que} hace más de ${dias === 1 ? 'un día' : `${dias} días`}`,
+        que: `${plural(quietos.length, 'pedido', 'pedidos')} ${plazo.que} hace más de ${dias === 1 ? 'un día' : `${dias} días`}`,
         detalle: quietos
           .map((o) => `${o.customer_name} · $${Number(o.amount).toLocaleString('es-CO')}`)
           .join(' | '),
@@ -189,7 +206,7 @@ Deno.serve(async (req: Request) => {
 
     if (relleno?.length) {
       hallazgos.push({
-        que: `Hay pauta corriendo y ${relleno.length} pieza(s) con costo de relleno`,
+        que: `Hay pauta corriendo y ${plural(relleno.length, 'pieza', 'piezas')} con costo de relleno`,
         detalle: `${relleno.map((p) => p.name).join(', ')}. El margen que enseña el panel es inventado; pedirle los costos reales al joyero antes de decidir presupuesto.`,
         grave: true,
       })
@@ -226,7 +243,7 @@ Deno.serve(async (req: Request) => {
     }
   }
 
-  console.log(`vigilancia · ${hallazgos.length} hallazgo(s)`)
+  console.log(`vigilancia · ${plural(hallazgos.length, 'hallazgo', 'hallazgos')}`)
 
   /* Se deja escrito SIEMPRE, encuentre o no encuentre. Escribir sólo cuando
      hay problemas dejaría el panel enseñando la avería de anteayer como si
