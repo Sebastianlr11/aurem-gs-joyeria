@@ -1,0 +1,58 @@
+/* Las fuentes, servidas por nosotros.
+ *
+ * Estaban en un @import a Google dentro de este mismo archivo. Se cambió a
+ * un <link> en el HTML y el bloqueo bajó, pero el LCP EMPEORÓ: de 3,9 a 5,7
+ * segundos, medido tres veces con rangos que no se solapan.
+ *
+ * El motivo lo dio Lighthouse: el elemento más grande de la página es el
+ * logo del navbar, que es texto en Marcellus. O sea que lo que la gente
+ * espera para ver la página cargada es una fuente que venía de otro
+ * dominio: DNS, TLS, la hoja de estilos, y recién después el archivo. En
+ * escritorio no se nota; con 4G lento esa cadena es la más larga de toda la
+ * carga.
+ *
+ * Ahora los archivos viven acá, salen del mismo CDN que todo lo demás y no
+ * hay ninguna conexión de por medio. Sólo los subconjuntos latin y
+ * latin-ext, que es lo que necesita el español —los otros cinco que sirve
+ * Google son cirílico, griego y vietnamita—.
+ *
+ * Si algún día se cambia una familia, se bajan de nuevo con
+ * scripts/og/... no: se piden a fonts.googleapis.com con un navegador
+ * moderno en el user-agent y se copian los woff2 que devuelva.
+ */
+
+@font-face {
+  font-family: 'Marcellus';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/assets/fuentes/marcellus-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'Marcellus';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/assets/fuentes/marcellus-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Mulish';
+  font-style: normal;
+  font-weight: 300 800;
+  font-display: swap;
+  src: url('/assets/fuentes/mulish-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'Mulish';
+  font-style: normal;
+  font-weight: 300 800;
+  font-display: swap;
+  src: url('/assets/fuentes/mulish-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
