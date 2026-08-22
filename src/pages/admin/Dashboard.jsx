@@ -7,6 +7,7 @@ import { NAV } from './adminNav.jsx';
 import PautaRetorno from './PautaRetorno';
 import ProductModal from './ProductModal';
 import EliminarPieza, { refDe } from './EliminarPieza';
+import PedidoModal from './PedidoModal';
 
 /* ─── Constants ──────────────────────────────────────────────────── */
 const CATEGORIES = ['Anillos', 'Collares', 'Aretes', 'Pulseras', 'Dijes'];
@@ -38,6 +39,19 @@ const NEXT_ACTION_COD = {
 };
 
 const isCOD = (order) => order.payment_method === 'contraentrega';
+
+/* Cómo se escribe cada método. Antes sólo 'contraentrega' tenía nombre y los
+   demás se pintaban con la clave cruda de la base, así que la tabla mezclaba
+   "Contra entrega" con "nequi" en minúsculas. */
+const PAGO_LABEL = {
+    contraentrega: 'Contra entrega',
+    mercadopago: 'Mercado Pago',
+    nequi: 'Nequi',
+    daviplata: 'Daviplata',
+    transferencia: 'Transferencia',
+    efectivo: 'Efectivo',
+};
+const nombrePago = (m) => PAGO_LABEL[m] || m;
 const getNextAction = (order) => (isCOD(order) ? NEXT_ACTION_COD : NEXT_ACTION_PREPAID)[order.status];
 
 const WA_MESSAGES = {
@@ -72,8 +86,6 @@ const fmtDate = d => new Date(d).toLocaleDateString('es-CO', { day: '2-digit', m
    igual importa: de este texto sale el punzón de ley que se muestra junto a
    la pieza, y "Plata 925" y "plata .925" darían dos punzones distintos. */
 
-const EMPTY_ORDER    = { customer_name:'', customer_phone:'', customer_email:'', product_id:'', product_name:'', amount:'', status:'pendiente', payment_method:'', notes:'', carrier:'', tracking_number:'', shipping_address:'', shipping_city:'', shipping_department:'' };
-const PAYMENT_METHODS = ['MercadoPago', 'Nequi', 'Daviplata', 'Transferencia', 'Efectivo', 'Contraentrega'];
 const EMPTY_CUSTOMER = { name:'', phone:'', email:'', notes:'' };
 
 /* ─── Webhook helper ─────────────────────────────────────────────── */
@@ -132,7 +144,6 @@ const fireWebhook = async (order, newStatus, extraFields = {}) => {
  * el guardado y deja el botón congelado. Los formularios de edición se llenan
  * directo desde la fila, así que todo texto pasa por acá.
  */
-const texto = (v) => String(v ?? '').trim();
 
 /* NAV imported from adminNav.js */
 
@@ -226,186 +237,6 @@ const VentasPorOrigen = ({ orders }) => {
                 ))}
             </div>
         </section>
-    );
-};
-
-/* ─── OrderModal ─────────────────────────────────────────────────── */
-const OrderModal = ({ order, products, onClose, onSaved }) => {
-    const isEdit = !!order?.id;
-    const [form, setForm] = useState(isEdit ? { ...order, product_id: order.product_id || '', carrier: order.carrier || '', tracking_number: order.tracking_number || '' } : { ...EMPTY_ORDER });
-    const [saving, setSaving] = useState(false);
-    const [error, setError] = useState('');
-    const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
-
-    const handleProductSelect = (e) => {
-        const pid = e.target.value;
-        if (!pid) { setForm(f => ({ ...f, product_id: '', product_name: '', amount: '' })); return; }
-        const p = products.find(x => x.id === pid);
-        if (p) setForm(f => ({ ...f, product_id: pid, product_name: p.name, amount: String(p.price) }));
-    };
-
-    const handleSubmit = async (e) => {
-        e.preventDefault(); setError('');
-        if (!texto(form.customer_name)) { setError('Nombre del cliente obligatorio.'); return; }
-        if (!texto(form.product_name))  { setError('Nombre del producto obligatorio.'); return; }
-        if (!form.amount || isNaN(Number(form.amount))) { setError('Monto invalido.'); return; }
-        setSaving(true);
-        const payload = {
-            customer_name: texto(form.customer_name),
-            customer_phone: texto(form.customer_phone) || null,
-            customer_email: texto(form.customer_email) || null,
-            product_id: form.product_id || null,
-            product_name: texto(form.product_name),
-            amount: Number(form.amount),
-            status: form.status,
-            payment_method: form.payment_method || null,
-            notes: texto(form.notes) || null,
-            carrier: texto(form.carrier) || null,
-            tracking_number: texto(form.tracking_number) || null,
-            shipping_address: texto(form.shipping_address) || null,
-            shipping_city: texto(form.shipping_city) || null,
-            shipping_department: texto(form.shipping_department) || null,
-        };
-        if (!isEdit) {
-            payload.order_source = 'manual';
-        }
-        let err;
-        let creado = null;
-        try {
-            if (isEdit) ({ error: err } = await supabase.from('orders').update(payload).eq('id', order.id));
-            else ({ data: creado, error: err } = await supabase.from('orders').insert([payload]).select('id').single());
-        } catch (e) {
-            err = e;
-        } finally {
-            // Si algo revienta, el botón tiene que volver a decir "Guardar".
-            setSaving(false);
-        }
-        if (err) { setError(err.message || 'No se pudo guardar el pedido.'); return; }
-        // También desde el formulario: un pedido cargado a mano ya cobrado es
-        // una venta igual de real que las demás.
-        const id = isEdit ? order.id : creado?.id;
-        if (id && form.status === 'pagado') await avisarConversion(id);
-        onSaved();
-    };
-
-    return (
-        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-            <div className="modal-box">
-                <div className="modal-header">
-                    <h2 className="modal-title">{isEdit ? 'Editar pedido' : 'Nuevo pedido'}</h2>
-                    <button className="modal-close" onClick={onClose}>&#x2715;</button>
-                </div>
-                <form className="modal-form" onSubmit={handleSubmit}>
-                    {error && <p className="admin-error">{error}</p>}
-                    <div className="modal-row">
-                        <div className="modal-field">
-                            <label>Cliente *</label>
-                            <input value={form.customer_name} onChange={e => set('customer_name', e.target.value)} placeholder="Nombre del cliente" />
-                        </div>
-                        <div className="modal-field">
-                            <label>Telefono / WhatsApp</label>
-                            <input value={form.customer_phone} onChange={e => set('customer_phone', e.target.value)} placeholder="+57 300 000 0000" />
-                        </div>
-                    </div>
-                    <div className="modal-row">
-                        <div className="modal-field">
-                            <label>Seleccionar producto</label>
-                            <select value={form.product_id} onChange={handleProductSelect}>
-                                <option value="">— Buscar en catalogo —</option>
-                                {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                            </select>
-                        </div>
-                        <div className="modal-field">
-                            <label>Producto *</label>
-                            <input value={form.product_name} onChange={e => set('product_name', e.target.value)} placeholder="Nombre del producto" />
-                        </div>
-                    </div>
-                    <div className="modal-row">
-                        <div className="modal-field">
-                            <label>Monto COP *</label>
-                            <input type="number" min="0" value={form.amount} onChange={e => set('amount', e.target.value)} placeholder="0" />
-                        </div>
-                        <div className="modal-field">
-                            <label>Estado</label>
-                            <select value={form.status} onChange={e => set('status', e.target.value)}>
-                                {ORDER_STATUSES.map(s => <option key={s} value={s}>{STATUS_META[s].label}</option>)}
-                            </select>
-                        </div>
-                    </div>
-                    <div className="modal-field">
-                        <label>Método de pago</label>
-                        <select value={form.payment_method || ''} onChange={e => set('payment_method', e.target.value)}>
-                            <option value="">— Seleccionar —</option>
-                            {PAYMENT_METHODS.map(m => <option key={m} value={m.toLowerCase()}>{m}</option>)}
-                        </select>
-                    </div>
-                    {!isEdit ? (
-                        <>
-                            <div className="modal-field">
-                                <label>Correo electrónico</label>
-                                <input value={form.customer_email} onChange={e => set('customer_email', e.target.value)} placeholder="cliente@email.com" />
-                            </div>
-                            <div className="modal-field">
-                                <label>Dirección de envío</label>
-                                <input value={form.shipping_address} onChange={e => set('shipping_address', e.target.value)} placeholder="Calle, número, barrio..." />
-                            </div>
-                            <div className="modal-row">
-                                <div className="modal-field">
-                                    <label>Ciudad</label>
-                                    <input value={form.shipping_city} onChange={e => set('shipping_city', e.target.value)} placeholder="Ej: Bogotá" />
-                                </div>
-                                <div className="modal-field">
-                                    <label>Departamento</label>
-                                    <input value={form.shipping_department} onChange={e => set('shipping_department', e.target.value)} placeholder="Ej: Cundinamarca" />
-                                </div>
-                            </div>
-                        </>
-                    ) : (
-                        <>
-                            <div className="modal-field">
-                                <label>Correo electrónico</label>
-                                <input value={form.customer_email || ''} onChange={e => set('customer_email', e.target.value)} placeholder="cliente@email.com" />
-                            </div>
-                            <div className="modal-field">
-                                <label>Dirección de envío</label>
-                                <input value={form.shipping_address || ''} onChange={e => set('shipping_address', e.target.value)} placeholder="Calle, número, barrio..." />
-                            </div>
-                            <div className="modal-row">
-                                <div className="modal-field">
-                                    <label>Ciudad</label>
-                                    <input value={form.shipping_city || ''} onChange={e => set('shipping_city', e.target.value)} placeholder="Ej: Bogotá" />
-                                </div>
-                                <div className="modal-field">
-                                    <label>Departamento</label>
-                                    <input value={form.shipping_department || ''} onChange={e => set('shipping_department', e.target.value)} placeholder="Ej: Cundinamarca" />
-                                </div>
-                            </div>
-                            <div className="modal-row">
-                                <div className="modal-field">
-                                    <label>Transportadora</label>
-                                    <select value={form.carrier} onChange={e => set('carrier', e.target.value)}>
-                                        <option value="">— Sin transportadora —</option>
-                                        {CARRIERS.map(c => <option key={c} value={c}>{c}</option>)}
-                                    </select>
-                                </div>
-                                <div className="modal-field">
-                                    <label>Número de guía</label>
-                                    <input value={form.tracking_number} onChange={e => set('tracking_number', e.target.value)} placeholder="Número de seguimiento" />
-                                </div>
-                            </div>
-                        </>
-                    )}
-                    <div className="modal-field">
-                        <label>Notas</label>
-                        <textarea rows={2} value={form.notes} onChange={e => set('notes', e.target.value)} placeholder="Notas del pedido..." />
-                    </div>
-                    <div className="modal-actions">
-                        <button type="button" className="admin-btn admin-btn--outline" onClick={onClose}>Cancelar</button>
-                        <button type="submit" className="admin-btn" disabled={saving}>{saving ? 'Guardando...' : isEdit ? 'Guardar' : 'Crear pedido'}</button>
-                    </div>
-                </form>
-            </div>
-        </div>
     );
 };
 
@@ -1622,9 +1453,7 @@ const OrdersSection = ({ orders, products, loading, onRefresh }) => {
                                             <td className="ped-td-num">
                                                 <span className="ped-monto">${fmt(o.amount)}</span>
                                                 <span className="ped-meta">
-                                                    {o.payment_method
-                                                        ? (isCOD(o) ? 'Contra entrega' : o.payment_method)
-                                                        : 'Sin registrar'}
+                                                    {o.payment_method ? nombrePago(o.payment_method) : 'Sin registrar'}
                                                 </span>
                                             </td>
                                             <td><StatusBadge status={o.status} /></td>
@@ -1691,7 +1520,7 @@ const OrdersSection = ({ orders, products, loading, onRefresh }) => {
                                     <StatusBadge status={o.status} />
                                     <SourceBadge source={o.order_source || 'web'} />
                                     {o.payment_method && (
-                                        <span className={`od-pay-badge ${isCOD(o) ? 'od-pay-badge--cod' : ''}`}>{o.payment_method}</span>
+                                        <span className={`od-pay-badge ${isCOD(o) ? 'od-pay-badge--cod' : ''}`}>{nombrePago(o.payment_method)}</span>
                                     )}
                                 </div>
                                 <p className="od-hero-amount">${fmt(o.amount)}</p>
@@ -1802,8 +1631,8 @@ const OrdersSection = ({ orders, products, loading, onRefresh }) => {
                     </div>
                 );
             })()}
-            {modal?.type === 'add'    && <OrderModal products={products} onClose={closeModal} onSaved={afterSave} />}
-            {modal?.type === 'edit'   && <OrderModal order={modal.order} products={products} onClose={closeModal} onSaved={afterSave} />}
+            {modal?.type === 'add'    && <PedidoModal products={products} onClose={closeModal} onSaved={afterSave} />}
+            {modal?.type === 'edit'   && <PedidoModal order={modal.order} products={products} onClose={closeModal} onSaved={afterSave} />}
             {modal?.type === 'ship'   && <ShipModal order={modal.order} onClose={closeModal} onConfirm={handleShipConfirm} />}
             {modal?.type === 'confirm_status' && (
                 <StatusConfirmModal
