@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
+import { recibidoDe, porCobrarDe, estaVivo } from '../../lib/dinero';
 import AdminSidebar from './AdminSidebar';
 import { NAV } from './adminNav.jsx';
 
@@ -1426,12 +1427,18 @@ const ChatPanel = () => {
 
                                                 {/* ── Stats grid ── */}
                                                 <div className="chat-info-stats">
+                                                    {/* La misma cuenta que el dashboard, del mismo archivo.
+                                                        Antes esta ficha contaba sólo 'pagado' y 'entregado' y
+                                                        el dashboard contaba cuatro estados: el mismo cliente
+                                                        daba números distintos según dónde se mirara. */}
                                                     <div className="chat-info-stat">
-                                                        <span className="chat-info-stat-value">${contactOrders.filter(o => o.status === 'pagado' || o.status === 'entregado').reduce((s, o) => s + Number(o.amount || 0), 0).toLocaleString('es-CO')}</span>
-                                                        <span className="chat-info-stat-label">Total gastado</span>
+                                                        <span className="chat-info-stat-value">${contactOrders.reduce((s, o) => s + recibidoDe(o), 0).toLocaleString('es-CO')}</span>
+                                                        <span className="chat-info-stat-label">Ha pagado</span>
                                                     </div>
                                                     <div className="chat-info-stat">
-                                                        <span className="chat-info-stat-value">{contactOrders.length}</span>
+                                                        {/* Los vivos. Contar cancelados al lado de "$0 gastado"
+                                                            daba fichas que se contradecían solas. */}
+                                                        <span className="chat-info-stat-value">{contactOrders.filter(estaVivo).length}</span>
                                                         <span className="chat-info-stat-label">Pedidos</span>
                                                     </div>
                                                     <div className="chat-info-stat">

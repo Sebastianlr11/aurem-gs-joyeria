@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
+import { recibidoDe, porCobrarDe, estaVivo } from '../../lib/dinero';
 import { versionesDeFoto } from '../../lib/optimizarFoto';
 import AdminSidebar from './AdminSidebar';
 import { NAV } from './adminNav.jsx';
@@ -55,7 +56,11 @@ const SOURCE_META = {
 
 const CARRIERS = ['Servientrega', 'Interrapidisimo', 'Coordinadora', 'Otro'];
 
-const REVENUE_STATUSES = ['pagado', 'procesando', 'enviado', 'entregado'];
+/* Pedidos que cuentan como venta hecha: el cliente se comprometió y el
+   pedido avanza. OJO: esto NO es plata recibida. En contraentrega un pedido
+   "enviado" es una venta viva de la que sólo entró el abono del envío; lo
+   que hay en la cuenta lo dice recibidoDe(), en src/lib/dinero.js. */
+const VENTAS_VIVAS = ['pagado', 'procesando', 'enviado', 'entregado'];
 
 const fmt = n => Number(n || 0).toLocaleString('es-CO');
 const fmtDate = d => new Date(d).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -391,13 +396,16 @@ const origenDe = (o) => {
 };
 
 const VentasPorOrigen = ({ orders }) => {
-    const vendidos = orders.filter(o => REVENUE_STATUSES.includes(o.status));
+    const vendidos = orders.filter(o => VENTAS_VIVAS.includes(o.status));
 
     const porOrigen = ORIGENES.map(({ id, label, nota }) => {
         const suyos = vendidos.filter(o => origenDe(o) === id);
         return {
             id, label, nota,
-            pedidos: suyos.length,
+            /* Los vivos, no todos. Contar cancelados junto a "ha gastado $0"
+               daba fichas que se contradecían solas: 10 pedidos, cero pesos. */
+            pedidos: vivos.length,
+            cancelados: suyos.length - vivos.length,
             plata: suyos.reduce((s, o) => s + Number(o.amount || 0), 0),
         };
     });
@@ -786,12 +794,13 @@ const MP_IVA         = 0.19;   // 19% IVA sobre la comisión
 const MP_RETE_FUENTE = 0.015;  // 1.5% retención en la fuente
 const MP_RETE_ICA    = 0.00414;// ~0.414% retención ICA
 
-const COD_PAID = ['pagado', 'enviado', 'entregado'];
-
 /* Ingresos de un conjunto de pedidos. MercadoPago va neto de comisión y
-   retenciones; contraentrega solo cuenta cuando ya se cobró. */
+   retenciones; el contraentrega cuenta lo que de verdad entró.
+
+   Antes 'enviado' contaba como cobrado, y no lo es: el paquete va en camino
+   y el cliente no ha pagado nada más que el abono del envío. */
 const ingresosDe = (pedidos) => {
-    const mp = pedidos.filter(o => REVENUE_STATUSES.includes(o.status) && !isCOD(o));
+    const mp = pedidos.filter(o => VENTAS_VIVAS.includes(o.status) && !isCOD(o));
     const mpBruto = mp.reduce((s, o) => s + Number(o.amount), 0);
     const mpCostos = mp.reduce((s, o) => {
         const monto = Number(o.amount);
@@ -800,19 +809,21 @@ const ingresosDe = (pedidos) => {
     }, 0);
     const mpNeto = mpBruto - mpCostos;
 
-    const codCobrado = pedidos
-        .filter(o => COD_PAID.includes(o.status) && isCOD(o))
-        .reduce((s, o) => s + Number(o.amount), 0);
+    /* El abono del contraentrega también es plata que entró, aunque el
+       pedido no esté cobrado del todo. Sin esto, los $20.000 de cada pedido
+       confirmado no aparecían por ningún lado. */
+    const cod = pedidos.filter(isCOD);
+    const codCobrado = cod.reduce((s, o) => s + recibidoDe(o), 0);
 
-    const porCobrar = pedidos.filter(o => isCOD(o) && !COD_PAID.includes(o.status) && o.status !== 'cancelado');
+    const porCobrar = cod.filter(o => porCobrarDe(o) > 0);
 
     return {
         mpNeto,
         codCobrado,
         total: mpNeto + codCobrado,
-        entregados: pedidos.filter(o => COD_PAID.includes(o.status)).length,
+        entregados: cod.filter(o => ['entregado', 'pagado'].includes(o.status)).length,
         porCobrar,
-        porCobrarTotal: porCobrar.reduce((s, o) => s + Number(o.amount), 0),
+        porCobrarTotal: porCobrar.reduce((s, o) => s + porCobrarDe(o), 0),
     };
 };
 
@@ -1849,14 +1860,17 @@ const CustomersSection = ({ customers, orders = [], loading, onRefresh }) => {
             (correo && (o.customer_email || '').toLowerCase() === correo) ||
             (!tel && !correo && o.customer_name === c.name)
         );
-        const cobrados = suyos.filter(o => REVENUE_STATUSES.includes(o.status));
+        /* Lo que este cliente ha dejado de verdad, no lo que prometió. En
+           contraentrega, un pedido en camino son $20.000, no $550.000. */
+        const vivos = suyos.filter(estaVivo);
         const ultima = suyos.length
             ? suyos.reduce((a, b) => (new Date(a.created_at) > new Date(b.created_at) ? a : b))
             : null;
         return {
             ...c,
             pedidos: suyos.length,
-            gastado: cobrados.reduce((s, o) => s + Number(o.amount), 0),
+            gastado: suyos.reduce((s, o) => s + recibidoDe(o), 0),
+            porCobrar: suyos.reduce((s, o) => s + porCobrarDe(o), 0),
             ultima: ultima?.created_at || null,
         };
     }), [customers, orders]);
@@ -2083,7 +2097,7 @@ const ReportsSection = ({ orders, products = [], onNavigate }) => {
     }, [period]);
 
     const filtered = orders.filter(o => new Date(o.created_at) >= periodStart);
-    const paidFiltered = filtered.filter(o => REVENUE_STATUSES.includes(o.status));
+    const paidFiltered = filtered.filter(o => VENTAS_VIVAS.includes(o.status));
 
     /* Mismo tramo, inmediatamente anterior, para poder comparar */
     const periodDays = period === 'todo' ? null : parseInt(period);
@@ -2091,17 +2105,21 @@ const ReportsSection = ({ orders, products = [], onNavigate }) => {
     const prevFiltered = periodDays
         ? orders.filter(o => { const d = new Date(o.created_at); return d >= prevStart && d < periodStart; })
         : [];
-    const prevPaid = prevFiltered.filter(o => REVENUE_STATUSES.includes(o.status));
+    const prevPaid = prevFiltered.filter(o => VENTAS_VIVAS.includes(o.status));
     const hayComparacion = periodDays && prevFiltered.length > 0;
 
     /* Revenue breakdown */
-    const grossTotal = paidFiltered.reduce((s, o) => s + Number(o.amount), 0);
+    /* Dos números distintos y a propósito separados: lo que entró y lo que
+       falta entrar. Mezclarlos era decir que se vendió medio millón cuando
+       en la cuenta había veinte mil. */
+    const grossTotal = paidFiltered.reduce((s, o) => s + recibidoDe(o), 0);
+    const porCobrarTotal = paidFiltered.reduce((s, o) => s + porCobrarDe(o), 0);
     const mpOrders = paidFiltered.filter(o => !isCOD(o));
     const codOrders = paidFiltered.filter(o => isCOD(o));
     const mpGross = mpOrders.reduce((s, o) => s + Number(o.amount), 0);
     const mpNet = mpOrders.reduce((s, o) => s + calcMPNet(Number(o.amount)), 0);
     const mpFees = mpGross - mpNet;
-    const codTotal = codOrders.reduce((s, o) => s + Number(o.amount), 0);
+    const codTotal = codOrders.reduce((s, o) => s + recibidoDe(o), 0);
     const netTotal = mpNet + codTotal;
 
     const prevNetTotal = prevPaid.reduce((s, o) => s + (isCOD(o) ? Number(o.amount) : calcMPNet(Number(o.amount))), 0);
@@ -2129,7 +2147,7 @@ const ReportsSection = ({ orders, products = [], onNavigate }) => {
         return {
             label: d.toLocaleDateString('es-CO', { day: '2-digit', month: 'short' }).replace('.', ''),
             count: dayOrders.length,
-            revenue: dayOrders.filter(o => REVENUE_STATUSES.includes(o.status)).reduce((s, o) => s + Number(o.amount), 0),
+            revenue: dayOrders.reduce((s, o) => s + recibidoDe(o), 0),
         };
     });
     const maxDayCount = Math.max(...ordersByDay.map(d => d.count), 1);
@@ -2143,7 +2161,7 @@ const ReportsSection = ({ orders, products = [], onNavigate }) => {
     const productRevenue = {};
     filtered.forEach(o => {
         productCounts[o.product_name] = (productCounts[o.product_name] || 0) + 1;
-        if (REVENUE_STATUSES.includes(o.status)) productRevenue[o.product_name] = (productRevenue[o.product_name] || 0) + Number(o.amount);
+        productRevenue[o.product_name] = (productRevenue[o.product_name] || 0) + recibidoDe(o);
     });
 
     /* Orders by status */
