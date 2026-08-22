@@ -1,100 +1,157 @@
-# 💎 Aurem GS — E-commerce de Joyeria Artesanal
+# Aurem Gs Joyería
 
-Plataforma e-commerce completa para una joyeria artesanal. Incluye catalogo de productos, carrito de compras, pasarela de pagos con Mercado Pago, guia de tallas, y un panel de administracion con dashboard, gestion de pedidos y chat en tiempo real con clientes via WhatsApp.
+Joyería de oro y plata en Bogotá. Piezas de catálogo y fabricación a medida.
 
----
+Esto es el sistema completo del negocio: la tienda pública, el panel de administración,
+**"Valentina"** —el bot que atiende WhatsApp—, los cobros por Mercado Pago, los correos
+transaccionales y un vigía que avisa por correo cuando algo se rompe.
 
-## ✨ Features
-
-- 🛍️ **Catalogo de productos** — Colecciones, categorias, paginas de producto con galeria de imagenes
-- 🛒 **Carrito de compras** — Agregar, eliminar, seleccionar tallas y cantidades
-- 💳 **Pagos con Mercado Pago** — Checkout integrado con SDK oficial
-- 📏 **Guia de tallas de anillos** — Herramienta interactiva para el cliente
-- 📱 **Diseño responsive** — Optimizado para movil y escritorio
-- 🎨 **Animaciones fluidas** — Transiciones y efectos con Framer Motion
-- 🔐 **Panel de administracion** — Login protegido con autenticacion Supabase
-- 📊 **Dashboard** — Metricas de ventas, pedidos y clientes
-- 💬 **Chat en tiempo real** — Comunicacion directa con clientes de WhatsApp
-- 📦 **Gestion de pedidos** — Estados, tracking, notificaciones
-- 📄 **Paginas legales** — Politica de privacidad, devoluciones, terminos de servicio
-- ❓ **FAQ y contacto** — Seccion de preguntas frecuentes y formulario
+**El motor comercial es WhatsApp, no la web.** La mayoría de los pedidos entran
+conversando; la web es vitrina, prueba de que la tienda existe, y checkout para quien
+prefiere pagar solo.
 
 ---
 
-## 🛠️ Stack
+## Qué hace
 
-![React](https://img.shields.io/badge/React_19-61DAFB?style=flat-square&logo=react&logoColor=black)
-![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)
-![Vite](https://img.shields.io/badge/Vite-646CFF?style=flat-square&logo=vite&logoColor=white)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)
-![Framer Motion](https://img.shields.io/badge/Framer_Motion-0055FF?style=flat-square&logo=framer&logoColor=white)
-![Supabase](https://img.shields.io/badge/Supabase-3FCF8E?style=flat-square&logo=supabase&logoColor=white)
-![Mercado Pago](https://img.shields.io/badge/Mercado_Pago-00B1EA?style=flat-square&logo=mercadopago&logoColor=white)
-![React Router](https://img.shields.io/badge/React_Router-CA4245?style=flat-square&logo=reactrouter&logoColor=white)
-![Vercel](https://img.shields.io/badge/Vercel-000000?style=flat-square&logo=vercel&logoColor=white)
+**Tienda**
+- Catálogo con filtros por categoría, precio y material
+- Ficha de pieza con galería, punzón de ley, guía de tallas y compra directa
+- **Dos formas de pago**: en línea con Mercado Pago (2% de descuento) o **contraentrega con
+  abono** — se abona el envío para confirmar y se paga el resto en la puerta
+- Guía de tallas con calculadora real
+- Páginas legales
+
+**Valentina, en WhatsApp**
+- Responde con el catálogo real, no con lo que se imagine
+- Entiende **fotos y notas de voz**
+- Cotiza piezas a medida con el precio del oro del día
+- Arma pedidos completos y cobra
+- **Escala a una persona** cuando algo se sale de lo que sabe
+
+**Panel** (`/admin`)
+- Qué hay que atender hoy y cuánta plata entró **de verdad** (descontando comisiones, y sin
+  contar como cobrado lo que todavía está en el bolsillo del cliente)
+- Catálogo, pedidos, clientes y despachos
+- Panel de conversaciones en tiempo real, con toma de control
+- Reportes y retorno de pauta con el IVA incluido
+- Precio del oro y base de conocimiento de Valentina, editables sin desplegar
 
 ---
 
-## 📁 Estructura del Proyecto
+## Stack
+
+| | |
+|---|---|
+| **Frontend** | React 19, Vite 7, react-router 7, TypeScript (modo estricto) |
+| **Estilos** | **CSS plano en un archivo.** Sin Tailwind, sin CSS modules, sin preprocesador |
+| **Animaciones** | `src/lib/aparecer.js` propio. **Sin Framer Motion** |
+| **Datos y auth** | Supabase — Postgres, Auth, Storage, Realtime |
+| **Backend** | 9 Edge Functions de Supabase (Deno) + 2 endpoints serverless en Vercel |
+| **Pagos** | Mercado Pago |
+| **Mensajería** | WhatsApp Cloud API (Meta) |
+| **IA** | OpenRouter |
+| **Correos** | Resend + React Email |
+| **Hosting** | Vercel |
+
+> **El backend no está en `api/`.** Son 2 endpoints (~220 líneas) frente a ~3.400 líneas de
+> Edge Functions en `supabase/functions/`.
+
+---
+
+## Estructura
 
 ```
 src/
-├── pages/
-│   ├── Home.jsx              # Landing page
-│   ├── Catalog.jsx           # Catalogo de productos
-│   ├── ProductPage.jsx       # Detalle de producto
-│   ├── Confirmacion.jsx      # Confirmacion de compra
-│   ├── RingSizeGuide.jsx     # Guia de tallas
-│   ├── PrivacyPolicy.jsx     # Politica de privacidad
-│   ├── ReturnsPolicy.jsx     # Politica de devoluciones
-│   ├── TermsOfService.jsx    # Terminos de servicio
-│   └── admin/
-│       ├── Login.jsx         # Autenticacion admin
-│       ├── Dashboard.jsx     # Metricas y reportes
-│       └── ChatPanel.jsx     # Chat WhatsApp en tiempo real
-├── components/
-│   ├── Hero.jsx              # Banner principal
-│   ├── Navbar.jsx            # Navegacion
-│   ├── Footer.jsx            # Pie de pagina
-│   ├── Collections.jsx       # Colecciones destacadas
-│   ├── Contact.jsx           # Formulario de contacto
-│   ├── Reviews.jsx           # Resenas de clientes
-│   ├── Faq.jsx               # Preguntas frecuentes
-│   └── WhatsAppButton.jsx    # Boton flotante de WhatsApp
-└── lib/                      # Utilidades y configuracion
+├── pages/           Tienda pública (8 rutas) + admin/ (4 pantallas)
+├── components/      15 componentes + catalog/
+├── lib/             supabase, dinero, atribucion, pixeles, meta,
+│                    whatsapp, aparecer, optimizarFoto
+├── index.css        Todo el CSS (17.562 líneas)
+└── fuentes.css      Marcellus y Mulish, autoalojadas
+
+supabase/
+├── functions/       wa-webhook, wa-send, create-preference, mp-webhook,
+│                    conversion-pedido, correo-despacho, vigilancia,
+│                    plantillas-programadas, create-admin
+│   └── _shared/     bot.ts (Valentina), wa.ts, medios.ts, conversiones.ts
+└── migrations/
+
+api/                 ficha.js (previsualizaciones), correo.js (Resend)
+emails/              4 plantillas de React Email
+scripts/             sitemap, correos, imagenes, css-pisadas
+docs/                Documentación por feature  ← empieza aquí
 ```
 
 ---
 
-## 🚀 Instalacion
+## Puesta en marcha
 
 ```bash
-# Clonar el repositorio
 git clone https://github.com/Sebastianlr11/aurem-gs-joyeria.git
 cd aurem-gs-joyeria
-
-# Instalar dependencias
 npm install
-
-# Configurar variables de entorno
-cp .env.example .env
-
-# Iniciar en desarrollo
-npm run dev
 ```
 
----
-
-## 🔑 Variables de Entorno
+Crea un `.env.local` en la raíz:
 
 ```env
 VITE_SUPABASE_URL=
 VITE_SUPABASE_ANON_KEY=
-VITE_MERCADOPAGO_PUBLIC_KEY=
+VITE_MP_PUBLIC_KEY=
+CORREO_SECRETO=
+RESEND_API_KEY=
+RESEND_EMAIL_DOMAIN=
+```
+
+Los secretos de las Edge Functions (WhatsApp, Mercado Pago, OpenRouter, Meta, TikTok) viven
+en Supabase, no aquí. La lista completa está en [`CLAUDE.md`](CLAUDE.md).
+
+```bash
+npm run dev
+```
+
+### Comandos
+
+```bash
+npm run dev          # Vite en http://localhost:5173
+npm run build        # sitemap + plantillas de correo + tsc + vite build
+npm run lint         # ESLint (no corre en el build)
+npm run preview      # Sirve /dist
+
+npm run email        # Previsualizador de correos en :3010
+npm run imagenes     # Convierte las fotos estáticas a WebP
+npm run css:pisadas  # Detecta reglas CSS que otras pisan
+npm run sitemap      # Regenera public/sitemap.xml
 ```
 
 ---
 
-## 📄 Licencia
+## Documentación
+
+| Documento | Para qué |
+|---|---|
+| [**CLAUDE.md**](CLAUDE.md) | El mapa completo: arquitectura, rutas, modelo de datos, reglas de negocio, convenciones |
+| [**docs/specs/**](docs/specs/README.md) | Un documento por feature — 20 en total |
+| [**docs/pendientes.md**](docs/pendientes.md) | Lo que está roto o a medias, priorizado |
+| [**DESIGN.md**](DESIGN.md) | El sistema de diseño. **Fuente de verdad** de colores y tipografía |
+
+> ⚠️ Antes de tocar producción, lee [`docs/pendientes.md`](docs/pendientes.md): hay dos
+> fallos de seguridad sin resolver, uno de ellos expone datos personales de clientes.
+
+---
+
+## Convenciones
+
+- **Todo en español de Colombia**: código, comentarios, interfaz, ramas y commits.
+- Ramas `feat/`, `fix/`, `perf/`, `chore/` + frase descriptiva
+  (`fix/dashboard-decia-lo-que-no-sabia`).
+- **El mensaje de commit describe el efecto para el negocio**, no el cambio técnico.
+- Los comentarios del código explican **el incidente que motivó cada decisión no obvia**.
+  Mantener esa costumbre.
+
+---
+
+## Licencia
 
 MIT

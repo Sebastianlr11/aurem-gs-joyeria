@@ -10520,7 +10520,8 @@ textarea:focus-visible {
   border-radius: 10px;
   box-shadow: 0 8px 24px rgba(0,0,0,0.1);
   z-index: 20;
-  min-width: 150px;
+  /* Lo suficiente para que "Eliminar conversación" quepa en una línea. */
+  min-width: 190px;
   overflow: hidden;
   animation: chatPopUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -10544,11 +10545,11 @@ textarea:focus-visible {
   border-bottom: 1px solid #f0f0f0;
 }
 .chat-export-menu-danger {
-  color: #ef4444 !important;
+  color: #8C2F1E !important;
 }
 .chat-export-menu-danger:hover {
-  background: #fff5f5 !important;
-  color: #dc2626 !important;
+  background: #FBEDE9 !important;
+  color: #5E2114 !important;
 }
 
 /* ─── Chat: delivery status checkmarks ─────────────────────────── */
@@ -11068,6 +11069,22 @@ textarea:focus-visible {
 .jornada-panel-nota {
   font-size: 0.75rem;
   color: var(--text-secondary);
+}
+
+/* La nota de "Atender hoy" dice hace cuánto se consultó y se puede tocar para
+   volver a consultar. Se mantiene con cara de nota —no de botón— porque no es
+   una acción del negocio: subrayarla al pasar por encima basta para que se
+   note que responde. */
+.jornada-panel-nota--btn {
+  padding: 0;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 3px;
+}
+
+.jornada-panel-nota--btn:hover {
+  color: var(--oro-ink);
+  text-decoration-color: currentColor;
 }
 
 /* Filas de tarea */
@@ -13163,9 +13180,9 @@ textarea:focus-visible {
 }
 .ped-sub { font-size: 0.86rem; color: var(--text-secondary); }
 
-/* El pulso: tres cifras que además filtran */
+/* El pulso: cuatro cifras que además filtran */
 .ped-pulso {
-  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
   background: var(--bg-color); border: 1px solid var(--hairline); border-radius: 2px;
 }
 .ped-pulso-item {
@@ -17161,6 +17178,15 @@ textarea:focus-visible {
 .jornada-tendencia-barra--cero { background: rgba(255, 255, 255, 0.14); }
 .jornada-tendencia-barra:hover { background: #fff; }
 
+/* El gráfico vive pegado a "Cobrado" y a "Falta cobrar", que sí son plata en
+   la cuenta. Éste mide lo que se pidió, y sin decirlo se lee como caja del
+   día. Va más callado que el resto del bloque: es una salvedad, no un dato. */
+.jornada-tendencia-nota {
+  font-size: 0.72rem;
+  color: rgba(251, 247, 242, 0.38);
+  margin-top: -0.35rem;
+}
+
 @media (max-width: 860px) {
   .jornada-tendencia {
     padding-left: 0; padding-top: 1.25rem;
@@ -17422,3 +17448,330 @@ textarea:focus-visible {
   text-transform: uppercase; color: var(--text-secondary);
 }
 .jornada-wa-s { font-size: 0.8rem; line-height: 1.45; color: var(--text-muted); }
+
+/* ─── Eliminar y archivar desde la lista de conversaciones ────────────────
+   El borrado existía, pero vivía dentro del menú de exportar de la cabecera,
+   detrás de un icono de descarga y sólo con el chat abierto. Nadie busca
+   "eliminar" ahí. Ahora cada fila tiene sus tres puntos, que es donde se mira
+   cuando falta algo, y están donde se decide: en la lista.
+
+   Aparecen al pasar el cursor para no ensuciar una lista que se lee de un
+   vistazo, y tapan la insignia de no leídos mientras están visibles — sólo se
+   ve una cosa a la vez en esa esquina. En pantalla táctil no hay cursor, así
+   que ahí están siempre. */
+
+/* Ocupa su sitio siempre, aunque no se vea. Si apareciera sólo al pasar el
+   cursor, o empujaría la fila entera al aparecer, o —puesto encima— taparía a
+   medias la insignia de no leídos. Reservado el hueco, no pasa ninguna de las
+   dos: el botón se enciende y se apaga sin mover ni cubrir nada. */
+.chat-contact-menu {
+  position: relative;
+  flex: none;
+  margin-left: 2px;
+  z-index: 3;
+}
+
+.chat-contact-menu-btn {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  background: var(--bg-color);
+  color: var(--text-secondary);
+  opacity: 0;
+  transition: opacity 0.2s var(--ease), color 0.2s var(--ease), border-color 0.2s var(--ease);
+}
+
+.chat-contact-item:hover .chat-contact-menu-btn,
+.chat-contact-item:focus-within .chat-contact-menu-btn,
+.chat-contact-menu-btn--abierto {
+  opacity: 1;
+}
+
+.chat-contact-item--active .chat-contact-menu-btn { background: var(--bg-marfil); }
+
+.chat-contact-menu-btn:hover,
+.chat-contact-menu-btn--abierto {
+  color: var(--ink);
+  border-color: var(--hairline);
+}
+
+/* Sin cursor no hay hover que revele nada. */
+@media (hover: none) {
+  .chat-contact-menu-btn { opacity: 1; }
+}
+
+.chat-fila-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 190px;
+  background: var(--bg-color);
+  border: 1px solid var(--hairline);
+  border-radius: 2px;
+  box-shadow: 0 12px 30px rgba(28, 23, 20, 0.12);
+  overflow: hidden;
+  z-index: 30;
+  animation: filaMenu 0.18s var(--ease) both;
+}
+
+/* En las últimas filas no cabe hacia abajo: la lista tiene su propio scroll
+   y el menú quedaría cortado. */
+.chat-fila-menu--arriba {
+  top: auto;
+  bottom: calc(100% + 6px);
+}
+
+@keyframes filaMenu {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.chat-fila-menu button {
+  display: block;
+  width: 100%;
+  padding: 10px 14px;
+  text-align: left;
+  font-family: var(--font-ui);
+  font-size: 0.82rem;
+  color: var(--ink);
+  background: none;
+  border: none;
+  transition: background 0.15s var(--ease), color 0.15s var(--ease);
+}
+
+.chat-fila-menu button + button { border-top: 1px solid var(--hairline); }
+
+.chat-fila-menu button:hover {
+  background: var(--bg-marfil);
+  color: var(--oro-ink);
+}
+
+/* El mismo ladrillo quemado del diálogo de eliminar una pieza, no un rojo de
+   alerta de sistema: aquí no hay segundo color de marca. Lleva el nombre de la
+   clase en el selector porque `.chat-fila-menu button` pesa más que una clase
+   suelta y le ganaba el color de cacao. */
+.chat-fila-menu button.chat-fila-menu-danger { color: #8C2F1E; }
+
+.chat-fila-menu button.chat-fila-menu-danger:hover {
+  background: #FBEDE9;
+  color: #5E2114;
+}
+
+/* ─── Llevarse el hilo, y el parte de lo que no se pudo borrar ────────────
+   Dentro del diálogo de eliminar, que ya tiene su banda de cacao y su
+   fricción. Esto es lo que le faltaba: la copia antes de saltar. */
+
+.ec-descargar {
+  margin: 1rem 0 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.ec-descargar button {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: var(--font-ui);
+  font-size: inherit;
+  font-weight: 600;
+  color: var(--oro-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+
+.ec-descargar button:hover { color: var(--ink); }
+
+.ec-progreso {
+  margin-right: auto;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* El mismo ladrillo quemado que el resto de los avisos graves del panel. */
+.ec-fallos {
+  margin: 1.125rem 0 0;
+  padding: 0.85rem 1rem;
+  background: #FBEDE9;
+  border-left: 2px solid #8C2F1E;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: #5E2114;
+}
+
+.ec-fallos p { margin: 0; }
+.ec-fallos ul { margin: 0.5rem 0 0; padding-left: 1.1rem; }
+.ec-fallos li { margin-top: 0.25rem; }
+.ec-fallos li span { font-weight: 700; }
+
+/* ─── La foto que ya no está ──────────────────────────────────────────────
+   Borrar sólo las fotos deja la fila con su texto: el pie que escribió la
+   clienta y lo que Valentina entendió de la imagen. Sin este sello la burbuja
+   se leería como un mensaje normal y nadie sabría que hubo una foto. */
+
+.chat-foto-borrada {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 6px;
+  padding: 0.5rem 0.7rem;
+  border: 1px dashed var(--hairline);
+  border-radius: 2px;
+  background: var(--bg-marfil);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.chat-foto-borrada::before {
+  content: '';
+  width: 14px;
+  height: 14px;
+  flex: none;
+  background: currentColor;
+  /* Una cámara tachada, dibujada con máscara para que herede el color. */
+  mask: no-repeat center / contain url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M3 7h3l2-2h8l2 2h3v12H3z'/%3E%3Ccircle cx='12' cy='13' r='3.2'/%3E%3Cpath d='M3 3l18 18'/%3E%3C/svg%3E");
+  -webkit-mask: no-repeat center / contain url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M3 7h3l2-2h8l2 2h3v12H3z'/%3E%3Ccircle cx='12' cy='13' r='3.2'/%3E%3Cpath d='M3 3l18 18'/%3E%3C/svg%3E");
+}
+
+/* ─── Seleccionar varias ──────────────────────────────────────────────────
+   No hay nada parecido en el resto del panel, así que este es el patrón: una
+   línea bajo los filtros que en reposo sólo ofrece entrar, y al entrar se
+   convierte en el mando —cuántas van, todas, ninguna, salir—. */
+
+.chat-seleccion-barra {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--hairline);
+  font-size: 0.78rem;
+}
+
+.chat-seleccion-barra button {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: var(--font-ui);
+  font-size: inherit;
+  font-weight: 600;
+  color: var(--oro-ink);
+  transition: color 0.2s var(--ease);
+}
+
+.chat-seleccion-barra button:hover { color: var(--ink); }
+
+.chat-seleccion-cuenta {
+  margin-right: auto;
+  font-weight: 700;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.chat-seleccion-salir { color: var(--text-secondary) !important; }
+.chat-seleccion-salir:hover { color: var(--ink) !important; }
+
+/* La casilla sólo existe mientras dura el modo, así que puede empujar la fila:
+   entrar en modo selección es un cambio de estado y se nota, que es lo que se
+   quiere. Reservarle sitio permanente sería robárselo al nombre. */
+.chat-contact-casilla {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--oro-ink);
+  pointer-events: none;
+}
+
+.chat-contact-item--marcada { background: var(--bg-arena); }
+.chat-contact-item--marcada:hover { background: var(--bg-arena); }
+
+/* ─── La barra del lote ───────────────────────────────────────────────────
+   Al pie de la columna de chats, no de la ventana: la lista tiene su propio
+   scroll y una barra pegada al borde del navegador quedaría flotando encima
+   del chat abierto, que no tiene nada que ver con lo marcado. */
+
+.chat-lote-barra {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 12px 18px calc(12px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--hairline);
+  background: rgba(255, 255, 255, 0.86);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.chat-lote-barra > span {
+  margin-right: auto;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.chat-lote-btn {
+  padding: 0.5rem 0.9rem;
+  border: 1px solid var(--hairline);
+  border-radius: 100px;
+  background: var(--bg-color);
+  font-family: var(--font-ui);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+  transition: all 0.2s var(--ease);
+}
+
+.chat-lote-btn:hover:not(:disabled) { background: var(--bg-arena); }
+.chat-lote-btn:disabled { opacity: 0.5; cursor: default; }
+
+.chat-lote-btn--danger {
+  border-color: rgba(140, 47, 30, 0.32);
+  color: #8C2F1E;
+}
+
+.chat-lote-btn--danger:hover:not(:disabled) {
+  background: #FBEDE9;
+  border-color: #8C2F1E;
+  color: #5E2114;
+}
+
+/* ─── El criterio de la purga, dicho una vez ──────────────────────────────
+   Encima de la lista y no en un tooltip: quien va a borrar treinta hilos de
+   golpe tiene derecho a leer sin buscar por qué están ahí y quién no está. */
+
+.chat-purga-aviso {
+  margin: 0;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--hairline);
+  background: var(--bg-marfil);
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  text-wrap: pretty;
+}
+
+/* El fallo de una acción sobre la lista se lee en la lista, no en el aviso del
+   compositor: archivar treinta conversaciones sin ningún chat abierto fallaba
+   donde nadie estaba mirando. */
+.chat-lote-error {
+  flex: none;
+  margin: 0;
+  padding: 10px 18px;
+  border-top: 1px solid #8C2F1E;
+  background: #FBEDE9;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: #5E2114;
+  cursor: pointer;
+}

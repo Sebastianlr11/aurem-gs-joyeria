@@ -174,7 +174,10 @@ export default function PedidoModal({ order, products = [], onClose, onSaved }) 
             product_name: texto(form.product_name),
             amount: monto,
             status: form.status,
-            payment_method: form.payment_method || null,
+            /* La columna es NOT NULL: mandar null devolvía un 23502 en crudo
+               —"null value violates not-null constraint"— en la cara de quien
+               sólo dejó el select sin tocar. */
+            payment_method: form.payment_method || 'contraentrega',
             notes: texto(form.notes) || null,
             carrier: texto(form.carrier) || null,
             tracking_number: texto(form.tracking_number) || null,
