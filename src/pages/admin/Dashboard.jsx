@@ -3400,6 +3400,9 @@ const SettingsSection = () => {
     const [deletingId, setDeletingId] = useState(null);
     const [confirmDelete, setConfirmDelete] = useState(null);
     const [currentUserId, setCurrentUserId] = useState(null);
+    /* Administrar cuentas es sólo del dueño. Sin esto, quien no lo es veía
+       "No se pudieron cargar los usuarios" y quedaba pensando que algo falló. */
+    const [sinPermiso, setSinPermiso] = useState(false);
 
     const adminApiCall = async (body) => {
         const { data: { session } } = await supabase.auth.getSession();
@@ -3413,14 +3416,24 @@ const SettingsSection = () => {
             body: JSON.stringify(body),
         });
         const text = await res.text();
-        try { return JSON.parse(text); } catch { return { error: text || `Error del servidor (${res.status})` }; }
+        let data;
+        try { data = JSON.parse(text); } catch { data = { error: text || `Error del servidor (${res.status})` }; }
+        // 403: la sesión es válida, pero no es la del dueño.
+        if (res.status === 403) data.sinPermiso = true;
+        return data;
     };
 
     const fetchAdminUsers = async () => {
         setLoadingUsers(true);
         try {
             const data = await adminApiCall({ action: 'list' });
-            if (data && data.users) setAdminUsers(data.users);
+            if (data && data.users) {
+                setAdminUsers(data.users);
+                setSinPermiso(false);
+            } else if (data && data.sinPermiso) {
+                setSinPermiso(true);
+                setAdminUsers([]);
+            }
         } catch (err) {
             console.error('Error fetching admin users:', err);
         }
@@ -3529,7 +3542,8 @@ const SettingsSection = () => {
 
             <ConocimientoCard />
 
-            {/* Admin Users */}
+            {/* Alta de administradores — sólo la ve quien puede usarla */}
+            {!sinPermiso && (
             <div className="admin-card" style={{ maxWidth: 600 }}>
                 <div className="admin-card-head">
                     <h3 className="admin-card-title">
@@ -3562,7 +3576,7 @@ const SettingsSection = () => {
                         />
                     </div>
                     <div>
-                        <button className="admin-btn" onClick={handleCreateAdmin} disabled={adminCreating}>
+                        <button className="admin-btn" onClick={handleCreateAdmin} disabled={adminCreating || sinPermiso}>
                             {adminCreating ? 'Creando...' : 'Crear administrador'}
                         </button>
                     </div>
@@ -3573,6 +3587,7 @@ const SettingsSection = () => {
                     )}
                 </div>
             </div>
+            )}
 
             {/* Admin users list */}
             <div className="admin-card" style={{ maxWidth: 600 }}>
@@ -3587,6 +3602,11 @@ const SettingsSection = () => {
                 </div>
                 {loadingUsers ? (
                     <p style={{ fontSize: '0.85rem', color: '#999', textAlign: 'center', padding: '1rem 0' }}>Cargando...</p>
+                ) : sinPermiso ? (
+                    <p style={{ fontSize: '0.85rem', color: '#766D66', textAlign: 'center', padding: '1rem 0', lineHeight: 1.5 }}>
+                        Las cuentas del panel las administra el dueño.<br />
+                        Si necesitas dar de alta a alguien, pídeselo.
+                    </p>
                 ) : adminUsers.length === 0 ? (
                     <p style={{ fontSize: '0.85rem', color: '#999', textAlign: 'center', padding: '1rem 0' }}>No se pudieron cargar los usuarios.</p>
                 ) : (
@@ -3616,12 +3636,22 @@ const SettingsSection = () => {
                                                 borderRadius: '100px', textTransform: 'uppercase', letterSpacing: '0.04em',
                                             }}>Tú</span>
                                         )}
+                                        {u.esDueno && (
+                                            <span style={{
+                                                marginLeft: '0.5rem', fontSize: '0.62rem', fontWeight: 700,
+                                                background: 'var(--oro-velo, #f3ead6)', color: 'var(--oro-ink, #7A5F26)',
+                                                padding: '2px 7px', borderRadius: '100px',
+                                                textTransform: 'uppercase', letterSpacing: '0.04em',
+                                            }}>Dueño</span>
+                                        )}
                                     </p>
                                     <p style={{ margin: 0, fontSize: '0.72rem', color: '#94a3b8' }}>
                                         Desde {fmtDate(u.created_at)}
                                     </p>
                                 </div>
-                                {u.id !== currentUserId && (
+                                {/* Ni a uno mismo ni al dueño: el servidor también los rechaza,
+                                    pero ofrecer un botón que siempre falla no es ofrecer nada. */}
+                                {u.id !== currentUserId && !u.esDueno && (
                                     <button
                                         className="admin-action-btn admin-action-btn--delete"
                                         onClick={() => setConfirmDelete(u)}
