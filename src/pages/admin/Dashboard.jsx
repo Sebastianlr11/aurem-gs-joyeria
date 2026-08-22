@@ -6,6 +6,7 @@ import AdminSidebar from './AdminSidebar';
 import { NAV } from './adminNav.jsx';
 import PautaRetorno from './PautaRetorno';
 import ProductModal from './ProductModal';
+import EliminarPieza, { refDe } from './EliminarPieza';
 
 /* ─── Constants ──────────────────────────────────────────────────── */
 const CATEGORIES = ['Anillos', 'Collares', 'Aretes', 'Pulseras', 'Dijes'];
@@ -549,6 +550,25 @@ const CustomerModal = ({ customer, onClose, onSaved }) => {
 /* ─── ConfirmModal ───────────────────────────────────────────────── */
 const ConfirmModal = ({ title, text, onClose, onConfirm }) => {
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+
+    /* Se mira el error. Antes esto hacía el borrado y cerraba sin comprobar
+       nada: si RLS o una clave foránea lo bloqueaban, la fila seguía ahí y el
+       panel decía que no. Un borrado que falla en silencio es peor que uno
+       que falla, porque nadie lo va a volver a intentar. */
+    const confirmar = async () => {
+        setLoading(true); setError('');
+        try {
+            const res = await onConfirm();
+            if (res?.error) { setError(res.error.message); return; }
+        } catch (e) {
+            setError(e?.message || 'No se pudo completar.');
+            return;
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
             <div className="confirm-modal">
@@ -557,9 +577,10 @@ const ConfirmModal = ({ title, text, onClose, onConfirm }) => {
                 </div>
                 <h3 className="confirm-modal-title">{title}</h3>
                 <p className="confirm-modal-text">{text}</p>
+                {error && <p className="ep-error" style={{ textAlign: 'left' }}>No se pudo eliminar: {error}</p>}
                 <div className="confirm-modal-actions">
                     <button className="confirm-modal-btn confirm-modal-btn--cancel" onClick={onClose}>Cancelar</button>
-                    <button className="confirm-modal-btn confirm-modal-btn--delete" onClick={async () => { setLoading(true); await onConfirm(); setLoading(false); }} disabled={loading}>
+                    <button className="confirm-modal-btn confirm-modal-btn--delete" onClick={confirmar} disabled={loading}>
                         {loading ? 'Eliminando...' : 'Eliminar'}
                     </button>
                 </div>
@@ -970,7 +991,6 @@ const ORDENES = {
     stock: { label: 'Menos stock primero', fn: (a, b) => (a.stock ?? 99) - (b.stock ?? 99) },
 };
 
-const refDe = (p) => `AG-${String(p.id).replace(/\D/g, '').slice(-4).padStart(4, '0')}`;
 
 const inventarioDe = (p) => {
     if (p.stock === null || p.stock === undefined) return { texto: 'Sin anotar', tono: 'gris' };
@@ -1316,11 +1336,10 @@ const ProductsSection = ({ products, loading, onRefresh }) => {
             {modal?.type === 'add' && <ProductModal onClose={closeModal} onSaved={afterSave} />}
             {modal?.type === 'edit' && <ProductModal product={modal.product} onClose={closeModal} onSaved={afterSave} />}
             {modal?.type === 'delete' && (
-                <ConfirmModal
-                    title="Retirar del catálogo"
-                    text={`¿Seguro que quieres eliminar "${modal.product.name}"? Esta acción no se puede deshacer.`}
+                <EliminarPieza
+                    product={modal.product}
                     onClose={closeModal}
-                    onConfirm={async () => { await supabase.from('products').delete().eq('id', modal.product.id); afterSave(); }}
+                    onDeleted={afterSave}
                 />
             )}
         </div>
@@ -1742,7 +1761,11 @@ const OrdersSection = ({ orders, products, loading, onRefresh }) => {
                     title="Eliminar pedido"
                     text={`Eliminar el pedido de "${modal.order.customer_name}"?`}
                     onClose={closeModal}
-                    onConfirm={async () => { await supabase.from('orders').delete().eq('id', modal.order.id); afterSave(); }}
+                    onConfirm={async () => {
+                        const res = await supabase.from('orders').delete().eq('id', modal.order.id);
+                        if (res.error) return res;
+                        afterSave();
+                    }}
                 />
             )}
         </div>
@@ -1948,7 +1971,11 @@ const CustomersSection = ({ customers, orders = [], loading, onRefresh }) => {
                     title="Eliminar cliente"
                     text={`Eliminar a "${modal.customer.name}" del registro?`}
                     onClose={closeModal}
-                    onConfirm={async () => { await supabase.from('customers').delete().eq('id', modal.customer.id); afterSave(); }}
+                    onConfirm={async () => {
+                        const res = await supabase.from('customers').delete().eq('id', modal.customer.id);
+                        if (res.error) return res;
+                        afterSave();
+                    }}
                 />
             )}
         </div>
