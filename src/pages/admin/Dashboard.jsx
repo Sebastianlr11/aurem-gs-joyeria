@@ -8,6 +8,7 @@ import PautaRetorno from './PautaRetorno';
 import ProductModal from './ProductModal';
 import EliminarPieza, { refDe } from './EliminarPieza';
 import PedidoModal from './PedidoModal';
+import { CLAVE_RESPUESTAS, RESPUESTAS_POR_DEFECTO, comoTexto } from '../../lib/respuestasRapidas';
 
 /* ─── Constants ──────────────────────────────────────────────────── */
 const CATEGORIES = ['Anillos', 'Collares', 'Aretes', 'Pulseras', 'Dijes'];
@@ -3379,7 +3380,13 @@ const SettingsSection = () => {
     const [saved, setSaved] = useState(false);
     const [testing, setTesting] = useState(false);
     const [testResult, setTestResult] = useState('');
-    const [quickReplies, setQuickReplies] = useState(() => localStorage.getItem('admin_quick_replies') || '📦 En camino|Tu pedido esta en camino, pronto lo recibiras!\n📋 Catalogo|Visita nuestro catalogo completo en auremgs.com/catalogo\n🕐 Horario|Nuestro horario de atencion es de lunes a sabado, 9am a 6pm.\n💍 Talla|Para anillos necesitamos tu talla. Guia: auremgs.com/guia-de-tallas\n🙏 Gracias|Gracias por tu compra! Esperamos que disfrutes tu pieza.\n⏳ Entrega|El tiempo de entrega es de 2-3 dias habiles en Bogota, 3-5 en otras ciudades.');
+    /* Las de fábrica salen de src/lib/respuestasRapidas.js, que es donde viven
+       ahora. Antes estaban escritas aquí otra vez, en formato de cadena, y en
+       ChatPanel.jsx en formato de array: las dos copias apuntaban a un dominio
+       que no existe y había que acordarse de los dos sitios para arreglarlo. */
+    const [quickReplies, setQuickReplies] = useState(
+        () => localStorage.getItem(CLAVE_RESPUESTAS) || comoTexto(RESPUESTAS_POR_DEFECTO)
+    );
     const [qrSaved, setQrSaved] = useState(false);
     const [soundEnabled, setSoundEnabled] = useState(() => localStorage.getItem('admin_sound_enabled') !== 'false');
 
@@ -3450,7 +3457,7 @@ const SettingsSection = () => {
     };
 
     const handleSaveQuickReplies = () => {
-        localStorage.setItem('admin_quick_replies', quickReplies);
+        localStorage.setItem(CLAVE_RESPUESTAS, quickReplies);
         setQrSaved(true);
         setTimeout(() => setQrSaved(false), 2000);
     };

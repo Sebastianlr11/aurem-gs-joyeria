@@ -15,7 +15,7 @@ DESIGN.md  (raíz, 595 líneas)          ← FUENTE DE VERDAD
     ↓ versión operativa, para construir
 .claude/skills/designing-aurem-gs/     ← no versionada (pendientes #6)
     ↓ implementación
-src/index.css  (17.562 líneas)         ← los tokens coinciden con DESIGN.md
+src/index.css  (17.781 líneas)         ← los tokens coinciden con DESIGN.md
 ```
 
 **`DESIGN.md` manda sobre cualquier color que aparezca en cualquier otro documento**,
@@ -101,7 +101,7 @@ Dos mecanismos, para dos problemas:
 > `<img>` crudo, sin `srcset` ni dimensiones. Se optimizan al subir, no al entregar —
 > [pendientes #20](../pendientes.md).
 
-## El CSS: 17.562 líneas en un archivo
+## El CSS: 17.781 líneas en un archivo
 
 Sin `@layer`, sin CSS modules, sin preprocesador. Un solo `@import './fuentes.css'`.
 
@@ -120,7 +120,7 @@ Sin `@layer`, sin CSS modules, sin preprocesador. Un solo `@import './fuentes.cs
 ### El repo trae su propia herramienta
 
 `npm run css:pisadas` (`scripts/css-pisadas.mjs`) detecta reglas sobrescritas. **Salida
-actual: 84 bloques con declaraciones muertas.** Sólo 2 son del sitio público
+actual: 25 bloques con declaraciones muertas.** Sólo 2 son del sitio público
 (`.hero-h1`, `.prod-card`); el resto es panel.
 
 ### Capas viejas confirmadas
@@ -156,14 +156,14 @@ conflicto, pero rompe el "todos los tokens en un sitio".
 - 🟠 **No hay guía de diseño del panel**, que es la mitad del código.
 - 🟠 **La skill de diseño no está versionada** y contradice al código en el punto de las
   fuentes — [pendientes #6](../pendientes.md).
-- 84 bloques con declaraciones muertas y tres capas para la ficha.
+- 25 bloques con declaraciones muertas y tres capas para la ficha.
 - `DESIGN.md` tiene su propia sección de **Pendientes**: falta el precio del hero y las nueve
   fotos son de relleno.
 
 ## Cómo probarlo
 
 ```bash
-npm run css:pisadas     # hoy: 84 bloques con declaraciones muertas
+npm run css:pisadas     # hoy: 25 bloques con declaraciones muertas
 npm run dev
 ```
 

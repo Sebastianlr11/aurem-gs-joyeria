@@ -5,6 +5,7 @@ import { recibidoDe, estaVivo } from '../../lib/dinero';
 import AdminSidebar from './AdminSidebar';
 import EliminarChat from './EliminarChat';
 import { descargarChat, borrarFotosDe } from '../../lib/chatArchivo';
+import { leerRespuestas } from '../../lib/respuestasRapidas';
 import { NAV } from './adminNav.jsx';
 
 /* ─── Helpers ───────────────────────────────────────────────────── */
@@ -163,16 +164,6 @@ const sortMessages = (msgs) => {
     });
 };
 
-/* ─── Quick Replies ────────────────────────────────────────────── */
-const QUICK_REPLIES_DEFAULT = [
-    { label: '📦 En camino', text: 'Tu pedido esta en camino, pronto lo recibiras!' },
-    { label: '📋 Catalogo', text: 'Visita nuestro catalogo completo en auremgs.com/catalogo' },
-    { label: '🕐 Horario', text: 'Nuestro horario de atencion es de lunes a sabado, 9am a 6pm.' },
-    { label: '💍 Talla', text: 'Para anillos necesitamos tu talla. Guia: auremgs.com/guia-de-tallas' },
-    { label: '🙏 Gracias', text: 'Gracias por tu compra! Esperamos que disfrutes tu pieza.' },
-    { label: '⏳ Entrega', text: 'El tiempo de entrega es de 2-3 dias habiles en Bogota, 3-5 en otras ciudades.' },
-];
-
 const PRESET_TAGS = [
     { label: 'Interesado', color: '#3b82f6' },
     { label: 'Cliente', color: '#10b981' },
@@ -180,15 +171,6 @@ const PRESET_TAGS = [
     { label: 'VIP', color: '#D4AF37' },
     { label: 'Mayorista', color: '#8b5cf6' },
 ];
-
-const parseQuickReplies = () => {
-    const raw = localStorage.getItem('admin_quick_replies');
-    if (!raw) return QUICK_REPLIES_DEFAULT;
-    return raw.split('\n').filter(l => l.includes('|')).map(l => {
-        const [label, ...rest] = l.split('|');
-        return { label: label.trim(), text: rest.join('|').trim() };
-    });
-};
 
 /* ─── Error Boundary ───────────────────────────────────────────── */
 class ChatErrorBoundary extends React.Component {
@@ -305,7 +287,7 @@ const ChatPanel = () => {
     const menuFilaRef = useRef(null);
     const [realtimeStatus, setRealtimeStatus] = useState('CONNECTING');
     const [soundEnabled, setSoundEnabled] = useState(() => localStorage.getItem('admin_sound_enabled') !== 'false');
-    const quickReplies = useMemo(() => parseQuickReplies(), []);
+    const quickReplies = useMemo(() => leerRespuestas(), []);
     const quickRepliesRef = useRef(null);
     const imagePickerRef = useRef(null);
     const takeoverMapRef = useRef(takeoverMap);
@@ -1768,7 +1750,12 @@ const ChatPanel = () => {
 
                                                 {/* ── Meta pills ── */}
                                                 <div className="chat-info-meta">
-                                                    {(contactCustomer?.email || (contactOrders.length > 0 && contactOrders[0].customer_email && contactOrders[0].customer_email !== 'noreply@auremgs.com')) && (
+                                                    {/* Había aquí un `!== 'noreply@auremgs.com'` para esconder un
+                                                        correo de relleno. Nada en el proyecto escribe nunca ese
+                                                        correo y ningún pedido de la base lo tiene: era una guardia
+                                                        contra un valor que no puede aparecer, y encima nombraba un
+                                                        dominio que no existe. */}
+                                                    {(contactCustomer?.email || (contactOrders.length > 0 && contactOrders[0].customer_email)) && (
                                                         <div className="chat-info-meta-row">
                                                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
                                                             <span>{contactCustomer?.email || contactOrders[0].customer_email}</span>

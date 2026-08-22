@@ -38,7 +38,7 @@ incidente que las motivó.
 | [admin-dashboard.md](admin-dashboard.md) | Saber en 10 segundos qué hay que atender hoy y cuánta plata entró | En producción |
 | [admin-catalogo.md](admin-catalogo.md) | Publicar, editar y retirar piezas | En producción |
 | [admin-pedidos.md](admin-pedidos.md) | Llevar un pedido de confirmado a entregado | En producción |
-| [admin-chat.md](admin-chat.md) | Leer los chats de Valentina y tomar el control cuando toca | En producción · borrado a medias |
+| [admin-chat.md](admin-chat.md) | Leer los chats de Valentina y tomar el control cuando toca | En producción |
 | [admin-reportes-y-pauta.md](admin-reportes-y-pauta.md) | Saber si la pauta se está pagando sola | En producción |
 | [admin-ajustes.md](admin-ajustes.md) | Precio del oro, conocimiento de Valentina, administradores | En producción |
 
@@ -46,7 +46,7 @@ incidente que las motivó.
 
 | Spec | Qué resuelve | Estado |
 |---|---|---|
-| [modelo-de-datos.md](modelo-de-datos.md) | Qué hay en la base y qué está versionado | **Sólo 4 de 16 tablas en el repo** |
+| [modelo-de-datos.md](modelo-de-datos.md) | Qué hay en la base y qué está versionado | **Sólo 4 de ~22 tablas en el repo** |
 | [correos.md](correos.md) | Correos transaccionales con Resend | En producción |
 | [atribucion-y-pixeles.md](atribucion-y-pixeles.md) | Saber qué anuncio trajo cada venta | En producción |
 | [seo-y-compartir.md](seo-y-compartir.md) | Que Google indexe y que WhatsApp muestre la foto al compartir | En producción |

@@ -136,8 +136,9 @@ npm run sitemap      # Regenera public/sitemap.xml
 | [**docs/pendientes.md**](docs/pendientes.md) | Lo que está roto o a medias, priorizado |
 | [**DESIGN.md**](DESIGN.md) | El sistema de diseño. **Fuente de verdad** de colores y tipografía |
 
-> ⚠️ Antes de tocar producción, lee [`docs/pendientes.md`](docs/pendientes.md): hay dos
-> fallos de seguridad sin resolver, uno de ellos expone datos personales de clientes.
+> ⚠️ Antes de tocar producción, lee [`docs/pendientes.md`](docs/pendientes.md). Los accesos
+> abiertos con la llave pública ya están cerrados; sigue pendiente que `create-admin` no
+> comprueba de quién es la sesión.
 
 ---
 

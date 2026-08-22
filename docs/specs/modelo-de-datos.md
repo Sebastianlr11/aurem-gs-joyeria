@@ -34,7 +34,6 @@ Este documento es el mapa de la base. Y su hallazgo principal es incómodo:
 | `vigilancia_ultima` | ❌ | — |
 | vista `envio_publico` | ❌ | — |
 | `message_history`, `whatsapp_dedup`, `conversaciones` | ❌ | ☠️ muertas |
-| `respaldo_chats_20260822`, `respaldo_takeover_20260822`, `respaldo_chatstatus_20260822` | ❌ | respaldos manuales |
 | **Las RPC de analítica** | ❌ | — |
 | `chats_sin_responder`, `conversaciones_purgables` | ✅ | migraciones del 22-ago |
 | Programación de `pg_cron` | ❌ | vive en la base |
@@ -95,7 +94,7 @@ Este documento es el mapa de la base. Y su hallazgo principal es incómodo:
 | Archivo | Qué hizo |
 |---|---|
 | `20260311_add_shipping_address.sql` | Dirección de envío en `orders` |
-| `20260311_orders_rls.sql` | RLS de `orders` — 🔴 **contiene el fallo #1** |
+| `20260311_orders_rls.sql` | RLS de `orders` — declaraba una política abierta a `anon` que **nunca llegó a la base**; anulada después |
 | `20260818_atribucion_anuncios.sql` | `ttclid`, `ttp`, `fbc`, `fbp`, `conversion_enviada_en` |
 | `20260818_atribucion_navegador.sql` | `client_ua`, `client_ip` |
 | `20260818_referral_anuncios.sql` | `referral jsonb` + índice parcial |
@@ -107,13 +106,15 @@ Este documento es el mapa de la base. Y su hallazgo principal es incómodo:
 | `20260819_plantillas_programadas.sql` | `plantillas_enviadas` + `customers.no_escribir` |
 | `20260822_chats_sin_responder.sql` | La función del contador |
 | `20260822_cerrar_conversaciones_a_anon.sql` | 🔒 Cierra las conversaciones a `anon` |
-| `20260822_borrar_chat_media.sql` | Política DELETE en `chat-media` — **sin commitear** |
-| `20260822_conversaciones_purgables.sql` | Retención de conversaciones — **sin commitear** |
+| `20260822_borrar_chat_media.sql` | Política DELETE en `chat-media` |
+| `20260822_conversaciones_purgables.sql` | Retención de conversaciones |
+| `20260822_pedido_publico.sql` | 🔒 `pedido_publico(uuid)` + `DROP` de la política mina |
+| `20260822_quitar_respaldos_de_chats.sql` | Elimina los tres respaldos del 22-ago |
 
-### El fallo que ya se cerró, y el que sigue abierto
+### Los fallos de acceso público, cerrados
 
-`20260822_cerrar_conversaciones_a_anon.sql` arregló exactamente el mismo patrón que sigue
-vivo en `orders`: cinco tablas tenían políticas `[public ALL] using=true`, que **incluye a
+`20260822_cerrar_conversaciones_a_anon.sql` cerró el caso **que sí estaba abierto en
+producción**: cinco tablas tenían políticas `[public ALL] using=true`, que **incluye a
 `anon`**. Como la llave anónima va dentro del bundle público, cualquiera podía leer toda la
 correspondencia con las clientas —nombres, teléfonos, fotos, lo preguntado y lo
 respondido— **y borrarla**.
@@ -126,11 +127,18 @@ quedaron sin ninguna política, alcanzables sólo por `service_role`.
 Las Edge Functions no se enteran del cambio: usan `admin()` de `_shared/wa.ts`, que es
 `SERVICE_ROLE_KEY` y **se salta RLS por completo**.
 
-Los tres `respaldo_*_20260822` son respaldos manuales con 104 filas de conversaciones
-reales que estaban con RLS apagado. **No se borraron** —*"borrar el respaldo de otro no se
-hace sin preguntar"*— sino que se les encendió RLS sin políticas.
+Los tres `respaldo_*_20260822` eran respaldos manuales con 104 filas de conversaciones
+reales y RLS apagado. Primero se les encendió RLS —*"borrar el respaldo de otro no se hace
+sin preguntar"*— y después se eliminaron (`20260822_quitar_respaldos_de_chats.sql`).
 
-> **`orders` sigue con el mismo fallo.** Ver [pendientes #1](../pendientes.md).
+**`orders` se cerró aparte**, con `20260822_pedido_publico.sql`. El caso tiene una lección
+propia: la política `orders_anon_read_own` estaba escrita en `20260311_orders_rls.sql` con
+`USING (true)`, **pero no existía en la base** — comprobado con la llave pública, devuelve
+`[]`. El archivo y la base llevaban meses separados. La migración nueva la borra igual,
+para el día que alguien reconstruya reproduciendo las migraciones en orden.
+
+> **Mientras el esquema no esté versionado, leer las migraciones no es leer la base.** Ver
+> [pendientes #4](../pendientes.md).
 
 ## Decisiones tomadas y por qué
 
@@ -159,9 +167,9 @@ necesita ver más de lo que ve quien la llama, y por eso hay que fijar el `searc
 
 ## Límites conocidos y pendientes
 
-- 🔴 **RLS de `orders`: `anon` puede leer toda la tabla.** Datos personales de todos los
-  clientes con la clave pública del bundle — [pendientes #1](../pendientes.md).
-- 🟠 **13 de 16 tablas y las 8 RPC no están versionadas** — [pendientes #4](../pendientes.md).
+- 🟠 **La mayoría de las tablas y las RPC de analítica no están versionadas** —
+  [pendientes #4](../pendientes.md). Es el hallazgo de fondo: hizo invisibles seis tablas
+  y permitió que un archivo de migración contradijera a la base sin que nadie lo notara.
 - 🟠 **`supabase-schema.sql` está obsoleto**: le faltan 7 columnas que el frontend consume
   y su `CHECK` de categoría no incluye `Dijes`.
 - Las políticas RLS que no están versionadas **tampoco se revisan en un diff** — que es
@@ -191,7 +199,8 @@ SELECT proname FROM pg_proc p
 SELECT jobname, schedule, command FROM cron.job;
 ```
 
-**La prueba que más importa** — debe devolver vacío, y hoy no lo hace:
+**La prueba que más importa** — debe devolver `[]`, y hoy lo hace. Conviene repetirla tras
+cualquier cambio de RLS:
 
 ```bash
 curl "$VITE_SUPABASE_URL/rest/v1/orders?select=customer_name,customer_phone" \
