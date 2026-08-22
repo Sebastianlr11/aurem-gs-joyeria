@@ -17167,3 +17167,227 @@ textarea:focus-visible {
     border-left: 0; border-top: 1px solid rgba(255, 255, 255, 0.09);
   }
 }
+
+/* ─── Cargar un pedido a mano ─────────────────────────────────────────────
+   El diseño venía con radios de 10 y 20px y sombra azulada, del tema viejo
+   del panel. Aquí van 2px y sombra de cacao, como manda el sistema y como
+   ya están la ficha de producto y el diálogo de eliminar: tres modales con
+   tres radios distintos se leen como algo a medio terminar. */
+
+.pd-velo {
+  position: fixed; inset: 0; z-index: 2000;
+  display: flex; align-items: center; justify-content: center;
+  padding: 2.5rem 1.5rem;
+  background: rgba(28, 23, 20, 0.55);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  animation: pdVelo 0.25s ease both;
+}
+@keyframes pdVelo { from { opacity: 0; } to { opacity: 1; } }
+
+.pd-caja {
+  width: 100%; max-width: 780px;
+  max-height: calc(100vh - 5rem);
+  display: flex; flex-direction: column;
+  background: var(--bg-color);
+  border: 1px solid var(--hairline); border-radius: 2px;
+  overflow: hidden;
+  box-shadow: 0 30px 70px rgba(28, 23, 20, 0.26);
+  animation: pdCaja 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes pdCaja {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) { .pd-velo, .pd-caja { animation: none; } }
+
+.pd-cabeza {
+  flex: none;
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 1.5rem;
+  padding: 1.6rem 2rem 1.35rem; border-bottom: 1px solid var(--hairline);
+}
+.pd-cabeza-ante {
+  display: block;
+  font-size: 0.63rem; font-weight: 700; letter-spacing: 0.24em;
+  text-transform: uppercase; color: var(--oro-ink);
+  margin-bottom: 0.4rem;
+}
+.pd-cabeza-titulo {
+  margin: 0; font-family: var(--font-display); font-weight: 400;
+  font-size: 1.75rem; line-height: 1.1; color: var(--ink);
+}
+.pd-cabeza-sub {
+  margin: 0.35rem 0 0; max-width: 46ch;
+  font-size: 0.83rem; line-height: 1.5; color: var(--text-secondary);
+}
+.pd-cerrar {
+  flex: 0 0 auto; width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--bg-marfil); border: 1px solid var(--hairline);
+  border-radius: 2px; color: var(--text-secondary);
+  cursor: pointer; transition: var(--transition-smooth);
+}
+.pd-cerrar:hover { background: var(--bg-arena); color: var(--ink); border-color: rgba(168,134,63,.35); }
+
+.pd-cuerpo {
+  flex: 1; overflow-y: auto; min-height: 0;
+  padding: 1.75rem 2rem 2rem;
+  display: flex; flex-direction: column; gap: 2rem;
+}
+
+.pd-error {
+  margin: 0; padding: 0.8rem 1rem;
+  background: #FBEDE9; border-left: 2px solid #8C2F1E;
+  font-size: 0.88rem; line-height: 1.5; color: #5E2114;
+}
+
+.pd-sec { display: flex; flex-direction: column; gap: 1.1rem; }
+
+.pd-regla { display: flex; align-items: center; gap: 0.9rem; }
+.pd-regla-t {
+  font-size: 0.66rem; font-weight: 700; letter-spacing: 0.22em;
+  text-transform: uppercase; color: var(--ink); white-space: nowrap;
+}
+.pd-regla-linea { flex: 1; height: 1px; background: var(--hairline); }
+.pd-regla-extra {
+  display: flex; align-items: center; gap: 0.4rem;
+  font-size: 0.72rem; font-weight: 700; color: var(--oro-ink); white-space: nowrap;
+}
+
+.pd-rejilla { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem 1.25rem; }
+.pd-rejilla--pieza { grid-template-columns: 1.35fr 1fr; }
+.pd-ancho { grid-column: 1 / -1; }
+
+.pd-campo { display: flex; flex-direction: column; gap: 0.45rem; min-width: 0; }
+.pd-campo-cabeza { display: flex; align-items: baseline; gap: 0.5rem; flex-wrap: wrap; }
+.pd-label { font-size: 0.78rem; font-weight: 700; color: var(--text-secondary); }
+.pd-requerido {
+  font-size: 0.6rem; font-weight: 700; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--oro-ink);
+}
+.pd-apunte { font-size: 0.72rem; color: var(--text-muted); }
+.pd-cuenta {
+  margin-left: auto; font-size: 0.7rem; font-weight: 700;
+  color: var(--text-muted); font-variant-numeric: tabular-nums;
+}
+.pd-cuenta--pasada { color: var(--oro-ink); }
+.pd-ayuda { font-size: 0.75rem; line-height: 1.5; color: var(--text-muted); }
+.pd-ayuda--nota { max-width: 62ch; }
+
+.pd-input {
+  width: 100%; box-sizing: border-box;
+  padding: 0.8rem 1rem;
+  font-family: var(--font-ui); font-size: 0.92rem;
+  color: var(--ink); background: var(--bg-color);
+  border: 1px solid var(--hairline); border-radius: 2px;
+  outline: none;
+  transition: border-color 0.3s cubic-bezier(0.16,1,0.3,1), box-shadow 0.3s cubic-bezier(0.16,1,0.3,1);
+}
+.pd-input:focus { border-color: var(--oro); box-shadow: 0 0 0 3px rgba(168, 134, 63, 0.12); }
+.pd-input::placeholder { color: var(--text-muted); }
+.pd-area { line-height: 1.55; resize: vertical; }
+
+.pd-select { position: relative; display: flex; align-items: center; }
+.pd-select select {
+  width: 100%; box-sizing: border-box;
+  padding: 0.8rem 2.5rem 0.8rem 1rem;
+  font-family: var(--font-ui); font-size: 0.92rem;
+  color: var(--ink); background: var(--bg-color);
+  border: 1px solid var(--hairline); border-radius: 2px;
+  outline: none; appearance: none; cursor: pointer;
+}
+.pd-select select:focus { border-color: var(--oro); box-shadow: 0 0 0 3px rgba(168, 134, 63, 0.12); }
+.pd-select svg { position: absolute; right: 0.9rem; pointer-events: none; color: var(--text-muted); }
+
+.pd-plata {
+  display: flex; align-items: center; gap: 0.55rem;
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--hairline); border-radius: 2px; background: var(--bg-color);
+  transition: border-color 0.3s cubic-bezier(0.16,1,0.3,1), box-shadow 0.3s cubic-bezier(0.16,1,0.3,1);
+}
+.pd-plata:focus-within { border-color: var(--oro); box-shadow: 0 0 0 3px rgba(168, 134, 63, 0.12); }
+.pd-plata input {
+  flex: 1; min-width: 0; border: 0; outline: none; padding: 0; background: transparent;
+  font-family: var(--font-ui); font-size: 0.95rem; font-weight: 700;
+  color: var(--ink); font-variant-numeric: tabular-nums;
+}
+.pd-plata input::placeholder { font-weight: 400; color: var(--text-muted); }
+.pd-plata-signo { font-size: 0.95rem; font-weight: 700; color: var(--text-muted); }
+.pd-plata-cop {
+  font-size: 0.66rem; font-weight: 700; letter-spacing: 0.14em; color: var(--text-muted);
+}
+
+/* Fichas para estado y método de pago. Se ven todas las opciones a la vez —
+   un desplegable esconde justo lo que hay que comparar. */
+.pd-fichas { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.pd-ficha {
+  padding: 0.55rem 1.05rem; border-radius: 100px;
+  border: 1px solid var(--hairline); background: var(--bg-color);
+  font-family: var(--font-ui); font-size: 0.82rem; font-weight: 700;
+  color: var(--text-secondary); cursor: pointer;
+  transition: var(--transition-smooth);
+}
+.pd-ficha:hover { border-color: rgba(168, 134, 63, 0.35); background: var(--bg-marfil); }
+.pd-ficha--on { background: var(--ink); border-color: var(--ink); color: #fff; }
+.pd-ficha--on:hover { background: var(--ink-soft); border-color: var(--ink-soft); }
+
+.pd-pie {
+  flex: none;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 1.5rem; flex-wrap: wrap;
+  padding: 1.1rem 2rem 1.2rem;
+  border-top: 1px solid var(--hairline); background: var(--bg-marfil);
+}
+.pd-pie-estado { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
+.pd-pie-rotulo {
+  font-size: 0.63rem; font-weight: 700; letter-spacing: 0.2em;
+  text-transform: uppercase; color: var(--text-muted);
+}
+.pd-pie-valor {
+  font-size: 1.05rem; font-weight: 700; color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+/* Lo que falta se nombra, no se grita: es una instrucción, no un error. */
+.pd-pie-valor--falta {
+  font-size: 0.92rem; font-weight: 600; color: var(--text-secondary);
+  font-variant-numeric: normal;
+}
+.pd-pie-botones { display: flex; align-items: center; gap: 0.75rem; margin-left: auto; }
+
+.pd-btn {
+  padding: 0.8rem 1.6rem; border-radius: 100px;
+  font-family: var(--font-ui); font-size: 0.85rem; font-weight: 700;
+  letter-spacing: 0.03em; cursor: pointer;
+  transition: var(--transition-smooth); white-space: nowrap;
+}
+.pd-btn--claro { background: transparent; color: var(--ink); border: 1px solid var(--hairline); }
+.pd-btn--claro:hover { background: var(--bg-arena); border-color: rgba(168,134,63,.35); transform: translateY(-2px); }
+.pd-btn--oscuro {
+  background: var(--ink); color: #fff; border: 1px solid var(--ink);
+  padding: 0.8rem 1.875rem;
+}
+.pd-btn--oscuro:hover:not(:disabled) {
+  background: var(--ink-soft); transform: translateY(-2px);
+  box-shadow: 0 14px 30px rgba(28, 23, 20, 0.18);
+}
+.pd-btn--oscuro:disabled {
+  background: var(--bg-arena); color: var(--text-muted);
+  border-color: var(--hairline); cursor: not-allowed;
+  transform: none; box-shadow: none;
+}
+
+.pd-velo :is(button, input, select, textarea):focus-visible {
+  outline: 2px solid var(--oro); outline-offset: 3px;
+}
+
+@media (max-width: 720px) {
+  .pd-velo { padding: 0; }
+  .pd-caja { max-width: none; height: 100dvh; max-height: none; border: 0; border-radius: 0; }
+  .pd-cabeza { padding: 1.25rem 1.25rem 1rem; }
+  .pd-cabeza-titulo { font-size: 1.5rem; }
+  .pd-cuerpo { padding: 1.25rem 1.25rem 1.5rem; gap: 1.75rem; }
+  .pd-rejilla, .pd-rejilla--pieza { grid-template-columns: 1fr; }
+  .pd-pie { padding: 1rem 1.25rem; }
+  .pd-pie-estado { flex-basis: 100%; }
+  .pd-pie-botones { width: 100%; }
+  .pd-pie-botones .pd-btn { flex: 1; text-align: center; }
+}
