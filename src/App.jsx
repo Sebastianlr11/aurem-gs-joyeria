@@ -1,10 +1,8 @@
 import React, { Suspense, lazy, useEffect } from 'react'
 import { Routes, Route, useLocation } from 'react-router-dom'
-import { initMercadoPago } from '@mercadopago/sdk-react'
 import { iniciarPixeles, pixelPagina } from './lib/pixeles'
 import { capturarClic } from './lib/atribucion'
 
-initMercadoPago(import.meta.env.VITE_MP_PUBLIC_KEY, { locale: 'es-CO' })
 
 /* Los píxeles arrancan aquí, al evaluar el módulo, y no dentro de un efecto
    de App.
