@@ -30,18 +30,29 @@ async function sabeWebp() {
 }
 
 /**
- * Devuelve el archivo listo para subir: en WebP y del tamaño justo.
+ * Devuelve las dos versiones de la foto, listas para subir.
+ *
+ * DOS y no una: el sitio usa la WebP, que pesa una fracción, pero WhatsApp
+ * NO acepta WebP para fotos —sólo JPEG y PNG; el WebP lo reserva para
+ * stickers— y falla de la peor manera: acepta la petición con un 200 y
+ * recién después no entrega. Valentina le dice al cliente "ya te la mostré"
+ * y el cliente no ve nada.
+ *
+ * Pasó de verdad el 21 de agosto de 2026. Por eso van las dos, con el mismo
+ * nombre y distinta extensión: el catálogo pide la WebP y wa.ts pide la otra.
  *
  * Si algo sale mal —un formato raro, un navegador viejo, una foto que ya
- * estaba optimizada— devuelve el original. Nunca impide subir: es mejor una
- * foto pesada publicada que una foto que no se pudo publicar.
+ * estaba optimizada— devuelve el original solo. Nunca impide subir: vale más
+ * una foto pesada publicada que una foto que no se pudo publicar.
  */
-export async function optimizarFoto(archivo) {
-  if (!archivo?.type?.startsWith('image/')) return archivo
+export async function versionesDeFoto(archivo) {
+  const soloOriginal = { principal: archivo, gemela: null }
+
+  if (!archivo?.type?.startsWith('image/')) return soloOriginal
   // Los GIF pueden ser animados y el lienzo se quedaría con el primer cuadro.
-  if (archivo.type === 'image/gif') return archivo
-  if (typeof createImageBitmap !== 'function') return archivo
-  if (!(await sabeWebp())) return archivo
+  if (archivo.type === 'image/gif') return soloOriginal
+  if (typeof createImageBitmap !== 'function') return soloOriginal
+  if (!(await sabeWebp())) return soloOriginal
 
   let mapa
   try {
@@ -50,7 +61,7 @@ export async function optimizarFoto(archivo) {
        clásico de este trabajo. */
     mapa = await createImageBitmap(archivo, { imageOrientation: 'from-image' })
   } catch {
-    return archivo
+    return soloOriginal
   }
 
   const escala = Math.min(1, LADO_MAX / Math.max(mapa.width, mapa.height))
@@ -61,19 +72,26 @@ export async function optimizarFoto(archivo) {
   lienzo.width = ancho
   lienzo.height = alto
   const ctx = lienzo.getContext('2d')
-  if (!ctx) { mapa.close?.(); return archivo }
+  if (!ctx) { mapa.close?.(); return soloOriginal }
 
   ctx.imageSmoothingQuality = 'high'
   ctx.drawImage(mapa, 0, 0, ancho, alto)
   mapa.close?.()
 
-  const blob = await new Promise((r) => lienzo.toBlob(r, 'image/webp', CALIDAD))
-  if (!blob) return archivo
+  const [webp, jpeg] = await Promise.all([
+    new Promise((r) => lienzo.toBlob(r, 'image/webp', CALIDAD)),
+    new Promise((r) => lienzo.toBlob(r, 'image/jpeg', CALIDAD)),
+  ])
+  if (!webp || !jpeg) return soloOriginal
 
   /* Si no quedó más liviana, se sube la original. Pasa con fotos que ya
      venían optimizadas, y reemplazarlas por una peor no tendría sentido. */
-  if (blob.size >= archivo.size) return archivo
+  if (webp.size >= archivo.size) return soloOriginal
 
-  const nombre = archivo.name.replace(/\.[^.]+$/, '') + '.webp'
-  return new File([blob], nombre, { type: 'image/webp', lastModified: Date.now() })
+  const base = archivo.name.replace(/\.[^.]+$/, '')
+  const ahora = Date.now()
+  return {
+    principal: new File([webp], `${base}.webp`, { type: 'image/webp', lastModified: ahora }),
+    gemela: new File([jpeg], `${base}.jpeg`, { type: 'image/jpeg', lastModified: ahora }),
+  }
 }
