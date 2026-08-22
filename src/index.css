@@ -4512,6 +4512,33 @@ textarea:focus-visible {
 
 .admin-topbar-right { display: flex; align-items: center; gap: 1rem; }
 
+/* El interruptor de pruebas. Apagado es el estado normal y se ve como un
+   dato tranquilo; encendido tiene que verse raro, porque encendido significa
+   que los números de la pantalla incluyen pedidos que no son ventas. */
+.admin-lente {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  padding: 0.34rem 0.7rem;
+  font-family: var(--font-ui);
+  font-size: 0.68rem; font-weight: 700;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--text-secondary);
+  background: var(--bg-arena);
+  border: 1px solid var(--hairline);
+  border-radius: 100px;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+.admin-lente:hover { color: var(--ink); border-color: rgba(168, 134, 63, 0.32); }
+.admin-lente--on {
+  color: #8C2F1E;
+  background: #FBEDE9;
+  border-color: rgba(140, 47, 30, 0.28);
+}
+.admin-lente--on::before {
+  content: ''; width: 6px; height: 6px; border-radius: 50%;
+  background: #8C2F1E;
+}
+
 .admin-topbar-avatar {
   width: 36px;
   height: 36px;
@@ -16274,3 +16301,129 @@ textarea:focus-visible {
   }
   .monta { animation: none; opacity: 1; transform: none; }
 }
+
+/* ─── Retorno de la pauta ─────────────────────────────────────────────────
+   El único bloque del panel donde un número puede ser malas noticias, y por
+   eso es el único que usa color semántico: si el retorno de caja baja de 1×,
+   la pauta está costando más de lo que devuelve y eso tiene que verse sin
+   leer. El acento dorado no sirve aquí — es decorativo por definición y no
+   distingue una campaña que deja de una que quema plata. */
+
+.pauta-anotar {
+  padding: 0.44rem 0.9rem;
+  font-family: var(--font-ui); font-size: 0.68rem; font-weight: 700;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--oro-ink); background: transparent;
+  border: 1px solid rgba(168, 134, 63, 0.32); border-radius: 100px;
+  cursor: pointer; white-space: nowrap; transition: var(--transition-smooth);
+}
+.pauta-anotar:hover { background: var(--bg-arena); }
+
+.pauta-form {
+  display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0.875rem;
+  padding: 1.25rem 0 0;
+}
+.pauta-campo { display: flex; flex-direction: column; gap: 0.4rem; min-width: 0; }
+.pauta-campo > span {
+  font-size: 0.66rem; font-weight: 700; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--text-secondary);
+}
+.pauta-campo input, .pauta-campo select {
+  padding: 0.6rem 0.75rem; font-family: var(--font-ui); font-size: 0.92rem;
+  color: var(--ink); background: var(--bg-marfil);
+  border: 1px solid var(--hairline); border-radius: 2px;
+}
+.pauta-campo input:focus, .pauta-campo select:focus {
+  outline: 2px solid var(--oro); outline-offset: 2px;
+}
+.pauta-campo--monto input { font-variant-numeric: tabular-nums; min-width: 9rem; }
+.pauta-ayuda {
+  flex-basis: 100%; margin: 0.25rem 0 0;
+  font-size: 0.82rem; line-height: 1.5; color: var(--text-secondary);
+}
+.pauta-error { flex-basis: 100%; margin: 0; font-size: 0.85rem; color: #8C2F1E; }
+
+.pauta-vacio {
+  margin: 1.5rem 0 0.25rem; max-width: 46ch;
+  font-size: 0.92rem; line-height: 1.6; color: var(--text-secondary);
+}
+
+.pauta-cifras {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 1px; margin-top: 1.5rem;
+  background: var(--hairline); border: 1px solid var(--hairline); border-radius: 2px;
+}
+.pauta-cifra {
+  display: flex; flex-direction: column; gap: 0.4rem;
+  padding: 1.25rem 1.25rem 1.375rem; background: var(--bg-color);
+}
+.pauta-cifra--fuerte { background: var(--bg-marfil); }
+.pauta-cifra-l {
+  font-size: 0.66rem; font-weight: 700; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--text-secondary);
+}
+.pauta-cifra-v {
+  font-size: 1.65rem; font-weight: 300; color: var(--ink);
+  font-variant-numeric: tabular-nums; line-height: 1.1;
+}
+.pauta-bien { color: #2E6B4F; }
+.pauta-mal  { color: #8C2F1E; }
+.pauta-cifra-s { font-size: 0.8rem; line-height: 1.45; color: var(--text-secondary); }
+
+.pauta-lectura {
+  margin: 1.25rem 0 0; padding: 0.9rem 1.1rem;
+  background: var(--bg-arena); border-radius: 2px;
+  font-size: 0.95rem; line-height: 1.55; color: var(--ink);
+}
+.pauta-lectura strong { font-weight: 700; font-variant-numeric: tabular-nums; }
+
+.pauta-canales { display: flex; flex-wrap: wrap; gap: 1.5rem; margin-top: 1.125rem; }
+.pauta-canal { display: flex; align-items: baseline; gap: 0.5rem; font-size: 0.85rem; color: var(--text-secondary); }
+.pauta-canal strong { color: var(--ink); font-variant-numeric: tabular-nums; }
+
+.pauta-detalle { margin-top: 1.25rem; }
+.pauta-detalle summary {
+  font-size: 0.72rem; font-weight: 700; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--oro-ink); cursor: pointer;
+}
+.pauta-lista { list-style: none; margin: 0.875rem 0 0; padding: 0; }
+.pauta-lista li {
+  display: flex; align-items: center; gap: 0.875rem;
+  padding: 0.6rem 0; border-bottom: 1px solid var(--hairline);
+  font-size: 0.88rem; color: var(--ink);
+}
+.pauta-lista li > span:first-child { min-width: 5rem; color: var(--text-secondary); }
+.pauta-lista-canal {
+  font-size: 0.66rem; font-weight: 700; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--text-secondary);
+}
+.pauta-lista strong { margin-left: auto; font-variant-numeric: tabular-nums; }
+.pauta-lista button {
+  width: 1.6rem; height: 1.6rem; flex-shrink: 0;
+  font-size: 1.1rem; line-height: 1; color: var(--text-secondary);
+  background: transparent; border: 1px solid var(--hairline); border-radius: 2px;
+  cursor: pointer; transition: var(--transition-smooth);
+}
+.pauta-lista button:hover { color: #8C2F1E; border-color: rgba(140, 47, 30, 0.3); }
+
+@media (max-width: 768px) {
+  .pauta-form { gap: 0.75rem; }
+  .pauta-campo, .pauta-campo--monto input { flex: 1 1 100%; min-width: 0; }
+}
+
+/* La nota bajo un campo del modal: dice qué pasa con lo que se escribió, no
+   qué escribir. Bajo el costo de la pieza calcula el margen mientras se
+   teclea, que es el único momento en que la cifra sirve para decidir. */
+.modal-nota {
+  margin: 0.15rem 0 0;
+  font-size: 0.78rem; line-height: 1.5; color: var(--text-secondary);
+}
+
+/* Un aviso dentro de un panel del informe: no es un error, es un número que
+   no se puede calcular todavía y por qué. Se ve como nota, no como alarma. */
+.inf-aviso {
+  margin: 1.125rem 0 0.25rem; padding: 0.8rem 1rem;
+  background: var(--bg-marfil); border-left: 2px solid var(--oro);
+  font-size: 0.85rem; line-height: 1.55; color: var(--text-secondary);
+}
+.inf-pieza-meta strong { color: var(--ink); font-weight: 700; font-variant-numeric: tabular-nums; }

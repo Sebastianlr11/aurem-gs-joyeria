@@ -119,7 +119,54 @@ Deno.serve(async (req: Request) => {
     })
   }
 
-  /* ── 4. ¿Responden las funciones y el sitio? ────────────────────────
+  /* ── 4. Pedidos que se quedaron quietos ─────────────────────────────
+     Nadie extraña un pedido estancado. No falla nada, no sale ningún error:
+     simplemente una clienta que ya pagó lleva días esperando y el panel lo
+     enseña igual que a los demás. Se nota cuando la clienta escribe a
+     preguntar, que es tarde.
+
+     Cada estado tiene su propio plazo porque significan cosas distintas: un
+     pedido sin confirmar se enfría en un día, uno en el taller tarda por
+     buenas razones, y uno en camino depende de la transportadora. Los
+     números son los que la tienda ya promete en la página. */
+  const PLAZOS: Array<{ estado: string; horas: number; que: string }> = [
+    { estado: 'pendiente',  horas: 24,      que: 'sin confirmar' },
+    { estado: 'pagado',     horas: 48,      que: 'pagados y sin empezar' },
+    { estado: 'procesando', horas: 24 * 7,  que: 'en el taller' },
+    { estado: 'enviado',    horas: 24 * 8,  que: 'en camino sin llegar' },
+  ]
+
+  const { data: vivos } = await db
+    .from('orders')
+    .select('customer_name, amount, status, status_updated_at, created_at')
+    .in('status', PLAZOS.map((p) => p.estado))
+    .eq('es_prueba', false)
+
+  for (const plazo of PLAZOS) {
+    const limite = ahora - plazo.horas * 60 * 60_000
+    const quietos = (vivos ?? []).filter((o) => {
+      if (o.status !== plazo.estado) return false
+      // status_updated_at es null en los pedidos que nunca cambiaron de
+      // estado; para esos el reloj corre desde que se crearon.
+      const desde = o.status_updated_at ?? o.created_at
+      return new Date(desde).getTime() < limite
+    })
+
+    if (quietos.length) {
+      const dias = Math.round(plazo.horas / 24)
+      hallazgos.push({
+        que: `${quietos.length} pedido(s) ${plazo.que} hace más de ${dias === 1 ? 'un día' : `${dias} días`}`,
+        detalle: quietos
+          .map((o) => `${o.customer_name} · $${Number(o.amount).toLocaleString('es-CO')}`)
+          .join(' | '),
+        // Que un pedido pagado no arranque es peor que uno sin confirmar: la
+        // clienta ya puso la plata.
+        grave: plazo.estado !== 'pendiente',
+      })
+    }
+  }
+
+  /* ── 5. ¿Responden las funciones y el sitio? ────────────────────────
      Una función caída no deja rastro en la base: hay que preguntarle. */
   const base = Deno.env.get('SUPABASE_URL')!
   const sitio = Deno.env.get('APP_URL') ?? 'https://www.auremgsjoyeria.com'

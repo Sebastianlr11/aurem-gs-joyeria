@@ -5,6 +5,7 @@ import { recibidoDe, porCobrarDe, estaVivo } from '../../lib/dinero';
 import { versionesDeFoto } from '../../lib/optimizarFoto';
 import AdminSidebar from './AdminSidebar';
 import { NAV } from './adminNav.jsx';
+import PautaRetorno from './PautaRetorno';
 
 /* ─── Constants ──────────────────────────────────────────────────── */
 const CATEGORIES = ['Anillos', 'Collares', 'Aretes', 'Pulseras', 'Dijes'];
@@ -71,7 +72,7 @@ const fmtDate = d => new Date(d).toLocaleDateString('es-CO', { day: '2-digit', m
    la pieza, y "Plata 925" y "plata .925" darían dos punzones distintos. */
 const METALES = ['Plata 925', 'Oro 18k', 'Oro blanco 18k', 'Oro rosa 18k', 'Platino PT950'];
 
-const EMPTY_PRODUCT  = { name:'', category:'Anillos', price:'', compare_price:'', description:'', image_url:'', is_new:false, is_featured:false, stock:'', metal:'', piedra:'', engaste:'', talla_rango:'' };
+const EMPTY_PRODUCT  = { name:'', category:'Anillos', price:'', compare_price:'', costo:'', description:'', image_url:'', is_new:false, is_featured:false, stock:'', metal:'', piedra:'', engaste:'', talla_rango:'' };
 const EMPTY_ORDER    = { customer_name:'', customer_phone:'', customer_email:'', product_id:'', product_name:'', amount:'', status:'pendiente', payment_method:'', notes:'', carrier:'', tracking_number:'', shipping_address:'', shipping_city:'', shipping_department:'' };
 const PAYMENT_METHODS = ['MercadoPago', 'Nequi', 'Daviplata', 'Transferencia', 'Efectivo', 'Contraentrega'];
 const EMPTY_CUSTOMER = { name:'', phone:'', email:'', notes:'' };
@@ -224,6 +225,9 @@ const ProductModal = ({ product, onClose, onSaved }) => {
             name: texto(form.name), category: form.category,
             price: Number(form.price),
             compare_price: form.compare_price && Number(form.compare_price) > Number(form.price) ? Number(form.compare_price) : null,
+            /* Vacío es "no lo sé todavía", no cero. Un costo de cero diría que
+               la pieza es pura ganancia, que es peor que no saber. */
+            costo: form.costo === '' || form.costo == null ? null : Number(form.costo),
             description: texto(form.description) || null,
             images, image_url: images[0] || texto(form.image_url) || null,
             is_new: form.is_new, is_featured: form.is_featured,
@@ -273,6 +277,28 @@ const ProductModal = ({ product, onClose, onSaved }) => {
                         <div className="modal-field">
                             <label>Precio anterior — opcional</label>
                             <input type="number" min="0" step="0.01" value={form.compare_price || ''} onChange={e => set('compare_price', e.target.value)} placeholder="Dejar vacio si no hay oferta" />
+                        </div>
+                    </div>
+                    <div className="modal-row">
+                        <div className="modal-field">
+                            <label>Lo que cuesta la pieza — opcional</label>
+                            <input
+                                type="number" min="0" step="0.01"
+                                value={form.costo ?? ''}
+                                onChange={e => set('costo', e.target.value)}
+                                placeholder="Oro, mano de obra, estuche"
+                            />
+                            {/* Sin esto dos piezas de $550.000 se ven iguales en el
+                                panel aunque una deje $350.000 y la otra $80.000, y
+                                la pauta se termina poniendo detrás de la que menos
+                                deja. */}
+                            <p className="modal-nota">
+                                {form.price && form.costo && Number(form.costo) > 0 && Number(form.costo) < Number(form.price)
+                                    ? `Deja $${Math.round(Number(form.price) - Number(form.costo)).toLocaleString('es-CO')} por pieza · ${Math.round((1 - Number(form.costo) / Number(form.price)) * 100)} % de margen`
+                                    : Number(form.costo) >= Number(form.price) && form.costo
+                                        ? 'Cuesta más de lo que se vende. Revisa el precio.'
+                                        : 'Todo lo que hay que pagar para entregarla. Sin esto no se puede saber cuál pieza deja más.'}
+                            </p>
                         </div>
                     </div>
                     <div className="modal-row">
@@ -2202,12 +2228,24 @@ const ReportsSection = ({ orders, products = [], onNavigate }) => {
     const topPiezas = Object.entries(productRevenue)
         .sort((a, b) => b[1] - a[1])
         .slice(0, 5)
-        .map(([nombre, ingreso]) => ({
-            nombre,
-            ingreso,
-            unidades: productCounts[nombre] || 0,
-            imagen: (productoPorId[idPorNombre[nombre]] || productoPorNombre[nombre])?.image_url || null,
-        }));
+        .map(([nombre, ingreso]) => {
+            const ficha = productoPorId[idPorNombre[nombre]] || productoPorNombre[nombre];
+            const unidades = productCounts[nombre] || 0;
+            /* Lo que factura una pieza y lo que deja son cosas distintas. Dos
+               anillos de $550.000 se ven idénticos aquí aunque uno deje
+               $350.000 y el otro $80.000 — y si nadie lo ve, la pauta termina
+               empujando el que menos deja. Sólo aparece cuando el costo está
+               cargado; inventarlo sería peor que no tenerlo. */
+            const costo = ficha?.costo != null ? Number(ficha.costo) : null;
+            return {
+                nombre,
+                ingreso,
+                unidades,
+                deja: costo != null && ficha?.price ? (Number(ficha.price) - costo) * unidades : null,
+                margen: costo != null && ficha?.price ? Math.round((1 - costo / Number(ficha.price)) * 100) : null,
+                imagen: ficha?.image_url || null,
+            };
+        });
     const maxPieza = topPiezas.length ? topPiezas[0].ingreso : 1;
 
     const totalEstados = Object.values(statusCounts).reduce((s, n) => s + n, 0) || 1;
@@ -2394,6 +2432,8 @@ const ReportsSection = ({ orders, products = [], onNavigate }) => {
                 </article>
             </section>
 
+            <PautaRetorno orders={paidFiltered} periodStart={periodStart} periodDays={periodDays} />
+
             <section className="inf-panel">
                 <div className="inf-panel-head">
                     <div>
@@ -2433,6 +2473,13 @@ const ReportsSection = ({ orders, products = [], onNavigate }) => {
                         <h2 className="inf-panel-titulo">Piezas más vendidas</h2>
                         <span className="inf-panel-tag">Por ingresos</span>
                     </div>
+                    {topPiezas.length > 0 && topPiezas.every(p => p.deja == null) && (
+                        <p className="inf-aviso">
+                            Ninguna de estas piezas tiene el costo cargado, así que el panel
+                            puede decir cuál vende más pero no cuál deja más. Se pone al editar
+                            la pieza, en «Lo que cuesta la pieza».
+                        </p>
+                    )}
                     {topPiezas.length === 0 ? (
                         <p className="inf-vacio">Todavía no hay ventas en este periodo.</p>
                     ) : topPiezas.map(p => (
@@ -2450,6 +2497,7 @@ const ReportsSection = ({ orders, products = [], onNavigate }) => {
                                 </div>
                                 <span className="inf-pieza-meta">
                                     {p.unidades} unidad{p.unidades !== 1 ? 'es' : ''} vendida{p.unidades !== 1 ? 's' : ''}
+                                    {p.deja != null && <> · deja <strong>${fmt(p.deja)}</strong> ({p.margen} %)</>}
                                 </span>
                             </div>
                         </div>
@@ -3691,6 +3739,11 @@ const Dashboard = () => {
         if (destino?.path) navigate(destino.path); else setSection(id);
     }, [navigate]);
 
+    /* Se recuerda entre recargas: quien está probando algo no quiere volver
+       a prender el interruptor cada vez que refresca. */
+    const [verPruebas, setVerPruebas] = useState(() => localStorage.getItem('aurem:ver-pruebas') === 'si');
+    useEffect(() => { localStorage.setItem('aurem:ver-pruebas', verPruebas ? 'si' : 'no'); }, [verPruebas]);
+
     useEffect(() => {
         supabase.auth.getSession().then(({ data: { session } }) => {
             if (!session) navigate('/admin/login'); else setSession(session);
@@ -3760,6 +3813,17 @@ const Dashboard = () => {
         if (session) { fetchProducts(); fetchOrders(); fetchCustomers(); fetchWaStats(); fetchChatsPendientes(); }
     }, [session, fetchProducts, fetchOrders, fetchCustomers, fetchWaStats, fetchChatsPendientes]);
 
+    /* Las pruebas del equipo se esconden en TODO el panel, no sección por
+       sección. Es un lente sobre los mismos datos, no un filtro de la tabla
+       de pedidos: si el informe y la lista pudieran discrepar, volveríamos
+       al problema de tener dos verdades.
+
+       Se esconden por defecto y a propósito. La opción de verlas está ahí
+       para cuando se prueba algo; el resto del tiempo, un panel que suma
+       pedidos falsos a las ventas reales miente sin avisar. */
+    const pruebas = orders.filter(o => o.es_prueba).length;
+    const ordersVisibles = verPruebas ? orders : orders.filter(o => !o.es_prueba);
+
     if (!session) return null;
 
     return (
@@ -3778,6 +3842,18 @@ const Dashboard = () => {
                         </span>
                     </div>
                     <div className="admin-topbar-right">
+                        {pruebas > 0 && (
+                            <button
+                                type="button"
+                                className={`admin-lente${verPruebas ? ' admin-lente--on' : ''}`}
+                                onClick={() => setVerPruebas(v => !v)}
+                                title={verPruebas
+                                    ? 'Los pedidos de prueba están sumando en todos los números'
+                                    : 'Hay pedidos de prueba escondidos del panel'}
+                            >
+                                {verPruebas ? `Con ${pruebas} prueba${pruebas !== 1 ? 's' : ''}` : `${pruebas} prueba${pruebas !== 1 ? 's' : ''} oculta${pruebas !== 1 ? 's' : ''}`}
+                            </button>
+                        )}
                         <a className="admin-topbar-tienda" href="/" target="_blank" rel="noopener noreferrer">Ver la tienda</a>
                         <div className="admin-topbar-avatar">{session.user.email[0].toUpperCase()}</div>
                     </div>
@@ -3785,7 +3861,7 @@ const Dashboard = () => {
                 <div className="admin-main">
                     {section === 'dashboard' && (
                         <DashboardHome
-                            products={products} orders={orders} customers={customers}
+                            products={products} orders={ordersVisibles} customers={customers}
                             waStats={waStats}
                             chatsPendientes={chatsPendientes}
                             onNavigate={irA}
@@ -3795,13 +3871,13 @@ const Dashboard = () => {
                         <ProductsSection products={products} loading={loadingP} onRefresh={fetchProducts} />
                     )}
                     {section === 'orders' && (
-                        <OrdersSection orders={orders} products={products} loading={loadingO} onRefresh={fetchOrders} />
+                        <OrdersSection orders={ordersVisibles} products={products} loading={loadingO} onRefresh={fetchOrders} />
                     )}
                     {section === 'customers' && (
-                        <CustomersSection customers={customers} orders={orders} loading={loadingC} onRefresh={fetchCustomers} />
+                        <CustomersSection customers={customers} orders={ordersVisibles} loading={loadingC} onRefresh={fetchCustomers} />
                     )}
                     {section === 'reports' && (
-                        <ReportsSection orders={orders} products={products} onNavigate={irA} />
+                        <ReportsSection orders={ordersVisibles} products={products} onNavigate={irA} />
                     )}
                     {section === 'notes' && (
                         <NotesSection />
