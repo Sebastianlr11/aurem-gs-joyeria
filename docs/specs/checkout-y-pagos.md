@@ -1,0 +1,168 @@
+# Checkout y pagos
+
+> **Estado:** en producción
+> **Última revisión:** 2026-08-22
+
+## Qué resuelve
+
+Cobrar. Dos caminos muy distintos:
+
+1. **Pago en línea** con Mercado Pago, con **2% de descuento**.
+2. **Contraentrega con abono** — el cliente abona el envío para confirmar el pedido y paga
+   el resto **en efectivo en la puerta**. Es la forma de pago principal del negocio: en
+   Colombia mucha gente no compra joyería por internet pagando por adelantado a una marca
+   que no conoce.
+
+Todo lo raro de esta feature sale de la segunda. Contraentrega significa que **"pedido
+confirmado" y "plata recibida" son dos hechos separados por días**.
+
+## Cómo funciona hoy
+
+### Flujo end-to-end
+
+```
+BuyModal (navegador)
+  ├── lee envio_publico → abono_envio, tope_contraentrega
+  ├── el cliente elige método y llena sus datos
+  └── functions.invoke('create-preference', { product|items, buyer, paymentMethod, atribucion })
+        │
+        ├── valida y calcula el total
+        ├── si es contraentrega:
+        │     ├── total > tope  → rechaza con mensaje
+        │     └── abono = taller_precios.abono_envio (por defecto 20.000)
+        ├── INSERT orders (status pendiente) + INSERT order_items (precios congelados)
+        ├── avisarVenta({evento:'pedido'}) → Meta CAPI + TikTok como InitiateCheckout
+        └── crea la preferencia de Mercado Pago
+              · en línea:       un renglón por pieza
+              · contraentrega:  UN SOLO renglón, el abono
+        ↓ devuelve { preferenceId, initPoint, isCod, abono, saldo }
+  └── <a href={initPoint}> → Mercado Pago
+
+Mercado Pago cobra
+  ↓
+mp-webhook (Edge Function)
+  ├── resuelve el aviso (IPN antiguo o webhook nuevo) → consulta el pago REAL contra la API de MP
+  ├── candado: UPDATE ... WHERE conversion_enviada_en IS NULL   ← marca y lee a la vez
+  ├── status = 'pagado' (total) | 'procesando' (sólo el abono)
+  ├── avisarVenta({evento:'compra'})  → Meta + TikTok, Purchase con valor real
+  ├── WhatsApp al cliente
+  └── POST /api/correo → plantilla pedido-confirmado
+  ↓
+/confirmacion?payment_id=…&status=…&external_reference=<order_id>
+  └── SÓLO LEE. Nunca escribe.
+```
+
+### Archivos clave
+
+| Ruta | Qué |
+|---|---|
+| `src/pages/ProductPage.jsx:142-662` | `BuyModal` — máquina de estados `method → form → loading → wallet → error` |
+| `src/pages/ProductPage.jsx:139` | `MP_DISCOUNT` — el 2% |
+| `src/pages/ProductPage.jsx:179` | Lectura de `envio_publico` |
+| `src/pages/ProductPage.jsx:192` | La opción contraentrega sólo se pinta si `price <= tope` |
+| `src/pages/ProductPage.jsx:78-79` | `COD_CIUDAD` / `COD_DEPARTAMENTO` — contraentrega es sólo Bogotá |
+| `src/pages/ProductPage.jsx:85-137` | 33 departamentos + ciudades como `<datalist>` sugerido |
+| `supabase/functions/create-preference/index.ts:82-118` | Tope, abono y sus defensas |
+| `supabase/functions/create-preference/index.ts:213-226` | `order_items` con precios congelados |
+| `supabase/functions/create-preference/index.ts:272-282` | El renglón único del abono |
+| `supabase/functions/mp-webhook/index.ts:147-152` | El candado anti-duplicado |
+| `supabase/functions/mp-webhook/index.ts:127-138` | Pago total vs abono |
+| `supabase/functions/mp-webhook/index.ts:333-363` | Resolver `merchant_order` → pago |
+| `src/pages/Confirmacion.jsx:38-43` | La lectura del pedido |
+| `src/lib/dinero.js` | **Cuánta plata hay de verdad detrás de un pedido** |
+
+### Tablas y columnas
+
+- **`orders`** — se crea con `status: 'pendiente'`; `abono_monto` sólo en contraentrega;
+  `conversion_enviada_en` es el candado; toda la atribución se guarda aquí.
+- **`order_items`** — `order_id`, `product_id`, `nombre`, `precio`, `cantidad`, `talla`.
+- **`taller_precios`** — `abono_envio`, `tope_contraentrega`. RLS restringido.
+- **`envio_publico`** (vista) — expone **sólo** esos dos campos a `anon`.
+
+### Variables de entorno
+
+`VITE_MP_PUBLIC_KEY` (navegador) · `MP_ACCESS_TOKEN`, `APP_URL`, `CORREO_SECRETO`,
+`SUPABASE_SERVICE_ROLE_KEY` (Edge Functions).
+
+## Decisiones tomadas y por qué
+
+**La vista `envio_publico` existe para no filtrar el margen.** El frontend necesita
+`abono_envio` y `tope_contraentrega`, pero `taller_precios` también guarda el **recargo**,
+que es el margen del negocio. La vista expone dos columnas y nada más.
+
+**Si `tope_contraentrega` es `null`, la opción no se pinta.** Deliberado: ofrecer
+contraentrega y retirarla después es peor que no ofrecerla.
+
+**El candado real está en el servidor**, no en el navegador (`create-preference:104-110`).
+El frontend esconde la opción; la Edge Function la rechaza con un mensaje que dice el tope.
+
+**El abono tiene doble red de seguridad** (`:115-118`): si `abono_envio` viene inválido o
+resulta mayor o igual que el total, cae a `min(20000, total/2)`. Viene de un incidente
+real: **Valentina anunció un abono de "$15.000" y 50 segundos después mandó un enlace de
+$20.000**. De ahí también la regla del prompt que repite la cifra exacta tres veces.
+
+**Contraentrega cobra UN SOLO renglón por Mercado Pago** (`:272-282`), no las piezas. Si
+se listaran las piezas, el cliente vería el total completo en la pasarela y creería que le
+están cobrando todo. El renglón dice explícitamente: *"Se descuenta del total. Al recibir
+pagas $X"*.
+
+**El evento de anuncios se manda al crear el pedido, no al cobrar** (`:228-260`). En
+contraentrega el pago llega días después, y **Meta y TikTok sólo atribuyen dentro de los 7
+días desde el clic**. Si la única señal fuera el pago, buena parte de las ventas caería
+fuera de la ventana y no se le acreditaría a ningún anuncio — y el algoritmo estaría
+aprendiendo de lo que pasó hace una semana. Por eso es `InitiateCheckout` ("se
+comprometió") y no `Purchase`. El `Purchase` sale cuando entra el dinero, con valor real.
+
+**Los precios se congelan en `order_items`** (`:213-226`): *"un pedido es un hecho del
+pasado, no una consulta al catálogo de hoy"*. Si esa inserción falla, **no se tumba la
+venta** —el total ya está en `orders`— pero se registra el error, porque sin las filas el
+correo enseña una pieza sola y el taller no sabe qué fabricar.
+
+**Basta con correo O teléfono** (`:52-59`): los pedidos que entran por WhatsApp pueden no
+traer correo, y bloquear la venta por eso *"sería cambiar plata por un dato"*.
+
+**El candado anti-duplicado es un UPDATE que marca y lee a la vez**
+(`mp-webhook:147-152`): `UPDATE … .is('conversion_enviada_en', null)`. Dos webhooks
+simultáneos se serializan en la base; sólo uno recibe filas.
+
+**`mp-webhook` acepta las dos formas de aviso** (IPN antiguo por URL y webhook nuevo por
+cuerpo). Leer sólo una era descartar la mitad **con un 200**: el pago entra y el pedido
+nunca se entera.
+
+**`/confirmacion` sólo lee.** Antes marcaba `status='pagado'` desde el navegador con la
+anon key: **cualquiera podía falsificar un pago escribiendo una URL** (`Confirmacion.jsx:23-35`).
+Ahora el estado lo escribe el webhook y el valor de `pixelCompra` sale de la base, no de la
+URL.
+
+**Los departamentos son un `<select>` cerrado; las ciudades un `<datalist>` sugerido**
+(`:94-102`): una lista cerrada de municipios de Colombia sería enorme y siempre
+incompleta.
+
+## Límites conocidos y pendientes
+
+- **`mp-webhook` no valida la firma de Mercado Pago.** No se puede falsificar un pago
+  —la función consulta el pago real contra la API— pero el endpoint acepta invocaciones
+  arbitrarias. [pendientes #3](../pendientes.md).
+- **La talla del selector de la ficha no llega al pedido.** Sólo al mensaje de WhatsApp.
+- Contraentrega es **sólo Bogotá**, forzado en el cliente.
+- La validación del formulario es por `onBlur`, no por submit.
+- `/confirmacion` no llama a `ponerMeta` (está en `robots.txt` como `Disallow`, así que es
+  aceptable).
+
+## Cómo probarlo
+
+**Usa siempre credenciales de prueba de Mercado Pago y marca los pedidos con `es_prueba`.**
+
+1. **Tope de contraentrega:** pon `tope_contraentrega` por debajo del precio de una pieza.
+   En la ficha la opción debe desaparecer. Fuérzala igual invocando `create-preference` con
+   `paymentMethod: 'cod'` — debe responder con el mensaje del tope, no crear el pedido.
+2. **`tope_contraentrega = null`:** la opción no debe pintarse.
+3. **Abono:** el renglón en Mercado Pago debe ser uno solo, por el valor del abono, con la
+   frase del saldo. El total en `orders.amount` debe ser el completo y `abono_monto` el
+   abono.
+4. **Doble webhook:** invoca `mp-webhook` dos veces con el mismo pago. La segunda no debe
+   mandar ni conversiones ni correo (`conversion_enviada_en` ya está marcado).
+5. **Estados de dinero:** un pedido contraentrega en `enviado` debe contar **sólo el
+   abono** como recibido en el panel. Es la regla que más se ha roto.
+6. **Precios congelados:** cambia el precio de la pieza después de comprar; `order_items`
+   debe seguir diciendo el precio viejo.
