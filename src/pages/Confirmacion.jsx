@@ -33,12 +33,23 @@ const Confirmacion = () => {
 
      Quien decide el estado es el webhook, que le pregunta el pago a Mercado
      Pago con el token del servidor y sabe distinguir un abono de un total. */
+  /* Por una función y no leyendo `orders` de frente: esta pantalla corre con
+     la llave pública, y `anon` no tiene —ni debe tener— permiso de lectura
+     sobre la tabla de pedidos, que guarda nombre, teléfono, correo y
+     dirección de todo el mundo.
+
+     Leyendo la tabla, esto devolvía null para cualquiera que no fuera del
+     equipo: la clienta no veía el resumen de su pedido y, peor, pixelCompra()
+     de más abajo está condicionado a que el pedido exista, así que el evento
+     Purchase del navegador no se disparaba nunca. Sólo salía el del servidor,
+     y la deduplicación entre los dos embudos se quedaba coja.
+
+     `pedido_publico` devuelve las cinco columnas que se usan aquí y ninguna
+     más. El id es un uuid v4 y llega en la URL de vuelta de Mercado Pago. */
   useEffect(() => {
     if (!externalRef) return
     supabase
-      .from('orders')
-      .select('amount, abono_monto, payment_method, product_id, product_name')
-      .eq('id', externalRef)
+      .rpc('pedido_publico', { p_id: externalRef })
       .maybeSingle()
       .then(({ data }) => setPedido(data ?? null))
   }, [externalRef])
