@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
-import { optimizarFoto } from '../../lib/optimizarFoto';
+import { versionesDeFoto } from '../../lib/optimizarFoto';
 import AdminSidebar from './AdminSidebar';
 import { NAV } from './adminNav.jsx';
 
@@ -166,16 +166,29 @@ const ProductModal = ({ product, onClose, onSaved }) => {
            es exactamente lo que baja después cada clienta que abre la ficha.
            Hacerlo acá ahorra las dos puntas — la subida del joyero y la
            bajada de la clienta. Si algo falla, sube la original. */
-        const file = await optimizarFoto(original);
-        if (file !== original) {
-            console.log(`foto: ${original.name} ${Math.round(original.size/1024)}KB → ${Math.round(file.size/1024)}KB`);
+        const { principal, gemela } = await versionesDeFoto(original);
+
+        /* El mismo nombre para las dos, sólo cambia la extensión. Es la
+           convención de la que depende wa.ts para pedir la JPEG: el sitio usa
+           la WebP porque pesa una fracción, pero WhatsApp no acepta WebP. */
+        const base = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        const ruta = (f) => `${base}.${f.name.split('.').pop()}`;
+
+        const { error: upErr } = await supabase.storage
+            .from('product-images').upload(ruta(principal), principal, { upsert: false });
+        if (upErr) throw upErr;
+
+        if (gemela) {
+            /* Si falla la gemela el catálogo funciona igual: lo que se pierde
+               es que Valentina pueda mandarla por WhatsApp. No vale tumbar la
+               subida por eso, pero sí dejarlo dicho. */
+            const { error: errGemela } = await supabase.storage
+                .from('product-images').upload(ruta(gemela), gemela, { upsert: false });
+            if (errGemela) console.error('No se pudo subir la versión JPEG:', errGemela.message);
+            console.log(`foto: ${Math.round(original.size/1024)}KB → ${Math.round(principal.size/1024)}KB webp · ${Math.round(gemela.size/1024)}KB jpeg`);
         }
 
-        const ext = file.name.split('.').pop();
-        const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-        const { error: upErr } = await supabase.storage.from('product-images').upload(path, file, { upsert: false });
-        if (upErr) throw upErr;
-        const { data } = supabase.storage.from('product-images').getPublicUrl(path);
+        const { data } = supabase.storage.from('product-images').getPublicUrl(ruta(principal));
         return data.publicUrl;
     };
 

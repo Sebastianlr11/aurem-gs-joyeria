@@ -117,6 +117,23 @@ export async function enviarTexto(
   return { ok: true, wamid }
 }
 
+/**
+ * WhatsApp NO acepta WebP para fotos.
+ *
+ * La Cloud API sólo entrega image/jpeg y image/png; el WebP lo reserva para
+ * stickers. Y falla de la peor manera: acepta la petición con un 200 y un
+ * identificador de mensaje, y recién después no entrega. Desde nuestro lado
+ * todo parece bien, así que Valentina le dice al cliente "ya te la mostré" y
+ * el cliente no ve nada.
+ *
+ * Pasó de verdad el 21 de agosto de 2026, al optimizar el catálogo a WebP.
+ *
+ * Cada foto del catálogo tiene su gemela en JPEG con el mismo nombre —el
+ * sitio usa la WebP porque pesa una fracción, y acá se pide la otra—.
+ */
+const paraWhatsApp = (url: string): string =>
+  url.endsWith('.webp') ? url.slice(0, -5) + '.jpeg' : url
+
 /** Manda una foto del catálogo con su pie, como hacía el flujo de n8n. */
 export async function enviarImagen(
   telefono: string,
@@ -129,6 +146,19 @@ export async function enviarImagen(
   const phoneId = desdeId || Deno.env.get('WA_PHONE_NUMBER_ID')
   if (!token || !phoneId) return { ok: false, error: 'Faltan WA_TOKEN o WA_PHONE_NUMBER_ID' }
 
+  const url = paraWhatsApp(urlImagen)
+
+  /* Si la gemela no está, es mejor saberlo ahora que dejar que Meta acepte y
+     no entregue: así la herramienta le puede decir a Valentina que no salió,
+     en vez de que le asegure al cliente que sí. */
+  if (url !== urlImagen) {
+    const existe = await fetch(url, { method: 'HEAD' }).then((r) => r.ok).catch(() => false)
+    if (!existe) {
+      console.error('No existe la versión JPEG de la foto, WhatsApp no acepta WebP:', urlImagen)
+      return { ok: false, error: 'La foto no está en un formato que WhatsApp acepte' }
+    }
+  }
+
   const para = idDestino(telefono)
   const res = await fetch(`${GRAFO}/${phoneId}/messages`, {
     method: 'POST',
@@ -138,7 +168,7 @@ export async function enviarImagen(
       recipient_type: 'individual',
       ...paraQuien(para),
       type: 'image',
-      image: { link: urlImagen, caption: pie || undefined },
+      image: { link: url, caption: pie || undefined },
     }),
   })
 
