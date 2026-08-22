@@ -475,7 +475,7 @@ const JIcon = ({ name, size = 20 }) => {
     }
 };
 
-const DashboardHome = ({ products, orders, customers, waStats, chatsPendientes, onNavigate }) => {
+const DashboardHome = ({ products, orders, chatsPendientes, onNavigate }) => {
     const hoy = new Date();
     const hace30 = new Date(hoy.getTime() - 30 * 86400000);
 
@@ -538,7 +538,6 @@ const DashboardHome = ({ products, orders, customers, waStats, chatsPendientes, 
     const porDespachar = orders.filter(o => o.status === 'pagado' || o.status === 'procesando').length;
     const sinResponder = chatsPendientes.length;
 
-    const clientesNuevos = customers.filter(c => new Date(c.created_at) >= hace30).length;
 
     /* Una pieza agotada que sigue publicada es plata de pauta llevando gente a
        algo que no se puede comprar. Se mira aparte de lo demás porque no se
@@ -658,14 +657,6 @@ const DashboardHome = ({ products, orders, customers, waStats, chatsPendientes, 
                 ir: () => onNavigate('chat'),
             })),
     ].sort((a, b) => new Date(b.cuando) - new Date(a.cuando)).slice(0, 7);
-
-    const cifras = [
-        { v: products.length, l: 'Piezas publicadas' },
-        { v: pedidos30.length, l: 'Pedidos del periodo' },
-        { v: clientesNuevos, l: 'Clientes nuevos' },
-        { v: waStats.mensajesHoy, l: 'Mensajes hoy' },
-        { v: waStats.conversacionesActivas, l: 'Chats activos' },
-    ];
 
     return (
         <div className="jornada">
@@ -933,15 +924,6 @@ const DashboardHome = ({ products, orders, customers, waStats, chatsPendientes, 
                     </div>
                 </section>
             )}
-
-            <section className="jornada-cifras">
-                {cifras.map(c => (
-                    <div key={c.l} className="jornada-cifra">
-                        <span className={`jornada-cifra-v ${c.v === 0 ? 'jornada-cifra-v--cero' : ''}`}>{c.v}</span>
-                        <span className="jornada-cifra-l">{c.l}</span>
-                    </div>
-                ))}
-            </section>
 
             <div className="jornada-acciones">
                 <button className="btn-pill black" onClick={() => onNavigate('products')}>Publicar pieza nueva</button>
@@ -3611,7 +3593,6 @@ const Dashboard = () => {
     const [loadingP, setLoadingP]   = useState(true);
     const [loadingO, setLoadingO]   = useState(true);
     const [loadingC, setLoadingC]   = useState(true);
-    const [waStats, setWaStats]     = useState({ mensajesHoy: 0, conversacionesActivas: 0 });
     const [chatsPendientes, setChatsPendientes] = useState([]);
     const navigate = useNavigate();
 
@@ -3670,36 +3651,9 @@ const Dashboard = () => {
         setCustomers(data || []); setLoadingC(false);
     }, []);
 
-    const fetchWaStats = useCallback(async () => {
-        const now = new Date();
-        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
-        const last24h = new Date(now - 24 * 60 * 60 * 1000).toISOString();
-
-        // Mensajes hoy
-        const { count: mensajesHoy } = await supabase
-            .from('whatsapp_conversaciones')
-            .select('*', { count: 'exact', head: true })
-            .gte('created_at', todayStart);
-
-        // Conversaciones activas (distinct phones últimas 24h)
-        const { data: recentPhones } = await supabase
-            .from('whatsapp_conversaciones')
-            .select('phone_number')
-            .gte('created_at', last24h);
-        const conversacionesActivas = recentPhones ? new Set(recentPhones.map(d => d.phone_number)).size : 0;
-
-        /* Aquí se contaban además los pedidos de WhatsApp del mes. La consulta
-           salía en cada carga del panel y el resultado no se pintaba en
-           ninguna parte: trabajo para nadie. */
-        setWaStats({
-            mensajesHoy: mensajesHoy || 0,
-            conversacionesActivas,
-        });
-    }, []);
-
     useEffect(() => {
-        if (session) { fetchProducts(); fetchOrders(); fetchCustomers(); fetchWaStats(); fetchChatsPendientes(); }
-    }, [session, fetchProducts, fetchOrders, fetchCustomers, fetchWaStats, fetchChatsPendientes]);
+        if (session) { fetchProducts(); fetchOrders(); fetchCustomers(); fetchChatsPendientes(); }
+    }, [session, fetchProducts, fetchOrders, fetchCustomers, fetchChatsPendientes]);
 
     /* Las pruebas del equipo se esconden en TODO el panel, no sección por
        sección. Es un lente sobre los mismos datos, no un filtro de la tabla
@@ -3754,8 +3708,7 @@ const Dashboard = () => {
                 <div className="admin-main">
                     {section === 'dashboard' && (
                         <DashboardHome
-                            products={products} orders={ordersVisibles} customers={customersVisibles}
-                            waStats={waStats}
+                            products={products} orders={ordersVisibles}
                             chatsPendientes={chatsPendientes}
                             onNavigate={irA}
                         />
