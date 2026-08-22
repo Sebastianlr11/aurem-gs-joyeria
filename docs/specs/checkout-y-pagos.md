@@ -68,7 +68,7 @@ mp-webhook (Edge Function)
 | `supabase/functions/mp-webhook/index.ts:147-152` | El candado anti-duplicado |
 | `supabase/functions/mp-webhook/index.ts:127-138` | Pago total vs abono |
 | `supabase/functions/mp-webhook/index.ts:333-363` | Resolver `merchant_order` → pago |
-| `src/pages/Confirmacion.jsx:38-43` | La lectura del pedido |
+| `src/pages/Confirmacion.jsx:52` | `rpc('pedido_publico')` — 5 campos, sin datos personales |
 | `src/lib/dinero.js` | **Cuánta plata hay de verdad detrás de un pedido** |
 
 ### Tablas y columnas
@@ -133,6 +133,16 @@ nunca se entera.
 anon key: **cualquiera podía falsificar un pago escribiendo una URL** (`Confirmacion.jsx:23-35`).
 Ahora el estado lo escribe el webhook y el valor de `pixelCompra` sale de la base, no de la
 URL.
+
+**Y lee por RPC, no por tabla** (`20260822_pedido_publico.sql`). `anon` no tiene lectura
+sobre `orders`, así que la consulta directa devolvía `null` para una clienta real: la
+página se quedaba sin resumen **y `pixelCompra()` nunca se disparaba**, porque está
+condicionado a que el pedido exista. El `Purchase` del servidor sí salía desde
+`mp-webhook`, pero la deduplicación entre los dos embudos estaba coja justo antes de
+prender pauta. `pedido_publico(p_id)` es `SECURITY DEFINER` y devuelve **cinco columnas
+contadas a mano** sobre lo que la pantalla usa: ni nombre, ni teléfono, ni correo, ni
+dirección — **ni siquiera `status`**, porque la pantalla se guía por el parámetro de la URL
+y darle el de la base sólo invitaría a usarlo.
 
 **Los departamentos son un `<select>` cerrado; las ciudades un `<datalist>` sugerido**
 (`:94-102`): una lista cerrada de municipios de Colombia sería enorme y siempre

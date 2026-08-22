@@ -1,6 +1,6 @@
 # Panel — conversaciones
 
-> **Estado:** en producción · retención y borrado **en curso, sin commitear**
+> **Estado:** en producción
 > **Última revisión:** 2026-08-22
 > **Ruta:** `/admin/chat` · `src/pages/admin/ChatPanel.jsx` (1.855 líneas)
 
@@ -39,7 +39,7 @@ real que no se puede montar y desmontar como una pestaña.
 | `ChatPanel.jsx:44-68` | `PieDeFoto` — el pie de la clienta y "lo que vio Valentina" |
 | `ChatPanel.jsx:534-583` | Móvil: bloqueo de scroll y teclado de iOS |
 | `ChatPanel.jsx:410-419` | Búsqueda vía `rpc('buscar_conversaciones')`, debounce 400 ms |
-| `src/pages/admin/EliminarChat.jsx` | Borrado completo (251 líneas, **sin commitear**) |
+| `src/pages/admin/EliminarChat.jsx` | Borrado completo con fricción |
 
 ### Tablas y Storage
 
@@ -88,7 +88,7 @@ otro contacto (`:658-665`). Refresco de la lista con debounce de 800 ms.
 
 ## Retención y borrado de conversaciones (en curso)
 
-Trabajo **sin commitear** en la rama `fix/dashboard-decia-lo-que-no-sabia`:
+Añadido el 22 de agosto de 2026:
 `src/lib/chatArchivo.js`, `EliminarChat.jsx`, `20260822_borrar_chat_media.sql` y
 `20260822_conversaciones_purgables.sql`.
 
@@ -154,8 +154,8 @@ fotos y —por diseño— no borra nada.**
 
 ## Límites conocidos y pendientes
 
-- **La retención y el borrado están sin commitear**, y `20260822_borrar_chat_media.sql`
-  puede no estar aplicada ([pendientes #5](../pendientes.md)).
+- **Conviene confirmar que `20260822_borrar_chat_media.sql` está aplicada en Supabase**,
+  no sólo commiteada ([pendientes #5](../pendientes.md)).
 - **La purga no está automatizada** y es deliberado: el panel propone, decide una persona.
 - `fetchContacts` trae **los últimos 1000 mensajes** y agrupa en cliente: no escala.
 - El hilo carga 200 mensajes sin paginación hacia atrás.

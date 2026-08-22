@@ -3,10 +3,14 @@
 Hallazgos encontrados al documentar el proyecto el **22 de agosto de 2026**.
 Cada uno lleva dónde está, por qué importa y el arreglo propuesto.
 
-> **Nada de este documento está aplicado.** Son propuestas para revisar y ejecutar en
-> ramas aparte.
+> **Revisado contra el código el 22 de agosto de 2026, tras los commits de esa tarde.**
+> Lo ya resuelto está en [Resueltos](#resueltos). El resto sigue vivo y verificado.
+>
+> **La numeración no se reutiliza.** Los specs de `docs/specs/` enlazan a estos números,
+> así que un hallazgo resuelto se marca ✅ pero conserva el suyo.
 
 **Índice**
+- [Resueltos](#resueltos)
 - [🔴 Crítico — seguridad](#-crítico--seguridad)
 - [🟠 Alto — gobernanza](#-alto--gobernanza)
 - [🟡 Medio — lo que le prometemos al cliente](#-medio--lo-que-le-prometemos-al-cliente)
@@ -14,89 +18,50 @@ Cada uno lleva dónde está, por qué importa y el arreglo propuesto.
 
 ---
 
-## 🔴 Crítico — seguridad
+## Resueltos
 
-### 1. Cualquiera puede leer todos los pedidos
+### ✅ La lectura de pedidos con la llave pública — y una corrección
 
-**Dónde:** `supabase/migrations/20260311_orders_rls.sql:24-28`
+Resuelto por `20260822_pedido_publico.sql` + `Confirmacion.jsx:52`.
 
-```sql
-CREATE POLICY "orders_anon_read_own"
-  ON public.orders
-  FOR SELECT
-  TO anon
-  USING (true);   -- ← sin filtro
-```
+**Corrección a lo que decía este documento.** La primera versión afirmaba que en
+producción cualquiera podía listar todos los pedidos con nombre, teléfono, correo y
+dirección. **Eso no era cierto, y el error fue mío**: lo inferí de
+`20260311_orders_rls.sql:24-28` —donde la política `orders_anon_read_own` sí está escrita
+con `USING (true)`— y lo di por hecho de producción sin comprobarlo contra la base.
 
-**Por qué importa.** El comentario de encima dice *"customer can only see order if they
-know the ID"*, pero la política no impone nada de eso: `USING (true)` autoriza **toda la
-tabla**. Y la anon key va dentro del bundle público del sitio, así que no hace falta
-credencial alguna. Con una sola petición se obtienen nombre, teléfono, correo, dirección
-de entrega e importe de todos los pedidos.
+Comprobado después con la llave pública: **la base tiene una sola política sobre `orders`,
+la de `authenticated`, y la consulta devuelve `[]`.** El archivo y la base llevaban tiempo
+separados.
 
-Hoy el daño es acotado porque los ~17 pedidos son pruebas del equipo. **Deja de serlo con
-el primer cliente real**, y en Colombia esto es tratamiento indebido de datos personales
-bajo la Ley 1581.
+El riesgo real era otro, y más silencioso: el día que alguien reconstruyera la base
+aplicando las migraciones en orden, esa política **se habría creado**. La migración nueva
+lo cierra con un `DROP POLICY IF EXISTS` colocado después, para que la deshaga.
 
-**Por qué está así.** `/confirmacion` necesita leer un pedido con la anon key para mostrar
-el resumen tras volver de Mercado Pago. La política se escribió para habilitar ese caso;
-lo que falta es acotarla.
+Y destapó un daño que sí estaba ocurriendo: como `anon` no podía leer `orders`, para una
+clienta real la consulta de `/confirmacion` devolvía `null`, la página se quedaba sin
+resumen **y `pixelCompra()` nunca se disparaba** — el evento `Purchase` del navegador no
+salía, dejando coja la deduplicación con el del servidor justo antes de prender pauta.
+Nadie lo notó porque 16 de los 17 pedidos son contraentrega tomados por WhatsApp: ninguna
+clienta real había pasado por esa pantalla.
 
-> **Ya hay precedente.** El 22 de agosto, el commit `b427f66`
-> (`20260822_cerrar_conversaciones_a_anon.sql`) cerró **exactamente este mismo patrón** en
-> las cinco tablas de conversaciones, que estaban con `[public ALL] using=true`. Ese
-> trabajo dejó `orders` sin tocar: es la última tabla con datos personales todavía abierta
-> a la llave pública.
+### ✅ Las conversaciones abiertas a la llave pública
 
-**Arreglo propuesto.** RLS no puede expresar "sólo si conoces el id" — si puedes
-seleccionar por id, puedes seleccionar todo. La forma correcta es quitarle a `anon` el
-acceso a la tabla y darle una función que devuelva **sólo los campos que la pantalla
-necesita**, de un solo pedido:
+`20260822_cerrar_conversaciones_a_anon.sql` (`b427f66`). Cinco tablas tenían
+`[public ALL] using=true`: se podía leer **y borrar** toda la correspondencia con las
+clientas. Cerrado.
 
-```sql
--- 1. Quitar el acceso abierto
-DROP POLICY IF EXISTS "orders_anon_read_own" ON public.orders;
+### ✅ Las tablas de respaldo
 
--- 2. Dar exactamente lo que /confirmacion necesita, y nada más.
---    Sin datos personales: ni nombre, ni teléfono, ni correo, ni dirección.
-CREATE OR REPLACE FUNCTION public.pedido_publico(p_id uuid)
-RETURNS TABLE (
-  amount          numeric,
-  abono_monto     numeric,
-  payment_method  text,
-  product_id      uuid,
-  product_name    text,
-  status          text
-)
-LANGUAGE sql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-  SELECT o.amount, o.abono_monto, o.payment_method,
-         o.product_id, o.product_name, o.status
-  FROM public.orders o
-  WHERE o.id = p_id;
-$$;
+`20260822_quitar_respaldos_de_chats.sql` eliminó los tres `respaldo_*_20260822`.
 
-REVOKE ALL ON FUNCTION public.pedido_publico(uuid) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.pedido_publico(uuid) TO anon, authenticated;
-```
+### ✅ Migraciones sin commitear
 
-Y en `src/pages/Confirmacion.jsx:38-43`, cambiar el `.from('orders').select(...)` por
-`supabase.rpc('pedido_publico', { p_id: externalRef })`.
-
-El id del pedido es un uuid v4: no se adivina, y quien vuelve de Mercado Pago lo trae en
-la URL. La `INSERT` pública para `anon` se queda como está — el checkout la necesita.
-
-**Verificación después de aplicar:**
-
-```bash
-curl "$VITE_SUPABASE_URL/rest/v1/orders?select=customer_name,customer_phone" \
-     -H "apikey: $VITE_SUPABASE_ANON_KEY"
-# debe devolver []
-```
+Todas las del 22 de agosto están commiteadas y en `main`.
 
 ---
+
+## 🔴 Crítico — seguridad
 
 ### 2. Cualquier usuario autenticado puede crear y borrar administradores
 
@@ -180,8 +145,13 @@ tablas de conversaciones estuvieron abiertas a la llave pública hasta el 22 de 
 
 Ese mismo trabajo destapó **seis tablas que nadie sabía que existían**: tres muertas
 (`message_history`, `whatsapp_dedup`, `conversaciones` — cero referencias, cero filas) y
-tres respaldos manuales (`respaldo_*_20260822`) con 104 filas de conversaciones reales que
-estaban con RLS apagado. Un volcado del esquema las habría hecho visibles antes.
+tres respaldos manuales con 104 filas de conversaciones reales y RLS apagado (ya
+eliminados). Un volcado del esquema las habría hecho visibles mucho antes.
+
+Y es también lo que hizo posible el error de este documento sobre `orders`: **el archivo
+de migración decía una cosa y la base otra**, y no había forma de notarlo desde el
+repositorio. Mientras el esquema no esté versionado, leer las migraciones **no** es leer
+la base.
 
 **Arreglo propuesto:**
 
@@ -196,26 +166,21 @@ dashboard**. Aprovechar el mismo paso para volcar las 8 RPC.
 
 ---
 
-### 5. Migraciones de la rama actual sin commitear
+### 5. ✅ Migraciones sin commitear — resuelto
 
-`20260822_chats_sin_responder.sql` y `20260822_cerrar_conversaciones_a_anon.sql` **ya están
-commiteadas** (`2d140cc` y `b427f66`). Siguen sin commitear, en la rama
-`fix/dashboard-decia-lo-que-no-sabia`:
-
-- `20260822_borrar_chat_media.sql` — política DELETE en `chat-media`
-- `20260822_conversaciones_purgables.sql` — función de retención
-
-**Por qué importa.** Si la política de `chat-media` no está aplicada, `EliminarChat` falla
-en el paso de fotos y —por diseño, para no dejar archivos huérfanos— **no borra nada**.
-
-**Arreglo:** confirmar en Supabase antes de dar la rama por terminada.
+Todas están en `main`. Queda una comprobación que **sigue mereciendo la pena**: confirmar
+que están aplicadas en Supabase, no sólo escritas en el repo.
 
 ```sql
 SELECT * FROM public.chats_sin_responder() LIMIT 1;
 SELECT * FROM public.conversaciones_purgables(12) LIMIT 1;
+SELECT * FROM public.pedido_publico('<uuid de un pedido>');
 SELECT policyname FROM pg_policies
  WHERE tablename = 'objects' AND schemaname = 'storage';
 ```
+
+Si la política de `chat-media` no está aplicada, el borrado de conversaciones falla en el
+paso de fotos y —por diseño, para no dejar archivos huérfanos— **no borra nada**.
 
 ---
 
@@ -341,34 +306,46 @@ función ya devuelve (`src/lib/meta.js:57-84`).
 
 ### 15. El titular de la portada sale en negrita sintética
 
-**Dónde:** `src/index.css:7912-7950`
+**Dónde:** bloque `HERO SECTION` en `src/index.css:7913`, que pisa al original de `:375`.
+El selector duplicado está en `:7925`.
 
-Hay un bloque `HERO SECTION` duplicado **fuera de toda media query** que pisa al original
-de la línea 375. `.hero-h1` pierde sus cuatro declaraciones, incluido
-`font-weight: 400 → 800`. Marcellus **sólo tiene peso 400** (`src/fuentes.css`), así que
-el navegador engorda los trazos por su cuenta: el titular de la portada se ve emborronado
-y contradice `DESIGN.md`.
+Está **fuera de toda media query**, así que gana siempre. `.hero-h1` pierde sus cuatro
+declaraciones:
+
+```
+L393  .hero-h1
+      font-weight: 400                    →  L7925 gana con 800
+      font-size: clamp(3rem, 5vw, 4.5rem) →  L7925 gana con 5rem
+      line-height: 1.014                  →  L7925 gana con 1.05
+      letter-spacing: -0.015em            →  L7925 gana con -0.04em
+```
+
+Marcellus **sólo tiene peso 400** (`src/fuentes.css`), así que el navegador engorda los
+trazos por su cuenta: el titular de la portada se ve emborronado y contradice `DESIGN.md`.
 
 El bloque además define `.hero-right-col` y `.hero-social-proof`, que no existen en
 `Hero.jsx` — es un resto del diseño anterior.
 
-**Arreglo:** borrar el bloque duplicado y confirmar con `npm run css:pisadas`.
+**Arreglo:** borrar el bloque duplicado y confirmar con `npm run css:pisadas`, que hoy lo
+reporta como el primero de la lista.
 
-### 16. `src/index.css` son 17.562 líneas
+### 16. `src/index.css` son 17.781 líneas
 
-84 bloques con declaraciones muertas. Tres capas conviviendo sólo para la ficha de
-producto (`.ficha-*`, `.product-page-*` y una tercera reescritura al final). CSS muerto
-confirmado: `.admin-table` (12 referencias en CSS, 0 en JSX), `.dash-table` (11/0),
-`.ficha-tecnica-lista` (5/0), `.product-page-grid`, `.product-page-btn`.
+**25 bloques con declaraciones muertas** — venían de 84, así que la limpieza va avanzando.
+Los que quedan son casi todos del panel (`.admin-topbar-avatar`, `.chat-contact-item`,
+`.chat-quick-replies`…), pisados por la capa de rediseño posterior.
 
-Reparto: ~8.300 líneas de tienda pública, ~9.250 de panel.
+Siguen conviviendo tres capas para la ficha de producto (`.ficha-*`, `.product-page-*` y
+una reescritura al final). CSS muerto confirmado: `.admin-table` (12 referencias en CSS, 0
+en JSX), `.dash-table` (11/0), `.ficha-tecnica-lista` (5/0), `.product-page-grid`,
+`.product-page-btn`.
 
 **Arreglo propuesto, por orden de riesgo:** primero borrar lo que `css:pisadas` marca como
 muerto y no aparece en ningún JSX (riesgo cero, ganancia inmediata); después separar en
 `index.css` + `admin.css`; y sólo entonces plantear unificar las tres capas de la ficha.
 No hacerlo todo de una vez.
 
-### 17. `Dashboard.jsx` son 3.989 líneas
+### 17. `Dashboard.jsx` son 4.100 líneas (y `ChatPanel.jsx` 2.135)
 
 Contiene las 7 secciones del panel, más `DashboardHome`, `ProductsSection`,
 `OrdersSection`, `CustomersSection`, `ReportsSection`, `NotesSection`, `SettingsSection`,

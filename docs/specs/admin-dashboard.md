@@ -2,7 +2,7 @@
 
 > **Estado:** en producción
 > **Última revisión:** 2026-08-22
-> **Ruta:** `/admin` (sección `dashboard`) · `src/pages/admin/Dashboard.jsx` (3.989 líneas)
+> **Ruta:** `/admin` (sección `dashboard`) · `src/pages/admin/Dashboard.jsx` (4.100 líneas)
 
 ## Qué resuelve
 
@@ -137,7 +137,7 @@ pasaba de 3**. La función `chats_sin_responder()` usa `DISTINCT ON (phone_numbe
   falta confirmar que está aplicada — [pendientes #5](../pendientes.md).
 - **El badge de mensajes sin leer no llega al sidebar** desde aquí (`:3783` monta
   `AdminSidebar` sin `chatUnread`) — [pendientes #19](../pendientes.md).
-- **3.989 líneas en un archivo** con las 7 secciones dentro — [pendientes #17](../pendientes.md).
+- **4.100 líneas en un archivo** con las 7 secciones dentro — [pendientes #17](../pendientes.md).
 - Las 6 RPC de analítica **no están versionadas**.
 - El ticket promedio de Reportes usa `amount` completo, no `recibidoDe` — es deliberado y
   está comentado (`:2085-2087`), pero conviene saberlo.

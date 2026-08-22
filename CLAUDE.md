@@ -187,7 +187,6 @@ redesplegar). **La programación no está versionada**: para verla, `SELECT * FR
 | `vigilancia_ultima` | **no** | Fila id=1 con el último informe del vigía |
 | `envio_publico` | **no** (es una vista) | Expone sólo `abono_envio` y `tope_contraentrega` |
 | `message_history`, `whatsapp_dedup`, `conversaciones` | **no** | ☠️ **Muertas**: cero referencias en el código y cero filas. Sin políticas desde el 22-ago (sólo `service_role`) |
-| `respaldo_chats_20260822`, `respaldo_takeover_20260822`, `respaldo_chatstatus_20260822` | **no** | Respaldos manuales del 22-ago con 104 filas reales. RLS encendido sin políticas |
 
 ### Columnas que importan
 
@@ -226,7 +225,7 @@ redesplegar). **La programación no está versionada**: para verla, `SELECT * FR
 | Archivo | Qué hizo |
 |---|---|
 | `20260311_add_shipping_address.sql` | Dirección de envío en `orders` |
-| `20260311_orders_rls.sql` | RLS de `orders` — **contiene un fallo grave, ver `docs/pendientes.md`** |
+| `20260311_orders_rls.sql` | RLS de `orders` — declaraba una política abierta a `anon` que nunca llegó a la base; anulada el 22-ago |
 | `20260818_atribucion_anuncios.sql` | `ttclid`, `ttp`, `fbc`, `fbp`, `conversion_enviada_en` |
 | `20260818_atribucion_navegador.sql` | `client_ua`, `client_ip` (Meta descarta eventos sin UA) |
 | `20260818_referral_anuncios.sql` | `referral jsonb` en conversaciones |
@@ -238,8 +237,10 @@ redesplegar). **La programación no está versionada**: para verla, `SELECT * FR
 | `20260819_plantillas_programadas.sql` | `plantillas_enviadas` + `customers.no_escribir` |
 | `20260822_chats_sin_responder.sql` | Función `chats_sin_responder()` |
 | `20260822_cerrar_conversaciones_a_anon.sql` | 🔒 Cierra a `anon` las 5 tablas de conversaciones y enciende RLS en 3 respaldos |
-| `20260822_borrar_chat_media.sql` | Política DELETE en `chat-media` — **sin commitear** |
-| `20260822_conversaciones_purgables.sql` | Función `conversaciones_purgables()` — **sin commitear** |
+| `20260822_borrar_chat_media.sql` | Política DELETE en `chat-media` |
+| `20260822_conversaciones_purgables.sql` | Función `conversaciones_purgables()` — retención |
+| `20260822_pedido_publico.sql` | 🔒 `pedido_publico(uuid)` y anulación de la política mina |
+| `20260822_quitar_respaldos_de_chats.sql` | Elimina los respaldos del 22-ago |
 
 `20260822_cerrar_conversaciones_a_anon.sql` arregló un fallo del mismo tipo que el que
 sigue abierto en `orders`: `whatsapp_conversaciones` y `chat_takeover` tenían políticas
@@ -405,9 +406,9 @@ Cosas que ya costaron un incidente. Léelas antes de tocar lo que describen.
   las `.jpeg` deja a Valentina sin poder mandar fotos.**
 - **Gmail borra los `<style>` externos.** Por eso `emails/_marca.tsx` duplica los tokens
   en línea y usa Georgia en vez de Marcellus.
-- **`src/index.css` tiene 17.562 líneas y arrastra capas del diseño anterior que
+- **`src/index.css` tiene 17.781 líneas y arrastra capas del diseño anterior que
   deshacen los cambios nuevos.** Antes de dar por bueno un cambio de CSS, corre
-  `npm run css:pisadas`. Hoy reporta 84 bloques con declaraciones muertas.
+  `npm run css:pisadas`. Hoy reporta 25 bloques con declaraciones muertas.
 - **390px no basta para probar móvil.** El iframe es la única forma de medir de verdad
   el comportamiento en pantallas reales en esta sesión.
 - **Hay dos píxeles de Meta con el mismo nombre y sólo uno recibe eventos.** Verifica el
@@ -455,4 +456,4 @@ hoy, decisiones tomadas y por qué, límites conocidos, cómo probarlo.
 - [`diseno-y-frontend.md`](docs/specs/diseno-y-frontend.md) — CSS, fuentes, animaciones
 
 **Y aparte:** [`docs/pendientes.md`](docs/pendientes.md) — hallazgos priorizados, incluidos
-tres fallos de seguridad sin resolver.
+hallazgos pendientes, entre ellos dos de seguridad todavía sin resolver.
