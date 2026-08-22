@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
 
 const ResetPassword = () => {
@@ -58,21 +57,11 @@ const ResetPassword = () => {
                 </div>
             </div>
 
-            <motion.div
-                className="admin-login-right"
-                initial={{ x: 30, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-            >
+            <div className="admin-login-right monta monta--der">
                 <div className="admin-login-panel">
-                    <motion.div
-                        className="admin-login-logo-wrap"
-                        initial={{ scale: 0.8, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        transition={{ duration: 0.5, delay: 0.15 }}
-                    >
+                    <div className="admin-login-logo-wrap monta monta--zoom" style={{ '--retraso': '0.15s' }}>
                         <img src="/assets/logo-isotipo.svg" alt="Aurem Gs" className="admin-login-logo" />
-                    </motion.div>
+                    </div>
 
                     <div className="admin-login-header">
                         <p className="admin-login-portal-label">SEGURIDAD</p>
@@ -87,18 +76,18 @@ const ResetPassword = () => {
                     </div>
 
                     {success ? (
-                        <motion.div className="admin-login-success" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}>
+                        <div className="admin-login-success" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}>
                             <div className="admin-login-success-icon">
                                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
                             </div>
-                        </motion.div>
+                        </div>
                     ) : (
                         <form className="admin-login-form" onSubmit={handleSubmit}>
                             {error && (
-                                <motion.div className="admin-login-error" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}>
+                                <div className="admin-login-error" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}>
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
                                     {error}
-                                </motion.div>
+                                </div>
                             )}
 
                             <div className="admin-login-field">
@@ -123,17 +112,17 @@ const ResetPassword = () => {
                                 </div>
                             </div>
 
-                            <motion.button className="admin-login-btn" type="submit" disabled={loading} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                            <button className="admin-login-btn" type="submit" disabled={loading} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                                 {loading ? (
                                     <span className="admin-login-btn-loading"><span className="admin-login-spinner" />Actualizando...</span>
                                 ) : 'Actualizar contraseña'}
-                            </motion.button>
+                            </button>
                         </form>
                     )}
 
                     <p className="admin-login-footer">© 2026 Aurem Gs Joyería</p>
                 </div>
-            </motion.div>
+            </div>
         </div>
     );
 };

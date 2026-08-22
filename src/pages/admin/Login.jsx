@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
 import { waUrl } from '../../lib/whatsapp';
 import Isotipo from '../../components/Isotipo';
@@ -124,12 +123,7 @@ const Login = () => {
             </section>
 
             {/* Derecha — el acceso */}
-            <motion.section
-                className="admin-login-right"
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-            >
+            <section className="admin-login-right monta">
                 <div className="admin-login-panel">
 
                     <div className="admin-login-head">
@@ -284,7 +278,7 @@ const Login = () => {
                         © {new Date().getFullYear()} Aurem Gs Joyería · Sesión cifrada
                     </p>
                 </div>
-            </motion.section>
+            </section>
         </div>
     );
 };

@@ -1,11 +1,7 @@
 import React, { useState } from 'react';
+import { useAparecer } from '../lib/aparecer';
 import { WA_NUMBER, waUrl, isMobile } from '../lib/whatsapp';
-import { motion } from 'framer-motion';
 
-const fadeUp = {
-    hidden: { opacity: 0, y: 30 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.16, 1, 0.3, 1] } }
-};
 
 const MailIcon = () => (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -25,6 +21,10 @@ const EMAIL = 'hola@auremgsjoyeria.com';
 const interestOptions = ['Anillos', 'Collares', 'Pulseras', 'Personalizado'];
 
 const Contact = () => {
+    const encabezado = useAparecer();
+    const izquierda = useAparecer('izq');
+    const formulario = useAparecer('der');
+
     const [interest, setInterest] = useState('Anillos');
     const [form, setForm]         = useState({ name: '', email: '', phone: '', message: '' });
     const [copied, setCopied]     = useState(false);
@@ -76,26 +76,20 @@ const Contact = () => {
     return (
         <section id="contacto" className="contact-section">
             <div className="container">
-                <motion.div
+                <div
                     className="contact-header"
-                    initial={{ opacity: 0, y: 24 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-                    viewport={{ once: true, margin: '-80px' }}
+                    ref={encabezado}
                 >
                     <p className="contact-badge">Contacto</p>
                     <h2 className="contact-title">Hablemos de <em>tu pieza.</em></h2>
-                </motion.div>
+                </div>
 
                 <div className="contact-layout">
 
                     {/* Izquierda */}
-                    <motion.div
+                    <div
                         className="contact-left"
-                        initial={{ opacity: 0, x: -40 }}
-                        whileInView={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-                        viewport={{ once: true, margin: '-80px' }}
+                        ref={izquierda}
                     >
                         <p className="contact-subtitle">
                             Escríbenos y te asesoramos sin compromiso.
@@ -139,16 +133,13 @@ const Contact = () => {
                                 </div>
                             )}
                         </div>
-                    </motion.div>
+                    </div>
 
                     {/* Right — form */}
-                    <motion.form
+                    <form
                         className="contact-form"
                         onSubmit={handleSubmit}
-                        initial={{ opacity: 0, x: 40 }}
-                        whileInView={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
-                        viewport={{ once: true, margin: '-80px' }}
+                        ref={formulario}
                     >
 
                         <div className="contact-row">
@@ -227,7 +218,7 @@ const Contact = () => {
                             {sent ? 'Enviado — abrimos WhatsApp' : 'Enviar mensaje'}
                         </button>
 
-                    </motion.form>
+                    </form>
 
                 </div>
             </div>

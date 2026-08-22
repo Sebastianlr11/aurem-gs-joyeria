@@ -1,15 +1,7 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import { useAparecer, useAparecerGrupo } from '../lib/aparecer';
 
-const fadeUp = {
-    hidden: { opacity: 0, y: 30 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.16, 1, 0.3, 1] } }
-};
 
-const stagger = {
-    hidden: {},
-    visible: { transition: { staggerChildren: 0.1 } }
-};
 
 const faqs = [
     {
@@ -59,6 +51,9 @@ const FaqItem = ({ question, answer, isOpen, onToggle }) => (
 );
 
 const Faq = () => {
+    const cabecera = useAparecer();
+    const rejilla = useAparecerGrupo(0.1);
+
     const [openIndex, setOpenIndex] = useState(0);
 
     return (
@@ -67,28 +62,16 @@ const Faq = () => {
                 <div className="faq-layout">
 
                     {/* Left — sticky title */}
-                    <motion.div
-                        className="faq-left"
-                        variants={fadeUp}
-                        initial="hidden"
-                        whileInView="visible"
-                        viewport={{ once: true, margin: '-80px' }}
-                    >
+                    <div className="faq-left" ref={cabecera}>
                         <p className="eyebrow">FAQs</p>
                         <h2 className="faq-title">Preguntas <em>frecuentes.</em></h2>
                         <p className="faq-subtitle">
                             Todo lo que necesitas saber antes de elegir tu pieza.
                         </p>
-                    </motion.div>
+                    </div>
 
                     {/* Right — accordion */}
-                    <motion.div
-                        className="faq-right"
-                        variants={stagger}
-                        initial="hidden"
-                        whileInView="visible"
-                        viewport={{ once: true, margin: '-80px' }}
-                    >
+                    <div className="faq-right" ref={rejilla}>
                         {faqs.map((faq, index) => (
                             <FaqItem
                                 key={index}
@@ -98,7 +81,7 @@ const Faq = () => {
                                 onToggle={() => setOpenIndex(openIndex === index ? null : index)}
                             />
                         ))}
-                    </motion.div>
+                    </div>
 
                 </div>
             </div>

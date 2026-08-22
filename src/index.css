@@ -16206,3 +16206,62 @@ textarea:focus-visible {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
+
+/* ─── Aparecer al entrar en pantalla ─────────────────────────────────
+   Reemplaza a framer-motion. Las duraciones y la curva son exactamente las
+   que tenía: 0.7s con cubic-bezier(0.16, 1, 0.3, 1), que es la misma de
+   --transition-smooth del sistema.
+
+   El escalonado se hace con --i en cada hijo, y no con nth-child, porque las
+   rejillas tienen distinta cantidad de piezas según lo que haya publicado. */
+.aparece {
+  opacity: 0;
+  transition:
+    opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  transition-delay: calc(var(--i, 0) * var(--paso, 0.12s));
+}
+.aparece--y { transform: translateY(30px); }
+.aparece--izq { transform: translateX(-40px); }
+.aparece--der { transform: translateX(40px); }
+
+.aparece--visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* Las que entran de lado duran un pelo más, como en el original. */
+.aparece--izq, .aparece--der {
+  transition-duration: 0.8s;
+}
+
+/* Aparecer al montar, sin scroll: es lo que hacían Login y ResetPassword. */
+.monta {
+  animation: montaEntra 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: var(--retraso, 0s);
+}
+.monta--der { animation-name: montaDesdeDerecha; }
+.monta--zoom { animation-name: montaZoom; animation-duration: 0.5s; }
+
+@keyframes montaEntra {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes montaDesdeDerecha {
+  from { opacity: 0; transform: translateX(30px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes montaZoom {
+  from { opacity: 0; transform: scale(0.8); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Quien pidió menos movimiento lo recibe: aparece todo, sin recorrido. */
+@media (prefers-reduced-motion: reduce) {
+  .aparece, .aparece--visible {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  .monta { animation: none; opacity: 1; transform: none; }
+}

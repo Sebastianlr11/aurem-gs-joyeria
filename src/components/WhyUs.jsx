@@ -1,15 +1,7 @@
 import React from 'react';
-import { motion } from 'framer-motion';
+import { useAparecer, useAparecerGrupo } from '../lib/aparecer';
 
-const fadeUp = {
-    hidden: { opacity: 0, y: 30 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.16, 1, 0.3, 1] } }
-};
 
-const stagger = {
-    hidden: {},
-    visible: { transition: { staggerChildren: 0.15 } }
-};
 
 const PackageIcon = () => (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
@@ -53,36 +45,32 @@ const pillars = [
 ];
 
 const WhyUs = () => {
+    const cabecera = useAparecer();
+    const rejilla = useAparecerGrupo(0.15);
+
     return (
         <section id="nosotros" className="why-us-section">
             <div className="container">
 
-                <motion.div
+                <div
                     className="why-us-header"
-                    variants={fadeUp}
-                    initial="hidden"
-                    whileInView="visible"
-                    viewport={{ once: true, margin: '-80px' }}
+                    ref={cabecera}
                 >
                     <p className="eyebrow">Por qué nosotros</p>
                     <h2 className="why-us-title">Calidad que <em>se siente.</em></h2>
-                </motion.div>
+                </div>
 
-                <motion.div
-                    className="why-us-pillars"
-                    variants={stagger}
-                    initial="hidden"
-                    whileInView="visible"
-                    viewport={{ once: true, margin: '-80px' }}
+                <div
+                    className="why-us-pillars" ref={rejilla}
                 >
                     {pillars.map(pillar => (
-                        <motion.div key={pillar.title} className="why-us-pillar" variants={fadeUp}>
+                        <div key={pillar.title} className="why-us-pillar">
                             <div className="pillar-icon-wrap">{pillar.icon}</div>
                             <h3 className="pillar-title">{pillar.title}</h3>
                             <p className="pillar-desc">{pillar.description}</p>
-                        </motion.div>
+                        </div>
                     ))}
-                </motion.div>
+                </div>
 
             </div>
         </section>

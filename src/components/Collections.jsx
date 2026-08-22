@@ -1,16 +1,8 @@
 import React from 'react';
+import { useAparecer, useAparecerGrupo } from '../lib/aparecer';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
 
-const fadeUp = {
-    hidden: { opacity: 0, y: 30 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.16, 1, 0.3, 1] } }
-};
 
-const stagger = {
-    hidden: {},
-    visible: { transition: { staggerChildren: 0.12 } }
-};
 
 const collectionsData = [
     {
@@ -50,33 +42,29 @@ const Arrow = () => (
 );
 
 const Collections = () => {
+    const cabecera = useAparecer();
+    const rejilla = useAparecerGrupo(0.12);
+
     return (
         <section id="colecciones" className="collections-section">
             <div className="container">
 
-                <motion.div
+                <div
                     className="collections-header"
-                    variants={fadeUp}
-                    initial="hidden"
-                    whileInView="visible"
-                    viewport={{ once: true, margin: '-80px' }}
+                    ref={cabecera}
                 >
                     <p className="eyebrow">Nuestras colecciones</p>
                     <h2 className="collections-title">Lo que <em>hacemos.</em></h2>
                     <p className="collections-subtitle">
                         Combinamos delicadeza y artesanía para crear piezas que perduran.
                     </p>
-                </motion.div>
+                </div>
 
-                <motion.div
-                    className="collections-grid"
-                    variants={stagger}
-                    initial="hidden"
-                    whileInView="visible"
-                    viewport={{ once: true, margin: '-80px' }}
+                <div
+                    className="collections-grid" ref={rejilla}
                 >
                     {collectionsData.map(item => (
-                        <motion.article key={item.id} className="collection-card" variants={fadeUp}>
+                        <article key={item.id} className="collection-card">
 
                             <Link to={`/catalogo?categoria=${item.category}`} className="collection-card-image" aria-label={item.cta}>
                                 <img src={item.image} alt={`${item.title} de Aurem Gs Joyería`} />
@@ -91,9 +79,9 @@ const Collections = () => {
                                 </Link>
                             </div>
 
-                        </motion.article>
+                        </article>
                     ))}
-                </motion.div>
+                </div>
 
                 <div className="collections-cta">
                     <Link to="/catalogo" className="btn-pill black">Ver el catálogo</Link>
