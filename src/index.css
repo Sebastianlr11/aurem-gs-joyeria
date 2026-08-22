@@ -1,9 +1,4 @@
-/* Las fuentes NO se piden desde aquí, se piden en index.html.
-   Un @import obliga al navegador a una cadena en serie: bajar este archivo
-   entero, interpretarlo, recién entonces pedir la hoja de Google y después
-   los archivos de fuente. El escáner de precarga no puede adelantarse
-   porque no lo ve en el HTML. Medido en PageSpeed: 1.320 ms de renderizado
-   bloqueado. */
+@import './fuentes.css';
 
 /* ================================================================
    AUREM GS JOYERÍA — "Luz de vitrina"
