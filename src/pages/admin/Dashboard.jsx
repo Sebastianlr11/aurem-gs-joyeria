@@ -2122,10 +2122,13 @@ const ReportsSection = ({ orders, products = [], onNavigate }) => {
     const codTotal = codOrders.reduce((s, o) => s + recibidoDe(o), 0);
     const netTotal = mpNet + codTotal;
 
-    const prevNetTotal = prevPaid.reduce((s, o) => s + (isCOD(o) ? Number(o.amount) : calcMPNet(Number(o.amount))), 0);
+    const prevNetTotal = prevPaid.reduce((s, o) => s + (isCOD(o) ? recibidoDe(o) : calcMPNet(Number(o.amount))), 0);
 
-    /* Avg order value */
-    const avgOrder = paidFiltered.length ? Math.round(grossTotal / paidFiltered.length) : 0;
+    /* El ticket promedio sí es el precio de lo que se vende, no lo que ya
+       entró: mide qué tan caro compra la gente, no en qué punto va el cobro.
+       Por eso este —y sólo este— sigue sumando el monto completo. */
+    const vendidoTotal = paidFiltered.reduce((s, o) => s + Number(o.amount), 0);
+    const avgOrder = paidFiltered.length ? Math.round(vendidoTotal / paidFiltered.length) : 0;
     const prevGross = prevPaid.reduce((s, o) => s + Number(o.amount), 0);
     const prevAvgOrder = prevPaid.length ? Math.round(prevGross / prevPaid.length) : 0;
     const prevPayRate = prevFiltered.length ? Math.round((prevPaid.length / prevFiltered.length) * 100) : 0;
@@ -2305,7 +2308,7 @@ const ReportsSection = ({ orders, products = [], onNavigate }) => {
                                 <span className="inf-neto-moneda">COP</span>
                             </div>
                             <p className="inf-neto-sub">
-                                De ${fmt(grossTotal)} facturados · ya descontadas las comisiones
+                                Plata que ya entró, con las comisiones descontadas
                             </p>
                             {variacionNeto !== null && (
                                 <p className="inf-neto-comp">
@@ -2345,6 +2348,17 @@ const ReportsSection = ({ orders, products = [], onNavigate }) => {
                             <strong>${fmt(codTotal)}</strong>
                         </div>
                     </div>
+
+                    {/* Aparte, y a propósito. Lo comprometido no es ingreso:
+                        el cliente todavía no ha pagado y el pedido se puede
+                        caer en la puerta. */}
+                    {porCobrarTotal > 0 && (
+                        <p className="inf-neto-pendiente">
+                            <span>Falta cobrar</span>
+                            <strong>${fmt(porCobrarTotal)}</strong>
+                            <span className="inf-neto-meta">al entregar</span>
+                        </p>
+                    )}
                 </article>
 
                 <article className="inf-kpis">
@@ -2367,7 +2381,7 @@ const ReportsSection = ({ orders, products = [], onNavigate }) => {
                     <div className="inf-kpi">
                         <span className="inf-kpi-l">Ticket promedio</span>
                         <span className="inf-kpi-v">${fmt(avgOrder)}</span>
-                        <span className="inf-kpi-s">Sobre ${fmt(grossTotal)} facturados</span>
+                        <span className="inf-kpi-s">Sobre ${fmt(vendidoTotal)} vendidos</span>
                         {compPesos(avgOrder, prevAvgOrder) && (
                             <span className="inf-kpi-comp">{compPesos(avgOrder, prevAvgOrder)}</span>
                         )}

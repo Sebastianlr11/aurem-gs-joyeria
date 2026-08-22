@@ -12694,6 +12694,20 @@ textarea:focus-visible {
 .inf-neto-sub { font-size: 0.86rem; color: rgba(255, 255, 255, 0.62); }
 
 .inf-neto-desglose { margin-top: auto; padding-top: 1.75rem; }
+
+/* Lo que falta cobrar va debajo del desglose y separado por una línea, no
+   dentro de él: es plata prometida, no plata recibida, y mezclarlas en la
+   misma lista es exactamente el error que este bloque vino a arreglar. */
+.inf-neto-pendiente {
+  display: flex; align-items: baseline; gap: 0.6rem; flex-wrap: wrap;
+  margin: 1.125rem 0 0; padding-top: 1.125rem;
+  border-top: 1px solid rgba(227, 201, 144, 0.22);
+  font-size: 0.88rem; color: rgba(255, 255, 255, 0.62);
+}
+.inf-neto-pendiente strong {
+  font-size: 1.05rem; font-weight: 700; color: var(--oro-luz);
+  font-variant-numeric: tabular-nums;
+}
 .inf-neto-linea {
   display: flex; align-items: center; justify-content: space-between; gap: 1rem;
   padding: 0.8125rem 0; border-bottom: 1px solid rgba(255, 255, 255, 0.07);
