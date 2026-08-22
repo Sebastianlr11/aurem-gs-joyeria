@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
-import { recibidoDe, porCobrarDe, estaVivo } from '../../lib/dinero';
+import { recibidoDe, estaVivo } from '../../lib/dinero';
 import AdminSidebar from './AdminSidebar';
 import { NAV } from './adminNav.jsx';
 

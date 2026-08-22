@@ -445,11 +445,10 @@ const VentasPorOrigen = ({ orders }) => {
         const suyos = vendidos.filter(o => origenDe(o) === id);
         return {
             id, label, nota,
-            /* Los vivos, no todos. Contar cancelados junto a "ha gastado $0"
-               daba fichas que se contradecían solas: 10 pedidos, cero pesos. */
-            pedidos: vivos.length,
-            cancelados: suyos.length - vivos.length,
-            plata: suyos.reduce((s, o) => s + Number(o.amount || 0), 0),
+            pedidos: suyos.length,
+            /* Lo recibido, como en todo el resto del panel. Un peso en esta
+               pantalla significa siempre lo mismo: plata que entró. */
+            plata: suyos.reduce((s, o) => s + recibidoDe(o), 0),
         };
     });
 
@@ -885,6 +884,39 @@ const DashboardHome = ({ products, orders, customers, waStats, chatsPendientes, 
     const hoy = new Date();
     const hace30 = new Date(hoy.getTime() - 30 * 86400000);
 
+    /* Lo que el sistema ya sabía y el panel no. La vigilancia encontraba
+       cosas rotas y las mandaba por correo; el correo se marca como leído y
+       se olvida, y el panel podía verse impecable con tres averías encima. */
+    const [revision, setRevision] = useState(null);
+    const [gastoPauta, setGastoPauta] = useState(null);
+    const [ultimosMensajes, setUltimosMensajes] = useState([]);
+
+    useEffect(() => {
+        supabase.from('vigilancia_ultima').select('*').eq('id', 1).maybeSingle()
+            .then(({ data }) => setRevision(data))
+            .catch(() => {});
+
+        /* Los últimos mensajes, para mezclarlos con los pedidos en una sola
+           línea de tiempo. Un pedido y la conversación que lo produjo son el
+           mismo hecho contado dos veces, y en dos listas separadas nadie los
+           relaciona. */
+        supabase.from('whatsapp_conversaciones')
+            .select('phone_number, role, content, message_type, created_at')
+            .order('created_at', { ascending: false })
+            .limit(12)
+            .then(({ data }) => setUltimosMensajes(data || []))
+            .catch(() => {});
+
+        const desde = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+        Promise.all([
+            supabase.from('gasto_pauta').select('monto').gte('fecha', desde),
+            supabase.from('taller_precios').select('iva_pauta').limit(1).maybeSingle(),
+        ]).then(([{ data: g }, { data: t }]) => {
+            const sinIva = (g || []).reduce((a, x) => a + Number(x.monto), 0);
+            if (sinIva > 0) setGastoPauta(sinIva * (1 + Number(t?.iva_pauta ?? 0.19)));
+        }).catch(() => {});
+    }, []);
+
     const pedidos30 = orders.filter(o => new Date(o.created_at) >= hace30);
     const ingresos = ingresosDe(pedidos30);
 
@@ -895,7 +927,17 @@ const DashboardHome = ({ products, orders, customers, waStats, chatsPendientes, 
     const sinResponder = chatsPendientes.length;
 
     const clientesNuevos = customers.filter(c => new Date(c.created_at) >= hace30).length;
-    const conInventario = products.filter(p => p.stock !== null && p.stock !== undefined).length;
+
+    /* Una pieza agotada que sigue publicada es plata de pauta llevando gente a
+       algo que no se puede comprar. Se mira aparte de lo demás porque no se
+       arregla atendiendo un pedido: se arregla fabricando o despublicando. */
+    const agotadas = products.filter(p => p.stock === 0);
+    const ultima = products.filter(p => p.stock === 1);
+
+    const hallazgos = revision?.hallazgos ?? [];
+    const revisadoHace = revision?.corrida_en
+        ? Math.round((Date.now() - new Date(revision.corrida_en).getTime()) / 60000)
+        : null;
 
     const pendiente = porConfirmar + porDespachar + sinResponder;
 
@@ -921,34 +963,46 @@ const DashboardHome = ({ products, orders, customers, waStats, chatsPendientes, 
     ];
 
     /* Puesta a punto: cada paso se marca solo cuando el dato existe. */
-    const pasos = [
-        {
-            t: 'Publicar las primeras piezas',
-            s: products.length > 0 ? `${products.length} pieza${products.length !== 1 ? 's' : ''} en el catálogo` : 'El catálogo está vacío',
-            hecho: products.length > 0,
-            accion: 'Abrir productos →', ir: () => onNavigate('products'),
-        },
-        {
-            t: 'Anotar cuántas unidades te quedan',
-            s: 'Sin inventario no se puede avisar cuando una pieza se agota',
-            hecho: conInventario === products.length && products.length > 0,
-            accion: 'Abrir productos →', ir: () => onNavigate('products'),
-        },
-        {
-            t: 'Confirmar envío y pago contra entrega',
-            s: 'Ciudades cubiertas, plazo de 24 a 48 horas y datos de recaudo',
-            hecho: false,
-            accion: 'Abrir ajustes →', ir: () => onNavigate('settings'),
-        },
-        {
-            t: 'Dejar listo el mensaje de bienvenida de WhatsApp',
-            s: 'Es el primer contacto de casi todo cliente que llega del anuncio',
-            hecho: false,
-            accion: 'Abrir conversaciones →', ir: () => onNavigate('chat'),
-        },
-    ];
-    const hechos = pasos.filter(p => p.hecho).length;
-    const faltanPasos = hechos < pasos.length;
+
+    /* Una sola línea de tiempo con lo que pasó, pedidos y conversaciones
+       mezclados. El panel entero eran contadores y pendientes: cuántos hay,
+       qué falta. Ninguna pantalla respondía "¿qué pasó desde que miré?", que
+       es con lo que uno abre el panel en la mañana. */
+    const haceCuanto = (fecha) => {
+        const min = Math.round((Date.now() - new Date(fecha).getTime()) / 60000);
+        if (min < 1) return 'ahora';
+        if (min < 60) return `hace ${min} min`;
+        const h = Math.round(min / 60);
+        if (h < 24) return `hace ${h} h`;
+        const d = Math.round(h / 24);
+        return d === 1 ? 'ayer' : `hace ${d} días`;
+    };
+
+    const telCorto = (t) => (t || '').replace(/^57/, '').replace(/(\d{3})(\d{3})(\d{4})/, '$1 $2 $3');
+
+    const lineaDeTiempo = [
+        ...orders.slice(0, 8).map(o => ({
+            cuando: o.created_at,
+            tipo: 'pedido',
+            que: `${o.customer_name || 'Alguien'} pidió ${o.product_name}`,
+            dato: `$${fmt(o.amount)}`,
+            estado: STATUS_META[o.status]?.label ?? o.status,
+            ir: () => onNavigate('orders'),
+        })),
+        ...ultimosMensajes
+            /* Sólo lo que escribe la clienta. Las respuestas de Valentina son
+               consecuencia, no noticia, y duplicarían cada línea. */
+            .filter(m => m.role === 'user')
+            .slice(0, 8)
+            .map(m => ({
+                cuando: m.created_at,
+                tipo: 'chat',
+                que: `${telCorto(m.phone_number)} escribió`,
+                dato: m.message_type === 'image' ? 'Mandó una foto'
+                    : (m.content || '').slice(0, 70) + ((m.content || '').length > 70 ? '…' : ''),
+                ir: () => onNavigate('chat'),
+            })),
+    ].sort((a, b) => new Date(b.cuando) - new Date(a.cuando)).slice(0, 7);
 
     const cifras = [
         { v: products.length, l: 'Piezas publicadas' },
@@ -983,6 +1037,48 @@ const DashboardHome = ({ products, orders, customers, waStats, chatsPendientes, 
                     {' '}Lo que sigue está abajo, en orden.
                 </p>
             </div>
+
+            {/* Lo roto va antes que lo pendiente. Un pedido sin despachar espera;
+                un pago colgado o una foto que no llegó ya salió mal, y cada
+                hora que pasa cuesta más. */}
+            {hallazgos.length > 0 && (
+                <section className="jornada-averia">
+                    <div className="jornada-averia-head">
+                        <span className="jornada-averia-titulo">
+                            {hallazgos.length === 1 ? 'Hay algo que no está funcionando' : `Hay ${hallazgos.length} cosas que no están funcionando`}
+                        </span>
+                        {revisadoHace != null && (
+                            <span className="jornada-averia-nota">
+                                Revisado hace {revisadoHace < 60 ? `${revisadoHace} min` : `${Math.round(revisadoHace / 60)} h`}
+                            </span>
+                        )}
+                    </div>
+                    {hallazgos.map((h, i) => (
+                        <div key={i} className={`jornada-averia-fila${h.grave === false ? ' jornada-averia-fila--leve' : ''}`}>
+                            <span className="jornada-averia-que">{h.que}</span>
+                            {h.detalle && <span className="jornada-averia-detalle">{h.detalle}</span>}
+                        </div>
+                    ))}
+                </section>
+            )}
+
+            {/* Una pieza agotada y publicada es pauta pagando clics hacia algo
+                que nadie puede comprar. No es una tarea del día: es plata
+                yéndose mientras nadie mira. */}
+            {(agotadas.length > 0 || ultima.length > 0) && (
+                <section className="jornada-stock">
+                    <span className="jornada-stock-texto">
+                        {agotadas.length > 0 && (
+                            <><strong>{agotadas.length === 1 ? `${agotadas[0].name} está agotada` : `${agotadas.length} piezas están agotadas`}</strong>
+                            {' '}y siguen publicadas. </>
+                        )}
+                        {ultima.length > 0 && (
+                            <>{ultima.length === 1 ? `De ${ultima[0].name} queda una sola unidad.` : `De ${ultima.length} piezas queda una sola unidad.`}</>
+                        )}
+                    </span>
+                    <button className="jornada-stock-link" onClick={() => onNavigate('products')}>Ver el catálogo →</button>
+                </section>
+            )}
 
             <section className="jornada-panel">
                 <div className="jornada-panel-head">
@@ -1049,26 +1145,55 @@ const DashboardHome = ({ products, orders, customers, waStats, chatsPendientes, 
                 </div>
             </section>
 
-            {faltanPasos && (
-                <section className="jornada-panel">
-                    <div className="jornada-panel-head">
-                        <span className="jornada-panel-titulo">Para dejar la tienda lista</span>
-                        <span className="jornada-panel-nota">{hechos} de {pasos.length} hecho{hechos !== 1 ? 's' : ''}</span>
+
+            {/* El retorno vive en Reportes, pero el número que hay que ver todos
+                los días es uno solo: ¿la pauta se está pagando? Sólo aparece
+                cuando hay gasto anotado; antes de eso sería un cero sin
+                significado. */}
+            {gastoPauta != null && (
+                <section className="jornada-pauta">
+                    <div className="jornada-pauta-col">
+                        <span className="jornada-dinero-label">Pauta · últimos 30 días</span>
+                        <span className="jornada-pauta-valor">${fmt(gastoPauta)}</span>
+                        <span className="jornada-dinero-sub">Con el IVA, que es lo que sale de la cuenta</span>
                     </div>
-                    {pasos.map((p, i) => (
-                        <div key={p.t} className={`jornada-paso ${p.hecho ? 'jornada-paso--hecho' : ''}`}>
-                            <span className="jornada-paso-n">{i + 1}</span>
-                            <span className="jornada-paso-texto">
-                                <span className="jornada-paso-t">{p.t}</span>
-                                <span className="jornada-paso-s">{p.s}</span>
-                            </span>
-                            {p.hecho
-                                ? <span className="jornada-paso-listo">Listo</span>
-                                : <button className="jornada-paso-link" onClick={p.ir}>{p.accion}</button>}
-                        </div>
-                    ))}
+                    <div className="jornada-pauta-col">
+                        <span className="jornada-dinero-label">Por cada peso gastado</span>
+                        <span className={`jornada-pauta-valor ${ingresos.total >= gastoPauta ? 'jornada-pauta--bien' : 'jornada-pauta--mal'}`}>
+                            ${fmt(ingresos.total / gastoPauta)}
+                        </span>
+                        <span className="jornada-dinero-sub">
+                            {ingresos.total >= gastoPauta
+                                ? 'De lo cobrado, no de lo prometido'
+                                : `Faltan $${fmt(gastoPauta - ingresos.total)} para que se pague sola`}
+                        </span>
+                    </div>
+                    <button className="jornada-pauta-link" onClick={() => onNavigate('reports')}>Ver el detalle →</button>
                 </section>
             )}
+
+            <section className="jornada-panel">
+                <div className="jornada-panel-head">
+                    <span className="jornada-panel-titulo">Lo último</span>
+                    <span className="jornada-panel-nota">Pedidos y conversaciones, juntos</span>
+                </div>
+                {lineaDeTiempo.length === 0 ? (
+                    <p className="jornada-vacio">
+                        Todavía no ha pasado nada. Acá van a ir apareciendo los pedidos y los
+                        mensajes a medida que lleguen, del más reciente al más viejo.
+                    </p>
+                ) : lineaDeTiempo.map((e, i) => (
+                    <button key={i} className="jornada-hecho" onClick={e.ir}>
+                        <span className={`jornada-hecho-punto jornada-hecho-punto--${e.tipo}`} />
+                        <span className="jornada-hecho-texto">
+                            <span className="jornada-hecho-q">{e.que}</span>
+                            <span className="jornada-hecho-d">{e.dato}</span>
+                        </span>
+                        {e.estado && <span className="jornada-hecho-estado">{e.estado}</span>}
+                        <span className="jornada-hecho-cuando">{haceCuanto(e.cuando)}</span>
+                    </button>
+                ))}
+            </section>
 
             <section className="jornada-cifras">
                 {cifras.map(c => (
@@ -1911,7 +2036,10 @@ const CustomersSection = ({ customers, orders = [], loading, onRefresh }) => {
             : null;
         return {
             ...c,
-            pedidos: suyos.length,
+            /* Los vivos, no todos. Contar cancelados junto a "ha gastado $0"
+               daba fichas que se contradecían solas: 10 pedidos, cero pesos. */
+            pedidos: vivos.length,
+            cancelados: suyos.length - vivos.length,
             gastado: suyos.reduce((s, o) => s + recibidoDe(o), 0),
             porCobrar: suyos.reduce((s, o) => s + porCobrarDe(o), 0),
             ultima: ultima?.created_at || null,
@@ -2155,7 +2283,6 @@ const ReportsSection = ({ orders, products = [], onNavigate }) => {
     /* Dos números distintos y a propósito separados: lo que entró y lo que
        falta entrar. Mezclarlos era decir que se vendió medio millón cuando
        en la cuenta había veinte mil. */
-    const grossTotal = paidFiltered.reduce((s, o) => s + recibidoDe(o), 0);
     const porCobrarTotal = paidFiltered.reduce((s, o) => s + porCobrarDe(o), 0);
     const mpOrders = paidFiltered.filter(o => !isCOD(o));
     const codOrders = paidFiltered.filter(o => isCOD(o));
