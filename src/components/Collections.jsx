@@ -1,4 +1,5 @@
 import React from 'react';
+import Foto from './Foto'
 import { useAparecer, useAparecerGrupo } from '../lib/aparecer';
 import { Link } from 'react-router-dom';
 
@@ -11,7 +12,7 @@ const collectionsData = [
         category: 'Anillos',
         description: 'Diamantes finos y engastes perfectos diseñados para durar toda una vida.',
         metal: 'Oro 18k',
-        image: '/assets/pen-anillos.jpg',
+        image: 'pen-anillos',
         cta: 'Ver anillos',
     },
     {
@@ -20,7 +21,7 @@ const collectionsData = [
         category: 'Collares',
         description: 'Cadenas finas y dijes únicos que elevan cualquier look al instante.',
         metal: 'Platino',
-        image: '/assets/pen-collares.jpg',
+        image: 'pen-collares',
         cta: 'Ver collares',
     },
     {
@@ -29,7 +30,7 @@ const collectionsData = [
         category: 'Pulseras',
         description: 'Eslabones que capturan la luz con cada movimiento de tu muñeca.',
         metal: 'Oro rosa',
-        image: '/assets/pen-pulseras.jpg',
+        image: 'pen-pulseras',
         cta: 'Ver pulseras',
     }
 ];
@@ -67,7 +68,14 @@ const Collections = () => {
                         <article key={item.id} className="collection-card">
 
                             <Link to={`/catalogo?categoria=${item.category}`} className="collection-card-image" aria-label={item.cta}>
-                                <img src={item.image} alt={`${item.title} de Aurem Gs Joyería`} />
+                                <Foto
+                                    nombre={item.image}
+                                    anchos={[768, 928]}
+                                    tamanos="(max-width: 768px) 92vw, 30vw"
+                                    alt={`${item.title} de Aurem Gs Joyería`}
+                                    loading="lazy"
+                                    decoding="async"
+                                />
                                 <span className="punzon collection-card-mark">{item.metal}</span>
                             </Link>
 
