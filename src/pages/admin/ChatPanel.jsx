@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { recibidoDe, estaVivo } from '../../lib/dinero';
 import AdminSidebar from './AdminSidebar';
+import EliminarChat from './EliminarChat';
+import { descargarChat, borrarFotosDe } from '../../lib/chatArchivo';
 import { NAV } from './adminNav.jsx';
 
 /* ─── Helpers ───────────────────────────────────────────────────── */
@@ -140,6 +142,13 @@ const isSameDay = (a, b) => {
     return da.getFullYear() === db.getFullYear() && da.getMonth() === db.getMonth() && da.getDate() === db.getDate();
 };
 
+/* Cuánto silencio antes de que una conversación sea candidata a purga. Un año
+   deja pasar la temporada entera de regalos —diciembre, San Valentín, día de la
+   madre— antes de dar a alguien por perdido. Es también el valor por defecto de
+   `conversaciones_purgables` en la base; se pasa explícito para que cambiarlo
+   sea esta línea y no una migración. */
+const MESES_PURGA = 12;
+
 const truncate = (s, n = 50) => s && s.length > n ? s.slice(0, n) + '...' : s;
 
 /* ─── Sort helper: user before assistant when same timestamp ─── */
@@ -263,8 +272,37 @@ const ChatPanel = () => {
     const [tagsMap, setTagsMap] = useState({});        // { [phone]: [{ id, tag_name, color }] }
     const [lightboxImg, setLightboxImg] = useState(null);
     const [lightboxClosing, setLightboxClosing] = useState(false);
-    const [confirmArchive, setConfirmArchive] = useState(null); // phone to archive/delete
+    const [confirmArchive, setConfirmArchive] = useState(null); // phone to archive
+    /* Lo que se está a punto de borrar —una conversación o un lote entero— y el
+       menú de la fila que está abierto. Son dos cosas distintas: el menú se abre
+       desde la lista y el diálogo puede abrirse también desde la cabecera. */
+    const [aBorrar, setABorrar] = useState(null);           // [{ telefono, nombre }]
+    const [menuFila, setMenuFila] = useState(null);         // { phone, arriba }
+    /* El borrado de sólo las fotos, que es otra cosa: no se lleva el hilo. */
+    const [confirmFotos, setConfirmFotos] = useState(false);
+    const [borrandoFotos, setBorrandoFotos] = useState(false);
+    /* Cuántas fotos guarda el hilo abierto. No se cuenta sobre `messages`
+       porque eso son los 200 últimos: un hilo viejo tiene fotos más atrás y el
+       menú prometería borrar tres cuando hay veinte. */
+    const [fotosDelHilo, setFotosDelHilo] = useState(0);
+    const [resumenHilo, setResumenHilo] = useState(null);   // { mensajes, desde }
+    /* La selección múltiple. `null` es el modo apagado; un Set, encendido.
+       Se distingue del conjunto vacío a propósito: "modo activo sin nada
+       marcado" y "modo apagado" pintan cosas distintas. */
+    const [seleccion, setSeleccion] = useState(null);
+    const [archivandoLote, setArchivandoLote] = useState(false);
+    /* Los fallos de la lista tienen que verse en la lista. El aviso del
+       compositor sólo existe con un chat abierto, así que archivar un lote sin
+       abrir ninguno fallaba en silencio — justo lo que este trabajo vino a
+       quitar del panel. */
+    const [errorLote, setErrorLote] = useState('');
+    /* Las candidatas a purga las calcula la base, no el navegador: hace falta
+       cruzar los hilos con los pedidos por los diez últimos dígitos, y eso aquí
+       serían dos tablas enteras traídas para descartarlas casi todas. */
+    const [purgables, setPurgables] = useState(null);   // [{ phone_number, ultimo_mensaje, … }]
+    const [cargandoPurga, setCargandoPurga] = useState(false);
     const exportMenuRef = useRef(null);
+    const menuFilaRef = useRef(null);
     const [realtimeStatus, setRealtimeStatus] = useState('CONNECTING');
     const [soundEnabled, setSoundEnabled] = useState(() => localStorage.getItem('admin_sound_enabled') !== 'false');
     const quickReplies = useMemo(() => parseQuickReplies(), []);
@@ -466,11 +504,15 @@ const ChatPanel = () => {
         let cancelled = false;
         const load = async () => {
             setLoadingMsgs(true);
+            /* Ascendente + limit(200) traía los DOSCIENTOS PRIMEROS: en un hilo
+               largo el panel enseñaba el principio de la conversación y lo
+               llamaba "los últimos mensajes". Se pide al revés y `sortMessages`
+               los devuelve al orden de lectura. */
             const { data } = await supabase
                 .from('whatsapp_conversaciones')
                 .select('id, phone_number, content, role, created_at, is_read, message_type, media_url')
                 .eq('phone_number', activeContact)
-                .order('created_at', { ascending: true })
+                .order('created_at', { ascending: false })
                 .limit(200);
             if (!cancelled) {
                 setMessages(sortMessages(data));
@@ -505,6 +547,39 @@ const ChatPanel = () => {
             .or(`customer_phone.eq.${norm},customer_phone.eq.${short},customer_phone.eq.${activeContact}`)
             .order('created_at', { ascending: false }).limit(10)
             .then(({ data }) => setContactOrders(data || []));
+    }, [activeContact]);
+
+    /**
+     * Los números del hilo abierto, contados en la base.
+     *
+     * Antes la ficha decía `messages.length`, que son los mensajes cargados en
+     * pantalla: un hilo de 252 figuraba como "200 mensajes" y la fecha de
+     * "Desde" era la del mensaje 53, no la del primero. Con el diálogo de
+     * eliminar diciendo la cifra de verdad, el panel se contradecía solo.
+     */
+    useEffect(() => {
+        if (!activeContact) { setFotosDelHilo(0); setResumenHilo(null); return; }
+        let vigente = true;
+
+        supabase.from('whatsapp_conversaciones')
+            .select('id', { count: 'exact', head: true })
+            .eq('phone_number', activeContact)
+            .eq('message_type', 'image')
+            .not('media_url', 'is', null)
+            .then(({ count }) => { if (vigente) setFotosDelHilo(count ?? 0); });
+
+        Promise.all([
+            supabase.from('whatsapp_conversaciones')
+                .select('id', { count: 'exact', head: true }).eq('phone_number', activeContact),
+            supabase.from('whatsapp_conversaciones')
+                .select('created_at').eq('phone_number', activeContact)
+                .order('created_at', { ascending: true }).limit(1).maybeSingle(),
+        ]).then(([todos, primero]) => {
+            if (!vigente) return;
+            setResumenHilo({ mensajes: todos.count ?? 0, desde: primero.data?.created_at ?? null });
+        }).catch(() => { if (vigente) setResumenHilo(null); });
+
+        return () => { vigente = false; };
     }, [activeContact]);
 
     /* ─── Scroll to bottom on new messages ────────────────────────── */
@@ -863,15 +938,97 @@ const ChatPanel = () => {
         if (activeContact === phone) { setActiveContact(null); setMobileShowChat(false); }
     };
 
-    /* ─── Delete conversation (hard delete) ─────────────────────── */
-    const handleDeleteConversation = async (phone) => {
+    /**
+     * Archivar lo marcado de una vez.
+     *
+     * Un solo upsert con todas las filas en vez de una vuelta por conversación:
+     * archivar es reversible y barato, así que no necesita el desfile de
+     * progreso que sí lleva el borrado.
+     */
+    const handleArchivarLote = async () => {
+        if (!seleccion?.size || archivandoLote) return;
+        setArchivandoLote(true); setErrorLote('');
+        const ahora = new Date().toISOString();
+        const filas = [...seleccion].map(phone => ({
+            phone_number: phone,
+            is_archived: true,
+            archived_at: ahora,
+            updated_at: ahora,
+        }));
+        const { error } = await supabase.from('chat_status').upsert(filas, { onConflict: 'phone_number' });
+        setArchivandoLote(false);
+        if (error) { setErrorLote(`No se pudieron archivar: ${error.message}`); return; }
+
+        setStatusMap(prev => {
+            const n = { ...prev };
+            seleccion.forEach(p => { n[p] = { ...n[p], is_archived: true }; });
+            return n;
+        });
+        if (seleccion.has(activeContact)) { setActiveContact(null); setMobileShowChat(false); }
+        salirDeSeleccion();
+    };
+
+    /* Sacar del archivo a mano. Volver a archivar lo ya archivado no hace
+       nada, así que el menú ofrece lo contrario cuando ya está guardada. */
+    const handleUnarchive = async (phone) => {
         if (!phone) return;
-        await supabase.from('whatsapp_conversaciones').delete().eq('phone_number', phone);
-        await supabase.from('chat_status').delete().eq('phone_number', phone);
-        setContacts(prev => prev.filter(c => c.phone_number !== phone));
-        setStatusMap(prev => { const n = {...prev}; delete n[phone]; return n; });
-        setConfirmArchive(null);
-        if (activeContact === phone) { setActiveContact(null); setMobileShowChat(false); }
+        await supabase.from('chat_status').upsert({
+            phone_number: phone,
+            is_archived: false,
+            archived_at: null,
+            updated_at: new Date().toISOString(),
+        }, { onConflict: 'phone_number' });
+        setStatusMap(prev => ({ ...prev, [phone]: { ...prev[phone], is_archived: false } }));
+    };
+
+    /* ─── Eliminar una conversación ─────────────────────────────── */
+    /**
+     * El borrado en sí vive en EliminarChat, que es quien sabe qué hay dentro
+     * del hilo, quien pide confirmación y quien mira los errores. Aquí sólo se
+     * recoge la lista después: se quitan los rastros que el panel tenía en
+     * memoria para que el contacto no reaparezca hasta el próximo refresco.
+     */
+    const alBorrarChat = (telefonos, opciones) => {
+        const idos = new Set([].concat(telefonos || []));
+        if (!idos.size && !opciones?.abierto) { setABorrar(null); return; }
+
+        const sinLosIdos = (mapa) => {
+            const n = { ...mapa };
+            idos.forEach(p => delete n[p]);
+            return n;
+        };
+
+        setContacts(prev => prev.filter(c => !idos.has(c.phone_number)));
+        setStatusMap(sinLosIdos);
+        setTagsMap(sinLosIdos);
+        setTakeoverMap(sinLosIdos);
+        setToasts(prev => prev.filter(t => !idos.has(t.phone)));
+        setSeleccion(prev => (prev ? new Set([...prev].filter(p => !idos.has(p))) : prev));
+        setMenuFila(null);
+
+        /* Si alguna falló, el diálogo se queda abierto con el parte de lo que
+           no se pudo: cerrarlo sería tragarse el error. */
+        if (!opciones?.abierto) setABorrar(null);
+
+        if (idos.has(activeContact)) { setActiveContact(null); setMessages([]); setMobileShowChat(false); }
+    };
+
+    /* ─── Borrar sólo las fotos ─────────────────────────────────── */
+    /**
+     * Las fotos son lo único que pesa en Storage; el texto de un hilo largo no
+     * llega a un par de kilobytes. Esto las suelta y deja el hilo entero: el pie
+     * que escribió la clienta y lo que Valentina entendió de la imagen siguen
+     * ahí, con un sello de que la foto ya no está.
+     */
+    const handleBorrarFotos = async () => {
+        if (!activeContact || borrandoFotos) return;
+        setBorrandoFotos(true);
+        const { error } = await borrarFotosDe(activeContact);
+        setBorrandoFotos(false);
+        setConfirmFotos(false);
+        if (error) { setSendError(`No se pudieron borrar las fotos: ${error}`); return; }
+        setMessages(prev => prev.map(m => (m.message_type === 'image' ? { ...m, media_url: null } : m)));
+        setFotosDelHilo(0);
     };
 
     /* ─── Add tag ────────────────────────────────────────────────── */
@@ -905,42 +1062,17 @@ const ChatPanel = () => {
         setTimeout(() => { setLightboxImg(null); setLightboxClosing(false); }, 300);
     };
 
-    /* ─── Export conversation ───────────────────────────────────── */
-    const handleExportChat = () => {
-        if (!messages.length) return;
-        const lines = messages.map(m => {
-            const time = new Date(m.created_at).toLocaleString('es-CO');
-            const sender = m.role === 'user' ? 'Cliente' : 'Valentina';
-            return `[${time}] ${sender}: ${m.content}`;
-        });
-        const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `chat_${activeContact}_${new Date().toISOString().slice(0,10)}.txt`;
-        a.click();
-        URL.revokeObjectURL(url);
-    };
-
-    /* ─── Export CSV ──────────────────────────────────────────────── */
-    const handleExportCSV = () => {
-        if (!messages.length) return;
-        const header = 'Fecha,Hora,Remitente,Mensaje';
-        const rows = messages.map(m => {
-            const d = new Date(m.created_at);
-            const date = d.toLocaleDateString('es-CO');
-            const time = d.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
-            const sender = m.role === 'user' ? 'Cliente' : 'Valentina';
-            const content = `"${(m.content || '').replace(/"/g, '""')}"`;
-            return `${date},${time},${sender},${content}`;
-        });
-        const blob = new Blob([header + '\n' + rows.join('\n')], { type: 'text/csv' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `chat_${activeContact}_${new Date().toISOString().slice(0,10)}.csv`;
-        a.click();
-        URL.revokeObjectURL(url);
+    /* ─── Llevarse el hilo ───────────────────────────────────────── */
+    /**
+     * Antes esto exportaba `messages`, que es lo que hay cargado en pantalla:
+     * los 200 últimos. Un hilo de dos años se descargaba recortado y sin
+     * decirlo. Ahora lo trae entero el módulo, que además le pone el BOM al
+     * CSV para que Excel no rompa las tildes.
+     */
+    const handleExport = async (formato) => {
+        if (!activeContact) return;
+        const { error } = await descargarChat(activeContact, formato);
+        if (error) setSendError(`No se pudo descargar: ${error}`);
     };
 
     /* ─── Close panels on outside click ─────────────────────────── */
@@ -955,6 +1087,9 @@ const ChatPanel = () => {
             }
             if (exportMenuRef.current && !exportMenuRef.current.contains(e.target)) {
                 setShowExportMenu(false);
+            }
+            if (menuFilaRef.current && !menuFilaRef.current.contains(e.target)) {
+                setMenuFila(null);
             }
         };
         document.addEventListener('mousedown', handleClickOutside);
@@ -1002,9 +1137,11 @@ const ChatPanel = () => {
     const filteredContacts = useMemo(() => {
         const now = Date.now();
         const filtered = contacts.filter(c => {
-            // Exclude archived unless filter = 'archivado'
+            /* Las archivadas no salen en ningún filtro salvo el suyo… y el de
+               purga: haberla archivado hace un año es un motivo más para
+               borrarla, no uno para esconderla de la limpieza. */
             const isArchived = statusMap[c.phone_number]?.is_archived;
-            if (contactFilter !== 'archivado' && isArchived) return false;
+            if (contactFilter !== 'archivado' && contactFilter !== 'purgar' && isArchived) return false;
             if (contactFilter === 'archivado' && !isArchived) return false;
 
             if (!searchQuery) return true;
@@ -1029,6 +1166,13 @@ const ChatPanel = () => {
             result = result.filter(c => c.last_role === 'user' && (now - new Date(c.last_time)) > 86400000);
         } else if (contactFilter === 'resuelto') {
             result = result.filter(c => !!statusMap[c.phone_number]?.is_resolved);
+        } else if (contactFilter === 'purgar') {
+            /* Mientras la base contesta no se enseña nada: una lista completa
+               que en un segundo se recorta a dos es peor que un momento vacío. */
+            const candidatas = new Set((purgables || []).map(f => f.phone_number));
+            result = purgables === null ? [] : result.filter(c => candidatas.has(c.phone_number));
+            /* Las más viejas primero: son las que menos duele soltar. */
+            return [...result].sort((a, b) => new Date(a.last_time) - new Date(b.last_time));
         }
         // Takeover contacts always appear first
         return result.sort((a, b) => {
@@ -1037,7 +1181,7 @@ const ChatPanel = () => {
             if (aTakeover !== bTakeover) return bTakeover - aTakeover;
             return new Date(b.last_time) - new Date(a.last_time);
         });
-    }, [contacts, searchQuery, takeoverMap, contactFilter, pendingPhones, statusMap]);
+    }, [contacts, searchQuery, takeoverMap, contactFilter, pendingPhones, statusMap, purgables]);
 
     /* Cuántas conversaciones esperan respuesta: el último mensaje es de la
        cliente y la conversación no está archivada ni resuelta. */
@@ -1051,6 +1195,47 @@ const ChatPanel = () => {
         () => contacts.filter(c => !!takeoverMap[c.phone_number] && !statusMap[c.phone_number]?.is_archived).length,
         [contacts, takeoverMap, statusMap]
     );
+
+    /* ─── Candidatas a purga ──────────────────────────────────────── */
+    /**
+     * Al entrar al filtro se piden a la base y se marcan todas de una: quien
+     * llega aquí viene a limpiar, no a elegir una. Lo que se revisa es qué
+     * salvar, y para eso se desmarca.
+     */
+    useEffect(() => {
+        /* Cambiar de filtro cierra la selección. Sin esto, salir de la purga
+           dejaba el modo encendido sobre una lista distinta: el siguiente clic
+           marcaba una conversación en vez de abrirla, y nadie entendía por qué.
+           Lo marcado se refiere a una lista que acaba de cambiar debajo. */
+        setSeleccion(null);
+
+        if (contactFilter !== 'purgar') { setPurgables(null); return; }
+        let vigente = true;
+        setCargandoPurga(true); setErrorLote('');
+        supabase.rpc('conversaciones_purgables', { p_meses: MESES_PURGA })
+            .then(({ data, error }) => {
+                if (!vigente) return;
+                setCargandoPurga(false);
+                if (error) { setPurgables([]); setErrorLote(`No se pudo calcular la purga: ${error.message}`); return; }
+                setPurgables(data || []);
+                setSeleccion(new Set((data || []).map(f => f.phone_number)));
+            });
+        return () => { vigente = false; };
+    }, [contactFilter]);
+
+    /* ─── Selección múltiple ──────────────────────────────────────── */
+    /* Entrar y salir del modo. Al salir se olvida lo marcado a propósito: una
+       selección que sobrevive escondida es una trampa para el siguiente clic. */
+    const entrarEnSeleccion = (marcadas) => setSeleccion(new Set(marcadas || []));
+    const salirDeSeleccion = () => setSeleccion(null);
+
+    const alternarMarca = (phone) => {
+        setSeleccion(prev => {
+            const n = new Set(prev || []);
+            if (n.has(phone)) n.delete(phone); else n.add(phone);
+            return n;
+        });
+    };
 
     /* ─── Select contact ──────────────────────────────────────────── */
     const selectContact = (phone) => {
@@ -1139,6 +1324,7 @@ const ChatPanel = () => {
                                     ['pendiente', 'Pedido'],
                                     ['resuelto', 'Resuelto'],
                                     ['archivado', 'Archivados'],
+                                    ['purgar', 'Para purgar'],
                                 ].map(([f, label]) => (
                                     <button key={f} type="button"
                                             className={`riel-btn${contactFilter === f ? ' riel-btn--on' : ''}`}
@@ -1148,23 +1334,89 @@ const ChatPanel = () => {
                                     </button>
                                 ))}
                             </div>
+
+                            {/* Ni oculta tras un gesto ni ocupando sitio de más:
+                                una línea que en reposo sólo ofrece entrar, y que
+                                al entrar se convierte en el mando del lote. */}
+                            <div className="chat-seleccion-barra">
+                                {seleccion ? (
+                                    <>
+                                        <span className="chat-seleccion-cuenta">
+                                            {seleccion.size === 0
+                                                ? 'Ninguna marcada'
+                                                : seleccion.size === 1
+                                                    ? '1 marcada'
+                                                    : `${seleccion.size} marcadas`}
+                                        </span>
+                                        <button type="button" onClick={() => entrarEnSeleccion(filteredContacts.map(c => c.phone_number))}>Todas</button>
+                                        <button type="button" onClick={() => entrarEnSeleccion([])}>Ninguna</button>
+                                        <button type="button" className="chat-seleccion-salir" onClick={salirDeSeleccion}>Cancelar</button>
+                                    </>
+                                ) : (
+                                    <button type="button" onClick={() => entrarEnSeleccion([])}>Seleccionar varias</button>
+                                )}
+                            </div>
                         </div>
+                        {contactFilter === 'purgar' && (
+                            <p className="chat-purga-aviso">
+                                Sin ningún pedido y sin escribir desde hace más de {MESES_PURGA} meses.
+                                Quien ya compró no aparece aquí nunca: la garantía del metal es de por vida.
+                            </p>
+                        )}
                         <div className="chat-contacts-list">
-                            {loading ? (
-                                <div className="chat-loading">Cargando conversaciones...</div>
+                            {loading || cargandoPurga ? (
+                                <div className="chat-loading">
+                                    {cargandoPurga ? 'Buscando conversaciones para purgar…' : 'Cargando conversaciones...'}
+                                </div>
                             ) : filteredContacts.length === 0 ? (
-                                <div className="chat-loading">No hay conversaciones</div>
+                                <div className="chat-loading">
+                                    {contactFilter === 'purgar'
+                                        ? 'Nada que purgar: no hay conversaciones que cumplan el plazo.'
+                                        : 'No hay conversaciones'}
+                                </div>
                             ) : (
                                 filteredContacts.map(c => {
                                     const cTakeover = !!takeoverMap[c.phone_number];
                                     const cResolved = !!statusMap[c.phone_number]?.is_resolved;
                                     const cTags = tagsMap[c.phone_number] || [];
+                                    const marcada = !!seleccion?.has(c.phone_number);
+                                    /* En modo selección la fila marca en vez de abrir:
+                                       tener que apuntar a una casilla de 16 px para
+                                       elegir siete conversaciones es puntería, no
+                                       interfaz. */
+                                    const alPulsar = () => (seleccion ? alternarMarca(c.phone_number) : selectContact(c.phone_number));
                                     return (
-                                    <button
+                                    /* Deja de ser un <button> porque ahora lleva
+                                       otro botón dentro —el de los tres puntos— y un
+                                       botón dentro de otro no es HTML válido: el
+                                       navegador desarma la fila entera. Con role y
+                                       tabIndex sigue enfocándose y respondiendo a
+                                       Enter y a la barra espaciadora igual que antes. */
+                                    <div
                                         key={c.phone_number}
-                                        className={`chat-contact-item ${activeContact === c.phone_number ? 'chat-contact-item--active' : ''} ${cTakeover ? 'chat-contact-item--takeover' : ''} ${(c.unread || 0) > 0 ? 'chat-contact-item--unread' : ''}`}
-                                        onClick={() => selectContact(c.phone_number)}
+                                        role="button"
+                                        tabIndex={0}
+                                        aria-pressed={seleccion ? marcada : undefined}
+                                        className={`chat-contact-item ${activeContact === c.phone_number && !seleccion ? 'chat-contact-item--active' : ''} ${cTakeover ? 'chat-contact-item--takeover' : ''} ${(c.unread || 0) > 0 ? 'chat-contact-item--unread' : ''} ${marcada ? 'chat-contact-item--marcada' : ''}`}
+                                        onClick={alPulsar}
+                                        onKeyDown={e => {
+                                            if (e.key === 'Enter' || e.key === ' ') {
+                                                e.preventDefault();
+                                                alPulsar();
+                                            }
+                                        }}
                                     >
+                                        {seleccion && (
+                                            <input
+                                                type="checkbox"
+                                                className="chat-contact-casilla"
+                                                checked={marcada}
+                                                tabIndex={-1}
+                                                aria-hidden="true"
+                                                onChange={() => alternarMarca(c.phone_number)}
+                                                onClick={e => e.stopPropagation()}
+                                            />
+                                        )}
                                         <div className="chat-contact-avatar">
                                             {c.customer_name ? c.customer_name[0].toUpperCase() : (
                                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -1178,7 +1430,9 @@ const ChatPanel = () => {
                                                     {c.customer_name || c.phone_number}
                                                 </span>
                                                 {cTakeover && <span className="chat-takeover-badge">MANUAL</span>}
-                                                <span className="chat-contact-time">{fmtDate(c.last_time)}</span>
+                                                <span className="chat-contact-time">
+                                                    {contactFilter === 'purgar' ? fmtDateFull(c.last_time) : fmtDate(c.last_time)}
+                                                </span>
                                             </div>
                                             <div className="chat-contact-preview">
                                                 <span>{truncate(c.last_message, 45)}</span>
@@ -1194,11 +1448,99 @@ const ChatPanel = () => {
                                         {(c.unread || 0) > 0
                                             ? <span className="chat-unread-badge">{c.unread}</span>
                                             : c.last_role === 'assistant' && !cTakeover && <span className="chat-contact-ia">IA</span>}
-                                    </button>
+
+                                        {/* Archivar y eliminar, en la fila. Antes había que
+                                            abrir el chat y entrar al menú de exportar para
+                                            encontrar el borrado; aquí está donde se mira la
+                                            lista, que es donde se decide de qué sobra.
+
+                                            Se calla mientras hay una selección abierta: dos
+                                            formas de borrar la misma fila, una para esta y
+                                            otra para el lote, es una invitación a equivocarse. */}
+                                        {!seleccion && (
+                                        <div
+                                            className="chat-contact-menu"
+                                            ref={menuFila?.phone === c.phone_number ? menuFilaRef : null}
+                                            onClick={e => e.stopPropagation()}
+                                        >
+                                            <button
+                                                type="button"
+                                                className={`chat-contact-menu-btn ${menuFila?.phone === c.phone_number ? 'chat-contact-menu-btn--abierto' : ''}`}
+                                                aria-label={`Opciones de ${c.customer_name || c.phone_number}`}
+                                                aria-expanded={menuFila?.phone === c.phone_number}
+                                                onClick={e => {
+                                                    if (menuFila?.phone === c.phone_number) { setMenuFila(null); return; }
+                                                    /* La lista tiene su propio scroll, así que un menú
+                                                       que se abre hacia abajo en la última fila queda
+                                                       cortado. Si no cabe, se abre hacia arriba. */
+                                                    const lista = e.currentTarget.closest('.chat-contacts-list');
+                                                    const fondo = e.currentTarget.getBoundingClientRect().bottom;
+                                                    const cabe = !lista || fondo + 150 < lista.getBoundingClientRect().bottom;
+                                                    setMenuFila({ phone: c.phone_number, arriba: !cabe });
+                                                }}
+                                            >
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/></svg>
+                                            </button>
+                                            {menuFila?.phone === c.phone_number && (
+                                                <div className={`chat-fila-menu ${menuFila.arriba ? 'chat-fila-menu--arriba' : ''}`}>
+                                                    {statusMap[c.phone_number]?.is_archived ? (
+                                                        <button type="button" onClick={() => { setMenuFila(null); handleUnarchive(c.phone_number); }}>
+                                                            Sacar del archivo
+                                                        </button>
+                                                    ) : (
+                                                        <button type="button" onClick={() => { setMenuFila(null); setConfirmArchive(c.phone_number); }}>
+                                                            Archivar
+                                                        </button>
+                                                    )}
+                                                    <button type="button" onClick={() => { setMenuFila(null); handleToggleResolved(c.phone_number); }}>
+                                                        {cResolved ? 'Marcar sin resolver' : 'Marcar resuelta'}
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        className="chat-fila-menu-danger"
+                                                        onClick={() => { setMenuFila(null); setABorrar([{ telefono: c.phone_number, nombre: c.customer_name }]); }}
+                                                    >
+                                                        Eliminar conversación
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                        )}
+                                    </div>
                                     );
                                 })
                             )}
                         </div>
+
+                        {/* La barra vive al pie de la columna, no de la ventana:
+                            la lista es una columna con su propio scroll y una barra
+                            pegada al borde del navegador quedaría suelta encima del
+                            chat abierto, que no tiene nada que ver con lo marcado. */}
+                        {errorLote && (
+                            <p className="chat-lote-error" onClick={() => setErrorLote('')} title="Descartar">
+                                {errorLote}
+                            </p>
+                        )}
+                        {seleccion?.size > 0 && (
+                            <div className="chat-lote-barra">
+                                <span>
+                                    {seleccion.size === 1 ? '1 conversación' : `${seleccion.size} conversaciones`}
+                                </span>
+                                <button type="button" className="chat-lote-btn" onClick={handleArchivarLote} disabled={archivandoLote}>
+                                    {archivandoLote ? 'Archivando…' : 'Archivar'}
+                                </button>
+                                <button
+                                    type="button"
+                                    className="chat-lote-btn chat-lote-btn--danger"
+                                    onClick={() => setABorrar([...seleccion].map(p => ({
+                                        telefono: p,
+                                        nombre: contacts.find(c => c.phone_number === p)?.customer_name,
+                                    })))}
+                                >
+                                    Eliminar
+                                </button>
+                            </div>
+                        )}
                     </div>
 
                     {/* Chat conversation */}
@@ -1265,14 +1607,24 @@ const ChatPanel = () => {
                                             )}
                                         </button>
                                         <div className="chat-export-dropdown" ref={exportMenuRef} style={{position:'relative'}}>
-                                            <button className="chat-header-action-btn chat-header-action-btn--secundaria" onClick={() => setShowExportMenu(!showExportMenu)} title="Exportar chat">
-                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                                            {/* Era un icono de descarga y dentro estaba el
+                                                único sitio del panel donde se podía borrar un
+                                                chat. Nadie busca "eliminar" detrás de una
+                                                flecha de descargar: ahora son tres puntos, que
+                                                es donde todo el mundo mira cuando falta algo. */}
+                                            <button className="chat-header-action-btn chat-header-action-btn--secundaria" onClick={() => setShowExportMenu(!showExportMenu)} title="Más opciones" aria-label="Más opciones" aria-expanded={showExportMenu}>
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg>
                                             </button>
                                             {showExportMenu && (
                                                 <div className="chat-export-menu">
-                                                    <button onClick={() => { handleExportChat(); setShowExportMenu(false); }}>Exportar TXT</button>
-                                                    <button onClick={() => { handleExportCSV(); setShowExportMenu(false); }}>Exportar CSV</button>
-                                                    <button className="chat-export-menu-danger" onClick={() => { setConfirmArchive('delete:' + activeContact); setShowExportMenu(false); }}>Eliminar conversación</button>
+                                                    <button onClick={() => { handleExport('txt'); setShowExportMenu(false); }}>Exportar TXT</button>
+                                                    <button onClick={() => { handleExport('csv'); setShowExportMenu(false); }}>Exportar CSV</button>
+                                                    {fotosDelHilo > 0 && (
+                                                        <button onClick={() => { setConfirmFotos(true); setShowExportMenu(false); }}>
+                                                            Borrar sólo las fotos ({fotosDelHilo})
+                                                        </button>
+                                                    )}
+                                                    <button className="chat-export-menu-danger" onClick={() => { setABorrar([{ telefono: activeContact, nombre: activeContactData?.customer_name }]); setShowExportMenu(false); }}>Eliminar conversación</button>
                                                 </div>
                                             )}
                                         </div>
@@ -1343,10 +1695,19 @@ const ChatPanel = () => {
                                                         ) : null}
                                                         <div className={`chat-msg chat-msg--${msg.role || 'user'}`}>
                                                         <div className={`chat-bubble chat-bubble--${msg.role || 'user'}${msg.enviado_por === 'humano' ? ' chat-bubble--admin' : ''}${msg._failed ? ' chat-bubble--error' : ''}`}>
-                                                            {msg.message_type === 'image' && msg.media_url ? (
-                                                                <ImagenDelChat ruta={msg.media_url} onAbrir={openLightbox} />
+                                                            {/* Una foto borrada sigue siendo un mensaje. Antes el
+                                                                pie dependía de que hubiera archivo, así que al
+                                                                soltar las fotos la burbuja pasaba a enseñar el
+                                                                contenido crudo —"📷 descripción…"— en vez de lo
+                                                                que la clienta escribió. Ahora manda el tipo de
+                                                                mensaje y el archivo sólo decide si hay imagen o
+                                                                sello. */}
+                                                            {msg.message_type === 'image' ? (
+                                                                msg.media_url
+                                                                    ? <ImagenDelChat ruta={msg.media_url} onAbrir={openLightbox} />
+                                                                    : <div className="chat-foto-borrada">Foto borrada</div>
                                                             ) : null}
-                                                            {msg.message_type === 'image' && msg.media_url && msg.role === 'user'
+                                                            {msg.message_type === 'image' && msg.role === 'user'
                                                                 ? <PieDeFoto contenido={msg.content} />
                                                                 : msg.content ? <div className="chat-bubble-content"><span>{msg.content}</span></div> : null}
                                                         </div>
@@ -1421,7 +1782,7 @@ const ChatPanel = () => {
                                                     )}
                                                     <div className="chat-info-meta-row">
                                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                                                        <span>Desde {messages.length > 0 ? fmtDateFull(messages[0]?.created_at) : '—'}</span>
+                                                        <span>Desde {resumenHilo?.desde ? fmtDateFull(resumenHilo.desde) : '—'}</span>
                                                     </div>
                                                 </div>
 
@@ -1442,7 +1803,7 @@ const ChatPanel = () => {
                                                         <span className="chat-info-stat-label">Pedidos</span>
                                                     </div>
                                                     <div className="chat-info-stat">
-                                                        <span className="chat-info-stat-value">{messages.length}</span>
+                                                        <span className="chat-info-stat-value">{resumenHilo?.mensajes ?? messages.length}</span>
                                                         <span className="chat-info-stat-label">Mensajes</span>
                                                     </div>
                                                     <div className="chat-info-stat">
@@ -1694,29 +2055,47 @@ const ChatPanel = () => {
                             </>
                         )}
                     </div>
-                    {/* Archive / Delete confirm modal */}
+                    {/* Archivar. Eliminar tiene su propio diálogo: archivar se
+                        deshace solo en cuanto el cliente vuelva a escribir, y
+                        eliminar no se deshace nunca. */}
                     {confirmArchive && (
                         <div className="chat-confirm-overlay" onClick={() => setConfirmArchive(null)}>
                             <div className="chat-confirm-modal" onClick={e => e.stopPropagation()}>
-                                {confirmArchive.startsWith('delete:') ? (
-                                    <>
-                                        <h4>¿Eliminar conversación?</h4>
-                                        <p>Esta acción es permanente y no se puede deshacer.</p>
-                                        <div className="chat-confirm-actions">
-                                            <button className="chat-confirm-btn chat-confirm-btn--cancel" onClick={() => setConfirmArchive(null)}>Cancelar</button>
-                                            <button className="chat-confirm-btn chat-confirm-btn--danger" onClick={() => handleDeleteConversation(confirmArchive.slice(7))}>Eliminar</button>
-                                        </div>
-                                    </>
-                                ) : (
-                                    <>
-                                        <h4>¿Archivar conversación?</h4>
-                                        <p>El contacto desaparecerá de la lista. Volverá automáticamente si envía un nuevo mensaje.</p>
-                                        <div className="chat-confirm-actions">
-                                            <button className="chat-confirm-btn chat-confirm-btn--cancel" onClick={() => setConfirmArchive(null)}>Cancelar</button>
-                                            <button className="chat-confirm-btn chat-confirm-btn--primary" onClick={() => handleArchive(confirmArchive)}>Archivar</button>
-                                        </div>
-                                    </>
-                                )}
+                                <h4>¿Archivar conversación?</h4>
+                                <p>El contacto desaparecerá de la lista. Volverá automáticamente si envía un nuevo mensaje.</p>
+                                <div className="chat-confirm-actions">
+                                    <button className="chat-confirm-btn chat-confirm-btn--cancel" onClick={() => setConfirmArchive(null)}>Cancelar</button>
+                                    <button className="chat-confirm-btn chat-confirm-btn--primary" onClick={() => handleArchive(confirmArchive)}>Archivar</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {aBorrar && (
+                        <EliminarChat
+                            objetivos={aBorrar}
+                            onClose={() => setABorrar(null)}
+                            onDeleted={alBorrarChat}
+                        />
+                    )}
+
+                    {/* Sólo las fotos. Sin escribir nada: es permanente, pero no
+                        se lleva la conversación. */}
+                    {confirmFotos && (
+                        <div className="chat-confirm-overlay" onClick={() => !borrandoFotos && setConfirmFotos(false)}>
+                            <div className="chat-confirm-modal" onClick={e => e.stopPropagation()}>
+                                <h4>{fotosDelHilo === 1 ? '¿Borrar la foto?' : `¿Borrar las ${fotosDelHilo} fotos?`}</h4>
+                                <p>
+                                    Se van los archivos y el hilo se queda entero: sigues viendo el
+                                    pie que escribió y lo que Valentina entendió de cada imagen, con
+                                    un sello de que la foto ya no está. No se puede deshacer.
+                                </p>
+                                <div className="chat-confirm-actions">
+                                    <button className="chat-confirm-btn chat-confirm-btn--cancel" onClick={() => setConfirmFotos(false)} disabled={borrandoFotos}>Cancelar</button>
+                                    <button className="chat-confirm-btn chat-confirm-btn--danger" onClick={handleBorrarFotos} disabled={borrandoFotos}>
+                                        {borrandoFotos ? 'Borrando…' : 'Borrar las fotos'}
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     )}
