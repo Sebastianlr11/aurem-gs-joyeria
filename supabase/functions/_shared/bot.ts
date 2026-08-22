@@ -654,7 +654,17 @@ async function ejecutarHerramienta(
 
   if (nombre === 'escalar_a_humano') {
     await db.from('chat_takeover').upsert(
-      { phone_number: telefono, is_active: true, admin_email: 'valentina@bot', reason: args?.motivo ?? null },
+      /* started_at se renueva a propósito: con upsert, si no se pone, una
+         conversación que ya se había escalado antes conserva la fecha vieja
+         y el temporizador de liberación arrancaría vencido. */
+      {
+        phone_number: telefono,
+        is_active: true,
+        admin_email: 'valentina@bot',
+        reason: args?.motivo ?? null,
+        started_at: new Date().toISOString(),
+        ended_at: null,
+      },
       { onConflict: 'phone_number' },
     )
     /* Y se avisa. Marcar la conversación no sirve de nada si nadie mira el

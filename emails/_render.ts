@@ -14,11 +14,13 @@ import { render } from '@react-email/components'
 import PedidoConfirmado from './pedido-confirmado'
 import PedidoDespachado from './pedido-despachado'
 import ChatEscalado from './chat-escalado'
+import AlertaSistema from './alerta-sistema'
 
 const PLANTILLAS = {
   'pedido-confirmado': PedidoConfirmado,
   'pedido-despachado': PedidoDespachado,
   'chat-escalado': ChatEscalado,
+  'alerta-sistema': AlertaSistema,
 } as const
 
 export type Plantilla = keyof typeof PLANTILLAS
@@ -33,6 +35,14 @@ export const NOMBRES = Object.keys(PLANTILLAS) as Plantilla[]
 export function asunto(plantilla: Plantilla, datos: Record<string, unknown>): string {
   const pieza = String(datos.pieza ?? 'tu pieza')
   const pesos = (n: unknown) => `$${Math.round(Number(n) || 0).toLocaleString('es-CO')}`
+
+  if (plantilla === 'alerta-sistema') {
+    /* El asunto dice el problema, no "alerta del sistema". Se lee en la lista
+       de la bandeja sin abrirlo, que es cuando se decide si urge. */
+    const hs = (datos.hallazgos as Array<{ que: string }> | undefined) ?? []
+    if (!hs.length) return 'Revisión del sistema'
+    return hs.length === 1 ? hs[0].que : `${hs[0].que} (y ${hs.length - 1} más)`
+  }
 
   if (plantilla === 'chat-escalado') {
     /* El asunto lleva el nombre porque este correo se lee en la lista, sin
