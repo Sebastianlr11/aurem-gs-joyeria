@@ -223,6 +223,22 @@ Deno.serve(async (req: Request) => {
      otro lado eso no se distingue de que el negocio no exista. La bandeja
      avisa a las horas; la clienta está mirando el teléfono ahora. */
   if (!texto && !idAudio && !idImagen) {
+    /* Meta dice POR QUÉ no pudo relayarlo —una encuesta, un "ver una vez",
+       una ubicación en vivo— y eso se estaba tirando. Sin el motivo, cuatro
+       mensajes iguales de un número desconocido no se pueden distinguir de un
+       robot rastreando números de WhatsApp Business. Con el motivo, sí. */
+    const motivo = mensaje.errors?.[0]
+    console.log(
+      `Mensaje que no se pudo abrir · tipo=${mensaje.type}` +
+      (motivo ? ` · [${motivo.code}] ${motivo.title}${motivo.details ? ' · ' + motivo.details : ''}` : ' · sin motivo de Meta') +
+      ` · de ${telefono}`,
+    )
+    if (motivo) {
+      await db.from('whatsapp_conversaciones')
+        .update({ error_wa: { code: motivo.code, title: motivo.title, detalle: motivo.details ?? null } })
+        .eq('wa_message_id', mensaje.id)
+    }
+
     if (!(await enModoManual(telefono))) {
       await avisarQueNoSeAbrio(db, telefono, numeroPropio)
     }

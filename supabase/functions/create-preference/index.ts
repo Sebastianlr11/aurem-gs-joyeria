@@ -14,7 +14,13 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const { items, product, buyer, paymentMethod = 'mp', notes: orderNotes, atribucion } = await req.json()
+    const { items, product, buyer, paymentMethod = 'mp', notes: orderNotes, atribucion, canal: canalPedido } = await req.json()
+
+    /* 'web' por omisión para no romper al checkout del sitio, que no manda
+       nada y seguirá sin mandarlo. Se acepta una lista corta y cerrada: un
+       canal libre acabaría con 'whatsapp', 'WhatsApp' y 'wa' contando como
+       tres cosas distintas. */
+    const canal = ['whatsapp', 'web', 'manual', 'tiktok'].includes(canalPedido) ? canalPedido : 'web'
 
     /* Soporta formato nuevo (items array) y formato legacy (product objeto).
 
@@ -144,6 +150,15 @@ Deno.serve(async (req: Request) => {
         amount: totalAmount,
         status: 'pendiente',
         payment_method: paymentMethod === 'cod' ? 'contraentrega' : 'mercadopago',
+        /* Por dónde entró la venta. Esta función la usan LOS DOS canales —el
+           checkout del sitio y Valentina— y hasta ahora ninguno lo decía, así
+           que todo caía en 'web' por omisión. El embudo de WhatsApp contaba
+           order_source='whatsapp' y por eso daba cero conversión siempre:
+           medía una etiqueta que nadie ponía, no el negocio.
+
+           Que lo diga quien llama es lo correcto: esta función no puede saber
+           de dónde viene, y adivinarlo por la forma del cuerpo sería frágil. */
+        order_source: canal,
         notes: [
           buyer.address ? `Dirección: ${buyer.address}` : null,
           buyer.city ? `Ciudad: ${buyer.city}` : null,

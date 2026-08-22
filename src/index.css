@@ -17396,3 +17396,29 @@ textarea:focus-visible {
    leyéndolos, éste hay que pedirle a la clienta que lo mande de otra forma.
    Es una acción distinta y tiene que verse distinta. */
 .jornada-hecho-punto--ilegible { background: #8C2F1E; }
+
+/* Cómo le va a Valentina. El canal por el que entra casi todo estaba
+   representado por dos contadores anónimos entre cinco: "mensajes hoy" y
+   "chats activos", que dicen que hay movimiento pero no si está vendiendo. */
+.jornada-wa {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 1px; background: var(--hairline);
+  border-top: 1px solid var(--hairline);
+}
+.jornada-wa-celda {
+  display: flex; flex-direction: column; gap: 0.35rem;
+  padding: 1.4rem 1.6rem 1.5rem; background: var(--bg-color);
+}
+.jornada-wa-v {
+  font-size: 1.75rem; font-weight: 300; color: var(--ink);
+  font-variant-numeric: tabular-nums; line-height: 1.05;
+}
+/* Sólo se tiñe cuando hay algo que mirar: que una conversación necesitara a
+   una persona no es un fallo, pero sí es lo único de este bloque sobre lo que
+   se puede hacer algo hoy. */
+.jornada-wa-v--ojo { color: var(--oro-ink); }
+.jornada-wa-l {
+  font-size: 0.68rem; font-weight: 700; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--text-secondary);
+}
+.jornada-wa-s { font-size: 0.8rem; line-height: 1.45; color: var(--text-muted); }
