@@ -485,6 +485,7 @@ const DashboardHome = ({ products, orders, customers, waStats, chatsPendientes, 
     const [revision, setRevision] = useState(null);
     const [gastoPauta, setGastoPauta] = useState(null);
     const [ultimosMensajes, setUltimosMensajes] = useState([]);
+    const [valentina, setValentina] = useState(null);
 
     useEffect(() => {
         supabase.from('vigilancia_ultima').select('*').eq('id', 1).maybeSingle()
@@ -495,6 +496,22 @@ const DashboardHome = ({ products, orders, customers, waStats, chatsPendientes, 
            línea de tiempo. Un pedido y la conversación que lo produjo son el
            mismo hecho contado dos veces, y en dos listas separadas nadie los
            relaciona. */
+        /* Cómo le va a Valentina. Es el canal por el que entra casi todo y en
+           el panel eran dos contadores anónimos —"mensajes hoy", "chats
+           activos"— que no dicen si está vendiendo. */
+        Promise.all([
+            supabase.rpc('analiticas_whatsapp', { p_dias: 30 }),
+            supabase.from('chat_takeover')
+                .select('phone_number')
+                .gte('started_at', new Date(Date.now() - 30 * 86400000).toISOString()),
+        ]).then(([{ data: a }, { data: t }]) => {
+            if (!a) return;
+            setValentina({
+                ...a,
+                escalados: new Set((t || []).map(x => x.phone_number)).size,
+            });
+        }).catch(() => {});
+
         supabase.from('whatsapp_conversaciones')
             .select('phone_number, role, content, message_type, created_at')
             .order('created_at', { ascending: false })
@@ -864,6 +881,58 @@ const DashboardHome = ({ products, orders, customers, waStats, chatsPendientes, 
                     </button>
                 ))}
             </section>
+
+            {/* Sólo con conversaciones de verdad. Cuatro celdas en cero no
+                dicen "va mal", dicen "todavía no hay nada", y eso ya lo dice
+                el resto de la pantalla. */}
+            {valentina?.total_conversaciones > 0 && (
+                <section className="jornada-panel">
+                    <div className="jornada-panel-head">
+                        <span className="jornada-panel-titulo">Cómo le va a Valentina</span>
+                        <span className="jornada-panel-nota">Últimos 30 días</span>
+                    </div>
+                    <div className="jornada-wa">
+                        <div className="jornada-wa-celda">
+                            <span className="jornada-wa-v">{valentina.total_conversaciones}</span>
+                            <span className="jornada-wa-l">Conversaciones</span>
+                            <span className="jornada-wa-s">{valentina.mensajes_totales} mensajes en total</span>
+                        </div>
+                        <div className="jornada-wa-celda">
+                            <span className="jornada-wa-v">
+                                {valentina.conversaciones_con_pedido}
+                            </span>
+                            <span className="jornada-wa-l">Terminaron en pedido</span>
+                            <span className="jornada-wa-s">
+                                {valentina.total_conversaciones
+                                    ? `${Math.round(valentina.tasa_conversion)} % de las que hablaron`
+                                    : '—'}
+                            </span>
+                        </div>
+                        <div className="jornada-wa-celda">
+                            <span className="jornada-wa-v">
+                                {valentina.tiempo_respuesta_seg > 0
+                                    ? (valentina.tiempo_respuesta_seg < 60
+                                        ? `${Math.round(valentina.tiempo_respuesta_seg)} s`
+                                        : `${valentina.tiempo_respuesta_min} min`)
+                                    : '—'}
+                            </span>
+                            <span className="jornada-wa-l">Tarda en contestar</span>
+                            <span className="jornada-wa-s">Desde que la clienta escribe</span>
+                        </div>
+                        <div className="jornada-wa-celda">
+                            <span className={`jornada-wa-v${valentina.escalados > 0 ? ' jornada-wa-v--ojo' : ''}`}>
+                                {valentina.escalados}
+                            </span>
+                            <span className="jornada-wa-l">Necesitaron a una persona</span>
+                            <span className="jornada-wa-s">
+                                {valentina.escalados === 0
+                                    ? 'Las resolvió todas sola'
+                                    : 'Se pasaron al joyero'}
+                            </span>
+                        </div>
+                    </div>
+                </section>
+            )}
 
             <section className="jornada-cifras">
                 {cifras.map(c => (

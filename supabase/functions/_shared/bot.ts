@@ -756,6 +756,11 @@ async function ejecutarHerramienta(
             city: args.ciudad,
           },
           paymentMethod: contraEntrega ? 'cod' : 'mp',
+          /* De dónde viene la venta. Iba sólo dentro de la nota —'Pedido
+             tomado por Valentina'—, que es texto para leer, no un dato para
+             contar: por eso el embudo de WhatsApp daba cero conversión
+             aunque Valentina estuviera cerrando pedidos. */
+          canal: 'whatsapp',
           /* Los identificadores del anuncio van como datos aparte de la nota:
              la nota es para leerla, esto es para devolvérselo a Meta cuando
              se cobre y para poder contar ventas por origen. */
