@@ -8,9 +8,12 @@
     <!-- Las fuentes, lo primero y en paralelo. Estaban en un @import dentro
          del CSS, que las ponía al final de una cadena en serie de cuatro
          pasos. Acá el navegador las ve antes de bajar nada más. -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Marcellus&family=Mulish:ital,wght@0,300..800;1,300..800&display=swap" />
+    <!-- Las dos fuentes del primer viewport, precargadas y propias.
+         NO se pide nada a fonts.googleapis.com: los @font-face viven en
+         src/fuentes.css y los archivos en /assets/fuentes. Una hoja de un
+         tercero acá bloquea el renderizado ~750 ms para no aportar nada. -->
+    <link rel="preload" as="font" type="font/woff2" href="/assets/fuentes/marcellus-latin.woff2" crossorigin />
+    <link rel="preload" as="font" type="font/woff2" href="/assets/fuentes/mulish-latin.woff2" crossorigin />
 
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" type="image/png" sizes="64x64" href="/assets/logo-isotipo.png" />

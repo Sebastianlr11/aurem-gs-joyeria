@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
+import { optimizarFoto } from '../../lib/optimizarFoto';
 import AdminSidebar from './AdminSidebar';
 import { NAV } from './adminNav.jsx';
 
@@ -159,7 +160,17 @@ const ProductModal = ({ product, onClose, onSaved }) => {
 
     const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
-    const uploadFile = async (file) => {
+    const uploadFile = async (original) => {
+        /* Se achica y se convierte ANTES de subir. Las fotos salen del
+           celular con 1536×2752 y varios megas, y se guardaban tal cual: eso
+           es exactamente lo que baja después cada clienta que abre la ficha.
+           Hacerlo acá ahorra las dos puntas — la subida del joyero y la
+           bajada de la clienta. Si algo falla, sube la original. */
+        const file = await optimizarFoto(original);
+        if (file !== original) {
+            console.log(`foto: ${original.name} ${Math.round(original.size/1024)}KB → ${Math.round(file.size/1024)}KB`);
+        }
+
         const ext = file.name.split('.').pop();
         const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
         const { error: upErr } = await supabase.storage.from('product-images').upload(path, file, { upsert: false });
