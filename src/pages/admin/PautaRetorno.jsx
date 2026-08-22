@@ -33,6 +33,7 @@ const hoyEnBogota = () =>
 
 export default function PautaRetorno({ orders, periodStart, periodDays }) {
     const [gastos, setGastos] = useState([]);
+    const [sinConfirmar, setSinConfirmar] = useState([]);
     const [iva, setIva] = useState(0.19);
     const [cargando, setCargando] = useState(true);
     const [abierto, setAbierto] = useState(false);
@@ -46,11 +47,13 @@ export default function PautaRetorno({ orders, periodStart, periodDays }) {
            entrega: son todas constantes del negocio. Deliberadamente NO en
            ajustes_internos, que guarda el secreto del cron y por eso está
            cerrada a la API entera. */
-        const [{ data: g }, { data: t }] = await Promise.all([
+        const [{ data: g }, { data: t }, { data: p }] = await Promise.all([
             supabase.from('gasto_pauta').select('*').order('fecha', { ascending: false }),
             supabase.from('taller_precios').select('iva_pauta').limit(1).maybeSingle(),
+            supabase.from('products').select('name').eq('costo_provisional', true),
         ]);
         setGastos(g || []);
+        setSinConfirmar((p || []).map((x) => x.name));
         if (t?.iva_pauta != null) setIva(Number(t.iva_pauta));
         setCargando(false);
     }, []);
@@ -133,6 +136,21 @@ export default function PautaRetorno({ orders, periodStart, periodDays }) {
                     {abierto ? 'Cerrar' : 'Anotar gasto'}
                 </button>
             </div>
+
+            {/* Sólo cuando ya hay gasto anotado. Antes de eso los costos de
+                relleno no hacen daño —el panel se está armando— y un aviso
+                permanente se vuelve parte del decorado y deja de leerse. El
+                día que entra el primer peso de pauta, sí importa. */}
+            {!sinGasto && sinConfirmar.length > 0 && (
+                <p className="pauta-alerta">
+                    <strong>Hay pauta corriendo con costos sin confirmar.</strong>{' '}
+                    {sinConfirmar.length === 1
+                        ? `${sinConfirmar[0]} tiene un costo de relleno`
+                        : `${sinConfirmar.length} piezas tienen costos de relleno`}
+                    , así que lo que el panel diga del margen es inventado. Pídeselos al
+                    joyero antes de decidir cuánto gastar.
+                </p>
+            )}
 
             {abierto && (
                 <form className="pauta-form" onSubmit={guardar}>
