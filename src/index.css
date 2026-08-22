@@ -16450,3 +16450,146 @@ textarea:focus-visible {
   font-size: 0.82rem; line-height: 1.5; color: var(--text-secondary);
 }
 .modal-casilla input { margin-top: 0.15rem; accent-color: var(--oro-ink); flex-shrink: 0; }
+
+/* ─── Lo que el dashboard no sabía ────────────────────────────────────────
+
+   Tres bloques nuevos y un orden deliberado: primero lo roto, después lo que
+   se está agotando, y sólo entonces las tareas del día. Un pedido sin
+   despachar espera; un pago colgado ya salió mal y cada hora cuesta más. */
+
+/* Averías. Rojo, y arriba de todo. Es el único bloque del panel que existe
+   para dar malas noticias, así que no comparte el lenguaje de los demás: sin
+   filete dorado, sin punzón, sin tarjeta blanca. */
+.jornada-averia {
+  background: #FBEDE9;
+  border-left: 3px solid #8C2F1E;
+  border-radius: 2px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+.jornada-averia-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 1rem; flex-wrap: wrap; margin-bottom: 0.875rem;
+}
+.jornada-averia-titulo {
+  font-family: var(--font-ui); font-size: 0.95rem; font-weight: 700;
+  color: #5E2114;
+}
+.jornada-averia-nota {
+  font-size: 0.7rem; font-weight: 700; letter-spacing: 0.12em;
+  text-transform: uppercase; color: rgba(94, 33, 20, 0.55);
+}
+.jornada-averia-fila {
+  display: flex; flex-direction: column; gap: 0.2rem;
+  padding: 0.6rem 0; border-top: 1px solid rgba(140, 47, 30, 0.14);
+}
+.jornada-averia-que { font-size: 0.9rem; font-weight: 700; color: #5E2114; }
+.jornada-averia-detalle {
+  font-size: 0.82rem; line-height: 1.5; color: rgba(94, 33, 20, 0.8);
+  word-break: break-word;
+}
+.jornada-averia-fila--leve .jornada-averia-que { font-weight: 400; }
+
+/* Inventario. Menos grave que una avería pero más urgente que una tarea:
+   mientras siga publicada, la pauta paga clics hacia algo que no se vende. */
+.jornada-stock {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 1rem; flex-wrap: wrap;
+  background: var(--bg-arena);
+  border-radius: 2px;
+  padding: 0.9rem 1.25rem;
+  margin-bottom: 1.5rem;
+}
+.jornada-stock-texto { font-size: 0.9rem; line-height: 1.55; color: var(--ink); }
+.jornada-stock-texto strong { font-weight: 700; }
+.jornada-stock-link {
+  font-family: var(--font-ui); font-size: 0.72rem; font-weight: 700;
+  letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--oro-ink); background: none; border: 0; cursor: pointer;
+  white-space: nowrap;
+}
+
+/* Pauta. Debajo de la banda de dinero y con el mismo cacao: entra y sale son
+   la misma conversación, y separarlas en dos estilos las volvería dos temas. */
+.jornada-pauta {
+  background: var(--ink-soft);
+  border-radius: 2px;
+  padding: clamp(1.3rem, 2.2vw, 1.9rem) clamp(1.6rem, 2.6vw, 2.4rem);
+  margin-top: 1px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: clamp(1.2rem, 2.2vw, 2.2rem);
+  align-items: end;
+}
+.jornada-pauta-col { display: flex; flex-direction: column; gap: 0.4rem; min-width: 0; }
+.jornada-pauta-valor {
+  font-family: var(--font-ui); font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 300; color: #FFFFFF;
+  font-variant-numeric: tabular-nums; line-height: 1.05;
+}
+.jornada-pauta--bien { color: #8FD3AE; }
+.jornada-pauta--mal  { color: #F0A79A; }
+.jornada-pauta-link {
+  justify-self: start; align-self: end;
+  font-family: var(--font-ui); font-size: 0.72rem; font-weight: 700;
+  letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--oro-luz); background: none; border: 0; cursor: pointer;
+  white-space: nowrap; padding: 0;
+}
+
+/* ─── Lo último ───────────────────────────────────────────────────────────
+   Reemplaza al checklist de puesta a punto, que tenía dos pasos fijos en "no
+   hecho" en el código: nunca se iban a marcar, así que decía "1 de 4" para
+   siempre y enseñaba a ignorarlo.
+
+   Lo que hacía falta en su lugar era lo que ninguna otra pantalla respondía:
+   qué pasó. El panel entero eran contadores y pendientes —cuántos hay, qué
+   falta— y uno abre el panel en la mañana preguntando otra cosa. */
+
+.jornada-vacio {
+  margin: 1.25rem 0 0.5rem; max-width: 52ch;
+  font-size: 0.92rem; line-height: 1.6; color: var(--text-secondary);
+}
+
+.jornada-hecho {
+  display: flex; align-items: center; gap: 1rem;
+  /* Mismo patrón que .jornada-tarea, la fila hermana de "Atender hoy": el
+     panel no trae padding propio, lo pone cada fila. */
+  width: 100%; box-sizing: border-box;
+  padding: 1.05rem 1.6rem;
+  border: 0; border-top: 1px solid var(--hairline);
+  background: none; cursor: pointer; text-align: left;
+  transition: var(--transition-smooth);
+}
+.jornada-hecho:hover { background: var(--bg-marfil); }
+.jornada-hecho:first-of-type { border-top: 0; }
+
+/* El punto dice de qué canal viene sin gastar una palabra en decirlo. */
+.jornada-hecho-punto {
+  width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+}
+.jornada-hecho-punto--pedido { background: var(--oro); }
+.jornada-hecho-punto--chat   { background: #25D366; }
+
+.jornada-hecho-texto { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; flex: 1; }
+.jornada-hecho-q { font-size: 0.92rem; font-weight: 700; color: var(--ink); }
+.jornada-hecho-d {
+  font-size: 0.84rem; color: var(--text-secondary);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.jornada-hecho-estado {
+  font-size: 0.66rem; font-weight: 700; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--text-secondary);
+  padding: 0.22rem 0.5rem; background: var(--bg-arena); border-radius: 2px;
+  white-space: nowrap; flex-shrink: 0;
+}
+.jornada-hecho-cuando {
+  font-size: 0.78rem; color: var(--text-secondary);
+  white-space: nowrap; flex-shrink: 0; min-width: 5.5rem; text-align: right;
+}
+
+@media (max-width: 768px) {
+  .jornada-hecho { gap: 0.7rem; }
+  .jornada-hecho-estado { display: none; }
+  .jornada-hecho-cuando { min-width: 0; }
+}

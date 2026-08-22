@@ -227,6 +227,16 @@ Deno.serve(async (req: Request) => {
   }
 
   console.log(`vigilancia · ${hallazgos.length} hallazgo(s)`)
+
+  /* Se deja escrito SIEMPRE, encuentre o no encuentre. Escribir sólo cuando
+     hay problemas dejaría el panel enseñando la avería de anteayer como si
+     fuera de ahora, que es peor que no enseñar nada: el aviso viejo hace
+     desconfiar de todos los demás. Cero hallazgos es una respuesta, y además
+     es la que dice que la revisión corrió. */
+  await db.from('vigilancia_ultima')
+    .update({ corrida_en: new Date().toISOString(), hallazgos })
+    .eq('id', 1)
+
   if (!hallazgos.length) return json({ ok: true, hallazgos: 0 })
 
   /* Se avisa por correo a quien tenga acceso al panel. La clave de
