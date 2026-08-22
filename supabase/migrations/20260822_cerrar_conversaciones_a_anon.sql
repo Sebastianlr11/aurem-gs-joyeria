@@ -61,6 +61,21 @@ DROP POLICY IF EXISTS "conversaciones_anon" ON public.conversaciones;
 -- alcanzables sólo por service_role y por el editor SQL — que es como se
 -- usan— y fuera del alcance de la llave pública. Nada del código las lee.
 
-ALTER TABLE public.respaldo_chats_20260822      ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.respaldo_takeover_20260822   ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.respaldo_chatstatus_20260822 ENABLE ROW LEVEL SECURITY;
+-- Nota del 22 de agosto, más tarde: el usuario dio permiso y las tres tablas
+-- se borraron en `20260822_quitar_respaldos_de_chats.sql`. Estas tres líneas
+-- se quedan porque son el registro de lo que se hizo aquel día, pero pasan a
+-- ser condicionales: sin guarda, cualquier reejecución de las migraciones
+-- reventaba al llegar a una tabla que ya no existe —y que, de hecho, nunca
+-- llegó a crearla ninguna migración de este repo—.
+DO $$
+BEGIN
+  IF to_regclass('public.respaldo_chats_20260822') IS NOT NULL THEN
+    ALTER TABLE public.respaldo_chats_20260822      ENABLE ROW LEVEL SECURITY;
+  END IF;
+  IF to_regclass('public.respaldo_takeover_20260822') IS NOT NULL THEN
+    ALTER TABLE public.respaldo_takeover_20260822   ENABLE ROW LEVEL SECURITY;
+  END IF;
+  IF to_regclass('public.respaldo_chatstatus_20260822') IS NOT NULL THEN
+    ALTER TABLE public.respaldo_chatstatus_20260822 ENABLE ROW LEVEL SECURITY;
+  END IF;
+END $$;
