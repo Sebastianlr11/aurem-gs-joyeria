@@ -1,0 +1,605 @@
+/**
+ * La ficha de una pieza.
+ *
+ * Reemplaza un formulario de doce campos apilados en una columna, donde para
+ * llegar a las fotos había que pasar por delante de todo lo demás y no se
+ * sabía en qué parte se estaba. Ahora hay seis secciones nombradas, un riel
+ * que dice dónde estás y te lleva de un salto, y el pie fijo con lo único que
+ * de verdad importa antes de cerrar: si hay cambios sin guardar.
+ *
+ * Tres cosas que el formulario viejo no hacía y que valían la pena:
+ *
+ * 1. Enseña lo que va a ver la clienta. El precio formateado, el punzón que
+ *    sale del metal, la etiqueta de inventario tal cual aparece en la tienda.
+ *    Antes había que guardar, ir al sitio y mirar.
+ *
+ * 2. Deja elegir la portada. Antes era la primera foto que subiste y punto;
+ *    para cambiarla tocaba borrarlas todas y subirlas en otro orden.
+ *
+ * 3. El margen es una tarjeta y no una línea de ayuda perdida bajo un campo.
+ *    Es el número con el que se decide cuánta pauta aguanta la pieza.
+ */
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { supabase } from '../../lib/supabase';
+import { versionesDeFoto } from '../../lib/optimizarFoto';
+
+const CATEGORIES = ['Anillos', 'Collares', 'Aretes', 'Pulseras', 'Dijes'];
+const METALES = ['Plata 925', 'Oro 18k', 'Oro blanco 18k', 'Oro rosa 18k', 'Platino PT950'];
+const MAX_DESC = 600;
+
+const texto = (v) => String(v ?? '').trim();
+const fmt = (n) => Math.round(n).toLocaleString('es-CO');
+
+/* Los precios llegan de la base como "550000.00" —numeric de Postgres— y los
+   campos se editan como dígitos sueltos. Quitar los puntos sin redondear
+   antes convertiría 550000.00 en 55000000: cien veces más caro, y guardado
+   sin que nada lo delate. */
+const aDigitos = (v) => {
+    if (v === '' || v === null || v === undefined) return '';
+    const n = Number(v);
+    return Number.isFinite(n) ? String(Math.round(n)) : String(v).replace(/\D/g, '');
+};
+const numero = (v) => {
+    const n = parseInt(String(v ?? '').replace(/\D/g, ''), 10);
+    return Number.isNaN(n) ? null : n;
+};
+
+const SECCIONES = [
+    { id: 'identidad', label: 'Identidad' },
+    { id: 'precio', label: 'Precio y margen' },
+    { id: 'inventario', label: 'Inventario' },
+    { id: 'ficha', label: 'Ficha técnica' },
+    { id: 'fotos', label: 'Fotos' },
+    { id: 'publicacion', label: 'Publicación' },
+];
+
+const VACIO = {
+    name: '', category: 'Anillos', price: '', compare_price: '', costo: '',
+    costo_provisional: false, description: '', image_url: '', is_new: false,
+    is_featured: false, stock: '', metal: '', piedra: '', engaste: '', talla_rango: '',
+};
+
+/** Un interruptor. Se usa dentro de un botón, así que es un span, no un input. */
+const Palanca = ({ on }) => (
+    <span className={`pm-palanca${on ? ' pm-palanca--on' : ''}`} aria-hidden="true">
+        <span className="pm-palanca-bola" />
+    </span>
+);
+
+/* Un campo de plata, con el signo y la moneda dentro del borde.
+   Vive FUERA del componente a propósito: definido adentro sería un tipo de
+   componente nuevo en cada render, React lo desmontaría y volvería a montar
+   en cada tecla, y el cursor se saldría del campo al escribir. */
+const CampoPlata = ({ etiqueta, obligatorio, marcador, ayuda, valor, alCambiar }) => (
+    <div className="pm-campo">
+        <label className="pm-label">
+            {etiqueta}{obligatorio && <span className="pm-obligatorio"> · obligatorio</span>}
+        </label>
+        <div className="pm-plata">
+            <span className="pm-plata-signo">$</span>
+            <input
+                inputMode="numeric"
+                value={valor ?? ''}
+                placeholder={marcador}
+                onChange={e => alCambiar(e.target.value.replace(/\D/g, ''))}
+            />
+            <span className="pm-plata-cop">COP</span>
+        </div>
+        {ayuda && <span className="pm-ayuda">{ayuda}</span>}
+    </div>
+);
+
+const Regla = ({ children }) => (
+    <div className="pm-regla">
+        <span className="pm-regla-t">{children}</span>
+        <span className="pm-regla-linea" />
+    </div>
+);
+
+export default function ProductModal({ product, onClose, onSaved }) {
+    const isEdit = !!product?.id;
+
+    const [form, setForm] = useState(() => {
+        if (!isEdit) return { ...VACIO };
+        return {
+            ...VACIO, ...product,
+            price: aDigitos(product.price),
+            compare_price: aDigitos(product.compare_price),
+            costo: aDigitos(product.costo),
+            stock: product.stock ?? '',
+        };
+    });
+    const [images, setImages] = useState(isEdit ? (product.images || []) : []);
+    const [urlInput, setUrlInput] = useState('');
+    const [saving, setSaving] = useState(false);
+    const [subiendo, setSubiendo] = useState(0);
+    const [error, setError] = useState('');
+    const [tocado, setTocado] = useState(false);
+    const [activa, setActiva] = useState('identidad');
+
+    const cuerpoRef = useRef(null);
+
+    const set = (k, v) => { setForm(f => ({ ...f, [k]: v })); setTocado(true); };
+
+    /* Escape cierra. Es la salida que la gente prueba primero, y sin ella el
+       único camino es apuntarle a una × de 36 píxeles. */
+    useEffect(() => {
+        const alTeclear = (e) => { if (e.key === 'Escape') onClose(); };
+        document.addEventListener('keydown', alTeclear);
+        return () => document.removeEventListener('keydown', alTeclear);
+    }, [onClose]);
+
+    /* Qué sección se está mirando. El riel sirve para saber dónde estás, no
+       sólo para saltar: si sólo se pintara al hacer clic, bajar con la rueda
+       lo dejaría mintiendo. */
+    useEffect(() => {
+        const cuerpo = cuerpoRef.current;
+        if (!cuerpo) return;
+        const alRodar = () => {
+            const limite = cuerpo.scrollTop + 90;
+            let cual = SECCIONES[0].id;
+            cuerpo.querySelectorAll('[data-sec]').forEach(s => {
+                if (s.offsetTop <= limite) cual = s.dataset.sec;
+            });
+            setActiva(cual);
+        };
+        cuerpo.addEventListener('scroll', alRodar, { passive: true });
+        return () => cuerpo.removeEventListener('scroll', alRodar);
+    }, []);
+
+    const irA = (id) => {
+        const cuerpo = cuerpoRef.current;
+        const el = cuerpo?.querySelector(`[data-sec="${id}"]`);
+        if (el) cuerpo.scrollTop = Math.max(el.offsetTop - 18, 0);
+        setActiva(id);
+    };
+
+    /* ── Fotos ────────────────────────────────────────────────────── */
+
+    const subirArchivo = async (original) => {
+        /* Se achica y se convierte ANTES de subir. Las fotos salen del
+           celular con 1536×2752 y varios megas, y se guardaban tal cual: eso
+           es exactamente lo que baja después cada clienta que abre la ficha.
+           Si algo falla, sube la original. */
+        const { principal, gemela } = await versionesDeFoto(original);
+
+        /* El mismo nombre para las dos, sólo cambia la extensión. Es la
+           convención de la que depende wa.ts para pedir la JPEG: el sitio usa
+           la WebP porque pesa una fracción, pero WhatsApp no acepta WebP. */
+        const base = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        const ruta = (f) => `${base}.${f.name.split('.').pop()}`;
+
+        const { error: upErr } = await supabase.storage
+            .from('product-images').upload(ruta(principal), principal, { upsert: false });
+        if (upErr) throw upErr;
+
+        if (gemela) {
+            /* Si falla la gemela el catálogo funciona igual: lo que se pierde
+               es que Valentina pueda mandarla por WhatsApp. No vale tumbar la
+               subida por eso, pero sí dejarlo dicho. */
+            const { error: errGemela } = await supabase.storage
+                .from('product-images').upload(ruta(gemela), gemela, { upsert: false });
+            if (errGemela) console.error('No se pudo subir la versión JPEG:', errGemela.message);
+        }
+
+        const { data } = supabase.storage.from('product-images').getPublicUrl(ruta(principal));
+        return data.publicUrl;
+    };
+
+    const alElegirArchivos = async (e) => {
+        const files = Array.from(e.target.files || []);
+        if (!files.length) return;
+        setError(''); setSubiendo(files.length);
+        const results = await Promise.allSettled(files.map(f => subirArchivo(f)));
+        const urls = [], fallaron = [];
+        results.forEach((r, i) => r.status === 'fulfilled' ? urls.push(r.value) : fallaron.push(files[i].name));
+        if (urls.length) { setImages(prev => [...prev, ...urls]); setTocado(true); }
+        if (fallaron.length) setError(`No se pudieron subir: ${fallaron.join(', ')}`);
+        setSubiendo(0); e.target.value = '';
+    };
+
+    const agregarUrl = () => {
+        const url = urlInput.trim();
+        if (!url) return;
+        setImages(prev => [...prev, url]); setUrlInput(''); setTocado(true);
+    };
+
+    /* La portada se elige moviendo la foto al frente del arreglo. El sitio y
+       los correos ya leen images[0] como portada, así que cambiar el orden
+       hace el trabajo sin tocar la base ni ningún otro consumidor. */
+    const hacerPortada = (idx) => {
+        if (idx === 0) return;
+        setImages(prev => [prev[idx], ...prev.filter((_, i) => i !== idx)]);
+        setTocado(true);
+    };
+
+    const quitarFoto = (idx) => { setImages(prev => prev.filter((_, i) => i !== idx)); setTocado(true); };
+
+    /* ── Lo que verá la clienta ───────────────────────────────────── */
+
+    const precio = numero(form.price);
+    const costo = numero(form.costo);
+    const hayMargen = precio !== null && costo !== null && precio > 0;
+    const margen = hayMargen ? precio - costo : null;
+    const pct = hayMargen ? (margen / precio) * 100 : null;
+    const costoAbsurdo = hayMargen && margen <= 0;
+
+    const inventario = useMemo(() => {
+        if (form.stock === '' || form.stock === null || form.stock === undefined) {
+            return { texto: 'Sin control de inventario', tono: 'pm-stock--gris' };
+        }
+        const n = numero(form.stock);
+        if (n === null) return { texto: 'Sin control de inventario', tono: 'pm-stock--gris' };
+        if (n === 0) return { texto: 'Agotado', tono: 'pm-stock--agotado' };
+        if (n <= 3) return { texto: `Últimas ${n} pieza${n !== 1 ? 's' : ''}`, tono: 'pm-stock--poco' };
+        return { texto: `${n} unidades disponibles`, tono: 'pm-stock--ok' };
+    }, [form.stock]);
+
+    const descLargo = (form.description || '').length;
+
+    /* ── Guardar ──────────────────────────────────────────────────── */
+
+    const guardar = async (e) => {
+        e.preventDefault(); setError('');
+        if (!texto(form.name)) { setError('Falta el nombre de la pieza.'); irA('identidad'); return; }
+        if (precio === null || precio <= 0) { setError('Falta el precio de venta.'); irA('precio'); return; }
+
+        setSaving(true);
+        const comparar = numero(form.compare_price);
+        const payload = {
+            name: texto(form.name),
+            category: form.category,
+            price: precio,
+            compare_price: comparar && comparar > precio ? comparar : null,
+            /* Vacío es "no lo sé todavía", no cero. Un costo de cero diría que
+               la pieza es pura ganancia, que es peor que no saber. */
+            costo: costo,
+            costo_provisional: !!form.costo_provisional && costo !== null,
+            description: texto(form.description) || null,
+            images,
+            image_url: images[0] || texto(form.image_url) || null,
+            is_new: !!form.is_new,
+            is_featured: !!form.is_featured,
+            metal: texto(form.metal) || null,
+            piedra: texto(form.piedra) || null,
+            engaste: texto(form.engaste) || null,
+            talla_rango: texto(form.talla_rango) || null,
+            // Vacío = sin control de inventario (null). 0 = agotado.
+            stock: form.stock === '' || form.stock === null || form.stock === undefined
+                ? null
+                : Math.max(0, Math.trunc(Number(form.stock))),
+        };
+
+        let err;
+        if (isEdit) ({ error: err } = await supabase.from('products').update(payload).eq('id', product.id));
+        else ({ error: err } = await supabase.from('products').insert([payload]));
+        setSaving(false);
+        if (err) { setError(err.message); return; }
+        onSaved();
+    };
+
+    return (
+        <div className="pm-fondo" onClick={e => e.target === e.currentTarget && onClose()}>
+            <form
+                className="pm-caja"
+                role="dialog"
+                aria-modal="true"
+                aria-label={isEdit ? 'Editar producto' : 'Nuevo producto'}
+                onSubmit={guardar}
+            >
+                {/* ── Riel ── */}
+                <aside className="pm-riel">
+                    <div className="pm-riel-arriba">
+                        <div className="pm-riel-pieza">
+                            {images[0]
+                                ? <img src={images[0]} alt="" className="pm-riel-foto" />
+                                : <span className="pm-riel-foto pm-riel-foto--vacia">✦</span>}
+                            <div className="pm-riel-datos">
+                                <span className="pm-riel-nombre">{texto(form.name) || 'Pieza sin nombre'}</span>
+                                <span className="punzon">{texto(form.metal) || 'Sin punzón'}</span>
+                            </div>
+                        </div>
+
+                        <nav className="pm-riel-nav">
+                            {SECCIONES.map(s => (
+                                <button
+                                    key={s.id}
+                                    type="button"
+                                    className={`pm-riel-item${activa === s.id ? ' pm-riel-item--on' : ''}`}
+                                    onClick={() => irA(s.id)}
+                                >
+                                    {s.label}
+                                </button>
+                            ))}
+                        </nav>
+                    </div>
+
+                    <div className="pm-riel-estado">
+                        <span className="pm-riel-estado-t">Estado</span>
+                        <span className="pm-riel-estado-s">
+                            {!isEdit ? 'Todavía sin publicar.'
+                                : form.is_featured ? 'Publicada y destacada en la portada.'
+                                    : 'Publicada en el catálogo.'}
+                        </span>
+                    </div>
+                </aside>
+
+                {/* ── Columna principal ── */}
+                <div className="pm-col">
+                    <header className="pm-cabeza">
+                        <div>
+                            <span className="pm-cabeza-ante">Ficha de producto</span>
+                            <h2 className="pm-cabeza-titulo">{isEdit ? 'Editar producto' : 'Nuevo producto'}</h2>
+                        </div>
+                        <button type="button" className="pm-cerrar" onClick={onClose} aria-label="Cerrar">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
+                        </button>
+                    </header>
+
+                    <div className="pm-cuerpo" ref={cuerpoRef}>
+                        {error && <p className="pm-error">{error}</p>}
+
+                        <section data-sec="identidad" className="pm-sec">
+                            <Regla>Identidad</Regla>
+                            <div className="pm-rejilla">
+                                <div className="pm-campo">
+                                    <label className="pm-label">Nombre<span className="pm-obligatorio"> · obligatorio</span></label>
+                                    <input
+                                        className="pm-input"
+                                        value={form.name}
+                                        onChange={e => set('name', e.target.value)}
+                                        placeholder="Anillo Camino Verde"
+                                    />
+                                </div>
+                                <div className="pm-campo">
+                                    <label className="pm-label">Categoría<span className="pm-obligatorio"> · obligatorio</span></label>
+                                    <div className="pm-select">
+                                        <select value={form.category} onChange={e => set('category', e.target.value)}>
+                                            {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+                                        </select>
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section data-sec="precio" className="pm-sec">
+                            <Regla>Precio y margen</Regla>
+                            <div className="pm-rejilla pm-rejilla--tres">
+                                <CampoPlata
+                                    etiqueta="Precio de venta" obligatorio
+                                    marcador="550.000"
+                                    valor={form.price}
+                                    alCambiar={v => set('price', v)}
+                                    ayuda={precio !== null ? `Se publica como $${fmt(precio)} COP` : 'Lo que paga la clienta.'}
+                                />
+                                <CampoPlata
+                                    etiqueta="Precio anterior"
+                                    marcador="Vacío si no hay oferta"
+                                    valor={form.compare_price}
+                                    alCambiar={v => set('compare_price', v)}
+                                    ayuda="Se tacha junto al precio nuevo."
+                                />
+                                <CampoPlata
+                                    etiqueta="Costo de la pieza"
+                                    marcador="Oro, mano de obra, estuche"
+                                    valor={form.costo}
+                                    alCambiar={v => set('costo', v)}
+                                    ayuda="Todo lo que hay que pagar para entregarla."
+                                />
+                            </div>
+
+                            {/* El margen es el número con el que se decide cuánta pauta
+                                aguanta esta pieza. Antes era una línea de ayuda debajo
+                                de un campo, del mismo tamaño que "sólo para anillos". */}
+                            <div className={`pm-margen${costoAbsurdo ? ' pm-margen--mal' : ''}`}>
+                                <div className="pm-margen-izq">
+                                    <span className="pm-margen-t">
+                                        {costoAbsurdo ? 'Cuesta más de lo que se vende' : 'Deja por pieza'}
+                                    </span>
+                                    <span className="pm-margen-s">
+                                        {costoAbsurdo
+                                            ? 'Revisa el precio o el costo: así, cada venta pierde plata.'
+                                            : hayMargen
+                                                ? 'Precio de venta menos el costo de la pieza.'
+                                                : 'Escribe el costo para ver cuánto deja esta pieza.'}
+                                    </span>
+                                </div>
+                                <div className="pm-margen-der">
+                                    <span className="pm-margen-v">{hayMargen ? `$${fmt(margen)}` : '—'}</span>
+                                    <span className="pm-margen-pct">
+                                        {hayMargen ? `${pct.toFixed(1).replace('.', ',')} %` : 'sin costo'}
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Un costo inventado se ve idéntico a uno de verdad, y el
+                                margen que sale de él también. La casilla es lo que
+                                permite ponerlos sin que se vuelvan mentira: mientras
+                                esté marcada, el panel lo dice en todas partes. */}
+                            {costo !== null && (
+                                <label className="pm-casilla">
+                                    <input
+                                        type="checkbox"
+                                        checked={!!form.costo_provisional}
+                                        onChange={e => set('costo_provisional', e.target.checked)}
+                                    />
+                                    <span>
+                                        Es un número de relleno, todavía no lo confirmó el joyero.
+                                        {form.costo_provisional && ' Mientras esté marcado, el panel avisa de que este margen es inventado.'}
+                                    </span>
+                                </label>
+                            )}
+                        </section>
+
+                        <section data-sec="inventario" className="pm-sec">
+                            <Regla>Inventario</Regla>
+                            <div className="pm-rejilla pm-rejilla--fin">
+                                <div className="pm-campo">
+                                    <label className="pm-label">Unidades disponibles</label>
+                                    <input
+                                        className="pm-input"
+                                        inputMode="numeric"
+                                        value={form.stock ?? ''}
+                                        onChange={e => set('stock', e.target.value.replace(/\D/g, ''))}
+                                        placeholder="Vacío si no llevas inventario"
+                                    />
+                                    <span className="pm-ayuda">0 es agotado. Vacío es sin control de inventario.</span>
+                                </div>
+                                <div className="pm-campo">
+                                    <span className="pm-label">En la tienda se ve así</span>
+                                    <span className={`pm-stock ${inventario.tono}`}>{inventario.texto}</span>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section data-sec="ficha" className="pm-sec">
+                            <Regla>Ficha técnica</Regla>
+                            <div className="pm-rejilla">
+                                <div className="pm-campo">
+                                    <label className="pm-label">Metal y ley</label>
+                                    <input
+                                        className="pm-input" list="pm-metales"
+                                        value={form.metal || ''}
+                                        onChange={e => set('metal', e.target.value)}
+                                        placeholder="Plata 925"
+                                    />
+                                    <datalist id="pm-metales">
+                                        {METALES.map(m => <option key={m} value={m} />)}
+                                    </datalist>
+                                    <span className="pm-ayuda">De acá sale el punzón de la pieza.</span>
+                                </div>
+                                <div className="pm-campo">
+                                    <label className="pm-label">Piedra</label>
+                                    <input
+                                        className="pm-input"
+                                        value={form.piedra || ''}
+                                        onChange={e => set('piedra', e.target.value)}
+                                        placeholder="Vacío si no lleva piedra"
+                                    />
+                                </div>
+                                <div className="pm-campo">
+                                    <label className="pm-label">Engaste</label>
+                                    <input
+                                        className="pm-input"
+                                        value={form.engaste || ''}
+                                        onChange={e => set('engaste', e.target.value)}
+                                        placeholder="Bisel, diseño en línea"
+                                    />
+                                </div>
+                                <div className="pm-campo">
+                                    <label className="pm-label">Tallas</label>
+                                    <input
+                                        className="pm-input"
+                                        value={form.talla_rango || ''}
+                                        onChange={e => set('talla_rango', e.target.value)}
+                                        placeholder="5 a 12"
+                                    />
+                                    <span className="pm-ayuda">Sólo para anillos.</span>
+                                </div>
+                            </div>
+                            <div className="pm-campo">
+                                <label className="pm-label">Descripción</label>
+                                <textarea
+                                    className="pm-input pm-area"
+                                    rows={4}
+                                    maxLength={MAX_DESC}
+                                    value={form.description || ''}
+                                    onChange={e => set('description', e.target.value)}
+                                    placeholder="Metal, ley, piedra, entrega y garantía."
+                                />
+                                <div className="pm-area-pie">
+                                    <span className="pm-ayuda">Metal, ley, piedra, entrega y garantía. Sin adjetivos.</span>
+                                    <span className={`pm-cuenta${descLargo > MAX_DESC - 60 ? ' pm-cuenta--cerca' : ''}`}>
+                                        {descLargo} / {MAX_DESC}
+                                    </span>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section data-sec="fotos" className="pm-sec">
+                            <Regla>Fotos</Regla>
+                            <span className="pm-ayuda pm-ayuda--suelta">
+                                Mínimo 3 fotos, misma luz y mismo fondo. Toca una para hacerla portada.
+                            </span>
+                            <div className="pm-fotos">
+                                {images.map((url, i) => (
+                                    <div
+                                        key={`${url}-${i}`}
+                                        className={`pm-foto${i === 0 ? ' pm-foto--portada' : ''}`}
+                                        onClick={() => hacerPortada(i)}
+                                        title={i === 0 ? 'Es la portada' : 'Hacer portada'}
+                                    >
+                                        <img src={url} alt="" onError={e => { e.currentTarget.style.opacity = '0.25'; }} />
+                                        <button
+                                            type="button"
+                                            className="pm-foto-quitar"
+                                            aria-label="Quitar foto"
+                                            onClick={e => { e.stopPropagation(); quitarFoto(i); }}
+                                        >
+                                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
+                                        </button>
+                                        {i === 0 && <span className="pm-foto-sello">Portada</span>}
+                                    </div>
+                                ))}
+                                {Array.from({ length: subiendo }).map((_, i) => (
+                                    <div key={`sub-${i}`} className="pm-foto pm-foto--subiendo" />
+                                ))}
+                                <label className="pm-foto-mas" title="Agregar fotos">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
+                                    <span>Subir</span>
+                                    <input type="file" accept="image/*" multiple hidden onChange={alElegirArchivos} disabled={subiendo > 0} />
+                                </label>
+                            </div>
+                            <div className="pm-url">
+                                <input
+                                    className="pm-input"
+                                    value={urlInput}
+                                    onChange={e => setUrlInput(e.target.value)}
+                                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); agregarUrl(); } }}
+                                    placeholder="O pegar URL de imagen"
+                                />
+                                <button type="button" className="pm-btn pm-btn--claro" onClick={agregarUrl}>Agregar</button>
+                            </div>
+                        </section>
+
+                        <section data-sec="publicacion" className="pm-sec pm-sec--ultima">
+                            <Regla>Publicación</Regla>
+                            <div className="pm-rejilla">
+                                <button type="button" className="pm-opcion" onClick={() => set('is_new', !form.is_new)}>
+                                    <span className="pm-opcion-txt">
+                                        <span className="pm-opcion-t">Nuevo</span>
+                                        <span className="pm-opcion-s">Lleva sello de recién llegado.</span>
+                                    </span>
+                                    <Palanca on={!!form.is_new} />
+                                </button>
+                                <button type="button" className="pm-opcion" onClick={() => set('is_featured', !form.is_featured)}>
+                                    <span className="pm-opcion-txt">
+                                        <span className="pm-opcion-t">Destacado</span>
+                                        <span className="pm-opcion-s">Aparece en la portada de la tienda.</span>
+                                    </span>
+                                    <Palanca on={!!form.is_featured} />
+                                </button>
+                            </div>
+                        </section>
+                    </div>
+
+                    <footer className="pm-pie">
+                        <span className="pm-pie-estado">
+                            <span className={`pm-punto${tocado ? ' pm-punto--tocado' : ''}`} />
+                            {subiendo > 0
+                                ? `Subiendo ${subiendo} foto${subiendo !== 1 ? 's' : ''}…`
+                                : tocado ? 'Cambios sin guardar' : 'Sin cambios'}
+                        </span>
+                        <div className="pm-pie-botones">
+                            <button type="button" className="pm-btn pm-btn--claro" onClick={onClose}>Cancelar</button>
+                            <button type="submit" className="pm-btn pm-btn--oscuro" disabled={saving || subiendo > 0}>
+                                {saving ? 'Guardando…' : isEdit ? 'Guardar cambios' : 'Crear producto'}
+                            </button>
+                        </div>
+                    </footer>
+                </div>
+            </form>
+        </div>
+    );
+}
