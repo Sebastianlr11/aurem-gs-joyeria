@@ -394,13 +394,71 @@ export async function enviarPlantilla(
   return { ok: true, wamid }
 }
 
-/** ¿Está esta conversación en manos de una persona? Entonces la IA calla. */
+/* Cuánto puede estar una conversación en manos de una persona sin que esa
+   persona escriba nada. Pasado ese tiempo vuelve a Valentina.
+
+   Seis horas cubre una jornada de taller: se escala a media mañana, el
+   joyero cotiza y responde en el día. Si nadie contestó en seis horas, es
+   que se olvidó — y para el cliente eso es silencio, no atención. */
+const HORAS_SIN_PERSONA = 6
+
+/**
+ * ¿Está esta conversación en manos de una persona? Entonces la IA calla.
+ *
+ * Y si esa persona se olvidó, se la devuelve a Valentina.
+ *
+ * El agujero era este: alguien escala, el equipo responde y resuelve, y
+ * nadie vuelve al panel a devolver el control. La conversación queda muda
+ * PARA SIEMPRE. El cliente escribe a los tres días preguntando otra cosa y
+ * no le contesta nadie: ni el bot, porque está en manual, ni la persona,
+ * porque hace rato dejó de mirar ese chat. Y nada avisa.
+ *
+ * Se libera acá y no en una tarea programada a propósito: el momento en que
+ * importa es justo cuando el cliente vuelve a escribir. Una conversación que
+ * nadie está usando no necesita liberarse.
+ *
+ * Si Valentina retoma algo que no puede resolver, va a escalar otra vez —y
+ * eso vuelve a avisarle al equipo—, que es mejor que dejar al cliente
+ * hablando solo.
+ */
 export async function enModoManual(telefono: string): Promise<boolean> {
-  const { data } = await admin()
+  const db = admin()
+
+  const { data: traspaso } = await db
     .from('chat_takeover')
-    .select('is_active')
+    .select('id, started_at')
     .eq('phone_number', telefono)
     .eq('is_active', true)
     .maybeSingle()
-  return !!data
+
+  if (!traspaso) return false
+
+  /* La última señal de vida de una persona en este chat. Puede ser un
+     mensaje suyo o, si nunca escribió, el momento en que tomó el control. */
+  const { data: ultimo } = await db
+    .from('whatsapp_conversaciones')
+    .select('created_at')
+    .eq('phone_number', telefono)
+    .eq('enviado_por', 'humano')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  const desde = Math.max(
+    ultimo?.created_at ? new Date(ultimo.created_at).getTime() : 0,
+    traspaso.started_at ? new Date(traspaso.started_at).getTime() : 0,
+  )
+
+  // Sin ninguna referencia de tiempo no se toca: mejor callar que hablar de más.
+  if (!desde) return true
+
+  const horas = (Date.now() - desde) / 3_600_000
+  if (horas < HORAS_SIN_PERSONA) return true
+
+  await db.from('chat_takeover')
+    .update({ is_active: false, ended_at: new Date().toISOString() })
+    .eq('id', traspaso.id)
+
+  console.log(`Traspaso devuelto a la IA tras ${Math.round(horas)} h sin respuesta de una persona:`, telefono)
+  return false
 }
