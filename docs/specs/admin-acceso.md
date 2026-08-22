@@ -1,6 +1,6 @@
 # Panel — acceso y administradores
 
-> **Estado:** en producción · **sin roles**
+> **Estado:** en producción · el dueño administra las cuentas
 > **Última revisión:** 2026-08-22
 > **Rutas:** `/admin/login`, `/admin/reset-password`
 
@@ -63,16 +63,28 @@ con el mismo fondo; separarlas en dos rutas habría duplicado la vitrina.
 *renderiza*; lo que se puede *leer y escribir* lo decide Supabase. Es la separación
 correcta — y por eso el fallo de RLS en `orders` es tan grave: el candado real está ahí.
 
-**Todo usuario autenticado es administrador.** No hay niveles. Para un equipo de dos o tres
-personas es una decisión defendible; deja de serlo en cuanto entre alguien con acceso
-parcial (un contador, un asistente).
+**Hay exactamente dos niveles: dueño y administrador.** El dueño se marca con
+`app_metadata.rol = 'dueño'` —que sólo se escribe con la llave de servicio, a diferencia de
+`user_metadata`, que el propio usuario puede cambiar desde el navegador—. Sólo el dueño
+administra cuentas; todo lo demás del panel es igual para ambos.
+
+**El arranque se resuelve solo** (`create-admin`): mientras no haya ningún dueño sellado,
+manda la cuenta más antigua y se le graba el rol en ese momento. Exigir el rol sin que nadie
+lo tenga habría dejado el panel sin administrador posible, obligando a acordarse de sellar
+al dueño antes de desplegar. Nadie puede crear una cuenta anterior a la primera, y la
+excepción se cierra sola en cuanto se usa.
+
+**Al dueño no se le borra desde el panel**, ni siquiera otro dueño. Quitarle el negocio a
+alguien es más serio que un botón en Ajustes.
+
+Sigue sin haber permisos parciales: un administrador ve pedidos, clientes y conversaciones
+completas. Para un equipo de dos o tres personas es defendible; deja de serlo en cuanto
+entre alguien que sólo deba ver una parte (un contador, un asistente).
 
 ## Límites conocidos y pendientes
 
-- 🔴 **`create-admin` no comprueba quién llama** (`:30-42`). Verifica que **hay** un usuario
-  autenticado, pero no **cuál**, y luego usa la service role key para crear, listar y
-  borrar usuarios. **Cualquier usuario con sesión puede borrar al dueño.**
-  Arreglo propuesto en [pendientes #2](../pendientes.md).
+- **Sólo hay dos niveles**: dueño y administrador. No hay permisos parciales, así que
+  cualquier administrador sigue viendo pedidos, clientes y conversaciones completas.
 - **`ProtectedRoute` no escucha `onAuthStateChange`** (`:9-18`): llama a `getSession()` una
   sola vez al montar. Una sesión que expira, o un cierre de sesión en otra pestaña, no
   reaccionan hasta que algo remonte la ruta — [pendientes #18](../pendientes.md).

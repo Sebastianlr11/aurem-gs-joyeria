@@ -11,7 +11,6 @@ Cada uno lleva dónde está, por qué importa y el arreglo propuesto.
 
 **Índice**
 - [Resueltos](#resueltos)
-- [🔴 Crítico — seguridad](#-crítico--seguridad)
 - [🟠 Alto — gobernanza](#-alto--gobernanza)
 - [🟡 Medio — lo que le prometemos al cliente](#-medio--lo-que-le-prometemos-al-cliente)
 - [🔵 Deuda técnica](#-deuda-técnica)
@@ -59,46 +58,49 @@ clientas. Cerrado.
 
 Todas las del 22 de agosto están commiteadas y en `main`.
 
----
+### ✅ Cualquiera con una sesión podía borrar al dueño
 
-## 🔴 Crítico — seguridad
+Resuelto por `create-admin` v16, desplegada el 22 de agosto de 2026 (`cb6fd20`).
 
-### 2. Cualquier usuario autenticado puede crear y borrar administradores
+La función usa la llave de servicio para crear y borrar cuentas, y sólo comprobaba que
+quien llamaba estuviera autenticado — no **quién** era. Como todo usuario de Supabase Auth
+es administrador en este proyecto, cualquiera con sesión podía darse de alta otra cuenta o
+**borrar la del dueño** y quedarse con el panel.
 
-**Dónde:** `supabase/functions/create-admin/index.ts:30-42`
+Ahora las tres acciones (`list`, `delete` y crear) exigen ser el dueño. El rol vive en
+`app_metadata`, que sólo se escribe con la llave de servicio: `user_metadata` no servía
+porque esa la cambia el propio usuario desde el navegador y se marcaría dueño solo.
 
-La función comprueba que **hay** un usuario autenticado, pero no comprueba **quién es**.
-Después usa `SUPABASE_SERVICE_ROLE_KEY` para listar, crear y eliminar usuarios.
+**El arranque se resuelve solo.** Exigir el rol sin que nadie lo tenga habría dejado el
+panel sin administrador posible, obligando a sellar al dueño *antes* de desplegar — la
+clase de paso que se olvida y deja a alguien fuera de su propia tienda. Mientras no haya
+ningún dueño sellado manda la cuenta más antigua, y se le graba el rol en ese momento.
+Nadie puede crear una cuenta anterior a la primera, y en cuanto se usa una vez la excepción
+se cierra sola. Si el sellado falla no se deja pasar la acción, porque eso la volvería
+permanente.
 
-**Por qué importa.** No existe el concepto de rol en el proyecto: todo usuario de Supabase
-Auth es administrador con plenos poderes. Cualquiera con una sesión válida puede darse de
-alta a sí mismo otra cuenta, o **borrar al dueño**. Combinado con el hallazgo #1, un
-correo filtrado basta para escalar.
+Al dueño tampoco se le borra desde el panel, ni siquiera por otro dueño.
 
-**Arreglo propuesto.** Marcar al dueño en `app_metadata` (que el usuario **no** puede
-modificar desde el cliente, a diferencia de `user_metadata`) y exigirlo:
+**Verificado contra el endpoint real**: sin `Authorization`, con token inválido y un
+`delete` sin sesión devuelven `401` — nunca `200`.
 
-```ts
-// Justo después de resolver `caller`:
-const rol = (caller.app_metadata as Record<string, unknown> | null)?.rol
-if (rol !== 'dueño') {
-  return new Response(JSON.stringify({ error: 'No autorizado' }), {
-    status: 403,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-  })
-}
-```
-
-Y sellar la cuenta del dueño una sola vez, desde el SQL editor:
+**Queda una decisión de negocio, no técnica.** Hay una segunda cuenta
+(`gercysaavedra@gmail.com`) que a partir de ahora **no puede administrar cuentas**. Es el
+efecto buscado, pero si esa persona necesitaba hacerlo, hay que sellarla también como
+dueño:
 
 ```sql
 UPDATE auth.users
    SET raw_app_meta_data = raw_app_meta_data || '{"rol":"dueño"}'::jsonb
- WHERE email = '<correo del dueño>';
+ WHERE email = '<correo>';
 ```
 
-Ojo con el orden: **primero** sellar al dueño, **después** desplegar la función. Al revés
-te quedas sin poder administrar a nadie.
+**Nota de configuración:** la función quedó con `verify_jwt: false`, que era su valor
+previo. No es un agujero —valida el token por su cuenta con `getUser()`, y las pruebas lo
+confirman— pero activarlo sería defensa en profundidad: rechazaría en la puerta lo que hoy
+se rechaza dentro.
+
+---
 
 ---
 

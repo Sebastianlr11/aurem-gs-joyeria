@@ -62,9 +62,9 @@ entre desde otro computador no las tiene.
 
 ## Límites conocidos y pendientes
 
-- 🔴 **Alta y baja de administradores sin control de rol.** `create-admin` verifica que hay
-  sesión, no quién la tiene: cualquier usuario autenticado puede borrar al dueño desde esta
-  pantalla — [pendientes #2](../pendientes.md).
+- **Alta y baja de administradores es sólo del dueño** desde el 22 de agosto de 2026. Quien
+  no lo sea ve una explicación en vez de la lista. Al dueño no se le puede borrar desde
+  aquí. Ver [admin-acceso.md](admin-acceso.md).
 - **Verificar `taller_conocimiento`**: el seed dejó las 6 filas marcadas *"SIN CONFIRMAR"* y
   Valentina las lee en caliente. Los claims ya se verificaron con el joyero, pero conviene
   confirmar que la base está al día — [pendientes #12](../pendientes.md).

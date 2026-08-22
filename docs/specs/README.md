@@ -34,7 +34,7 @@ incidente que las motivó.
 
 | Spec | Qué resuelve | Estado |
 |---|---|---|
-| [admin-acceso.md](admin-acceso.md) | Entrar al panel y gestionar quién más entra | En producción · **sin roles** |
+| [admin-acceso.md](admin-acceso.md) | Entrar al panel y gestionar quién más entra | En producción |
 | [admin-dashboard.md](admin-dashboard.md) | Saber en 10 segundos qué hay que atender hoy y cuánta plata entró | En producción |
 | [admin-catalogo.md](admin-catalogo.md) | Publicar, editar y retirar piezas | En producción |
 | [admin-pedidos.md](admin-pedidos.md) | Llevar un pedido de confirmado a entregado | En producción |
