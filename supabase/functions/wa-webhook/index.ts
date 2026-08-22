@@ -76,11 +76,27 @@ Deno.serve(async (req: Request) => {
   // 2. Acuses de entrega y lectura: el doble check que hasta ahora no se pintaba.
   if (valor.statuses?.length) {
     const db = admin()
-    await Promise.all(valor.statuses.map((s: any) =>
-      db.from('whatsapp_conversaciones')
-        .update({ delivery_status: s.status })
+    await Promise.all(valor.statuses.map((s: any) => {
+      /* Cuando algo no se entrega, Meta dice por qué. Guardarlo es la
+         diferencia entre saberlo y reconstruirlo adivinando: sin el código
+         de error, un mensaje fallido es sólo la palabra "failed" y horas
+         comparando archivos para no concluir nada. */
+      const fallo = s.errors?.[0]
+      if (fallo) {
+        console.error(
+          `WhatsApp no entregó ${s.id}: [${fallo.code}] ${fallo.title}` +
+          (fallo.error_data?.details ? ` · ${fallo.error_data.details}` : ''),
+        )
+      }
+      return db.from('whatsapp_conversaciones')
+        .update({
+          delivery_status: s.status,
+          error_wa: fallo
+            ? { code: fallo.code, title: fallo.title, detalle: fallo.error_data?.details ?? fallo.message ?? null }
+            : null,
+        })
         .eq('wa_message_id', s.id)
-    ))
+    }))
     return ok({ ok: true, acuses: valor.statuses.length })
   }
 
