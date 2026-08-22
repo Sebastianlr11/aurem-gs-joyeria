@@ -1,4 +1,5 @@
 import React from 'react'
+import Foto from './Foto'
 import { Link } from 'react-router-dom'
 import { waUrl } from '../lib/whatsapp';
 import { isotipoPaths } from './Isotipo';
@@ -88,15 +89,16 @@ const Hero = () => {
                     {/* Composición de imagen */}
                     <div className="hero-media hero-anim" style={{ '--hero-delay': '0.3s' }}>
                         <figure className="hero-frame">
-                            <img
-                                src="/assets/pen-hero.jpg"
+                            {/* Va con prioridad alta: es lo más grande del
+                                primer viewport y compite con todo lo demás
+                                por el ancho de banda. */}
+                            <Foto
+                                nombre="pen-hero"
+                                anchos={[768, 928]}
+                                tamanos="(max-width: 968px) 92vw, 40vw"
                                 alt="Anillo de oro con diamante en la mano de un cliente de Aurem Gs Joyería"
                                 width="928"
                                 height="1152"
-                                /* Es lo más grande del primer viewport, así que
-                                   compite con todo lo demás por el ancho de
-                                   banda. Esto le dice al navegador que va
-                                   primero. */
                                 fetchPriority="high"
                                 decoding="async"
                             />
