@@ -126,6 +126,17 @@ const norm = (v) => String(v ?? '').toLowerCase().normalize('NFD').replace(/[\u0
    sección porque Pedidos y Clientes tienen que comparar igual. */
 const soloDigitos = (t) => String(t || '').replace(/\D/g, '').slice(-10);
 
+/* Un teléfono coincide si los dígitos de lo tecleado aparecen en los del
+   guardado. Comparar los textos crudos no servía: el mismo número está en la
+   base como 3143602930, 573143602930 y +573143602930, y quien busca lo copia
+   de WhatsApp con el +57 y los espacios puestos, así que no encontraba nada.
+   Compara los últimos diez, de modo que el prefijo del país deja de estorbar,
+   y por trozo, para poder buscar sólo el final del número. */
+const coincideTelefono = (guardado, consulta) => {
+    const d = soloDigitos(consulta);
+    return !!d && soloDigitos(guardado).includes(d);
+};
+
 const fmt = n => Number(n || 0).toLocaleString('es-CO');
 const fmtDate = d => new Date(d).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
 
@@ -1436,7 +1447,6 @@ const OrdersSection = ({ orders, products, loading, onRefresh }) => {
        toda la tienda. */
     const base = useMemo(() => {
         const q = norm(search).trim();
-        const tel = soloDigitos(search);
         return orders.filter(o => {
             if (filterSource !== 'Todos' && (o.order_source || 'web') !== filterSource) return false;
             if (!q) return true;
@@ -1444,9 +1454,7 @@ const OrdersSection = ({ orders, products, loading, onRefresh }) => {
                 || norm(o.product_name).includes(q)
                 || norm(o.shipping_city).includes(q)
                 || norm(o.tracking_number).includes(q)
-                /* El teléfono se compara en dígitos: quien lo teclea lo copia
-                   de WhatsApp con el +57 puesto o lo escribe con espacios. */
-                || (!!tel && soloDigitos(o.customer_phone) === tel);
+                || coincideTelefono(o.customer_phone, search);
         });
     }, [orders, search, filterSource]);
 
@@ -1562,7 +1570,7 @@ const OrdersSection = ({ orders, products, loading, onRefresh }) => {
                 </button>
             </header>
 
-            <section className="ped-pulso">
+            <section className="ped-pulso" style={{ '--pulso-columnas': conteos.length }}>
                 {conteos.map(({ id, label, nota, n }) => (
                     <button
                         key={id}
@@ -1932,14 +1940,18 @@ const CustomersSection = ({ customers, orders = [], loading, onRefresh }) => {
             if (filtro === 'con_pedido' && c.pedidos === 0) return false;
             if (filtro === 'repiten' && c.pedidos < 2) return false;
             if (filtro === 'sin_pedido' && c.pedidos > 0) return false;
-            const q = search.trim().toLowerCase();
+            const q = norm(search).trim();
             return !q
-                || c.name.toLowerCase().includes(q)
-                || (c.phone || '').includes(search)
-                || (c.email || '').toLowerCase().includes(q)
-                || (c.city || '').toLowerCase().includes(q);
+                || norm(c.name).includes(q)
+                || norm(c.email).includes(q)
+                || norm(c.city).includes(q)
+                || coincideTelefono(c.phone, search);
         })
-        .sort((a, b) => b.gastado - a.gastado || a.name.localeCompare(b.name));
+        /* norm() y (a.name || '') porque la columna name admite nulos. Hoy no
+           llega ninguno —el panel guarda .trim() y wa-webhook sólo hace upsert
+           si hay nombre—, pero un solo null tumbaba la sección entera, y esta
+           lista se llena desde WhatsApp. */
+        .sort((a, b) => b.gastado - a.gastado || (a.name || '').localeCompare(b.name || ''));
 
     return (
         <div className="ped">
