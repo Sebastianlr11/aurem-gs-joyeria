@@ -13180,9 +13180,9 @@ textarea:focus-visible {
 }
 .ped-sub { font-size: 0.86rem; color: var(--text-secondary); }
 
-/* El pulso: tres cifras que además filtran */
+/* El pulso: cuatro cifras que además filtran */
 .ped-pulso {
-  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
   background: var(--bg-color); border: 1px solid var(--hairline); border-radius: 2px;
 }
 .ped-pulso-item {

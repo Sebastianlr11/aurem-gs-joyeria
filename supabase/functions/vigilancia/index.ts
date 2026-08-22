@@ -146,23 +146,43 @@ Deno.serve(async (req: Request) => {
      pedido sin confirmar se enfría en un día, uno en el taller tarda por
      buenas razones, y uno en camino depende de la transportadora. Los
      números son los que la tienda ya promete en la página. */
-  const PLAZOS: Array<{ estado: string; horas: number; que: string }> = [
-    { estado: 'pendiente',  horas: 24,      que: 'sin confirmar' },
-    { estado: 'pagado',     horas: 48,      que: 'pagados y sin empezar' },
-    { estado: 'procesando', horas: 24 * 7,  que: 'en el taller' },
-    { estado: 'enviado',    horas: 24 * 8,  que: 'en camino sin llegar' },
+  /* Cada plazo mira el flujo y no sólo el estado, porque 'pagado' significa
+     lo contrario en cada uno: en pago anticipado es un pedido cobrado que
+     todavía no arranca —justo lo que hay que perseguir— y en contraentrega es
+     la plata ya recogida, el final del camino. Sin esta distinción cada venta
+     contraentrega terminada se convertía en una alarma grave que no se apagaba
+     nunca, y contraentrega es como se vende casi todo. */
+  type Pedido = { status: string; payment_method: string | null }
+  const esCOD = (o: Pedido) => o.payment_method === 'contraentrega'
+
+  const ESTADOS_VIGILADOS = ['pendiente', 'pagado', 'procesando', 'enviado', 'entregado']
+
+  const PLAZOS: Array<{ id: string; horas: number; que: string; aplica: (o: Pedido) => boolean }> = [
+    { id: 'pendiente',  horas: 24,      que: 'sin confirmar',
+      aplica: (o) => o.status === 'pendiente' },
+    { id: 'pagado',     horas: 48,      que: 'pagados y sin empezar',
+      aplica: (o) => o.status === 'pagado' && !esCOD(o) },
+    { id: 'procesando', horas: 24 * 7,  que: 'en el taller',
+      aplica: (o) => o.status === 'procesando' },
+    { id: 'enviado',    horas: 24 * 8,  que: 'en camino sin llegar',
+      aplica: (o) => o.status === 'enviado' },
+    /* La pieza llegó y el cobro sigue sin marcarse. Es la única avería de esta
+       lista donde puede haber plata recogida y sin registrar, y hasta ahora no
+       la miraba nadie. */
+    { id: 'cobrar',     horas: 48,      que: 'entregados sin marcar el cobro',
+      aplica: (o) => o.status === 'entregado' && esCOD(o) },
   ]
 
   const { data: vivos } = await db
     .from('orders')
-    .select('customer_name, amount, status, status_updated_at, created_at')
-    .in('status', PLAZOS.map((p) => p.estado))
+    .select('customer_name, amount, status, payment_method, status_updated_at, created_at')
+    .in('status', ESTADOS_VIGILADOS)
     .eq('es_prueba', false)
 
   for (const plazo of PLAZOS) {
     const limite = ahora - plazo.horas * 60 * 60_000
     const quietos = (vivos ?? []).filter((o) => {
-      if (o.status !== plazo.estado) return false
+      if (!plazo.aplica(o)) return false
       // status_updated_at es null en los pedidos que nunca cambiaron de
       // estado; para esos el reloj corre desde que se crearon.
       const desde = o.status_updated_at ?? o.created_at
@@ -178,7 +198,7 @@ Deno.serve(async (req: Request) => {
           .join(' | '),
         // Que un pedido pagado no arranque es peor que uno sin confirmar: la
         // clienta ya puso la plata.
-        grave: plazo.estado !== 'pendiente',
+        grave: plazo.id !== 'pendiente',
       })
     }
   }

@@ -28,6 +28,10 @@ const NEXT_ACTION_PREPAID = {
     pagado:     { next: 'procesando', label: 'Procesar',          cls: 'action--blue' },
     procesando: { next: 'enviado',    label: 'Marcar enviado',    cls: 'action--purple' },
     enviado:    { next: 'entregado',  label: 'Marcar entregado',  cls: 'action--teal' },
+    /* 'confirmado' es del diseño viejo. No se usa desde hace tiempo, pero la
+       base todavía lo acepta, y sin esta línea un pedido así se quedaba sin
+       acción siguiente: la tabla lo daba por cerrado sin estarlo. */
+    confirmado: { next: 'procesando', label: 'Procesar',          cls: 'action--blue' },
 };
 
 /* Flujo contraentrega: pendiente → procesando → enviado → entregado → pagado */
@@ -36,6 +40,7 @@ const NEXT_ACTION_COD = {
     procesando: { next: 'enviado',    label: 'Marcar enviado',    cls: 'action--purple' },
     enviado:    { next: 'entregado',  label: 'Marcar entregado',  cls: 'action--teal' },
     entregado:  { next: 'pagado',     label: 'Confirmar pago',    cls: 'action--green' },
+    confirmado: { next: 'procesando', label: 'Procesar',          cls: 'action--blue' },
 };
 
 const isCOD = (order) => order.payment_method === 'contraentrega';
@@ -53,6 +58,31 @@ const PAGO_LABEL = {
 };
 const nombrePago = (m) => PAGO_LABEL[m] || m;
 const getNextAction = (order) => (isCOD(order) ? NEXT_ACTION_COD : NEXT_ACTION_PREPAID)[order.status];
+
+/* Los grupos de trabajo del panel, definidos por el flujo que sigue el pedido
+   y no por el estado suelto. Hace falta porque el mismo estado significa cosas
+   opuestas en cada flujo: en prepago 'pagado' es el principio del camino y en
+   contraentrega es el final —la plata en la mano— y contraentrega es como se
+   vende casi todo aquí. Contarlos por estado hacía que una venta terminada
+   siguiera pidiendo despacho para siempre.
+
+   Un pedido abierto cae en uno y sólo uno. Los cerrados —cancelado, prepago
+   entregado, contraentrega pagado— no caen en ninguno, que es exactamente lo
+   que dice getNextAction(). Si las dos cosas dejan de coincidir es que se
+   añadió un estado y se olvidó este bloque; la comprobación está escrita en
+   la cabecera de Pedidos, donde los cuatro números tienen que sumar los
+   pedidos con acción pendiente. */
+const GRUPOS = [
+    { id: 'confirmar', label: 'Por confirmar', nota: 'Esperan tu llamada o mensaje',
+      test: o => o.status === 'pendiente' },
+    { id: 'despachar', label: 'Por despachar', nota: 'Confirmados que salen en 24 a 48 h',
+      test: o => o.status === 'procesando' || o.status === 'confirmado' || (o.status === 'pagado' && !isCOD(o)) },
+    { id: 'camino',    label: 'En camino',     nota: 'Ya salieron, falta que lleguen',
+      test: o => o.status === 'enviado' },
+    { id: 'cobrar',    label: 'Por cobrar',    nota: 'Entregados que falta cobrar',
+      test: o => isCOD(o) && o.status === 'entregado' },
+];
+const enGrupo = (o, id) => GRUPOS.find(g => g.id === id)?.test(o) ?? false;
 
 const WA_MESSAGES = {
     pagado: (o) => `Hola ${o.customer_name}! \u{1F389} Tu pedido de "${o.product_name}" en Aurem Gs Joyeria fue recibido con exito. Estamos preparandolo. Te mantendremos informado!`,
@@ -77,6 +107,16 @@ const CARRIERS = ['Servientrega', 'Interrapidisimo', 'Coordinadora', 'Otro'];
    "enviado" es una venta viva de la que sólo entró el abono del envío; lo
    que hay en la cuenta lo dice recibidoDe(), en src/lib/dinero.js. */
 const VENTAS_VIVAS = ['pagado', 'procesando', 'enviado', 'entregado'];
+
+/* Texto comparable: en minúscula y sin tildes. Buscar "bogota" tiene que
+   encontrar "Bogotá" y "martinez" a "Martínez" —nadie escribe tildes en un
+   buscador con el cliente esperando al teléfono—. Aguanta nulos sin reventar. */
+const norm = (v) => String(v ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+/* Los últimos diez dígitos, que es lo que hace comparable un teléfono venga
+   como venga: con +57, con espacios o pelado. Vive aquí y no dentro de una
+   sección porque Pedidos y Clientes tienen que comparar igual. */
+const soloDigitos = (t) => String(t || '').replace(/\D/g, '').slice(-10);
 
 const fmt = n => Number(n || 0).toLocaleString('es-CO');
 const fmtDate = d => new Date(d).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -560,8 +600,11 @@ const DashboardHome = ({ products, orders, chatsPendientes, actualizadoEn, onRec
 
     /* El trabajo del día mira todos los pedidos, no solo los últimos 30 días:
        uno de hace dos meses sin despachar sigue siendo trabajo de hoy. */
-    const porConfirmar = orders.filter(o => o.status === 'pendiente').length;
-    const porDespachar = orders.filter(o => o.status === 'pagado' || o.status === 'procesando').length;
+    const porConfirmar = orders.filter(o => enGrupo(o, 'confirmar')).length;
+    const porDespachar = orders.filter(o => enGrupo(o, 'despachar')).length;
+    /* Contraentrega entregado: la pieza llegó y falta marcar el cobro. Es el
+       trabajo que nadie perseguía porque no salía en ninguna pantalla. */
+    const porCobrar    = orders.filter(o => enGrupo(o, 'cobrar')).length;
     const sinResponder = chatsPendientes.length;
 
 
@@ -576,7 +619,7 @@ const DashboardHome = ({ products, orders, chatsPendientes, actualizadoEn, onRec
         ? Math.round((Date.now() - new Date(revision.corrida_en).getTime()) / 60000)
         : null;
 
-    const pendiente = porConfirmar + porDespachar + sinResponder;
+    const pendiente = porConfirmar + porDespachar + porCobrar + sinResponder;
 
     const tareas = [
         {
@@ -589,6 +632,12 @@ const DashboardHome = ({ products, orders, chatsPendientes, actualizadoEn, onRec
             clave: 'despachar', icono: 'truck', n: porDespachar,
             titulo: 'Por despachar',
             sub: 'Confirmados que salen en 24 a 48 horas hábiles',
+            ir: () => onNavigate('orders'),
+        },
+        {
+            clave: 'cobrar', icono: 'bag', n: porCobrar,
+            titulo: 'Por cobrar',
+            sub: 'Entregados que falta marcar como cobrados',
             ir: () => onNavigate('orders'),
         },
         {
@@ -791,14 +840,14 @@ const DashboardHome = ({ products, orders, chatsPendientes, actualizadoEn, onRec
                         {frescura}
                     </button>
                 </div>
-                {/* Con todo en cero, tres filas de "0 AL DÍA" son 328 píxeles
+                {/* Con todo en cero, cuatro filas de "0 AL DÍA" son píxeles
                     repitiendo lo que el titular acaba de decir. Se encoge a una
-                    línea. En cuanto hay trabajo vuelven las tres, incluidas las
+                    línea. En cuanto hay trabajo vuelven todas, incluidas las
                     que están en cero: ahí el cero sí informa, porque dice que
                     esa parte está al día mientras otra no. */}
                 {pendiente === 0 ? (
                     <p className="jornada-aldia">
-                        Nada por confirmar, nada por despachar y ningún chat esperando.
+                        Nada por confirmar, nada por despachar, nada por cobrar y ningún chat esperando.
                     </p>
                 ) : tareas.map(t => (
                     <button key={t.clave} className="jornada-tarea" onClick={t.ir}>
@@ -1373,6 +1422,7 @@ const fmtShortDate = (d) => {
 const OrdersSection = ({ orders, products, loading, onRefresh }) => {
     const [search, setSearch]           = useState('');
     const [filterStatus, setFilterStatus] = useState('Todos');
+    const [filterGrupo, setFilterGrupo] = useState(null);
     const [filterSource, setFilterSource] = useState('Todos');
     const [modal, setModal]             = useState(null);
     const [page, setPage]               = useState(1);
@@ -1380,20 +1430,56 @@ const OrdersSection = ({ orders, products, loading, onRefresh }) => {
     const closeModal = () => setModal(null);
     const afterSave  = () => { closeModal(); onRefresh(); };
 
-    const visible = orders.filter(o => {
-        const matchStatus = filterStatus === 'Todos' || o.status === filterStatus;
-        const matchSource = filterSource === 'Todos' || (o.order_source || 'web') === filterSource;
-        const matchSearch = !search.trim() || o.customer_name.toLowerCase().includes(search.toLowerCase()) || o.product_name.toLowerCase().includes(search.toLowerCase());
-        return matchStatus && matchSearch && matchSource;
-    });
+    /* El filtrado va en dos pasos a propósito. Aquí se aplica todo menos el
+       estado, y de este conjunto salen los contadores de la cabecera: así
+       dicen cuántos hay en lo que estás mirando y no en el total, que era lo
+       que hacía que con el canal en WhatsApp los números siguieran siendo de
+       toda la tienda. */
+    const base = useMemo(() => {
+        const q = norm(search).trim();
+        const tel = soloDigitos(search);
+        return orders.filter(o => {
+            if (filterSource !== 'Todos' && (o.order_source || 'web') !== filterSource) return false;
+            if (!q) return true;
+            return norm(o.customer_name).includes(q)
+                || norm(o.product_name).includes(q)
+                || norm(o.shipping_city).includes(q)
+                || norm(o.tracking_number).includes(q)
+                /* El teléfono se compara en dígitos: quien lo teclea lo copia
+                   de WhatsApp con el +57 puesto o lo escribe con espacios. */
+                || (!!tel && soloDigitos(o.customer_phone) === tel);
+        });
+    }, [orders, search, filterSource]);
+
+    const conteos = useMemo(
+        () => GRUPOS.map(g => ({ ...g, n: base.filter(g.test).length })),
+        [base]
+    );
+
+    /* Estado y grupo son dos formas de cortar el mismo eje, así que se
+       excluyen: fijar uno suelta el otro. Tenerlos a la vez enseñaba una
+       tabla que no correspondía a ningún botón encendido. */
+    const visible = filterGrupo
+        ? base.filter(o => enGrupo(o, filterGrupo))
+        : base.filter(o => filterStatus === 'Todos' || o.status === filterStatus);
+
+    const hayFiltro = !!search.trim() || filterSource !== 'Todos' || filterStatus !== 'Todos' || !!filterGrupo;
 
     const totalVisible = visible.reduce((s, o) => s + Number(o.amount), 0);
-    const totalPages = Math.ceil(visible.length / ORDERS_PER_PAGE);
-    const paginated  = visible.slice((page - 1) * ORDERS_PER_PAGE, page * ORDERS_PER_PAGE);
+    /* Recortada, no cruda: al borrar pedidos estando en la última página el
+       total baja y la página se quedaba apuntando al vacío —tabla en blanco
+       sin ninguna explicación—. */
+    const totalPages = Math.max(1, Math.ceil(visible.length / ORDERS_PER_PAGE));
+    const pageSegura = Math.min(page, totalPages);
+    const paginated  = visible.slice((pageSegura - 1) * ORDERS_PER_PAGE, pageSegura * ORDERS_PER_PAGE);
 
-    const setFilterStatusAndReset = (s) => { setFilterStatus(s); setPage(1); };
+    const setFilterStatusAndReset = (s) => { setFilterStatus(s); setFilterGrupo(null); setPage(1); };
+    const setFilterGrupoAndReset  = (g) => { setFilterGrupo(g); setFilterStatus('Todos'); setPage(1); };
     const setFilterSourceAndReset = (s) => { setFilterSource(s); setPage(1); };
     const setSearchAndReset = (v) => { setSearch(v); setPage(1); };
+    const limpiarFiltros = () => {
+        setSearch(''); setFilterStatus('Todos'); setFilterGrupo(null); setFilterSource('Todos'); setPage(1);
+    };
 
     /* Quick status change */
     const changeStatus = async (order, newStatus, extraFields = {}) => {
@@ -1445,11 +1531,6 @@ const OrdersSection = ({ orders, products, loading, onRefresh }) => {
         return `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
     };
 
-    /* Lo que de verdad pide acción, para que la cabecera no sea decorativa */
-    const porConfirmar = orders.filter(o => o.status === 'pendiente').length;
-    const porDespachar = orders.filter(o => o.status === 'pagado' || o.status === 'procesando').length;
-    const enCamino     = orders.filter(o => o.status === 'enviado').length;
-
     return (
         <div className="ped">
 
@@ -1470,16 +1551,13 @@ const OrdersSection = ({ orders, products, loading, onRefresh }) => {
             </header>
 
             <section className="ped-pulso">
-                {[
-                    ['Por confirmar', porConfirmar, 'Esperan tu llamada o mensaje', 'pendiente'],
-                    ['Por despachar', porDespachar, 'Cobrados que salen en 24 a 48 h', 'pagado'],
-                    ['En camino', enCamino, 'Ya salieron, falta que lleguen', 'enviado'],
-                ].map(([label, n, nota, estado]) => (
+                {conteos.map(({ id, label, nota, n }) => (
                     <button
-                        key={label}
+                        key={id}
                         type="button"
-                        className={`ped-pulso-item ${filterStatus === estado ? 'ped-pulso-item--on' : ''}`}
-                        onClick={() => setFilterStatusAndReset(filterStatus === estado ? 'Todos' : estado)}
+                        className={`ped-pulso-item ${filterGrupo === id ? 'ped-pulso-item--on' : ''}`}
+                        aria-pressed={filterGrupo === id}
+                        onClick={() => setFilterGrupoAndReset(filterGrupo === id ? null : id)}
                     >
                         <span className="ped-pulso-l">{label}</span>
                         <span className={`ped-pulso-v ${n === 0 ? 'ped-pulso-v--cero' : ''}`}>{n}</span>
@@ -1523,10 +1601,10 @@ const OrdersSection = ({ orders, products, loading, onRefresh }) => {
                     <label className="ped-buscar">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                         <input
-                            placeholder="Buscar cliente o pieza"
+                            placeholder="Buscar cliente, pieza, ciudad, teléfono o guía"
                             value={search}
                             onChange={e => setSearchAndReset(e.target.value)}
-                            aria-label="Buscar cliente o pieza"
+                            aria-label="Buscar cliente, pieza, ciudad, teléfono o guía"
                         />
                     </label>
                 </div>
@@ -1536,14 +1614,24 @@ const OrdersSection = ({ orders, products, loading, onRefresh }) => {
                 ) : visible.length === 0 ? (
                     <div className="ped-vacio-bloque">
                         <span className="ped-vacio-icono">✦</span>
+                        {/* No es lo mismo no tener pedidos que no encontrarlos.
+                            Decía "Todavía no hay pedidos" y ofrecía registrar el
+                            primero aunque hubiera diecisiete y lo único malo
+                            fuera el término de búsqueda. */}
                         <p className="ped-vacio-t">
-                            {filterStatus !== 'Todos'
-                                ? `Ningún pedido en "${STATUS_META[filterStatus]?.label}"`
+                            {hayFiltro
+                                ? 'Ningún pedido coincide con lo que estás buscando'
                                 : 'Todavía no hay pedidos'}
                         </p>
-                        <button className="btn-pill light" onClick={() => setModal({ type: 'add' })}>
-                            Registrar el primero
-                        </button>
+                        {hayFiltro ? (
+                            <button className="btn-pill light" onClick={limpiarFiltros}>
+                                Limpiar filtros
+                            </button>
+                        ) : (
+                            <button className="btn-pill light" onClick={() => setModal({ type: 'add' })}>
+                                Registrar el primero
+                            </button>
+                        )}
                     </div>
                 ) : (
                     <div className="ped-tabla-wrap">
@@ -1621,11 +1709,11 @@ const OrdersSection = ({ orders, products, loading, onRefresh }) => {
 
                 {totalPages > 1 && (
                     <div className="ped-paginas">
-                        <button className="ped-pagina" disabled={page === 1} onClick={() => setPage(p => p - 1)}>Anterior</button>
+                        <button className="ped-pagina" disabled={pageSegura === 1} onClick={() => setPage(pageSegura - 1)}>Anterior</button>
                         <span className="ped-paginas-info">
-                            Página {page} de {totalPages} · {visible.length} pedido{visible.length !== 1 ? 's' : ''}
+                            Página {pageSegura} de {totalPages} · {visible.length} pedido{visible.length !== 1 ? 's' : ''}
                         </span>
-                        <button className="ped-pagina" disabled={page === totalPages} onClick={() => setPage(p => p + 1)}>Siguiente</button>
+                        <button className="ped-pagina" disabled={pageSegura === totalPages} onClick={() => setPage(pageSegura + 1)}>Siguiente</button>
                     </div>
                 )}
             </section>
@@ -1797,7 +1885,6 @@ const CustomersSection = ({ customers, orders = [], loading, onRefresh }) => {
     /* Cada cliente con lo que ha comprado. Los pedidos se cruzan por
        teléfono —lo único que siempre llega desde WhatsApp— y, si no hay,
        por correo o por nombre exacto. */
-    const soloDigitos = (t) => String(t || '').replace(/\D/g, '').slice(-10);
 
     const conCompras = useMemo(() => customers.map(c => {
         const tel = soloDigitos(c.phone);
@@ -2187,7 +2274,7 @@ const ReportsSection = ({ orders, products = [], onNavigate }) => {
         cancelado: '#FFFFFF',
     };
 
-    const porDespachar = filtered.filter(o => o.status === 'pagado' || o.status === 'procesando').length;
+    const porDespachar = filtered.filter(o => enGrupo(o, 'despachar')).length;
     const sinPago = filtered.filter(o => o.status === 'pendiente').length;
 
     const rangoRotulo = period === 'todo'
