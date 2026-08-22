@@ -732,6 +732,36 @@ const DashboardHome = ({ products, orders, customers, waStats, chatsPendientes, 
        mezclados. El panel entero eran contadores y pendientes: cuántos hay,
        qué falta. Ninguna pantalla respondía "¿qué pasó desde que miré?", que
        es con lo que uno abre el panel en la mañana. */
+    /* Catorce días de plata cobrada, un palito por día.
+       El panel decía "el gráfico de pedidos por semana aparece con el primer
+       pedido" y ese gráfico no existía en ninguna parte del componente: con
+       el primer pedido no aparecía nada. Esto es lo que aquella frase
+       prometía, y responde lo único que ningún otro bloque responde — si la
+       cosa va subiendo o bajando. */
+    const DIAS_TENDENCIA = 14;
+    const tendencia = useMemo(() => {
+        const hoyBog = new Date();
+        const dias = [];
+        for (let i = DIAS_TENDENCIA - 1; i >= 0; i--) {
+            const d = new Date(hoyBog.getTime() - i * 86400000);
+            const desde = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+            const hasta = new Date(desde.getTime() + 86400000);
+            const delDia = orders.filter(o => {
+                const c = new Date(o.created_at);
+                return c >= desde && c < hasta;
+            });
+            dias.push({
+                fecha: desde,
+                plata: delDia.reduce((a, o) => a + recibidoDe(o), 0),
+                pedidos: delDia.length,
+            });
+        }
+        return dias;
+    }, [orders]);
+
+    const topTendencia = Math.max(...tendencia.map(d => d.plata), 0);
+    const hayTendencia = topTendencia > 0;
+
     const haceCuanto = (fecha) => {
         const min = Math.round((Date.now() - new Date(fecha).getTime()) / 60000);
         if (min < 1) return 'ahora';
@@ -849,7 +879,16 @@ const DashboardHome = ({ products, orders, customers, waStats, chatsPendientes, 
                     <span className="jornada-panel-titulo">Atender hoy</span>
                     <span className="jornada-panel-nota">Actualizado hace un momento</span>
                 </div>
-                {tareas.map(t => (
+                {/* Con todo en cero, tres filas de "0 AL DÍA" son 328 píxeles
+                    repitiendo lo que el titular acaba de decir. Se encoge a una
+                    línea. En cuanto hay trabajo vuelven las tres, incluidas las
+                    que están en cero: ahí el cero sí informa, porque dice que
+                    esa parte está al día mientras otra no. */}
+                {pendiente === 0 ? (
+                    <p className="jornada-aldia">
+                        Nada por confirmar, nada por despachar y ningún chat esperando.
+                    </p>
+                ) : tareas.map(t => (
                     <button key={t.clave} className="jornada-tarea" onClick={t.ir}>
                         <span className={`jornada-tarea-icono ${t.icono === 'whatsapp' ? 'jornada-tarea-icono--wa' : ''}`}>
                             <JIcon name={t.icono} />
@@ -907,6 +946,29 @@ const DashboardHome = ({ products, orders, customers, waStats, chatsPendientes, 
                         </span>
                     </div>
                 </div>
+
+                {/* Sólo cuando hay algo que dibujar. Catorce palitos en cero no
+                    son una tendencia, son ruido con aspecto de gráfico. */}
+                {hayTendencia && (
+                    <div className="jornada-tendencia">
+                        <span className="jornada-dinero-label">Últimos 14 días</span>
+                        <div className="jornada-tendencia-barras">
+                            {tendencia.map((d, i) => (
+                                <span
+                                    key={i}
+                                    className={`jornada-tendencia-barra${d.plata === 0 ? ' jornada-tendencia-barra--cero' : ''}`}
+                                    style={{ height: d.plata === 0 ? '2px' : `${Math.max(6, Math.round((d.plata / topTendencia) * 100))}%` }}
+                                    title={`${d.fecha.toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })} · $${fmt(d.plata)}`}
+                                />
+                            ))}
+                        </div>
+                        <span className="jornada-dinero-sub">
+                            {tendencia[tendencia.length - 1].plata > 0
+                                ? `Hoy entraron $${fmt(tendencia[tendencia.length - 1].plata)}`
+                                : 'Hoy todavía no ha entrado nada'}
+                        </span>
+                    </div>
+                )}
             </section>
 
 
@@ -971,11 +1033,6 @@ const DashboardHome = ({ products, orders, customers, waStats, chatsPendientes, 
             <div className="jornada-acciones">
                 <button className="btn-pill black" onClick={() => onNavigate('products')}>Publicar pieza nueva</button>
                 <button className="btn-pill light" onClick={() => onNavigate('chat')}>Abrir la bandeja</button>
-                {orders.length === 0 && (
-                    <span className="jornada-acciones-nota">
-                        El gráfico de pedidos por semana aparece con el primer pedido.
-                    </span>
-                )}
             </div>
         </div>
     );
@@ -3749,6 +3806,11 @@ const Dashboard = () => {
        pedidos falsos a las ventas reales miente sin avisar. */
     const pruebas = orders.filter(o => o.es_prueba).length;
     const ordersVisibles = verPruebas ? orders : orders.filter(o => !o.es_prueba);
+    /* Los clientes también. El panel llegó a decir "ningún pedido todavía" y
+       "6 clientes nuevos" a la vez — los seis venían de esos mismos pedidos de
+       prueba. Un lente que tapa la mitad de una contradicción la deja peor que
+       antes. */
+    const customersVisibles = verPruebas ? customers : customers.filter(c => !c.es_prueba);
 
     if (!session) return null;
 
@@ -3787,7 +3849,7 @@ const Dashboard = () => {
                 <div className="admin-main">
                     {section === 'dashboard' && (
                         <DashboardHome
-                            products={products} orders={ordersVisibles} customers={customers}
+                            products={products} orders={ordersVisibles} customers={customersVisibles}
                             waStats={waStats}
                             chatsPendientes={chatsPendientes}
                             onNavigate={irA}
@@ -3800,7 +3862,7 @@ const Dashboard = () => {
                         <OrdersSection orders={ordersVisibles} products={products} loading={loadingO} onRefresh={fetchOrders} />
                     )}
                     {section === 'customers' && (
-                        <CustomersSection customers={customers} orders={ordersVisibles} loading={loadingC} onRefresh={fetchCustomers} />
+                        <CustomersSection customers={customersVisibles} orders={ordersVisibles} loading={loadingC} onRefresh={fetchCustomers} />
                     )}
                     {section === 'reports' && (
                         <ReportsSection orders={ordersVisibles} products={products} onNavigate={irA} />
