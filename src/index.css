@@ -10520,7 +10520,8 @@ textarea:focus-visible {
   border-radius: 10px;
   box-shadow: 0 8px 24px rgba(0,0,0,0.1);
   z-index: 20;
-  min-width: 150px;
+  /* Lo suficiente para que "Eliminar conversación" quepa en una línea. */
+  min-width: 190px;
   overflow: hidden;
   animation: chatPopUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -10544,11 +10545,11 @@ textarea:focus-visible {
   border-bottom: 1px solid #f0f0f0;
 }
 .chat-export-menu-danger {
-  color: #ef4444 !important;
+  color: #8C2F1E !important;
 }
 .chat-export-menu-danger:hover {
-  background: #fff5f5 !important;
-  color: #dc2626 !important;
+  background: #FBEDE9 !important;
+  color: #5E2114 !important;
 }
 
 /* ─── Chat: delivery status checkmarks ─────────────────────────── */
@@ -11068,6 +11069,22 @@ textarea:focus-visible {
 .jornada-panel-nota {
   font-size: 0.75rem;
   color: var(--text-secondary);
+}
+
+/* La nota de "Atender hoy" dice hace cuánto se consultó y se puede tocar para
+   volver a consultar. Se mantiene con cara de nota —no de botón— porque no es
+   una acción del negocio: subrayarla al pasar por encima basta para que se
+   note que responde. */
+.jornada-panel-nota--btn {
+  padding: 0;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 3px;
+}
+
+.jornada-panel-nota--btn:hover {
+  color: var(--oro-ink);
+  text-decoration-color: currentColor;
 }
 
 /* Filas de tarea */
@@ -17161,6 +17178,15 @@ textarea:focus-visible {
 .jornada-tendencia-barra--cero { background: rgba(255, 255, 255, 0.14); }
 .jornada-tendencia-barra:hover { background: #fff; }
 
+/* El gráfico vive pegado a "Cobrado" y a "Falta cobrar", que sí son plata en
+   la cuenta. Éste mide lo que se pidió, y sin decirlo se lee como caja del
+   día. Va más callado que el resto del bloque: es una salvedad, no un dato. */
+.jornada-tendencia-nota {
+  font-size: 0.72rem;
+  color: rgba(251, 247, 242, 0.38);
+  margin-top: -0.35rem;
+}
+
 @media (max-width: 860px) {
   .jornada-tendencia {
     padding-left: 0; padding-top: 1.25rem;
@@ -17422,3 +17448,115 @@ textarea:focus-visible {
   text-transform: uppercase; color: var(--text-secondary);
 }
 .jornada-wa-s { font-size: 0.8rem; line-height: 1.45; color: var(--text-muted); }
+
+/* ─── Eliminar y archivar desde la lista de conversaciones ────────────────
+   El borrado existía, pero vivía dentro del menú de exportar de la cabecera,
+   detrás de un icono de descarga y sólo con el chat abierto. Nadie busca
+   "eliminar" ahí. Ahora cada fila tiene sus tres puntos, que es donde se mira
+   cuando falta algo, y están donde se decide: en la lista.
+
+   Aparecen al pasar el cursor para no ensuciar una lista que se lee de un
+   vistazo, y tapan la insignia de no leídos mientras están visibles — sólo se
+   ve una cosa a la vez en esa esquina. En pantalla táctil no hay cursor, así
+   que ahí están siempre. */
+
+/* Ocupa su sitio siempre, aunque no se vea. Si apareciera sólo al pasar el
+   cursor, o empujaría la fila entera al aparecer, o —puesto encima— taparía a
+   medias la insignia de no leídos. Reservado el hueco, no pasa ninguna de las
+   dos: el botón se enciende y se apaga sin mover ni cubrir nada. */
+.chat-contact-menu {
+  position: relative;
+  flex: none;
+  margin-left: 2px;
+  z-index: 3;
+}
+
+.chat-contact-menu-btn {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  background: var(--bg-color);
+  color: var(--text-secondary);
+  opacity: 0;
+  transition: opacity 0.2s var(--ease), color 0.2s var(--ease), border-color 0.2s var(--ease);
+}
+
+.chat-contact-item:hover .chat-contact-menu-btn,
+.chat-contact-item:focus-within .chat-contact-menu-btn,
+.chat-contact-menu-btn--abierto {
+  opacity: 1;
+}
+
+.chat-contact-item--active .chat-contact-menu-btn { background: var(--bg-marfil); }
+
+.chat-contact-menu-btn:hover,
+.chat-contact-menu-btn--abierto {
+  color: var(--ink);
+  border-color: var(--hairline);
+}
+
+/* Sin cursor no hay hover que revele nada. */
+@media (hover: none) {
+  .chat-contact-menu-btn { opacity: 1; }
+}
+
+.chat-fila-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 190px;
+  background: var(--bg-color);
+  border: 1px solid var(--hairline);
+  border-radius: 2px;
+  box-shadow: 0 12px 30px rgba(28, 23, 20, 0.12);
+  overflow: hidden;
+  z-index: 30;
+  animation: filaMenu 0.18s var(--ease) both;
+}
+
+/* En las últimas filas no cabe hacia abajo: la lista tiene su propio scroll
+   y el menú quedaría cortado. */
+.chat-fila-menu--arriba {
+  top: auto;
+  bottom: calc(100% + 6px);
+}
+
+@keyframes filaMenu {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.chat-fila-menu button {
+  display: block;
+  width: 100%;
+  padding: 10px 14px;
+  text-align: left;
+  font-family: var(--font-ui);
+  font-size: 0.82rem;
+  color: var(--ink);
+  background: none;
+  border: none;
+  transition: background 0.15s var(--ease), color 0.15s var(--ease);
+}
+
+.chat-fila-menu button + button { border-top: 1px solid var(--hairline); }
+
+.chat-fila-menu button:hover {
+  background: var(--bg-marfil);
+  color: var(--oro-ink);
+}
+
+/* El mismo ladrillo quemado del diálogo de eliminar una pieza, no un rojo de
+   alerta de sistema: aquí no hay segundo color de marca. Lleva el nombre de la
+   clase en el selector porque `.chat-fila-menu button` pesa más que una clase
+   suelta y le ganaba el color de cacao. */
+.chat-fila-menu button.chat-fila-menu-danger { color: #8C2F1E; }
+
+.chat-fila-menu button.chat-fila-menu-danger:hover {
+  background: #FBEDE9;
+  color: #5E2114;
+}

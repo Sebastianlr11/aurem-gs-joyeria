@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { recibidoDe, porCobrarDe, estaVivo } from '../../lib/dinero';
@@ -475,9 +475,29 @@ const JIcon = ({ name, size = 20 }) => {
     }
 };
 
-const DashboardHome = ({ products, orders, chatsPendientes, onNavigate }) => {
+const DashboardHome = ({ products, orders, chatsPendientes, actualizadoEn, onRecargar, onNavigate }) => {
     const hoy = new Date();
     const hace30 = new Date(hoy.getTime() - 30 * 86400000);
+
+    /* El minutero corre solo, para que "hace un momento" deje de serlo cuando
+       deja de serlo. Treinta segundos: el texto se cuenta en minutos, así que
+       basta para que nunca se vea un minuto de más. De paso refresca los
+       "hace X" de la línea de tiempo, que también se calculaban una vez y se
+       quedaban quietos. */
+    const [ahora, setAhora] = useState(() => Date.now());
+    useEffect(() => {
+        const t = setInterval(() => setAhora(Date.now()), 30000);
+        return () => clearInterval(t);
+    }, []);
+
+    const frescura = (() => {
+        if (!actualizadoEn) return 'Cargando…';
+        const min = Math.floor((ahora - actualizadoEn) / 60000);
+        if (min < 1) return 'Actualizado hace un momento';
+        if (min < 60) return `Actualizado hace ${min} min`;
+        const h = Math.round(min / 60);
+        return `Actualizado hace ${h} h`;
+    })();
 
     /* Lo que el sistema ya sabía y el panel no. La vigilancia encontraba
        cosas rotas y las mandaba por correo; el correo se marca como leído y
@@ -487,7 +507,13 @@ const DashboardHome = ({ products, orders, chatsPendientes, onNavigate }) => {
     const [ultimosMensajes, setUltimosMensajes] = useState([]);
     const [valentina, setValentina] = useState(null);
 
+    /* Cuelga de actualizadoEn para que estas cuatro consultas se recarguen con
+       el resto del panel y no queden congeladas desde el montaje. Se espera a
+       que el padre haya cargado —hasta entonces es null— para no dispararlas
+       dos veces en cada visita. */
     useEffect(() => {
+        if (!actualizadoEn) return;
+
         supabase.from('vigilancia_ultima').select('*').eq('id', 1).maybeSingle()
             .then(({ data }) => setRevision(data))
             .catch(() => {});
@@ -527,7 +553,7 @@ const DashboardHome = ({ products, orders, chatsPendientes, onNavigate }) => {
             const sinIva = (g || []).reduce((a, x) => a + Number(x.monto), 0);
             if (sinIva > 0) setGastoPauta(sinIva * (1 + Number(t?.iva_pauta ?? 0.19)));
         }).catch(() => {});
-    }, []);
+    }, [actualizadoEn]);
 
     const pedidos30 = orders.filter(o => new Date(o.created_at) >= hace30);
     const ingresos = ingresosDe(pedidos30);
@@ -579,35 +605,60 @@ const DashboardHome = ({ products, orders, chatsPendientes, onNavigate }) => {
        mezclados. El panel entero eran contadores y pendientes: cuántos hay,
        qué falta. Ninguna pantalla respondía "¿qué pasó desde que miré?", que
        es con lo que uno abre el panel en la mañana. */
-    /* Catorce días de plata cobrada, un palito por día.
-       El panel decía "el gráfico de pedidos por semana aparece con el primer
-       pedido" y ese gráfico no existía en ninguna parte del componente: con
-       el primer pedido no aparecía nada. Esto es lo que aquella frase
-       prometía, y responde lo único que ningún otro bloque responde — si la
-       cosa va subiendo o bajando. */
+    /* El comienzo de hoy, aparte. Así el gráfico no llama a Date.now() dentro
+       del useMemo —impuro mientras React renderiza— y la ventana se corre sola
+       al pasar la medianoche: colgando sólo de orders, un panel abierto de
+       noche seguía dibujando los catorce días de ayer hasta que entrara un
+       pedido. */
+    const inicioDeHoy = useMemo(() => {
+        const d = new Date(ahora);
+        return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+    }, [ahora]);
+
+    /* Catorce días de pedidos, un palito por día. Responde lo único que ningún
+       otro bloque responde: si la cosa va subiendo o bajando.
+
+       Antes cada barra sumaba recibidoDe() de los pedidos CREADOS ese día y el
+       pie decía "Hoy entraron $X". No era lo que entró ese día: un pedido que
+       nació el 1 y se entregó el 10 ponía su plata entera en la barra del 1.
+       Con contraentrega —donde pedir y cobrar están separados por días— las
+       dos fechas casi nunca coinciden, y el gráfico se leía como caja diaria
+       sin serlo.
+
+       Fechar la plata de verdad pide un libro de movimientos que no existe:
+       orders sólo tiene abono_pagado_en y status_updated_at, y el segundo es
+       el ÚLTIMO cambio de estado, así que se pisa solo — cuando un pedido
+       llega a entregado ya no queda rastro de cuándo se pagó. Así que la barra
+       mide lo que sí se puede fechar sin inventar, que es lo que se pidió cada
+       día, y el texto lo dice con esas palabras.
+
+       Los cancelados no cuentan: un pedido que se cayó no es demanda. */
     const DIAS_TENDENCIA = 14;
     const tendencia = useMemo(() => {
-        const hoyBog = new Date();
         const dias = [];
         for (let i = DIAS_TENDENCIA - 1; i >= 0; i--) {
-            const d = new Date(hoyBog.getTime() - i * 86400000);
+            const d = new Date(inicioDeHoy - i * 86400000);
             const desde = new Date(d.getFullYear(), d.getMonth(), d.getDate());
             const hasta = new Date(desde.getTime() + 86400000);
             const delDia = orders.filter(o => {
+                if (o.status === 'cancelado') return false;
                 const c = new Date(o.created_at);
                 return c >= desde && c < hasta;
             });
             dias.push({
                 fecha: desde,
-                plata: delDia.reduce((a, o) => a + recibidoDe(o), 0),
+                pedido: delDia.reduce((a, o) => a + Number(o.amount || 0), 0),
                 pedidos: delDia.length,
             });
         }
         return dias;
-    }, [orders]);
+    }, [orders, inicioDeHoy]);
 
-    const topTendencia = Math.max(...tendencia.map(d => d.plata), 0);
-    const hayTendencia = topTendencia > 0;
+    /* El alto va por plata y no por cantidad: con uno o dos pedidos al día,
+       contar da barras casi iguales y no se ve nada. */
+    const topTendencia = Math.max(...tendencia.map(d => d.pedido), 0);
+    const hayTendencia = tendencia.some(d => d.pedidos > 0);
+    const hoyTendencia = tendencia[tendencia.length - 1];
 
     const haceCuanto = (fecha) => {
         const min = Math.round((Date.now() - new Date(fecha).getTime()) / 60000);
@@ -729,7 +780,16 @@ const DashboardHome = ({ products, orders, chatsPendientes, onNavigate }) => {
             <section className="jornada-panel">
                 <div className="jornada-panel-head">
                     <span className="jornada-panel-titulo">Atender hoy</span>
-                    <span className="jornada-panel-nota">Actualizado hace un momento</span>
+                    {/* Se puede tocar: si dice "hace 4 h" lo primero que uno
+                        quiere es que diga otra cosa. */}
+                    <button
+                        type="button"
+                        className="jornada-panel-nota jornada-panel-nota--btn"
+                        onClick={onRecargar}
+                        title="Volver a consultar"
+                    >
+                        {frescura}
+                    </button>
                 </div>
                 {/* Con todo en cero, tres filas de "0 AL DÍA" son 328 píxeles
                     repitiendo lo que el titular acaba de decir. Se encoge a una
@@ -803,22 +863,25 @@ const DashboardHome = ({ products, orders, chatsPendientes, onNavigate }) => {
                     son una tendencia, son ruido con aspecto de gráfico. */}
                 {hayTendencia && (
                     <div className="jornada-tendencia">
-                        <span className="jornada-dinero-label">Últimos 14 días</span>
+                        <span className="jornada-dinero-label">Pedidos · últimos 14 días</span>
                         <div className="jornada-tendencia-barras">
                             {tendencia.map((d, i) => (
                                 <span
                                     key={i}
-                                    className={`jornada-tendencia-barra${d.plata === 0 ? ' jornada-tendencia-barra--cero' : ''}`}
-                                    style={{ height: d.plata === 0 ? '2px' : `${Math.max(6, Math.round((d.plata / topTendencia) * 100))}%` }}
-                                    title={`${d.fecha.toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })} · $${fmt(d.plata)}`}
+                                    className={`jornada-tendencia-barra${d.pedidos === 0 ? ' jornada-tendencia-barra--cero' : ''}`}
+                                    style={{ height: d.pedidos === 0 ? '2px' : `${Math.max(6, Math.round((d.pedido / (topTendencia || 1)) * 100))}%` }}
+                                    title={`${d.fecha.toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })} · ${d.pedidos} pedido${d.pedidos !== 1 ? 's' : ''} · $${fmt(d.pedido)}`}
                                 />
                             ))}
                         </div>
                         <span className="jornada-dinero-sub">
-                            {tendencia[tendencia.length - 1].plata > 0
-                                ? `Hoy entraron $${fmt(tendencia[tendencia.length - 1].plata)}`
-                                : 'Hoy todavía no ha entrado nada'}
+                            {hoyTendencia.pedidos > 0
+                                ? `Hoy entraron ${hoyTendencia.pedidos} pedido${hoyTendencia.pedidos !== 1 ? 's' : ''} por $${fmt(hoyTendencia.pedido)}`
+                                : 'Hoy todavía no ha entrado ningún pedido'}
                         </span>
+                        {/* Va pegado a dos cifras de plata cobrada, así que hay
+                            que decir que esta no lo es. */}
+                        <span className="jornada-tendencia-nota">Lo que se pidió, no lo que se cobró</span>
                     </div>
                 )}
             </section>
@@ -3597,16 +3660,19 @@ const Dashboard = () => {
     const navigate = useNavigate();
 
     /* Una conversación está sin responder cuando su último mensaje es de la
-       cliente. El campo is_read no se mantiene, así que no sirve para esto. */
+       cliente. El campo is_read no se mantiene, así que no sirve para esto.
+
+       Lo resuelve la base con un DISTINCT ON por teléfono. Antes se hacía acá:
+       se traían los 300 mensajes más recientes, se guardaba el último de cada
+       teléfono y la lista se recortaba a 3. Ese recorte era el único consumidor
+       del dato —nadie usa la lista, sólo su largo—, así que el contador "Sin
+       responder" tenía techo en 3 y el titular "Hoy tienes N cosas por atender"
+       también: con ocho clientas esperando, el panel decía tres y se veía al
+       día. El límite de 300 era el segundo techo, silencioso, para cuando
+       Valentina tenga volumen. */
     const fetchChatsPendientes = useCallback(async () => {
-        const { data } = await supabase
-            .from('whatsapp_conversaciones')
-            .select('phone_number, role, content, created_at')
-            .order('created_at', { ascending: false })
-            .limit(300);
-        const ultimoPorTelefono = new Map();
-        (data || []).forEach(m => { if (!ultimoPorTelefono.has(m.phone_number)) ultimoPorTelefono.set(m.phone_number, m); });
-        setChatsPendientes([...ultimoPorTelefono.values()].filter(m => m.role === 'user').slice(0, 3));
+        const { data } = await supabase.rpc('chats_sin_responder');
+        setChatsPendientes(data || []);
     }, []);
 
     const irA = useCallback((id) => {
@@ -3651,9 +3717,47 @@ const Dashboard = () => {
         setCustomers(data || []); setLoadingC(false);
     }, []);
 
+    /* El panel cargaba una vez al montar y no volvía a consultar nada, pero
+       decía "Actualizado hace un momento" con un texto fijo. Quien lo deja
+       abierto desde las ocho —que es como se usa— a mediodía leía "hace un
+       momento" sobre datos de hace cuatro horas, justo en el bloque que existe
+       para decidir qué atender.
+
+       Ahora se guarda cuándo se cargó y el panel lo dice de verdad. */
+    const [actualizadoEn, setActualizadoEn] = useState(null);
+
+    const recargarTodo = useCallback(async () => {
+        await Promise.all([fetchProducts(), fetchOrders(), fetchCustomers(), fetchChatsPendientes()]);
+        setActualizadoEn(Date.now());
+    }, [fetchProducts, fetchOrders, fetchCustomers, fetchChatsPendientes]);
+
     useEffect(() => {
-        if (session) { fetchProducts(); fetchOrders(); fetchCustomers(); fetchChatsPendientes(); }
-    }, [session, fetchProducts, fetchOrders, fetchCustomers, fetchChatsPendientes]);
+        if (session) recargarTodo();
+    }, [session, recargarTodo]);
+
+    /* Volver a la pestaña es el momento exacto en que alguien mira el panel,
+       así que es cuando vale la pena recargar. No hay temporizador de fondo:
+       refrescar cada minuto una pestaña que nadie está mirando son consultas
+       regaladas. El minuto de gracia evita que un alt-tab rápido dispare
+       cuatro consultas seguidas. */
+    const actualizadoRef = useRef(null);
+    useEffect(() => { actualizadoRef.current = actualizadoEn; }, [actualizadoEn]);
+
+    useEffect(() => {
+        if (!session) return;
+        const alVolver = () => {
+            if (document.hidden) return;
+            const ultima = actualizadoRef.current;
+            if (ultima && Date.now() - ultima < 60000) return;
+            recargarTodo();
+        };
+        document.addEventListener('visibilitychange', alVolver);
+        window.addEventListener('focus', alVolver);
+        return () => {
+            document.removeEventListener('visibilitychange', alVolver);
+            window.removeEventListener('focus', alVolver);
+        };
+    }, [session, recargarTodo]);
 
     /* Las pruebas del equipo se esconden en TODO el panel, no sección por
        sección. Es un lente sobre los mismos datos, no un filtro de la tabla
@@ -3710,6 +3814,8 @@ const Dashboard = () => {
                         <DashboardHome
                             products={products} orders={ordersVisibles}
                             chatsPendientes={chatsPendientes}
+                            actualizadoEn={actualizadoEn}
+                            onRecargar={recargarTodo}
                             onNavigate={irA}
                         />
                     )}
