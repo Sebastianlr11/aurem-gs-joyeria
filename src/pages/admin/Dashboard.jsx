@@ -605,6 +605,19 @@ const DashboardHome = ({ products, orders, customers, waStats, chatsPendientes, 
 
     const telCorto = (t) => (t || '').replace(/^57/, '').replace(/(\d{3})(\d{3})(\d{4})/, '$1 $2 $3');
 
+    /* Los tipos que Meta no entrega llegan como "[unsupported]", y eso en la
+       pantalla del joyero no dice nada ni sugiere qué hacer. Lo que hay que
+       saber es que alguien escribió y no se pudo leer: es un mensaje que
+       necesita a una persona, no uno que se responde leyéndolo. */
+    const leerContenido = (m) => {
+        if (m.message_type === 'image') return 'Mandó una foto';
+        if (m.message_type === 'audio') return 'Mandó una nota de voz';
+        const c = m.content || '';
+        if (c === '[unsupported]') return 'Mandó algo que no se pudo abrir';
+        if (/^\[[a-z_]+\]$/.test(c)) return `Mandó un ${c.slice(1, -1)}`;
+        return c.slice(0, 70) + (c.length > 70 ? '…' : '');
+    };
+
     const lineaDeTiempo = [
         ...orders.slice(0, 8).map(o => ({
             cuando: o.created_at,
@@ -623,8 +636,8 @@ const DashboardHome = ({ products, orders, customers, waStats, chatsPendientes, 
                 cuando: m.created_at,
                 tipo: 'chat',
                 que: `${telCorto(m.phone_number)} escribió`,
-                dato: m.message_type === 'image' ? 'Mandó una foto'
-                    : (m.content || '').slice(0, 70) + ((m.content || '').length > 70 ? '…' : ''),
+                dato: leerContenido(m),
+                ilegible: m.content === '[unsupported]',
                 ir: () => onNavigate('chat'),
             })),
     ].sort((a, b) => new Date(b.cuando) - new Date(a.cuando)).slice(0, 7);
@@ -841,7 +854,7 @@ const DashboardHome = ({ products, orders, customers, waStats, chatsPendientes, 
                     </p>
                 ) : lineaDeTiempo.map((e, i) => (
                     <button key={i} className="jornada-hecho" onClick={e.ir}>
-                        <span className={`jornada-hecho-punto jornada-hecho-punto--${e.tipo}`} />
+                        <span className={`jornada-hecho-punto jornada-hecho-punto--${e.ilegible ? 'ilegible' : e.tipo}`} />
                         <span className="jornada-hecho-texto">
                             <span className="jornada-hecho-q">{e.que}</span>
                             <span className="jornada-hecho-d">{e.dato}</span>
@@ -3529,7 +3542,7 @@ const Dashboard = () => {
     const [loadingP, setLoadingP]   = useState(true);
     const [loadingO, setLoadingO]   = useState(true);
     const [loadingC, setLoadingC]   = useState(true);
-    const [waStats, setWaStats]     = useState({ mensajesHoy: 0, conversacionesActivas: 0, pedidosWaMes: 0 });
+    const [waStats, setWaStats]     = useState({ mensajesHoy: 0, conversacionesActivas: 0 });
     const [chatsPendientes, setChatsPendientes] = useState([]);
     const navigate = useNavigate();
 
@@ -3592,7 +3605,6 @@ const Dashboard = () => {
         const now = new Date();
         const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
         const last24h = new Date(now - 24 * 60 * 60 * 1000).toISOString();
-        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
         // Mensajes hoy
         const { count: mensajesHoy } = await supabase
@@ -3607,17 +3619,12 @@ const Dashboard = () => {
             .gte('created_at', last24h);
         const conversacionesActivas = recentPhones ? new Set(recentPhones.map(d => d.phone_number)).size : 0;
 
-        // Pedidos WhatsApp este mes
-        const { count: pedidosWaMes } = await supabase
-            .from('orders')
-            .select('*', { count: 'exact', head: true })
-            .eq('order_source', 'whatsapp')
-            .gte('created_at', monthStart);
-
+        /* Aquí se contaban además los pedidos de WhatsApp del mes. La consulta
+           salía en cada carga del panel y el resultado no se pintaba en
+           ninguna parte: trabajo para nadie. */
         setWaStats({
             mensajesHoy: mensajesHoy || 0,
             conversacionesActivas,
-            pedidosWaMes: pedidosWaMes || 0,
         });
     }, []);
 
