@@ -155,7 +155,11 @@ Deno.serve(async (req: Request) => {
   type Pedido = { status: string; payment_method: string | null }
   const esCOD = (o: Pedido) => o.payment_method === 'contraentrega'
 
-  const ESTADOS_VIGILADOS = ['pendiente', 'pagado', 'procesando', 'enviado', 'entregado']
+  /* 'entregado' no está: es el final del camino en los dos flujos. En prepago
+     la plata entró al principio, y en contraentrega el mensajero entrega y trae
+     el efectivo el mismo día, así que marcar entregado ya declara el cobro. Un
+     pedido entregado no espera nada de nadie. */
+  const ESTADOS_VIGILADOS = ['pendiente', 'pagado', 'procesando', 'enviado']
 
   const PLAZOS: Array<{ id: string; horas: number; que: string; aplica: (o: Pedido) => boolean }> = [
     { id: 'pendiente',  horas: 24,      que: 'sin confirmar',
@@ -166,11 +170,6 @@ Deno.serve(async (req: Request) => {
       aplica: (o) => o.status === 'procesando' },
     { id: 'enviado',    horas: 24 * 8,  que: 'en camino sin llegar',
       aplica: (o) => o.status === 'enviado' },
-    /* La pieza llegó y el cobro sigue sin marcarse. Es la única avería de esta
-       lista donde puede haber plata recogida y sin registrar, y hasta ahora no
-       la miraba nadie. */
-    { id: 'cobrar',     horas: 48,      que: 'entregados sin marcar el cobro',
-      aplica: (o) => o.status === 'entregado' && esCOD(o) },
   ]
 
   const { data: vivos } = await db
