@@ -17391,3 +17391,8 @@ textarea:focus-visible {
   .pd-pie-botones { width: 100%; }
   .pd-pie-botones .pd-btn { flex: 1; text-align: center; }
 }
+
+/* Un mensaje que no se pudo abrir. Rojo y no verde: los demás se responden
+   leyéndolos, éste hay que pedirle a la clienta que lo mande de otra forma.
+   Es una acción distinta y tiene que verse distinta. */
+.jornada-hecho-punto--ilegible { background: #8C2F1E; }

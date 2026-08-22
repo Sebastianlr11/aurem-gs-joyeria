@@ -7,7 +7,7 @@
  * responde de inmediato y el trabajo largo sigue en waitUntil.
  */
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
-import { admin, enModoManual, enviarTextoNatural, idDestino, mantenerEscribiendo } from '../_shared/wa.ts'
+import { admin, enModoManual, enviarTexto, enviarTextoNatural, idDestino, mantenerEscribiendo } from '../_shared/wa.ts'
 import { responder } from '../_shared/bot.ts'
 import { transcribir, verYGuardarImagen } from '../_shared/medios.ts'
 
@@ -21,6 +21,40 @@ const ok = (cuerpo: unknown = { ok: true }) =>
   new Response(JSON.stringify(cuerpo), { status: 200, headers: { 'Content-Type': 'application/json' } })
 
 /** Meta firma cada entrega; sin esto cualquiera podría escribirle a tus clientes. */
+/* Cuando llega algo que no se puede abrir.
+ *
+ * No dice "no soporto ese formato", que es lenguaje de sistema y además no le
+ * sirve de nada a quien está del otro lado: dice qué hacer. Y se disculpa una
+ * vez, no cada vez — si alguien manda cinco stickers seguidos, cinco disculpas
+ * idénticas se leen peor que el silencio.
+ */
+const AVISO_NO_ABRIO =
+  'Perdona, eso no me llegó bien 🙈 ¿Me lo escribes o me mandas una foto? Así te ayudo de una.'
+
+const MINUTOS_ENTRE_AVISOS = 30
+
+async function avisarQueNoSeAbrio(
+  db: ReturnType<typeof admin>,
+  telefono: string,
+  numeroPropio: string | null,
+): Promise<void> {
+  /* Sólo si no se dijo hace poco. Sin este candado, una ráfaga de stickers
+     produce una ráfaga de disculpas. */
+  const desde = new Date(Date.now() - MINUTOS_ENTRE_AVISOS * 60_000).toISOString()
+  const { data: yaDicho } = await db
+    .from('whatsapp_conversaciones')
+    .select('id')
+    .eq('phone_number', telefono)
+    .eq('role', 'assistant')
+    .eq('content', AVISO_NO_ABRIO)
+    .gte('created_at', desde)
+    .limit(1)
+
+  if (yaDicho?.length) return
+
+  await enviarTexto(telefono, AVISO_NO_ABRIO, 'ia', numeroPropio)
+}
+
 async function firmaValida(crudo: string, cabecera: string | null): Promise<boolean> {
   const secreto = Deno.env.get('WA_APP_SECRET')
   if (!secreto) {
@@ -179,9 +213,19 @@ Deno.serve(async (req: Request) => {
       .upsert({ name: nombre, phone: telefono }, { onConflict: 'phone', ignoreDuplicates: true })
   }
 
-  // Un sticker, una ubicación, un contacto: nada que interpretar. Queda en la
-  // bandeja para que lo vea una persona.
+  /* Un sticker, una ubicación, una encuesta, un video de una sola vista: nada
+     que interpretar. Queda en la bandeja para que lo vea una persona — pero
+     antes se le contesta algo.
+
+     Dejarlo sólo en la bandeja era la decisión original y tenía sentido, hasta
+     que se vio en la práctica: un número escribió cuatro veces en cuatro días,
+     las cuatro llegaron así, y las cuatro se quedaron sin respuesta. Desde el
+     otro lado eso no se distingue de que el negocio no exista. La bandeja
+     avisa a las horas; la clienta está mirando el teléfono ahora. */
   if (!texto && !idAudio && !idImagen) {
+    if (!(await enModoManual(telefono))) {
+      await avisarQueNoSeAbrio(db, telefono, numeroPropio)
+    }
     return ok({ ok: true, guardado: true, sinRespuesta: 'mensaje no interpretable' })
   }
 
