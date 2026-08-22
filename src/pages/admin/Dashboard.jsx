@@ -34,12 +34,22 @@ const NEXT_ACTION_PREPAID = {
     confirmado: { next: 'procesando', label: 'Procesar',          cls: 'action--blue' },
 };
 
-/* Flujo contraentrega: pendiente → procesando → enviado → entregado → pagado */
+/* Flujo contraentrega: pendiente → procesando → enviado → entregado.
+   Y ahí se acaba: el mensajero entrega y trae la plata el mismo día, así que
+   marcar entregado ES declarar que se cobró.
+
+   Antes había un paso más, entregado → pagado con un botón de "Confirmar
+   pago". Sobraba, y hacía daño: recibidoDe() en src/lib/dinero.js siempre ha
+   contado un contraentrega entregado como plata completa en la cuenta, así que
+   el mismo pedido salía cobrado entero en el bloque de dinero y pendiente de
+   cobro en el de tareas. Dos verdades sobre la misma fila.
+
+   'pagado' en contraentrega queda como estado heredado: no se llega solo, pero
+   la base lo acepta y recibidoDe() lo sigue contando igual que entregado. */
 const NEXT_ACTION_COD = {
     pendiente:  { next: 'procesando', label: 'Procesar',          cls: 'action--blue' },
     procesando: { next: 'enviado',    label: 'Marcar enviado',    cls: 'action--purple' },
     enviado:    { next: 'entregado',  label: 'Marcar entregado',  cls: 'action--teal' },
-    entregado:  { next: 'pagado',     label: 'Confirmar pago',    cls: 'action--green' },
     confirmado: { next: 'procesando', label: 'Procesar',          cls: 'action--blue' },
 };
 
@@ -66,12 +76,12 @@ const getNextAction = (order) => (isCOD(order) ? NEXT_ACTION_COD : NEXT_ACTION_P
    vende casi todo aquí. Contarlos por estado hacía que una venta terminada
    siguiera pidiendo despacho para siempre.
 
-   Un pedido abierto cae en uno y sólo uno. Los cerrados —cancelado, prepago
-   entregado, contraentrega pagado— no caen en ninguno, que es exactamente lo
-   que dice getNextAction(). Si las dos cosas dejan de coincidir es que se
-   añadió un estado y se olvidó este bloque; la comprobación está escrita en
-   la cabecera de Pedidos, donde los cuatro números tienen que sumar los
-   pedidos con acción pendiente. */
+   Un pedido abierto cae en uno y sólo uno. Los cerrados —cancelado, y
+   entregado en cualquiera de los dos flujos— no caen en ninguno, que es
+   exactamente lo que dice getNextAction(). Si las dos cosas dejan de coincidir
+   es que se añadió un estado y se olvidó este bloque; la comprobación está
+   escrita en la cabecera de Pedidos, donde los tres números tienen que sumar
+   los pedidos con acción pendiente. */
 const GRUPOS = [
     { id: 'confirmar', label: 'Por confirmar', nota: 'Esperan tu llamada o mensaje',
       test: o => o.status === 'pendiente' },
@@ -79,8 +89,6 @@ const GRUPOS = [
       test: o => o.status === 'procesando' || o.status === 'confirmado' || (o.status === 'pagado' && !isCOD(o)) },
     { id: 'camino',    label: 'En camino',     nota: 'Ya salieron, falta que lleguen',
       test: o => o.status === 'enviado' },
-    { id: 'cobrar',    label: 'Por cobrar',    nota: 'Entregados que falta cobrar',
-      test: o => isCOD(o) && o.status === 'entregado' },
 ];
 const enGrupo = (o, id) => GRUPOS.find(g => g.id === id)?.test(o) ?? false;
 
@@ -602,9 +610,6 @@ const DashboardHome = ({ products, orders, chatsPendientes, actualizadoEn, onRec
        uno de hace dos meses sin despachar sigue siendo trabajo de hoy. */
     const porConfirmar = orders.filter(o => enGrupo(o, 'confirmar')).length;
     const porDespachar = orders.filter(o => enGrupo(o, 'despachar')).length;
-    /* Contraentrega entregado: la pieza llegó y falta marcar el cobro. Es el
-       trabajo que nadie perseguía porque no salía en ninguna pantalla. */
-    const porCobrar    = orders.filter(o => enGrupo(o, 'cobrar')).length;
     const sinResponder = chatsPendientes.length;
 
 
@@ -619,7 +624,7 @@ const DashboardHome = ({ products, orders, chatsPendientes, actualizadoEn, onRec
         ? Math.round((Date.now() - new Date(revision.corrida_en).getTime()) / 60000)
         : null;
 
-    const pendiente = porConfirmar + porDespachar + porCobrar + sinResponder;
+    const pendiente = porConfirmar + porDespachar + sinResponder;
 
     const tareas = [
         {
@@ -632,12 +637,6 @@ const DashboardHome = ({ products, orders, chatsPendientes, actualizadoEn, onRec
             clave: 'despachar', icono: 'truck', n: porDespachar,
             titulo: 'Por despachar',
             sub: 'Confirmados que salen en 24 a 48 horas hábiles',
-            ir: () => onNavigate('orders'),
-        },
-        {
-            clave: 'cobrar', icono: 'bag', n: porCobrar,
-            titulo: 'Por cobrar',
-            sub: 'Entregados que falta marcar como cobrados',
             ir: () => onNavigate('orders'),
         },
         {
@@ -840,14 +839,14 @@ const DashboardHome = ({ products, orders, chatsPendientes, actualizadoEn, onRec
                         {frescura}
                     </button>
                 </div>
-                {/* Con todo en cero, cuatro filas de "0 AL DÍA" son píxeles
+                {/* Con todo en cero, tres filas de "0 AL DÍA" son 328 píxeles
                     repitiendo lo que el titular acaba de decir. Se encoge a una
-                    línea. En cuanto hay trabajo vuelven todas, incluidas las
+                    línea. En cuanto hay trabajo vuelven las tres, incluidas las
                     que están en cero: ahí el cero sí informa, porque dice que
                     esa parte está al día mientras otra no. */}
                 {pendiente === 0 ? (
                     <p className="jornada-aldia">
-                        Nada por confirmar, nada por despachar, nada por cobrar y ningún chat esperando.
+                        Nada por confirmar, nada por despachar y ningún chat esperando.
                     </p>
                 ) : tareas.map(t => (
                     <button key={t.clave} className="jornada-tarea" onClick={t.ir}>
@@ -1486,11 +1485,24 @@ const OrdersSection = ({ orders, products, loading, onRefresh }) => {
         const payload = { status: newStatus, status_updated_at: new Date().toISOString(), ...extraFields };
         const { error } = await supabase.from('orders').update(payload).eq('id', order.id);
         if (error) { alert('Error: ' + error.message); return; }
-        /* Sólo al cobrar. En contraentrega 'pagado' es el último paso —la
-           plata en la mano— y en prepago es el primero; la función se encarga
-           de que no se cuente dos veces si el pedido ya pasó por el webhook
-           de Mercado Pago. */
-        if (newStatus === 'pagado') await avisarConversion(order.id);
+        /* Sólo cuando la plata entra entera, que es un momento distinto en
+           cada flujo: en prepago es 'pagado' —el primer paso— y en
+           contraentrega es 'entregado', porque el mensajero cobra al
+           entregar.
+
+           Lo de contraentrega no es un detalle: son 16 de cada 17 pedidos. Se
+           avisaba sólo en 'pagado', y al quitar el paso entregado → pagado
+           este aviso se habría quedado sin dispararse nunca para el canal por
+           el que se vende casi todo — ceguera total en Meta y TikTok justo al
+           prender pauta.
+
+           'pagado' se conserva en la condición para los contraentrega
+           heredados que ya están en ese estado. No hay riesgo de contar dos
+           veces: conversion-pedido marca conversion_enviada_en con un UPDATE
+           condicionado a que esté en null, y si ya se mandó responde
+           {ok:true, repetido:true} sin tocar Meta ni TikTok. */
+        const entraLaPlata = newStatus === 'pagado' || (isCOD(order) && newStatus === 'entregado');
+        if (entraLaPlata) await avisarConversion(order.id);
         await fireWebhook(order, newStatus, extraFields);
         onRefresh();
     };
