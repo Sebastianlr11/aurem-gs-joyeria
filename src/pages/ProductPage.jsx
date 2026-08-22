@@ -2,7 +2,15 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { waUrl } from '../lib/whatsapp';
-import { Wallet } from '@mercadopago/sdk-react';
+import { Wallet, initMercadoPago } from '@mercadopago/sdk-react';
+
+/* El SDK de pagos se arranca acá y no en App.jsx.
+   Allá el import era estático, así que entraba al paquete principal y se
+   descargaba en TODA la web —la portada, el catálogo, las páginas legales—
+   aunque sólo esta pantalla cobre. Medido en la portada: 1.740 ms de un
+   script de tercero que nadie iba a usar.
+   Esta página ya se carga aparte, así que ahora el SDK viaja con ella. */
+initMercadoPago(import.meta.env.VITE_MP_PUBLIC_KEY, { locale: 'es-CO' });
 import ProductCard from '../components/catalog/ProductCard';
 import { pixelVerPieza, pixelIniciarPago } from '../lib/pixeles'
 import { ponerMeta, ponerProductoJsonLd } from '../lib/meta'

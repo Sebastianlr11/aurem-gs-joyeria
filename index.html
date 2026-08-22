@@ -5,6 +5,13 @@
 <html lang="es-CO">
   <head>
     <meta charset="UTF-8" />
+    <!-- Las fuentes, lo primero y en paralelo. Estaban en un @import dentro
+         del CSS, que las ponía al final de una cadena en serie de cuatro
+         pasos. Acá el navegador las ve antes de bajar nada más. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Marcellus&family=Mulish:ital,wght@0,300..800;1,300..800&display=swap" />
+
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" type="image/png" sizes="64x64" href="/assets/logo-isotipo.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/assets/logo-isotipo.png" />
