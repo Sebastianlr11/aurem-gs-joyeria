@@ -72,7 +72,7 @@ const fmtDate = d => new Date(d).toLocaleDateString('es-CO', { day: '2-digit', m
    la pieza, y "Plata 925" y "plata .925" darían dos punzones distintos. */
 const METALES = ['Plata 925', 'Oro 18k', 'Oro blanco 18k', 'Oro rosa 18k', 'Platino PT950'];
 
-const EMPTY_PRODUCT  = { name:'', category:'Anillos', price:'', compare_price:'', costo:'', description:'', image_url:'', is_new:false, is_featured:false, stock:'', metal:'', piedra:'', engaste:'', talla_rango:'' };
+const EMPTY_PRODUCT  = { name:'', category:'Anillos', price:'', compare_price:'', costo:'', costo_provisional:false, description:'', image_url:'', is_new:false, is_featured:false, stock:'', metal:'', piedra:'', engaste:'', talla_rango:'' };
 const EMPTY_ORDER    = { customer_name:'', customer_phone:'', customer_email:'', product_id:'', product_name:'', amount:'', status:'pendiente', payment_method:'', notes:'', carrier:'', tracking_number:'', shipping_address:'', shipping_city:'', shipping_department:'' };
 const PAYMENT_METHODS = ['MercadoPago', 'Nequi', 'Daviplata', 'Transferencia', 'Efectivo', 'Contraentrega'];
 const EMPTY_CUSTOMER = { name:'', phone:'', email:'', notes:'' };
@@ -228,6 +228,7 @@ const ProductModal = ({ product, onClose, onSaved }) => {
             /* Vacío es "no lo sé todavía", no cero. Un costo de cero diría que
                la pieza es pura ganancia, que es peor que no saber. */
             costo: form.costo === '' || form.costo == null ? null : Number(form.costo),
+            costo_provisional: !!form.costo_provisional && form.costo !== '' && form.costo != null,
             description: texto(form.description) || null,
             images, image_url: images[0] || texto(form.image_url) || null,
             is_new: form.is_new, is_featured: form.is_featured,
@@ -299,6 +300,22 @@ const ProductModal = ({ product, onClose, onSaved }) => {
                                         ? 'Cuesta más de lo que se vende. Revisa el precio.'
                                         : 'Todo lo que hay que pagar para entregarla. Sin esto no se puede saber cuál pieza deja más.'}
                             </p>
+                            {/* Un costo inventado se ve idéntico a uno de verdad, y el
+                                margen que sale de él también. La casilla es lo que
+                                permite ponerlos sin que se vuelvan mentira: mientras
+                                esté marcada, el panel lo dice en todas partes. */}
+                            {form.costo !== '' && form.costo != null && (
+                                <label className="modal-casilla">
+                                    <input
+                                        type="checkbox"
+                                        checked={!!form.costo_provisional}
+                                        onChange={e => set('costo_provisional', e.target.checked)}
+                                    />
+                                    <span>
+                                        Es un número de relleno, todavía no lo confirmó el joyero
+                                    </span>
+                                </label>
+                            )}
                         </div>
                     </div>
                     <div className="modal-row">
@@ -2243,6 +2260,7 @@ const ReportsSection = ({ orders, products = [], onNavigate }) => {
                 unidades,
                 deja: costo != null && ficha?.price ? (Number(ficha.price) - costo) * unidades : null,
                 margen: costo != null && ficha?.price ? Math.round((1 - costo / Number(ficha.price)) * 100) : null,
+                provisional: !!ficha?.costo_provisional,
                 imagen: ficha?.image_url || null,
             };
         });
@@ -2480,6 +2498,13 @@ const ReportsSection = ({ orders, products = [], onNavigate }) => {
                             la pieza, en «Lo que cuesta la pieza».
                         </p>
                     )}
+                    {topPiezas.some(p => p.provisional) && (
+                        <p className="inf-aviso inf-aviso--ojo">
+                            Los márgenes de abajo salen de costos de relleno, no de los que
+                            dio el joyero. Sirven para armar el panel; no para decidir cuánto
+                            gastar en pauta.
+                        </p>
+                    )}
                     {topPiezas.length === 0 ? (
                         <p className="inf-vacio">Todavía no hay ventas en este periodo.</p>
                     ) : topPiezas.map(p => (
@@ -2497,7 +2522,11 @@ const ReportsSection = ({ orders, products = [], onNavigate }) => {
                                 </div>
                                 <span className="inf-pieza-meta">
                                     {p.unidades} unidad{p.unidades !== 1 ? 'es' : ''} vendida{p.unidades !== 1 ? 's' : ''}
-                                    {p.deja != null && <> · deja <strong>${fmt(p.deja)}</strong> ({p.margen} %)</>}
+                                    {p.deja != null && (
+                                        p.provisional
+                                            ? <> · dejaría <em>${fmt(p.deja)}</em> ({p.margen} %) con un costo de relleno</>
+                                            : <> · deja <strong>${fmt(p.deja)}</strong> ({p.margen} %)</>
+                                    )}
                                 </span>
                             </div>
                         </div>

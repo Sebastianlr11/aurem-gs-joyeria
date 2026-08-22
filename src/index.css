@@ -16427,3 +16427,26 @@ textarea:focus-visible {
   font-size: 0.85rem; line-height: 1.55; color: var(--text-secondary);
 }
 .inf-pieza-meta strong { color: var(--ink); font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* El aviso de costos sin confirmar mientras hay pauta corriendo. Rojo y no
+   dorado: es lo único de este bloque que puede llevar a quemar plata, y el
+   dorado de la marca es decorativo por definición. */
+.pauta-alerta {
+  margin: 1.25rem 0 0; padding: 0.9rem 1.1rem;
+  background: #FBEDE9; border-left: 2px solid #8C2F1E;
+  font-size: 0.9rem; line-height: 1.55; color: #5E2114;
+}
+.pauta-alerta strong { font-weight: 700; }
+
+/* Igual, dentro de un panel del informe. */
+.inf-aviso--ojo {
+  background: #FBEDE9; border-left-color: #8C2F1E; color: #5E2114;
+}
+
+/* La casilla de "esto es de relleno" bajo el costo de la pieza. */
+.modal-casilla {
+  display: flex; align-items: flex-start; gap: 0.55rem;
+  margin-top: 0.35rem; cursor: pointer;
+  font-size: 0.82rem; line-height: 1.5; color: var(--text-secondary);
+}
+.modal-casilla input { margin-top: 0.15rem; accent-color: var(--oro-ink); flex-shrink: 0; }

@@ -166,7 +166,37 @@ Deno.serve(async (req: Request) => {
     }
   }
 
-  /* ── 5. ¿Responden las funciones y el sitio? ────────────────────────
+  /* ── 5. Pauta corriendo sobre costos inventados ─────────────────────
+     Los costos de relleno existen para poder armar el panel antes de que el
+     joyero dé los reales. Son útiles y no hacen daño mientras no haya plata
+     en juego. El día que entra el primer peso de pauta cambian de naturaleza:
+     el margen que sale de ellos es inventado, y con un margen inventado se
+     decide mal cuánto gastar — siempre hacia arriba, que es el lado caro.
+
+     El aviso vive acá y no sólo en el panel porque el panel hay que abrirlo,
+     y esto es justo lo que se olvida. */
+  const { data: gastoReciente } = await db
+    .from('gasto_pauta')
+    .select('fecha')
+    .gte('fecha', new Date(ahora - 7 * 24 * 60 * 60_000).toISOString().slice(0, 10))
+    .limit(1)
+
+  if (gastoReciente?.length) {
+    const { data: relleno } = await db
+      .from('products')
+      .select('name')
+      .eq('costo_provisional', true)
+
+    if (relleno?.length) {
+      hallazgos.push({
+        que: `Hay pauta corriendo y ${relleno.length} pieza(s) con costo de relleno`,
+        detalle: `${relleno.map((p) => p.name).join(', ')}. El margen que enseña el panel es inventado; pedirle los costos reales al joyero antes de decidir presupuesto.`,
+        grave: true,
+      })
+    }
+  }
+
+  /* ── 6. ¿Responden las funciones y el sitio? ────────────────────────
      Una función caída no deja rastro en la base: hay que preguntarle. */
   const base = Deno.env.get('SUPABASE_URL')!
   const sitio = Deno.env.get('APP_URL') ?? 'https://www.auremgsjoyeria.com'
