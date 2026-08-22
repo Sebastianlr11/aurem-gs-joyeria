@@ -13180,9 +13180,13 @@ textarea:focus-visible {
 }
 .ped-sub { font-size: 0.86rem; color: var(--text-secondary); }
 
-/* El pulso: cuatro cifras que además filtran */
+/* El pulso: una cifra por grupo, y además filtran.
+   Las columnas salen de GRUPOS en Dashboard.jsx, no de un número escrito aquí.
+   Escrito a mano se desincroniza: al quitarse el grupo "Por cobrar" esta regla
+   se quedó en cuatro columnas para tres recuadros, y sobraba una franja blanca
+   de 255px a la derecha. */
 .ped-pulso {
-  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+  display: grid; grid-template-columns: repeat(var(--pulso-columnas, 3), minmax(0, 1fr));
   background: var(--bg-color); border: 1px solid var(--hairline); border-radius: 2px;
 }
 .ped-pulso-item {
