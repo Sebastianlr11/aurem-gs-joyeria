@@ -45,9 +45,24 @@ CREATE POLICY "el equipo maneja el control manual"
 
 /* ── Las tres muertas: se cierran del todo ───────────────────────────── */
 
-DROP POLICY IF EXISTS "service_full_access" ON public.message_history;
-DROP POLICY IF EXISTS "Allow all for anon"  ON public.whatsapp_dedup;
-DROP POLICY IF EXISTS "conversaciones_anon" ON public.conversaciones;
+-- Guardadas el 23 de agosto de 2026, con el mismo patrón que ya se usa más
+-- abajo para los respaldos: estas tres tablas se borraron ese día
+-- (`20260823_fuera_las_tablas_muertas.sql`), y un DROP POLICY sobre una tabla
+-- que no existe es un error, no un no-op. Sobre la base real no cambia nada
+-- —ya se aplicó—; lo que arregla es que un entorno NUEVO no muera aquí.
+DO $muertas$
+BEGIN
+  IF to_regclass('public.message_history') IS NOT NULL THEN
+    EXECUTE 'DROP POLICY IF EXISTS "service_full_access" ON public.message_history';
+  END IF;
+  IF to_regclass('public.whatsapp_dedup') IS NOT NULL THEN
+    EXECUTE 'DROP POLICY IF EXISTS "Allow all for anon" ON public.whatsapp_dedup';
+  END IF;
+  IF to_regclass('public.conversaciones') IS NOT NULL THEN
+    EXECUTE 'DROP POLICY IF EXISTS "conversaciones_anon" ON public.conversaciones';
+  END IF;
+END
+$muertas$;
 
 /* ── Los respaldos de hoy, que quedaron con RLS apagado ──────────────── */
 --

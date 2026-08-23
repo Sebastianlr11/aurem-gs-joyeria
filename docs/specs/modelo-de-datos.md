@@ -17,7 +17,7 @@ Este documento es el mapa de la base. Y su hallazgo principal es incómodo:
 
 | Tabla / objeto | ¿En el repo? | Dónde |
 |---|---|---|
-| `products` | ⚠️ parcial y **obsoleto** | `supabase-schema.sql` |
+| `products` | ✅ sí | `20260228_esquema_base.sql` |
 | `taller_precios` | ✅ | `20260818_taller_precios.sql` |
 | `taller_conocimiento` | ✅ | `20260818_taller_conocimiento.sql` |
 | `plantillas_enviadas` | ✅ | `20260819_plantillas_programadas.sql` |
@@ -179,7 +179,8 @@ necesita ver más de lo que ve quien la llama, y por eso hay que fijar el `searc
 - 🟠 **La mayoría de las tablas y las RPC de analítica no están versionadas** —
   [pendientes #4](../pendientes.md). Es el hallazgo de fondo: hizo invisibles seis tablas
   y permitió que un archivo de migración contradijera a la base sin que nadie lo notara.
-- 🟠 **`supabase-schema.sql` está obsoleto**: le faltan 7 columnas que el frontend consume
+- ~~**`supabase-schema.sql` está obsoleto**~~: borrado el 23 de agosto. Lo reemplaza
+  `20260228_esquema_base.sql`, volcado del catálogo. Le faltaban 7 columnas que el frontend consume
   y su `CHECK` de categoría no incluye `Dijes`.
 - Las políticas RLS que no están versionadas **tampoco se revisan en un diff** — que es
   exactamente cómo el fallo #1 lleva desde marzo sin que nadie lo viera.

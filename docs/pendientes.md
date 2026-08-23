@@ -5,8 +5,12 @@ Cada uno lleva dónde está, por qué importa y el arreglo propuesto.
 
 > **Revisado contra el código el 23 de agosto de 2026.** Cerrados ese día: la página de
 > error (#13), las meta de las páginas legales (#14), el JSON-LD y el Hero (#9, #10), el
-> lint en cero dentro del build (#23), la firma de Mercado Pago (#3, secreto incluido)
-> y la superficie de seguridad versionada (#4, a medias y a propósito).
+> lint en cero dentro del build (#23), la firma de Mercado Pago (#3, secreto incluido),
+> el plazo de devolución (#8), la fase cero (#6, #12, #22, #24), la fase uno (#15, #18,
+> #19, #21) y la base reconstruible (#4, #7).
+>
+> **Y uno nuevo, encontrado al hacer el #4: las RPC estaban abiertas a la llave pública.**
+> Ver [#25](#25--las-rpc-estaban-abiertas-a-la-llave-pública--resuelto).
 >
 > Lo ya resuelto está en [Resueltos](#resueltos) o marcado ✅ donde estaba. Un 🟡 quiere
 > decir que se hizo la parte que se podía y queda dicho qué falta. El resto sigue vivo y
@@ -153,52 +157,52 @@ prueba, de punta a punta.
 
 ---
 
-### 4. 🟡 El repositorio no puede reconstruir su base — la mitad que importa, hecha
+### 4. ✅ El repositorio no podía reconstruir su base — resuelto
 
 **Dónde:** `supabase/migrations/`
 
-Sólo hay migración para 4 tablas (`taller_precios`, `taller_conocimiento`,
-`plantillas_enviadas` y `products` vía `supabase-schema.sql`). **No están en control de
-versiones:** `orders`, `order_items`, `customers`, `whatsapp_conversaciones`,
-`chat_takeover`, `chat_status`, `contact_tags`, `notes`, `gasto_pauta`,
-`ajustes_internos`, `vigilancia_ultima`, la vista `envio_publico`, **ni ninguna de las 8
-RPC**, ni la mayoría de las políticas RLS.
+Sólo había migraciones **incrementales** —añadir una columna, cerrar una política— sobre
+tablas que nunca se crearon aquí: se habían hecho a mano en el panel de Supabase. Un
+entorno nuevo no arrancaba, y no por falta de una tabla suelta: `20260311_add_shipping_address.sql`
+hace un `ALTER` sobre `orders`, y `orders` no existía.
 
-**Por qué importa.** Un entorno nuevo (o una restauración) no se levanta desde este repo.
-Y las políticas RLS que no están versionadas tampoco se revisan en un diff — que es
-exactamente cómo el hallazgo #1 lleva desde marzo sin que nadie lo viera, y cómo cinco
-tablas de conversaciones estuvieron abiertas a la llave pública hasta el 22 de agosto.
+**Hecho el 23 de agosto.** `20260228_esquema_base.sql` crea las 12 tablas que faltaban, sus
+claves, únicos, CHECKs, 17 índices y la vista `envio_publico`. Va **fechada antes que todas
+las demás** a propósito: tiene que correr primero para que las incrementales encuentren su
+tabla.
 
-Ese mismo trabajo destapó **seis tablas que nadie sabía que existían**: tres muertas
-(`message_history`, `whatsapp_dedup`, `conversaciones` — cero referencias, cero filas) y
-tres respaldos manuales con 104 filas de conversaciones reales y RLS apagado (ya
-eliminados). Un volcado del esquema las habría hecho visibles mucho antes.
+**Está volcada del catálogo de Postgres, no escrita a mano.** Y se verificó comparando el
+`md5` de lo generado contra el de la base: idénticos, así que no hay ni una columna ni un
+tipo mal copiado en 180 columnas.
 
-Y es también lo que hizo posible el error de este documento sobre `orders`: **el archivo
-de migración decía una cosa y la base otra**, y no había forma de notarlo desde el
-repositorio. Mientras el esquema no esté versionado, leer las migraciones **no** es leer
-la base.
+**Al hacerlo aparecieron cuatro cosas que no se sabían:**
 
-**Hecho el 23 de agosto: `supabase/migrations/20260823_superficie_de_seguridad.sql`.**
-926 líneas extraídas del catálogo —`pg_policies`, `pg_get_functiondef`,
-`pg_get_triggerdef`—: 20 sentencias de RLS, 24 políticas, 21 funciones y 6 disparadores.
-Eso es **quién puede tocar qué**, que es lo que se revisa en un diff y lo que dejó pasar
-las cinco tablas abiertas.
+1. **Las 21 funciones y las políticas ya estaban versionadas**, en
+   `20260823_superficie_de_seguridad.sql` — 926 líneas que este documento no mencionaba. El
+   hueco era sólo de tablas.
+2. **Hay una tabla `pagos`** que ni `CLAUDE.md` ni este documento listaban: es el libro de
+   movimientos que lee `src/lib/caja.js`, con su trigger `registrar_pago`.
+3. **`orders.status` admite un séptimo estado, `confirmado`**, que no aparece en el panel ni
+   en la documentación. Se conserva tal cual: quitarlo es otra decisión.
+4. **Tres migraciones se rompían solas en un entorno nuevo** por tocar tablas que hoy ya no
+   existen. Ver abajo.
 
-Lo que **sigue faltando** es el volcado de tablas: sin `supabase db pull` un entorno vacío
-no se levanta desde este repo, y ese comando pide la contraseña de la base. Su cabecera lo
-dice para que nadie lo confunda con una migración reproducible.
+**La cadena, comprobada de principio a fin.** Se simuló el orden de las 28 migraciones
+sobre una base vacía, sentencia por sentencia, buscando cualquiera que toque una tabla
+antes de crearla. Salieron cuatro; tres eran reales y quedaron envueltas en
+comprobaciones `to_regclass` —el mismo patrón que el propio repositorio ya usaba—, y una
+era `storage.objects`, que Supabase siempre trae.
 
-**Arreglo pendiente:**
+Dos de esas correcciones tocan migraciones ya aplicadas, contra la costumbre de no
+reescribirlas. La excepción está razonada dentro de cada archivo: sobre la base real no
+cambian nada, y sin ellas el repositorio seguía sin poder levantar su base — que es
+justamente lo que este hallazgo pedía arreglar. Un caso concreto: `obtener_conversacion`
+declaraba una variable **del tipo** de la tabla `conversaciones`, y `CREATE FUNCTION` sí
+valida eso —comprobado—, así que la migración moría ahí.
 
-```bash
-npx supabase link --project-ref <ref>
-npx supabase db pull --schema public   # vuelca el esquema real a una migración
-```
-
-Revisar el resultado a mano (el volcado trae ruido), commitearlo como
-`20260822_esquema_existente.sql`, y a partir de ahí **prohibir cambios de esquema desde el
-dashboard**. Aprovechar el mismo paso para volcar las 8 RPC.
+**Lo único que no se ha hecho es levantar un entorno nuevo de verdad.** La comprobación es
+estática, y la base real no puede servir de prueba porque ya tiene todo. Hacerlo de verdad
+pide una rama de Supabase, que cuesta.
 
 ---
 
@@ -247,13 +251,52 @@ Dejarla así era sembrar la regresión en quien la use para construir.
 
 ---
 
-### 7. `supabase-schema.sql` está obsoleto
+### 7. ✅ `supabase-schema.sql` estaba obsoleto — resuelto
 
-Define `products` sin `metal`, `piedra`, `engaste`, `images`, `stock`, `compare_price` ni
-`talla_rango` — siete columnas que el frontend sí consume — y con un `CHECK` de categoría
-que no incluye `Dijes`, que sí está en `CATEGORIAS` de `Catalog.jsx:8`.
+Definía `products` sin `metal`, `piedra`, `engaste`, `images`, `stock`, `compare_price` ni
+`talla_rango` —siete columnas que el frontend sí consume— y con un `CHECK` de categoría que
+no incluía `Dijes`, que sí está en `CATEGORIAS` de `Catalog.jsx`. La base real sí lo
+incluye; era el archivo el que mentía.
 
-**Arreglo:** queda resuelto por el #4. Después, borrarlo o marcarlo como histórico.
+**Borrado el 23 de agosto**, como preveía el #4. Lo reemplaza
+`20260228_esquema_base.sql`, que sale del catálogo y no de la memoria de nadie. Queda en el
+historial de git por si alguien lo echa de menos.
+
+---
+
+### 25. ✅ Las RPC estaban abiertas a la llave pública — resuelto
+
+**Encontrado el 23 de agosto**, mientras se versionaba el esquema del #4. Es el mismo
+fallo que el de las conversaciones abiertas a `anon`, por un lado que nadie había mirado:
+**las funciones**.
+
+Catorce eran `SECURITY DEFINER` —se saltan RLS por diseño— y `anon` podía ejecutarlas. La
+llave anónima viaja dentro del bundle público, así que le bastaba a cualquiera con abrir
+el sitio.
+
+**No era teórico. Comprobado contra el endpoint real, con la anon key:**
+
+| Función | Devolvió |
+|---|---|
+| `revenue_por_fuente` | los ingresos del negocio, por canal |
+| `top_ciudades_envio` | los ingresos por ciudad |
+| `buscar_conversaciones` | teléfono y contenido de mensajes con clientas |
+
+Y `crear_orden_whatsapp`, `SECURITY DEFINER`, creaba pedidos saltándose RLS a petición de
+cualquiera.
+
+**Arreglado en `20260823_las_rpc_estaban_abiertas.sql`.** Se borraron cuatro funciones de
+la era n8n que no llama nadie, y a las de analítica y las de trigger se les quitó el
+permiso a `anon` y a `PUBLIC`. Verificado después: las tres de arriba responden **401
+permission denied** y `crear_orden_whatsapp` ya no existe.
+
+**`pedido_publico` sigue abierta a propósito** —la pantalla de confirmación la necesita sin
+sesión— y por eso devuelve cinco columnas contadas a mano. Responde 200, como debe.
+
+Un aviso para quien mire esto después: **`cancel_duplicate_pending_orders` parecía muerta y
+no lo estaba.** No aparece en `src/`, `supabase/functions/` ni `api/`, pero **la usa un
+trigger** sobre `orders`. Grepear el repositorio no basta para dar una función por muerta;
+hay que preguntarle también a `pg_trigger`. Lo cazó Postgres al negarse a borrarla.
 
 ---
 
