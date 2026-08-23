@@ -99,9 +99,11 @@ Ver [admin-pedidos](admin-pedidos.md) y `supabase/migrations/20260823_costos_del
   quien sube. **Se resuelve solo cuando se resuban**, que es lo previsto.
 - No hay reordenación por arrastre de las imágenes de una pieza.
 - ~~El borrado de una pieza no borra sus archivos del Storage~~ — resuelto el 23 de agosto
-  con `src/lib/fotosEnStorage.js`. Lo mismo al quitar una foto de una pieza que ya existe.
-  Lo que **sigue** dejando huérfanos: subir fotos en el modal y cerrarlo sin guardar. Los
-  archivos ya están en el bucket y nadie los nombra.
+  con `src/lib/fotosEnStorage.js`, en los tres caminos: borrar la pieza, quitar una foto de
+  una pieza que ya existe, y **subir fotos y cerrar el modal sin guardar**. Este último era
+  el más escurridizo, porque el archivo ya estaba en el bucket y no quedaba nada que lo
+  nombrara. El único que queda es cerrar la pestaña del navegador a media subida, y contra
+  eso no hay nada que hacer desde el cliente.
 - ~~`supabase-schema.sql` no refleja las columnas reales de `products`~~ — borrado el 23
   de agosto; lo reemplaza `20260228_esquema_base.sql`
   ([pendientes #7](../pendientes.md)).

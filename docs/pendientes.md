@@ -837,9 +837,38 @@ mitad—:
 Y si falla el borrado de los archivos no se avisa en pantalla: la pieza ya no existe, que
 es lo que se pidió, y lo que queda es basura en un bucket. Queda dicho en consola.
 
-**Lo que sigue dejando huérfanos**, y se deja escrito: subir fotos en el modal y cerrarlo
-sin guardar. Los archivos ya están en el bucket y no hay nada que los nombre. La consulta
-para encontrarlos está en [`admin-catalogo.md`](specs/admin-catalogo.md).
+**El tercer camino también quedó cerrado, esa misma tarde**: subir fotos en el modal y
+cerrarlo sin guardar. Era el más escurridizo de los tres, porque los archivos ya estaban en
+el bucket y no quedaba nada que los nombrara — ni una pieza, ni una fila.
+
+Ahora el modal anota lo que subió **en esta sesión** y lo borra si se cierra sin guardar,
+por las cuatro salidas: Escape, la ×, Cancelar y el clic fuera. Dos detalles que no son
+obvios:
+
+- **Una URL pegada a mano no se anota.** Si alguien copia ahí la dirección de una foto que
+  ya usa otra pieza, anotarla haría que cancelar borrara una foto publicada. Sólo se limpia
+  lo que subió este modal.
+- **No se espera al borrado antes de cerrar.** La ventana se cierra al instante, como
+  siempre, y la limpieza termina sola.
+
+Comprobado de punta a punta en el navegador: se subió una foto en el modal —que produjo
+sus cuatro archivos, `-900x1200.webp`, `-900x1200.jpeg`, `-w400` y `-w800`, y dejó el
+bucket en 34—, se pulsó Cancelar, y el bucket volvió a 30 con **cero huérfanos** y las
+cinco piezas intactas. El camino de guardar no puede borrar nada: `afterSave` desmonta el
+modal directamente y no pasa por la limpieza — comprobado leyendo `Productos.jsx`, y no
+creando una pieza de prueba, porque el catálogo es público y aparecería en la tienda
+mientras durase.
+
+Y la deducción de nombres, que es la que decide qué se borra, **quedó bajo prueba**: 15
+casos en `src/lib/fotosEnStorage.test.js`. Son de otra clase que las del dinero, porque
+aquí los dos fallos posibles no son simétricos —deducir de menos deja huérfanos, deducir de
+más borra la foto de otra pieza y esa no vuelve—, así que la mayoría son casos de lo que
+**no** debe tocarse. Rotas a propósito tres veces: pedir las copias chicas con la marca
+pegada (3 fallos), olvidar la gemela `.jpeg` (4) y aceptar URLs de otro dominio (3).
+
+Lo único que sigue dejando huérfanos es cerrar la pestaña del navegador a media subida, y
+contra eso no hay nada que hacer desde el cliente. La consulta para encontrarlos está en
+[`admin-catalogo.md`](specs/admin-catalogo.md).
 
 **Y los 8 que ya había se limpiaron el mismo día**, después de mirarlos uno por uno. Los 8
 archivos eran sólo 4 imágenes —tres estaban subidas dos y tres veces, mismo md5—, y de las

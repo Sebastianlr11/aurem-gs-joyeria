@@ -19,7 +19,7 @@
  * 3. El margen es una tarjeta y no una línea de ayuda perdida bajo un campo.
  *    Es el número con el que se decide cuánta pauta aguanta la pieza.
  */
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { borrarFotos } from '../../lib/fotosEnStorage';
 import { versionesDeFoto } from '../../lib/optimizarFoto';
@@ -119,15 +119,36 @@ export default function ProductModal({ product, onClose, onSaved }) {
 
     const cuerpoRef = useRef(null);
 
+    /* Lo que se subió a Storage DESDE QUE SE ABRIÓ ESTE MODAL y todavía no
+       está guardado en ninguna ficha. Si se cierra sin guardar hay que
+       borrarlo: el archivo ya está en el bucket y no queda nada que lo
+       nombre. Era el último camino que dejaba huérfanos.
+
+       En una referencia y no en estado porque no se pinta: cambiarlo no tiene
+       por qué repintar el modal, y hace falta leerlo al cerrar, cuando el
+       componente ya se está yendo. */
+    const subidasSinGuardar = useRef([]);
+
     const set = (k, v) => { setForm(f => ({ ...f, [k]: v })); setTocado(true); };
+
+    /* Cerrar sin guardar se lleva lo que se subió y no llegó a ninguna ficha.
+       No se espera al borrado antes de cerrar: la ventana se cierra al
+       instante, como siempre, y la limpieza termina sola. Si falla, lo peor
+       que pasa es lo que pasaba antes de esto. */
+    const cerrar = useCallback(() => {
+        const sueltas = subidasSinGuardar.current;
+        subidasSinGuardar.current = [];
+        if (sueltas.length) borrarFotos(sueltas);
+        onClose();
+    }, [onClose]);
 
     /* Escape cierra. Es la salida que la gente prueba primero, y sin ella el
        único camino es apuntarle a una × de 36 píxeles. */
     useEffect(() => {
-        const alTeclear = (e) => { if (e.key === 'Escape') onClose(); };
+        const alTeclear = (e) => { if (e.key === 'Escape') cerrar(); };
         document.addEventListener('keydown', alTeclear);
         return () => document.removeEventListener('keydown', alTeclear);
-    }, [onClose]);
+    }, [cerrar]);
 
     /* Qué sección se está mirando. El riel sirve para saber dónde estás, no
        sólo para saltar: si sólo se pintara al hacer clic, bajar con la rueda
@@ -213,11 +234,19 @@ export default function ProductModal({ product, onClose, onSaved }) {
         const results = await Promise.allSettled(files.map(f => subirArchivo(f)));
         const urls = [], fallaron = [];
         results.forEach((r, i) => r.status === 'fulfilled' ? urls.push(r.value) : fallaron.push(files[i].name));
-        if (urls.length) { setImages(prev => [...prev, ...urls]); setTocado(true); }
+        if (urls.length) {
+            subidasSinGuardar.current.push(...urls);
+            setImages(prev => [...prev, ...urls]);
+            setTocado(true);
+        }
         if (fallaron.length) setError(`No se pudieron subir: ${fallaron.join(', ')}`);
         setSubiendo(0); e.target.value = '';
     };
 
+    /* Una URL pegada a mano no se anota, y la diferencia importa: si alguien
+       copia aquí la dirección de una foto que ya usa OTRA pieza, anotarla
+       haría que cerrar sin guardar borrara del bucket una foto que sí está
+       publicada. Sólo se limpia lo que subió este modal. */
     const agregarUrl = () => {
         const url = urlInput.trim();
         if (!url) return;
@@ -305,11 +334,15 @@ export default function ProductModal({ product, onClose, onSaved }) {
             if (sobran.length) borrarFotos(sobran);
         }
 
+        /* Ya están en una ficha: dejan de ser huérfanas en potencia. Sin esto,
+           guardar y cerrar borraría las fotos recién guardadas. */
+        subidasSinGuardar.current = [];
+
         onSaved();
     };
 
     return (
-        <div className="pm-fondo" onClick={e => e.target === e.currentTarget && onClose()}>
+        <div className="pm-fondo" onClick={e => e.target === e.currentTarget && cerrar()}>
             <form
                 className="pm-caja"
                 role="dialog"
@@ -361,7 +394,7 @@ export default function ProductModal({ product, onClose, onSaved }) {
                             <span className="pm-cabeza-ante">Ficha de producto</span>
                             <h2 className="pm-cabeza-titulo">{isEdit ? 'Editar producto' : 'Nuevo producto'}</h2>
                         </div>
-                        <button type="button" className="pm-cerrar" onClick={onClose} aria-label="Cerrar">
+                        <button type="button" className="pm-cerrar" onClick={cerrar} aria-label="Cerrar">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
                         </button>
                     </header>
@@ -586,7 +619,7 @@ export default function ProductModal({ product, onClose, onSaved }) {
                                 : tocado ? 'Cambios sin guardar' : 'Sin cambios'}
                         </span>
                         <div className="pm-pie-botones">
-                            <button type="button" className="pm-btn pm-btn--claro" onClick={onClose}>Cancelar</button>
+                            <button type="button" className="pm-btn pm-btn--claro" onClick={cerrar}>Cancelar</button>
                             <button type="submit" className="pm-btn pm-btn--oscuro" disabled={saving || subiendo > 0}>
                                 {saving ? 'Guardando…' : isEdit ? 'Guardar cambios' : 'Crear producto'}
                             </button>
