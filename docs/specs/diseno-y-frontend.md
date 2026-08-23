@@ -109,6 +109,13 @@ Dos mecanismos, para dos problemas:
 > [pendientes #20](../pendientes.md), donde queda dicho que las fotos ya publicadas no la
 > tienen y hay que resubirlas.
 
+## Dos documentos de diseño, no uno
+
+`DESIGN.md` gobierna la landing. **`DESIGN-PANEL.md` gobierna `/admin`** desde el 23 de
+agosto de 2026: hereda los tokens y cambia lo que la densidad obliga —cuerpo por debajo de
+1rem, escala de 4px, estado por punto y no por color—. Se corresponden con los dos archivos
+de CSS: `src/index.css` y `src/panel.css`.
+
 ## El CSS: 17.850 líneas en un archivo
 
 Sin `@layer`, sin CSS modules, sin preprocesador. Un solo `@import './fuentes.css'`.

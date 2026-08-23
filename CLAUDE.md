@@ -398,8 +398,12 @@ Reglas que se rompen con facilidad:
   **No importes nada de `fonts.googleapis.com`** — se midió: pasar de Google Fonts a
   self-hosting fue lo que arregló un LCP de 5,7 s, porque el elemento LCP es el logo del
   navbar, que es texto en Marcellus.
-- **`DESIGN.md` cubre la landing, no el panel.** El panel reutiliza los tokens pero
-  descarta las reglas de conversión, y todavía **no tiene documento propio**.
+- **`DESIGN.md` cubre la landing; el panel tiene el suyo: `DESIGN-PANEL.md`.** Hereda
+  la identidad entera y cambia lo que la densidad obliga —el cuerpo baja de 1rem a
+  propósito, la escala es de 4px y no de 8, y el estado de un pedido se distingue por un
+  punto y no por un color de fondo—. Para cualquier pantalla de `/admin`, manda aquél.
+  Trae además la deuda medida: 491 colores escritos a pelo y dos oros que no son el de
+  la marca.
 
 ---
 

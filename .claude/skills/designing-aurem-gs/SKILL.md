@@ -16,6 +16,13 @@ negro de escaparate nocturno. Personalidad: **artesanal, luminosa, precisa**.
 La fuente de verdad completa es [`DESIGN.md`](../../../DESIGN.md) en la raíz del
 proyecto. Este archivo es la versión operativa: úsalo para construir.
 
+> **Si lo que estás tocando está dentro de `/admin`, esta guía no basta: manda
+> [`DESIGN-PANEL.md`](../../../DESIGN-PANEL.md).** El panel hereda estos tokens
+> pero cambia tres reglas que aquí son sagradas — el cuerpo baja de 1rem a
+> propósito, la escala de espaciado es de 4px y no de 8, y el estado de un pedido
+> se distingue por un punto y nunca por un color de fondo. Aplicar las reglas de
+> la landing al panel produce una herramienta bonita y lenta de usar.
+
 ## Tokens
 
 Ya existen como variables CSS en `src/index.css`. Nunca escribas un color
