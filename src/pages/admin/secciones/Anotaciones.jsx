@@ -67,11 +67,13 @@ const NoteModal = ({ note, onClose, onSaved }) => {
     );
 };
 
+/* La prioridad monta sobre la misma escala de intensidad que los
+   pedidos: cuanto más lleno el punto, más pide la anotación. */
 const PRIORITY_META = {
-    baja:    { label: 'Baja',    cls: 'badge--blue' },
-    normal:  { label: 'Normal',  cls: 'badge--green' },
-    alta:    { label: 'Alta',    cls: 'badge--orange' },
-    urgente: { label: 'Urgente', cls: 'badge--red' },
+    baja:    { label: 'Baja',    cls: 'badge--quieto' },
+    normal:  { label: 'Normal',  cls: 'badge--tenue' },
+    alta:    { label: 'Alta',    cls: 'badge--vivo' },
+    urgente: { label: 'Urgente', cls: 'badge--pleno' },
 };
 
 const NotesSection = () => {
@@ -169,10 +171,10 @@ const NotesSection = () => {
 
             {/* Notes list */}
             {loading ? (
-                <div style={{ textAlign: 'center', padding: '3rem', color: '#999' }}>Cargando...</div>
+                <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>Cargando...</div>
             ) : filtered.length === 0 ? (
                 <div className="admin-card" style={{ textAlign: 'center', padding: '3rem' }}>
-                    <p style={{ color: '#999', fontSize: '0.95rem' }}>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>
                         {notes.length === 0 ? 'No hay anotaciones aún. Crea la primera.' : 'Sin resultados para estos filtros.'}
                     </p>
                 </div>
@@ -185,14 +187,14 @@ const NotesSection = () => {
                                 <button
                                     onClick={() => toggleComplete(note)}
                                     style={{
-                                        marginTop: 2, width: 22, height: 22, borderRadius: 6, border: '2px solid #d1d5db',
-                                        background: note.is_completed ? '#10b981' : 'transparent', cursor: 'pointer',
+                                        marginTop: 2, width: 22, height: 22, borderRadius: 6, border: '2px solid var(--hairline)',
+                                        background: note.is_completed ? 'var(--ink)' : 'transparent', cursor: 'pointer',
                                         display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                                     }}
                                     title={note.is_completed ? 'Marcar como pendiente' : 'Marcar como completada'}
                                 >
                                     {note.is_completed && (
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--bg-color)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                                     )}
                                 </button>
 
@@ -207,11 +209,11 @@ const NotesSection = () => {
                                         </span>
                                     </div>
                                     {note.content && (
-                                        <p style={{ margin: '0.25rem 0 0.5rem', fontSize: '0.88rem', color: '#555', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
+                                        <p style={{ margin: '0.25rem 0 0.5rem', fontSize: '0.88rem', color: 'var(--text-secondary)', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
                                             {note.content}
                                         </p>
                                     )}
-                                    <span style={{ fontSize: '0.75rem', color: '#999' }}>{fmtDate(note.created_at)}</span>
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{fmtDate(note.created_at)}</span>
                                 </div>
 
                                 {/* Actions */}

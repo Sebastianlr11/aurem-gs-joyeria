@@ -156,12 +156,17 @@ const sortMessages = (msgs) => {
     });
 };
 
+/* Una etiqueta es un nombre, no un estado: la palabra ya distingue una
+   de otra y no hace falta un color por cada una. Eran cinco matices de
+   otra paleta —azul, verde, ámbar, oro brillante, morado— y en la
+   marca sólo hay un oro. El chip ya se pintaba así; lo único que
+   quedaba de colores era el botón de añadir. */
 const PRESET_TAGS = [
-    { label: 'Interesado', color: '#3b82f6' },
-    { label: 'Cliente', color: '#10b981' },
-    { label: 'Seguimiento', color: '#f59e0b' },
-    { label: 'VIP', color: '#D4AF37' },
-    { label: 'Mayorista', color: '#8b5cf6' },
+    { label: 'Interesado', color: '#A8863F' },
+    { label: 'Cliente', color: '#A8863F' },
+    { label: 'Seguimiento', color: '#A8863F' },
+    { label: 'VIP', color: '#A8863F' },
+    { label: 'Mayorista', color: '#A8863F' },
 ];
 
 /* ─── Error Boundary ───────────────────────────────────────────── */
@@ -173,7 +178,7 @@ class ChatErrorBoundary extends React.Component {
         if (this.state.error) {
             return React.createElement('div', { style: { padding: 40, textAlign: 'center' } },
                 React.createElement('h3', null, 'Error en el panel de chat'),
-                React.createElement('p', { style: { color: '#ef4444', fontFamily: 'monospace', fontSize: '0.85rem' } }, String(this.state.error)),
+                React.createElement('p', { style: { color: 'var(--error-ink)', fontFamily: 'monospace', fontSize: '0.85rem' } }, String(this.state.error)),
                 React.createElement('button', { onClick: () => this.setState({ error: null }), style: { marginTop: 16, padding: '8px 16px', cursor: 'pointer' } }, 'Reintentar')
             );
         }
@@ -1691,7 +1696,7 @@ const ChatPanel = () => {
                                                         </div>
                                                             {(msg._failed || showTime) && (
                                                             <div className="chat-bubble-time">
-                                                                {msg._failed ? <span style={{ color: '#ef4444' }}>Error al enviar</span> : (
+                                                                {msg._failed ? <span style={{ color: 'var(--error-ink)' }}>Error al enviar</span> : (
                                                                     <>
                                                                         <span>{fmtTime(msg.created_at)}</span>
                                                                         {msg.role === 'assistant' && (() => {
