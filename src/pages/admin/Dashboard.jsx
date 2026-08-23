@@ -201,6 +201,38 @@ const fireWebhook = async (order, newStatus, extraFields = {}) => {
 };
 
 /**
+ * Despachar un pedido: guardar el estado con la transportadora y la guía,
+ * avisar al webhook si hay uno configurado, y mandar el correo de "tu pieza va
+ * en camino".
+ *
+ * Vive a nivel de módulo porque ahora lo hacen DOS pantallas —la tabla de
+ * Pedidos y la cola del taller del dashboard— y dos copias de esto acabarían
+ * divergiendo: una mandando el correo y la otra no, que es la clase de
+ * diferencia que nadie nota hasta que una clienta se queda sin aviso.
+ *
+ * El correo va DESPUÉS de guardar, nunca antes: el despacho ya quedó
+ * registrado y no puede depender de que salga un correo. Y se devuelve qué
+ * pasó con él en vez de tragárselo, porque hay dos motivos legítimos para que
+ * no salga —el pedido no tiene correo, o no tiene guía— y quien despacha
+ * necesita saber cuál fue.
+ *
+ * No avisa conversión: en 'enviado' no entra plata. En contraentrega la plata
+ * entra al entregar, y en prepago entró al principio.
+ */
+const despacharPedido = async (order, transportadora, guia) => {
+    const extra = { carrier: transportadora || null, tracking_number: guia || null };
+    const { error } = await supabase
+        .from('orders')
+        .update({ status: 'enviado', status_updated_at: new Date().toISOString(), ...extra })
+        .eq('id', order.id);
+
+    if (error) return { guardado: false, motivo: error.message };
+
+    await fireWebhook(order, 'enviado', extra);
+    return { guardado: true, correo: await avisarDespachoPorCorreo(order.id) };
+};
+
+/**
  * Lo que viene de la base puede ser null, y llamar .trim() sobre null tumba
  * el guardado y deja el botón congelado. Los formularios de edición se llenan
  * directo desde la fila, así que todo texto pasa por acá.
@@ -584,6 +616,26 @@ const DashboardHome = ({ products, orders, chatsPendientes, actualizadoEn, verPr
        el retorno de la pauta, dividía esa cifra por un gasto que sí venía
        fechado. Sigue el lente de pruebas, o el interruptor dejaría de valer
        para este bloque. */
+    /* El pedido que se está despachando desde la cola del taller, si hay uno. */
+    const [despachando, setDespachando] = useState(null);
+
+    const confirmarDespacho = async (transportadora, guia) => {
+        const pedido = despachando;
+        const r = await despacharPedido(pedido, transportadora, guia);
+        setDespachando(null);
+
+        if (!r.guardado) { alert('Error: ' + r.motivo); return; }
+        onRecargar();
+
+        /* Mismo aviso que en Pedidos: el pedido quedó despachado pase lo que
+           pase con el correo, pero quien despacha tiene que enterarse si no
+           salió — si no, la clienta se queda esperando un aviso que nadie
+           escribió. */
+        if (!r.correo?.enviado) {
+            alert(`El pedido quedó marcado como enviado, pero el correo no salió.\n\n${r.correo?.motivo || 'Motivo desconocido'}`);
+        }
+    };
+
     const [caja, setCaja] = useState(null);
     useEffect(() => {
         if (!actualizadoEn) return;
@@ -697,6 +749,10 @@ const DashboardHome = ({ products, orders, chatsPendientes, actualizadoEn, verPr
 
                 return {
                     id: o.id,
+                    /* El pedido crudo, para el diálogo de despacho: necesita
+                       customer_name, product_name y la transportadora y guía
+                       que ya tuviera. */
+                    pedido: o,
                     cliente: o.customer_name || 'Sin nombre',
                     piezas,
                     dias,
@@ -934,7 +990,12 @@ const DashboardHome = ({ products, orders, chatsPendientes, actualizadoEn, verPr
                         </span>
                     </div>
                     {cola.map(t => (
-                        <button key={t.id} className="jornada-taller-fila" onClick={() => onNavigate('orders')}>
+                        /* Una fila, dos botones. El grande lleva a Pedidos y el
+                           de la punta despacha sin salir de aquí — y por eso la
+                           fila es un div: un botón dentro de otro botón no es
+                           HTML válido y el navegador hace lo que quiere. */
+                        <div key={t.id} className="jornada-taller-fila">
+                        <button className="jornada-taller-ir" onClick={() => onNavigate('orders')}>
                             <span className="jornada-taller-texto">
                                 <span className="jornada-taller-cliente">{t.cliente}</span>
                                 <span className="jornada-taller-piezas">
@@ -965,8 +1026,29 @@ const DashboardHome = ({ products, orders, chatsPendientes, actualizadoEn, verPr
                             </span>
                             <span className="jornada-tarea-chevron"><JIcon name="chevron" size={18} /></span>
                         </button>
+                        {/* La acción que cierra el trabajo del taller. Abre el
+                            mismo diálogo de Pedidos —transportadora y guía— y
+                            usa la misma función, así que manda el mismo correo.
+                            Sin esto había que ir a Pedidos y buscar el pedido
+                            que acabas de ver aquí. */}
+                        <button
+                            type="button"
+                            className="jornada-taller-despachar"
+                            onClick={() => setDespachando(t.pedido)}
+                        >
+                            Despachar
+                        </button>
+                        </div>
                     ))}
                 </section>
+            )}
+
+            {despachando && (
+                <ShipModal
+                    order={despachando}
+                    onClose={() => setDespachando(null)}
+                    onConfirm={confirmarDespacho}
+                />
             )}
 
             <section className="jornada-panel">
@@ -1659,20 +1741,18 @@ const OrdersSection = ({ orders, products, loading, onRefresh }) => {
         }
     };
 
+    /* La maquinaria vive en despacharPedido(), a nivel de módulo, porque la
+       cola del taller del dashboard despacha igual. */
     const handleShipConfirm = async (carrier, trackingNumber) => {
         const order = modal.order;
-        await changeStatus(order, 'enviado', {
-            carrier: carrier || null,
-            tracking_number: trackingNumber || null,
-        });
+        const r = await despacharPedido(order, carrier, trackingNumber);
         closeModal();
 
-        /* El correo va DESPUÉS de guardar y de cerrar, nunca antes: el
-           despacho ya quedó registrado y no puede depender de que salga un
-           correo. Si falla, se avisa —pero el pedido sigue enviado. */
-        const r = await avisarDespachoPorCorreo(order.id);
-        if (!r.enviado) {
-            alert(`El pedido quedó marcado como enviado, pero el correo no salió.\n\n${r.motivo || 'Motivo desconocido'}`);
+        if (!r.guardado) { alert('Error: ' + r.motivo); return; }
+        onRefresh();
+
+        if (!r.correo?.enviado) {
+            alert(`El pedido quedó marcado como enviado, pero el correo no salió.\n\n${r.correo?.motivo || 'Motivo desconocido'}`);
         }
     };
 
