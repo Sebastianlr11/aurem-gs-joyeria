@@ -708,11 +708,33 @@ Nunca tumbó ningún despliegue: Vercel construye en su propia máquina.
 
 ---
 
-## Y una recomendación de fondo
+## Y una recomendación de fondo — hecha
 
-El panel ya es más grande que la tienda (~9.250 líneas de CSS frente a ~8.300) y es la
-única parte del sistema **sin ninguna guía de diseño**. `DESIGN.md:214-219` lo dice él
-mismo: *"cuando el panel tenga sus propias reglas, tendrá su propio documento"*.
+El panel ya es más grande que la tienda y era **la única parte del sistema sin ninguna
+guía de diseño**. `DESIGN.md:214-219` lo decía él mismo: *"cuando el panel tenga sus
+propias reglas, tendrá su propio documento"*.
 
-Ese documento —`DESIGN-PANEL.md`— es probablemente el trabajo que más rinde después de
-cerrar los hallazgos críticos.
+**Escrito el 23 de agosto: [`DESIGN-PANEL.md`](../DESIGN-PANEL.md).** No es una lista de
+deseos: la escala tipográfica, los radios, el espaciado y la deuda salen de contar lo que
+hay en `src/panel.css`. Lo que documenta:
+
+- **Por qué el panel puede romper la regla del cuerpo de 1rem** y la landing no. Es la
+  divergencia de fondo: la lectora de la tienda está en un celular con medio segundo de
+  atención; quien usa el panel está en un portátil y vuelve doce veces al día a la misma
+  tabla. Bajar el cuerpo a 0,82rem es lo que permite ver quince pedidos sin desplazarse,
+  y ver quince pedidos de una vez **es** el trabajo.
+- **La regla del punto de estado**, que no se inventó: ya estaba implementada en el
+  código, ganándole a una versión con cinco colores de tipo Tailwind. Un pedido se
+  distingue por la intensidad de un punto —arena, oro al 45%, oro, cacao, hueco—, así que
+  se lee en escala de grises y por quien no distingue colores.
+- **La única excepción al radio de 2px**, razonada: las burbujas del chat llevan 16px,
+  porque una burbuja con esquinas rectas no se lee como una conversación.
+- **La deuda, medida:** 491 colores escritos a pelo, `#D4AF37` 19 veces y `#B8860B` 12
+  —dos oros que no son el de la marca—, 23 usos de negro `#1A1A1A`, `--accent-red` en 3
+  sitios y 16 tamaños de letra distintos donde deberían bastar 6.
+
+Y un hallazgo que ordena todo el trabajo que queda: **el panel ya llegó a la regla buena
+dos veces y se dejó la mala debajo** —los cinco `.badge--color` y el degradado casi negro
+de las burbujas están anulados por reglas posteriores que sí cumplen la marca—. Así que
+lo que falta casi nunca es decidir qué debería ser: es borrar la versión vieja.
+

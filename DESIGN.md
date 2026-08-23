@@ -220,8 +220,13 @@ esa confianza.
 catálogo, la página de producto y un panel interno en `/admin`. Esas pantallas
 **reusan los tokens** —colores, tipografía, radios, espaciado— y **descartan las
 reglas de conversión**: el orden de bandas, el requisito del primer viewport y el
-presupuesto de oro son de la landing. Cuando el panel tenga sus propias reglas,
-tendrá su propio documento.
+presupuesto de oro son de la landing.
+
+**El panel ya tiene su propio documento: [`DESIGN-PANEL.md`](DESIGN-PANEL.md)**,
+escrito el 23 de agosto de 2026. Hereda esta identidad entera y cambia lo que la
+densidad de una herramienta interna obliga a cambiar — empezando por el tamaño de
+cuerpo, que allí baja de 1rem a propósito. Para cualquier pantalla dentro de
+`/admin`, manda aquél.
 
 Tres consecuencias que mandan sobre todo lo demás:
 
