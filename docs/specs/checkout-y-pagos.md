@@ -155,6 +155,18 @@ incompleta.
   Sin firma o con firma falsa el endpoint responde 401. **Falla abierto si el secreto
   desaparece**, a propósito, para que un despliegue sin secreto no tumbe los pagos.
   [pendientes #3](../pendientes.md).
+- 🟠 **El webhook *legacy* del panel de Mercado Pago recibe 401 en cada aviso.** Un pago
+  llega por dos rutas: la de la **preferencia** (`?data.id=…&type=payment`, que
+  `create-preference` pone como `notification_url`) y la del **panel** en modo productivo
+  (`?id=…&topic=payment`, más `topic=merchant_order`). **Sólo la primera valida.** La
+  segunda trae una firma que no cuadra con el manifiesto del esquema moderno, así que se
+  rechaza siempre — en el pago real del 23 de agosto se rechazaron 9 avisos seguidos.
+
+  No se pierde ningún pago, porque la primera ruta hace todo el trabajo. Lo que no existe
+  es el respaldo que se creía tener, y Mercado Pago reintenta contra un endpoint que
+  siempre le contesta 401, que es como se acaba marcando un webhook como caído.
+  **Se arregla en el panel de Mercado Pago**, quitando el aviso legacy o pasándolo al
+  formato moderno. Los `merchant_order` tampoco los procesa la función.
 - **La talla del selector de la ficha no llega al pedido.** Sólo al mensaje de WhatsApp.
 - Contraentrega es **sólo Bogotá**, forzado en el cliente.
 - La validación del formulario es por `onBlur`, no por submit.

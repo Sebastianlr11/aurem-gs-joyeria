@@ -156,8 +156,20 @@ Dos detalles que conviene no perder:
   preferencia. Es una red, no un problema: el candado `conversion_enviada_en` evita el
   duplicado.
 
-**Lo único que falta ya no es red de seguridad sino confirmación:** un pago real de
-prueba, de punta a punta.
+**El pago real de prueba se hizo el 23 de agosto**, con $20.000 de abono por
+contraentrega. Los siete eslabones funcionaron: pedido creado, firma validada, consulta a
+la API de Mercado Pago, abono registrado como abono, libro de caja, correo de confirmación
+y conversiones a Meta y TikTok — más la plantilla de WhatsApp de pago recibido, que no
+estaba en la lista.
+
+> 🟠 **Y destapó una cosa que se daba por buena y no lo era.** Un pago avisa por dos rutas
+> y **sólo una funciona**: la de la preferencia (`?data.id=…&type=payment`) valida y
+> procesa; la del panel de Mercado Pago en modo productivo (`?id=…&topic=payment`) devuelve
+> **401 siempre** porque su firma no cuadra con el manifiesto del esquema moderno. En ese
+> pago se rechazaron nueve avisos seguidos. No se pierde ningún pago, pero **el respaldo
+> que se creía tener no existe**, y Mercado Pago reintenta contra un endpoint que siempre
+> le contesta 401. Se arregla en el panel de MP: quitar el aviso *legacy* o pasarlo al
+> formato moderno. Ver [checkout-y-pagos](specs/checkout-y-pagos.md).
 
 ---
 
