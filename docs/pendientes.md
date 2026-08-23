@@ -728,3 +728,24 @@ dos veces y se dejó la mala debajo** —los cinco `.badge--color` y el degradad
 de las burbujas están anulados por reglas posteriores que sí cumplen la marca—. Así que
 lo que falta casi nunca es decidir qué debería ser: es borrar la versión vieja.
 
+
+**Cerrado el 23 de agosto, por la tarde.** Se borró la versión vieja y, de paso, el
+sistema de estados dejó de ser un mapa de colores: las clases se llaman ahora por
+intensidad —`badge--quieto`, `--tenue`, `--vivo`, `--pleno`, `--nulo`—, así que ya no se
+puede volver a repartir mal. Estaba mal repartido: `pagado` llevaba el punto de «cerrado»
+y `entregado` el de «empezando», porque el mapa se había hecho por nombre de color.
+
+Buscando el resto aparecieron dos escondites que ninguna herramienta veía, porque
+`css:pisadas` y el mapeo de colores sólo miraban los `.css`:
+
+1. **`Dashboard.jsx` inyectaba 142 líneas de CSS en un `<style>`**, y por ir en el
+   documento **le ganaba a `panel.css`**. De sus 25 clases, 14 estaban muertas; el resto
+   eran pasteles de Tailwind. Por eso los distintivos de canal seguían pintándose azul,
+   verde y rosa aunque `panel.css` dijera lo contrario desde agosto. Borrado entero.
+2. **41 colores a mano en `style={{…}}`** dentro de las secciones, dos de ellos por debajo
+   de AA (`#94a3b8` a 2,44:1 y `#999` a 2,85:1 sobre blanco).
+
+Quedan tres hexadecimales en `src/panel.css`: el verde de WhatsApp sobre el icono de
+WhatsApp, la definición de `--error-luz` y uno dentro de un comentario. `css:pisadas`
+reporta **0 bloques** en el panel. Verificado en las ocho pantallas: cero contrastes por
+debajo de AA y cero desbordes.

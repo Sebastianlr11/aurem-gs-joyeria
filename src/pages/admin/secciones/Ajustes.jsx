@@ -101,7 +101,7 @@ const PrecioOroCard = () => {
                 </h3>
             </div>
 
-            <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: '1.25rem', lineHeight: 1.5 }}>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1.25rem', lineHeight: 1.5 }}>
                 Lo que Valentina usa para cotizar piezas a medida en oro. Míralo en
                 goldprice.org y cámbialo sólo cuando el movimiento lo amerite: subidas
                 o bajadas pequeñas no cambian la cotización.
@@ -127,7 +127,7 @@ const PrecioOroCard = () => {
                         <span>Precio del gramo</span>
                         <strong>{pesos(Number(String(gramo).replace(/[^\d]/g, '')) || 0)}</strong>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#666' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)' }}>
                         <span>+ diseño, fundición y terminado</span>
                         <span>{pesos(recargo)}</span>
                     </div>
@@ -138,7 +138,7 @@ const PrecioOroCard = () => {
                         <span><strong>Se cotiza a</strong></span>
                         <strong>{pesos(porGramo)} el gramo</strong>
                     </div>
-                    <div style={{ color: '#666', marginTop: '0.4rem' }}>
+                    <div style={{ color: 'var(--text-secondary)', marginTop: '0.4rem' }}>
                         Un anillo de 10 gramos saldría en {pesos(porGramo * 10)}.
                         Desde {minimo} gramos; por debajo lo cotiza una persona.
                     </div>
@@ -167,7 +167,7 @@ const PrecioOroCard = () => {
                                 onChange={e => setRecargoTxt(e.target.value)}
                                 placeholder="118000"
                             />
-                            <p style={{ fontSize: '0.78rem', color: '#666', margin: '0.3rem 0 0' }}>
+                            <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', margin: '0.3rem 0 0' }}>
                                 Cubre diseño, fundición, terminado y la ganancia del taller.
                                 Cambia pocas veces: sólo si cambia cómo se cobra el trabajo.
                             </p>
@@ -181,7 +181,7 @@ const PrecioOroCard = () => {
                                 onChange={e => setMinimoTxt(e.target.value)}
                                 placeholder="5"
                             />
-                            <p style={{ fontSize: '0.78rem', color: '#666', margin: '0.3rem 0 0' }}>
+                            <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', margin: '0.3rem 0 0' }}>
                                 Por debajo de este peso la merma se come la ganancia, así que
                                 Valentina no cotiza: pasa la conversación a una persona.
                             </p>
@@ -195,14 +195,14 @@ const PrecioOroCard = () => {
                     </button>
                 </div>
 
-                <p style={{ fontSize: '0.8rem', color: viejo ? '#b45309' : '#666', margin: 0 }}>
+                <p style={{ fontSize: '0.8rem', color: viejo ? 'var(--oro-ink)' : 'var(--text-secondary)', margin: 0 }}>
                     {dias === 0 ? 'Actualizado hoy' : dias === 1 ? 'Actualizado ayer' : `Actualizado hace ${dias} días`}
                     {precios.actualizado_por ? ` por ${precios.actualizado_por}` : ''}
                     {viejo ? ' — conviene revisarlo.' : '.'}
                 </p>
 
                 {aviso.msg && (
-                    <p style={{ fontSize: '0.85rem', color: aviso.tipo === 'error' ? '#ef4444' : '#10b981', margin: 0 }}>
+                    <p style={{ fontSize: '0.85rem', color: aviso.tipo === 'error' ? 'var(--error-ink)' : 'var(--oro-ink)', margin: 0 }}>
                         {aviso.msg}
                     </p>
                 )}
@@ -274,7 +274,7 @@ const ConocimientoCard = () => {
                 </h3>
             </div>
 
-            <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: '1rem', lineHeight: 1.5 }}>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1rem', lineHeight: 1.5 }}>
                 Es lo único que puede afirmar sobre envíos, pagos, garantía y plazos.
                 Lo que no esté acá, lo consulta con una persona en vez de inventarlo.
                 Se aplica al siguiente mensaje, sin desplegar nada.
@@ -282,7 +282,7 @@ const ConocimientoCard = () => {
 
             {sinConfirmar > 0 && (
                 <p style={{
-                    fontSize: '0.82rem', color: '#b45309', lineHeight: 1.5,
+                    fontSize: '0.82rem', color: 'var(--oro-ink)', lineHeight: 1.5,
                     background: 'rgba(180,83,9,0.07)', borderRadius: 2,
                     padding: '0.7rem 0.9rem', margin: '0 0 1.25rem',
                 }}>
@@ -305,7 +305,7 @@ const ConocimientoCard = () => {
                                 onClick={() => alternar(t)}
                                 style={{
                                     background: 'none', border: 0, padding: 0, cursor: 'pointer',
-                                    font: 'inherit', fontSize: '0.78rem', color: '#666',
+                                    font: 'inherit', fontSize: '0.78rem', color: 'var(--text-secondary)',
                                     textDecoration: 'underline', textUnderlineOffset: 3,
                                 }}
                             >
@@ -341,7 +341,7 @@ const ConocimientoCard = () => {
             {aviso.msg && (
                 <p style={{
                     fontSize: '0.85rem', marginTop: '1rem', marginBottom: 0,
-                    color: aviso.tipo === 'error' ? '#ef4444' : '#10b981',
+                    color: aviso.tipo === 'error' ? 'var(--error-ink)' : 'var(--oro-ink)',
                 }}>
                     {aviso.msg}
                 </p>
@@ -530,7 +530,7 @@ const SettingsSection = () => {
                         </span>
                     </h3>
                 </div>
-                <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: '1.25rem', lineHeight: 1.5 }}>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1.25rem', lineHeight: 1.5 }}>
                     Crea una cuenta para un empleado o colaborador. Tendrá acceso completo al panel de administración.
                 </p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
@@ -558,7 +558,7 @@ const SettingsSection = () => {
                         </button>
                     </div>
                     {adminResult.msg && (
-                        <p style={{ fontSize: '0.85rem', color: adminResult.type === 'error' ? '#ef4444' : '#10b981', margin: 0 }}>
+                        <p style={{ fontSize: '0.85rem', color: adminResult.type === 'error' ? 'var(--error-ink)' : 'var(--oro-ink)', margin: 0 }}>
                             {adminResult.msg}
                         </p>
                     )}
@@ -575,41 +575,41 @@ const SettingsSection = () => {
                             Administradores
                         </span>
                     </h3>
-                    <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 600 }}>{adminUsers.length}{' '}usuarios</span>
+                    <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600 }}>{adminUsers.length}{' '}usuarios</span>
                 </div>
                 {loadingUsers ? (
-                    <p style={{ fontSize: '0.85rem', color: '#999', textAlign: 'center', padding: '1rem 0' }}>Cargando...</p>
+                    <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'center', padding: '1rem 0' }}>Cargando...</p>
                 ) : sinPermiso ? (
-                    <p style={{ fontSize: '0.85rem', color: '#766D66', textAlign: 'center', padding: '1rem 0', lineHeight: 1.5 }}>
+                    <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'center', padding: '1rem 0', lineHeight: 1.5 }}>
                         Las cuentas del panel las administra el dueño.<br />
                         Si necesitas dar de alta a alguien, pídeselo.
                     </p>
                 ) : adminUsers.length === 0 ? (
-                    <p style={{ fontSize: '0.85rem', color: '#999', textAlign: 'center', padding: '1rem 0' }}>No se pudieron cargar los usuarios.</p>
+                    <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'center', padding: '1rem 0' }}>No se pudieron cargar los usuarios.</p>
                 ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                         {adminUsers.map(u => (
                             <div key={u.id} style={{
                                 display: 'flex', alignItems: 'center', gap: '0.75rem',
-                                padding: '0.75rem 0.85rem', borderRadius: '12px', background: '#f8f9fc',
+                                padding: '0.75rem 0.85rem', borderRadius: '12px', background: 'var(--bg-marfil)',
                                 transition: 'background 0.15s',
                             }}>
                                 <div style={{
                                     width: 36, height: 36, borderRadius: '50%',
-                                    background: u.id === currentUserId ? 'linear-gradient(135deg, #0c1220, #1a2332)' : '#e2e8f0',
-                                    color: u.id === currentUserId ? '#fff' : '#64748b',
+                                    background: u.id === currentUserId ? 'linear-gradient(135deg, var(--ink), var(--ink-soft))' : 'var(--bg-arena)',
+                                    color: u.id === currentUserId ? '#fff' : 'var(--text-secondary)',
                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                                     fontSize: '0.82rem', fontWeight: 800, flexShrink: 0,
                                 }}>
                                     {(u.email || '?')[0].toUpperCase()}
                                 </div>
                                 <div style={{ flex: 1, minWidth: 0 }}>
-                                    <p style={{ margin: 0, fontSize: '0.88rem', fontWeight: 600, color: '#0f172a' }}>
+                                    <p style={{ margin: 0, fontSize: '0.88rem', fontWeight: 600, color: 'var(--ink)' }}>
                                         {u.email}
                                         {u.id === currentUserId && (
                                             <span style={{
                                                 marginLeft: '0.5rem', fontSize: '0.62rem', fontWeight: 700,
-                                                background: '#dbeafe', color: '#1d4ed8', padding: '2px 7px',
+                                                background: 'var(--bg-arena)', color: 'var(--oro-ink)', padding: '2px 7px',
                                                 borderRadius: '100px', textTransform: 'uppercase', letterSpacing: '0.04em',
                                             }}>Tú</span>
                                         )}
@@ -622,7 +622,7 @@ const SettingsSection = () => {
                                             }}>Dueño</span>
                                         )}
                                     </p>
-                                    <p style={{ margin: 0, fontSize: '0.72rem', color: '#94a3b8' }}>
+                                    <p style={{ margin: 0, fontSize: '0.72rem', color: 'var(--text-muted)' }}>
                                         Desde {fmtDate(u.created_at)}
                                     </p>
                                 </div>
@@ -652,7 +652,7 @@ const SettingsSection = () => {
                             <button className="modal-close" onClick={() => setConfirmDelete(null)}>&times;</button>
                         </div>
                         <div className="modal-body">
-                            <p style={{ fontSize: '0.92rem', color: '#334155', lineHeight: 1.6 }}>
+                            <p style={{ fontSize: '0.92rem', color: 'var(--ink)', lineHeight: 1.6 }}>
                                 ¿Estás seguro de eliminar a <strong>{confirmDelete.email}</strong>? Ya no podrá acceder al panel de administración.
                             </p>
                         </div>
@@ -676,7 +676,7 @@ const SettingsSection = () => {
                         </span>
                     </h3>
                 </div>
-                <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: '1rem', lineHeight: 1.5 }}>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1rem', lineHeight: 1.5 }}>
                     Recibe notificaciones cuando cambia el estado de un pedido. Se enviará un POST con los datos del pedido.
                 </p>
                 <div className="modal-field">
@@ -697,7 +697,7 @@ const SettingsSection = () => {
                     </button>
                 </div>
                 {testResult && (
-                    <p style={{ marginTop: '0.75rem', fontSize: '0.85rem', color: testResult.startsWith('Error') ? '#ef4444' : '#10b981' }}>
+                    <p style={{ marginTop: '0.75rem', fontSize: '0.85rem', color: testResult.startsWith('Error') ? 'var(--error-ink)' : 'var(--oro-ink)' }}>
                         {testResult}
                     </p>
                 )}
@@ -714,7 +714,7 @@ const SettingsSection = () => {
                         </span>
                     </h3>
                 </div>
-                <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: '1rem', lineHeight: 1.5 }}>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1rem', lineHeight: 1.5 }}>
                     Plantillas para responder rapido en el chat. Formato: <code>emoji label|texto de respuesta</code>, una por linea.
                 </p>
                 <div className="modal-field">
@@ -746,19 +746,19 @@ const SettingsSection = () => {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem 0' }}>
                     <div>
                         <p style={{ margin: 0, fontSize: '0.88rem', fontWeight: 500 }}>Sonido de notificacion</p>
-                        <p style={{ margin: 0, fontSize: '0.78rem', color: '#94a3b8' }}>Reproducir sonido al recibir mensaje nuevo</p>
+                        <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-muted)' }}>Reproducir sonido al recibir mensaje nuevo</p>
                     </div>
                     <button
                         onClick={handleToggleSound}
                         style={{
                             width: 48, height: 26, borderRadius: 13, border: 'none', cursor: 'pointer',
-                            background: soundEnabled ? '#25D366' : '#d1d5db', position: 'relative',
+                            background: soundEnabled ? 'var(--oro)' : 'var(--hairline)', position: 'relative',
                             transition: 'background 0.2s',
                         }}
                     >
                         <span style={{
                             position: 'absolute', top: 3, left: soundEnabled ? 25 : 3,
-                            width: 20, height: 20, borderRadius: '50%', background: '#fff',
+                            width: 20, height: 20, borderRadius: '50%', background: 'var(--bg-color)',
                             transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
                         }} />
                     </button>

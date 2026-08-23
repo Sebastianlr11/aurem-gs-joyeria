@@ -13,21 +13,21 @@ import { GRUPOS, ORDER_STATUSES, SOURCE_META, STATUS_META, VENTAS_VIVAS, coincid
 import { ConfirmModal, ShipModal, SourceBadge, StatusBadge, StatusConfirmModal } from './piezas';
 
 const NEXT_ACTION_COD = {
-    pendiente:  { next: 'procesando', label: 'Procesar',          cls: 'action--blue' },
-    procesando: { next: 'enviado',    label: 'Marcar enviado',    cls: 'action--purple' },
-    enviado:    { next: 'entregado',  label: 'Marcar entregado',  cls: 'action--teal' },
-    confirmado: { next: 'procesando', label: 'Procesar',          cls: 'action--blue' },
+    pendiente:  { next: 'procesando', label: 'Procesar' },
+    procesando: { next: 'enviado',    label: 'Marcar enviado' },
+    enviado:    { next: 'entregado',  label: 'Marcar entregado' },
+    confirmado: { next: 'procesando', label: 'Procesar' },
 };
 
 const NEXT_ACTION_PREPAID = {
-    pendiente:  { next: 'pagado',     label: 'Confirmar pago',    cls: 'action--green' },
-    pagado:     { next: 'procesando', label: 'Procesar',          cls: 'action--blue' },
-    procesando: { next: 'enviado',    label: 'Marcar enviado',    cls: 'action--purple' },
-    enviado:    { next: 'entregado',  label: 'Marcar entregado',  cls: 'action--teal' },
+    pendiente:  { next: 'pagado',     label: 'Confirmar pago' },
+    pagado:     { next: 'procesando', label: 'Procesar' },
+    procesando: { next: 'enviado',    label: 'Marcar enviado' },
+    enviado:    { next: 'entregado',  label: 'Marcar entregado' },
     /* 'confirmado' es del diseño viejo. No se usa desde hace tiempo, pero la
        base todavía lo acepta, y sin esta línea un pedido así se quedaba sin
        acción siguiente: la tabla lo daba por cerrado sin estarlo. */
-    confirmado: { next: 'procesando', label: 'Procesar',          cls: 'action--blue' },
+    confirmado: { next: 'procesando', label: 'Procesar' },
 };
 
 /* Flujo contraentrega: pendiente → procesando → enviado → entregado.

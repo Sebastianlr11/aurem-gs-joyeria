@@ -160,7 +160,7 @@ export const ShipModal = ({ order, onClose, onConfirm }) => {
                     <button className="modal-close" onClick={onClose}>&#x2715;</button>
                 </div>
                 <form className="modal-form" onSubmit={handleSubmit}>
-                    <p style={{ fontSize: '0.9rem', color: '#666', marginBottom: '1rem' }}>
+                    <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
                         Pedido de <strong>{order.customer_name}</strong> — {order.product_name}
                     </p>
                     <div className="modal-field">
@@ -188,7 +188,7 @@ export const ShipModal = ({ order, onClose, onConfirm }) => {
 
 export const SourceBadge = ({ source }) => {
     const meta = SOURCE_META[source] || SOURCE_META.web;
-    return <span className={`source-badge ${meta.cls}`}>{meta.label}</span>;
+    return <span className="source-badge">{meta.label}</span>;
 };
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -227,15 +227,15 @@ export const StatusConfirmModal = ({ order, nextStatus, onClose, onConfirm }) =>
                     <button className="modal-close" onClick={onClose}>&#x2715;</button>
                 </div>
                 <div style={{ padding: '1.25rem 1.75rem 0' }}>
-                    <p style={{ fontSize: '0.92rem', color: '#334155', lineHeight: 1.6 }}>
+                    <p style={{ fontSize: '0.92rem', color: 'var(--ink)', lineHeight: 1.6 }}>
                         Cambiar el pedido de <strong>{order.customer_name}</strong> a:
                     </p>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginTop: '0.75rem' }}>
                         <StatusBadge status={order.status} />
-                        <span style={{ color: '#94a3b8' }}>&rarr;</span>
+                        <span style={{ color: 'var(--text-muted)' }}>&rarr;</span>
                         <StatusBadge status={nextStatus} />
                     </div>
-                    <p style={{ fontSize: '0.82rem', color: '#64748b', marginTop: '0.75rem' }}>
+                    <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '0.75rem' }}>
                         Producto: {order.product_name} &middot; ${fmt(order.amount)} COP
                     </p>
                 </div>

@@ -45,21 +45,27 @@ export const GRUPOS = [
 
 export const ORDER_STATUSES = ['pendiente', 'pagado', 'procesando', 'enviado', 'entregado', 'cancelado'];
 
+/* El canal no lleva color: los cuatro se ven igual y la palabra dice
+   cuál es. Tenía un pastel por canal —azul web, verde WhatsApp, rosa
+   TikTok— que venía de la plantilla y no de la marca. */
 export const SOURCE_META = {
-    web:      { label: 'Web',      cls: 'source--blue' },
-    whatsapp: { label: 'WhatsApp', cls: 'source--green' },
-    tiktok:   { label: 'TikTok',   cls: 'source--pink' },
-    manual:   { label: 'Manual',   cls: 'source--gray' },
+    web:      { label: 'Web' },
+    whatsapp: { label: 'WhatsApp' },
+    tiktok:   { label: 'TikTok' },
+    manual:   { label: 'Manual' },
 };
 
+/* El estado se lee por intensidad del punto, no por color: quieto (nada
+   ha pasado) → tenue (empezó) → vivo (va por la calle) → pleno (llegó)
+   → nulo (no fue). La escala está explicada en panel.css. */
 export const STATUS_META = {
-    pendiente:  { label: 'Pendiente',   cls: 'badge--yellow' },
-    pagado:     { label: 'Pagado',      cls: 'badge--green'  },
-    procesando: { label: 'Procesando',  cls: 'badge--orange' },
-    enviado:    { label: 'Enviado',     cls: 'badge--purple' },
-    entregado:  { label: 'Entregado',   cls: 'badge--blue'   },
-    cancelado:  { label: 'Cancelado',   cls: 'badge--red'    },
-    confirmado: { label: 'Confirmado',  cls: 'badge--blue'   }, // legacy
+    pendiente:  { label: 'Pendiente',   cls: 'badge--quieto' },
+    pagado:     { label: 'Pagado',      cls: 'badge--tenue'  },
+    procesando: { label: 'Procesando',  cls: 'badge--tenue'  },
+    enviado:    { label: 'Enviado',     cls: 'badge--vivo'   },
+    entregado:  { label: 'Entregado',   cls: 'badge--pleno'  },
+    cancelado:  { label: 'Cancelado',   cls: 'badge--nulo'   },
+    confirmado: { label: 'Confirmado',  cls: 'badge--tenue'  }, // legacy
 };
 
 /* Flujo pago anticipado: pendiente → pagado → procesando → enviado → entregado */

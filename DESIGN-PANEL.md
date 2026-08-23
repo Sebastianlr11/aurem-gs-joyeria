@@ -11,13 +11,15 @@ extends: DESIGN.md
 scope: src/panel.css, src/pages/admin/**
 colors:
   inherited: DESIGN.md
-  estado-punto-neutro: "#F2EAE0"
-  estado-punto-curso: "rgba(168,134,63,0.45)"
-  estado-punto-activo: "#A8863F"
-  estado-punto-cerrado: "#1C1714"
+  punto-quieto: "#F2EAE0"
+  punto-tenue: "rgba(168,134,63,0.45)"
+  punto-vivo: "#A8863F"
+  punto-pleno: "#1C1714"
+  punto-nulo: "#FFFFFF"
   error-ink: "#8C2F1E"
   error-ink-oscuro: "#5E2114"
   error-fondo: "#FBEDE9"
+  error-luz: "#D9A79A"
 typography:
   antetitulo:
     fontFamily: Mulish
@@ -126,17 +128,30 @@ contradice la marca entera y que además nadie memoriza.
 **La solución del panel: todas las insignias son iguales y el estado va en un
 punto.** Fondo blanco, tinta cacao, y un círculo de 7px con línea de pelo delante:
 
-| Punto | Significa | Color |
-|---|---|---|
-| Arena | Todavía no arranca (`pendiente`) | `--bg-arena` |
-| Oro al 45% | Va en camino (`pagado`, `procesando`) | `rgba(168,134,63,.45)` |
-| Oro pleno | Pide atención ahora (`enviado`) | `--oro` |
-| Cacao | Cerrado y bien (`entregado`) | `--ink` |
-| Hueco | Cerrado y mal (`cancelado`) | `--bg-color` con borde |
+| Clase | Punto | Token | En un pedido | En una anotación |
+|---|---|---|---|---|
+| `badge--quieto` | Arena | `--punto-quieto` | `pendiente` | Prioridad baja |
+| `badge--tenue` | Oro al 45% | `--punto-tenue` | `pagado`, `procesando` | Normal |
+| `badge--vivo` | Oro pleno | `--punto-vivo` | `enviado` | Alta |
+| `badge--pleno` | Cacao | `--punto-pleno` | `entregado` | Urgente |
+| `badge--nulo` | Hueco, con borde | `--punto-nulo` | `cancelado` | — |
 
 Se lee por **intensidad**, no por matiz: cuanto más oscuro el punto, más avanzado
 el pedido. Funciona en escala de grises y para quien no distingue colores, que es
 justo lo que un arcoíris no hace.
+
+**Las clases se llaman por intensidad, no por color, y esa es la parte importante.**
+Se llamaban `badge--yellow`, `badge--blue`, `badge--purple`… y el mapa se hizo por
+nombre de color, no por significado: `pagado` acabó con el punto de «cerrado» y
+`entregado` con el de «empezando». Estuvo así hasta el 23 de agosto de 2026. Con los
+nombres de la escala el error deja de ser posible, porque el nombre **es** el orden.
+
+La misma escala manda en todo lo que tiene estado en el panel, no sólo en los pedidos:
+el distintivo de quién atiende el chat (`.chat-mode-badge`), el estado del pedido dentro
+de la ficha del contacto (`.chat-info-order-status`), el punto de Valentina
+(`.chat-agente-punto`), las existencias de una pieza (`.prod-punto`) y el pulso del
+tiempo real (`.chat-rt-status`). Sobre cacao la escala se invierte: el punto lleno es el
+claro (ver `.od-hero .status-badge`).
 
 ### El error
 
@@ -334,19 +349,29 @@ próximo. Verificado sobre **2.892 elementos en siete pantallas**: 1.120 cambiar
 tamaño —era el objetivo— y **cero desbordes nuevos**. Los saltos mayores fueron **hacia
 arriba**: había etiquetas a 9,6px y el suelo ahora es 10,88px.
 
-**Los 45 que quedan no son deuda: son decisiones.** De los 202 que quedaban por la mañana
-se mapearon 157, y los que siguen escritos a pelo están ahí a propósito, en tres grupos:
+**Y los que codificaban un estado pasaron a la escala del punto.** Eran los 26 que
+quedaron fuera del mapeo automático, porque cambiarlos al token más próximo los volvía
+grises y les quitaba el significado: el verde del «modo IA», el ámbar del control manual,
+el azul de «procesando», el verde de «resuelto», los rosados de «va mal». No se les cambió
+el color: se les cambió el **componente**, para que el estado viaje en el punto de
+intensidad y no en el matiz. De paso aparecieron dos bolsas más de color suelto que las
+herramientas no veían porque no miraban ahí:
 
-- **Colores que codifican un estado** (26 valores): el verde del «modo IA», el de «pagado»,
-  el azul de «procesando», el ámbar del modo manual, los rosados de «va mal». Cambiarlos al
-  token más cercano los vuelve grises y **les quita el significado**. Lo correcto no es
-  cambiarles el color: es pasarlos al **punto de intensidad** que define este documento, y
-  eso es tocar componentes, no colores.
-- **El gris de los acuses de WhatsApp** (`#8696A0`, `#9CA3AF`), que imita los ticks de la
-  aplicación real. Cambiarlo rompe el reconocimiento.
-- **Los de terceros y los especificados**: el verde de WhatsApp (`#25D366`, `#1EBE5D`), el
-  verde de «resuelto» (`#2E5D46`) y el degradado del punzón (`#241E1A`, que `DESIGN.md`
-  fija).
+- **142 líneas de CSS que `Dashboard.jsx` inyectaba en un `<style>`**, y que por ir en el
+  documento **le ganaban a `panel.css`**. De sus 25 clases, 14 estaban muertas y el resto
+  eran pasteles de Tailwind: por eso los distintivos de canal seguían saliendo azul, verde
+  y rosa aunque `panel.css` dijera otra cosa desde agosto. El bloque se borró entero.
+- **41 colores escritos a mano en `style={{…}}`** dentro de las secciones. Dos de ellos
+  —`#94a3b8` y `#999` sobre blanco— **no llegaban a AA**: 2,44:1 y 2,85:1.
+
+Después de eso, en `src/panel.css` quedan **tres** hexadecimales: el verde de WhatsApp
+(`#25D366`) sobre el icono de WhatsApp, la definición del token `--error-luz` y uno dentro
+de un comentario. `npm run css:pisadas` da **0 bloques** en el panel.
+
+Lo que sigue escrito a pelo está ahí a propósito: el verde de WhatsApp sobre el glifo de
+WhatsApp, y el degradado del punzón (`#241E1A`, que `DESIGN.md` fija). Los grises de los
+acuses (`#8696A0`, `#9CA3AF`) **sí se cambiaron**, a `--text-muted`: los tres acuses ya se
+distinguen por el visto —uno, dos, dos en oro—, que es como los distingue WhatsApp.
 
 **Cómo se decidió cada uno, que es lo que hace que esto no sea un reemplazo a ciegas.** El
 mapeo mira tres cosas, no una:
