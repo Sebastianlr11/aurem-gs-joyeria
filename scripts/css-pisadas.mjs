@@ -19,7 +19,10 @@
  */
 import fs from 'node:fs'
 
-const RUTA = 'src/index.css'
+/* Desde que el CSS son dos archivos —la tienda y el panel— hay que poder
+   apuntar a cualquiera de los dos. Sin argumento, los mira los dos. */
+const RUTAS = process.argv.filter((a) => a.endsWith('.css'))
+const ARCHIVOS = RUTAS.length ? RUTAS : ['src/index.css', 'src/panel.css']
 
 /* Los comentarios se reemplazan por sus mismos saltos de línea. Quitarlos
    correría la numeración, y un informe que apunta a la línea equivocada es
@@ -27,92 +30,134 @@ const RUTA = 'src/index.css'
 const sinComentarios = (t) => t.replace(/\/\*[\s\S]*?\*\//g, (m) => '\n'.repeat((m.match(/\n/g) || []).length))
 
 function bloques(texto) {
-  const lineas = texto.split('\n')
-  const pila = []
+  /* Se recorre carácter a carácter y no línea a línea. La versión anterior
+     apilaba el contexto cuando una línea EMPEZABA por @media y lo desapilaba
+     cuando una línea era exactamente "}", así que una regla de una sola línea
+     —`@media (min-width: 769px) { .admin-layout { ... } }`, que las hay a
+     docenas— se apilaba y no se desapilaba nunca. El contexto quedaba
+     contaminado para todo lo que viniera después, y dos reglas que en realidad
+     viven en medias distintas parecían estar en el mismo sitio.
+
+     Eso no era un detalle: este informe se usa para decidir qué declaraciones
+     sobran, y con el contexto mal, borrar lo que dice sí cambia la página. */
   const out = []
+  const pila = []          // contextos @media/@supports abiertos, por profundidad
   let i = 0
+  let linea = 1
+  let inicioPrelude = 0
+  let preludeLinea = 1
+  const n = texto.length
 
-  while (i < lineas.length) {
-    const s = lineas[i].trim()
+  const salta = (desde, hasta) => {
+    for (let k = desde; k < hasta; k++) if (texto[k] === '\n') linea++
+  }
 
-    if (s.startsWith('@media') || s.startsWith('@supports')) { pila.push(s); i++; continue }
-    if (s.startsWith('@')) { i++; continue }
+  while (i < n) {
+    const c = texto[i]
 
-    if (s.includes('{') && !s.startsWith('}')) {
-      const selector = s.split('{')[0].trim()
-      let prof = (s.match(/{/g) || []).length - (s.match(/}/g) || []).length
-      const cuerpo = []
-      let j = i + 1
-      while (j < lineas.length && prof > 0) {
-        prof += (lineas[j].match(/{/g) || []).length - (lineas[j].match(/}/g) || []).length
-        if (prof > 0) cuerpo.push(lineas[j])
+    if (c === '{') {
+      const prelude = texto.slice(inicioPrelude, i).trim()
+      const esAt = prelude.startsWith('@')
+
+      if (esAt) {
+        pila.push({ texto: prelude, prof: pila.length })
+        salta(inicioPrelude, i + 1)
+        i++; inicioPrelude = i; preludeLinea = linea
+        continue
+      }
+
+      /* Regla normal: se busca su cierre contando llaves. */
+      let prof = 1, j = i + 1
+      while (j < n && prof > 0) {
+        if (texto[j] === '{') prof++
+        else if (texto[j] === '}') prof--
         j++
       }
+      const cuerpo = texto.slice(i + 1, j - 1)
+      const lineaIni = preludeLinea
 
       const props = new Map()
-      let limpio = true
-      for (const l of cuerpo) {
-        const m = /^\s*([a-zA-Z-]+)\s*:\s*([^;]+);\s*$/.exec(l)
-        if (m) props.set(m[1], m[2].trim())
-        else if (l.trim()) limpio = false
+      let limpio = !cuerpo.includes('{')
+      if (limpio) {
+        for (const trozo of cuerpo.split(';')) {
+          const t = trozo.trim()
+          if (!t) continue
+          const m = /^([a-zA-Z-]+)\s*:\s*([\s\S]+)$/.exec(t)
+          if (m) props.set(m[1], m[2].trim())
+          else limpio = false
+        }
       }
 
-      // Se ignoran los fotogramas de las animaciones y los selectores en lista.
-      if (limpio && selector && !/^\d|^from\b|^to\b/.test(selector)) {
-        out.push({ ini: i + 1, fin: j, ctx: pila.join(' | '), selector, props })
+      salta(inicioPrelude, j)
+      const lineaFin = linea
+      if (limpio && prelude && !/^\d|^from\b|^to\b/.test(prelude)) {
+        out.push({ ini: lineaIni, fin: lineaFin, ctx: pila.map((p) => p.texto).join(' | '), selector: prelude, props })
       }
-      i = j
+      i = j; inicioPrelude = i; preludeLinea = linea
       continue
     }
 
-    if (s === '}' && pila.length) pila.pop()
+    if (c === '}') {
+      if (pila.length) pila.pop()
+      salta(inicioPrelude, i + 1)
+      i++; inicioPrelude = i; preludeLinea = linea
+      continue
+    }
+
     i++
   }
   return out
 }
 
-const css = sinComentarios(fs.readFileSync(RUTA, 'utf8'))
-const bs = bloques(css)
-const filtro = process.argv[2]
+const filtro = process.argv.slice(2).find((a) => !a.endsWith('.css'))
 
 /* Para cada selector, en cada contexto, se recorren sus apariciones en orden
    y se anota qué propiedad pisa a cuál. */
-const porSelector = new Map()
-for (const b of bs) {
-  if (b.selector.includes(',')) continue
-  const clave = `${b.ctx}||${b.selector}`
-  if (!porSelector.has(clave)) porSelector.set(clave, [])
-  porSelector.get(clave).push(b)
-}
+function analizar(ruta) {
+  const css = sinComentarios(fs.readFileSync(ruta, 'utf8'))
+  const bs = bloques(css)
 
-const hallazgos = []
-for (const [clave, apariciones] of porSelector) {
-  if (apariciones.length < 2) continue
-  const [, selector] = clave.split('||')
-  if (filtro && !selector.includes(filtro)) continue
+  const porSelector = new Map()
+  for (const b of bs) {
+    if (b.selector.includes(',')) continue
+    const clave = `${b.ctx}||${b.selector}`
+    if (!porSelector.has(clave)) porSelector.set(clave, [])
+    porSelector.get(clave).push(b)
+  }
 
-  for (let a = 0; a < apariciones.length - 1; a++) {
-    const pisadas = []
-    for (const [prop, valor] of apariciones[a].props) {
-      for (let b = a + 1; b < apariciones.length; b++) {
-        const despues = apariciones[b].props.get(prop)
-        if (despues !== undefined && despues !== valor) {
-          pisadas.push({ prop, valor, gana: despues, linea: apariciones[b].ini })
-          break
+  const hallazgos = []
+  for (const [clave, apariciones] of porSelector) {
+    if (apariciones.length < 2) continue
+    const [, selector] = clave.split('||')
+    if (filtro && !selector.includes(filtro)) continue
+
+    for (let a = 0; a < apariciones.length - 1; a++) {
+      const pisadas = []
+      for (const [prop, valor] of apariciones[a].props) {
+        for (let b = a + 1; b < apariciones.length; b++) {
+          const despues = apariciones[b].props.get(prop)
+          if (despues !== undefined && despues !== valor) {
+            pisadas.push({ prop, valor, gana: despues, linea: apariciones[b].ini })
+            break
+          }
         }
       }
-    }
-    if (pisadas.length) {
-      hallazgos.push({
-        selector,
-        ctx: apariciones[a].ctx,
-        linea: apariciones[a].ini,
-        total: apariciones[a].props.size,
-        pisadas,
-      })
+      if (pisadas.length) {
+        hallazgos.push({
+          archivo: ruta,
+          selector,
+          ctx: apariciones[a].ctx,
+          linea: apariciones[a].ini,
+          total: apariciones[a].props.size,
+          pisadas,
+        })
+      }
     }
   }
+  return hallazgos
 }
+
+const hallazgos = ARCHIVOS.flatMap(analizar)
 
 if (!hallazgos.length) {
   console.log(filtro ? `Nada pisado en "${filtro}".` : 'Ninguna regla pisada. Raro, pero bueno.')
@@ -122,13 +167,18 @@ if (!hallazgos.length) {
 const inertes = hallazgos.filter((h) => h.pisadas.length === h.total)
 
 console.log(`${hallazgos.length} bloques con declaraciones que no hacen nada`)
-console.log(`${inertes.length} de ellos completamente inertes: se pueden borrar enteros\n`)
+console.log(`${inertes.length} de ellos completamente inertes: se pueden borrar enteros`)
+for (const r of ARCHIVOS) {
+  const n = hallazgos.filter((h) => h.archivo === r).length
+  console.log(`   ${r}: ${n}`)
+}
+console.log()
 
 for (const h of hallazgos.sort((a, b) => b.pisadas.length - a.pisadas.length).slice(0, filtro ? 99 : 25)) {
-  const marca = h.pisadas.length === h.total ? ' ← INERTE ENTERO' : ''
-  console.log(`L${h.linea}  ${h.selector}${h.ctx ? `  [${h.ctx}]` : ''}${marca}`)
+  const marca = h.pisadas.length === h.total ? ' \u2190 INERTE ENTERO' : ''
+  console.log(`${h.archivo}:${h.linea}  ${h.selector}${h.ctx ? `  [${h.ctx}]` : ''}${marca}`)
   for (const p of h.pisadas) {
-    console.log(`      ${p.prop}: ${p.valor}   →   L${p.linea} gana con ${p.gana}`)
+    console.log(`      ${p.prop}: ${p.valor}   \u2192   L${p.linea} gana con ${p.gana}`)
   }
   console.log()
 }

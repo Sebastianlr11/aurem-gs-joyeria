@@ -436,10 +436,11 @@ Cosas que ya costaron un incidente. Léelas antes de tocar lo que describen.
 - **Qué es "del panel" no se decide por el nombre de la clase.** Se intentó por prefijos y
   `.joyero` —que es la ficha de producto— acabó en el panel y rompió la ficha. El criterio
   es dónde se usa: sólo en `src/pages/admin/` y en ningún otro sitio.
-- **`index.css` arrastra capas del diseño anterior que deshacen los cambios nuevos.**
-  Antes de dar por bueno un cambio de CSS, corre `npm run css:pisadas`. Hoy reporta **82**
-  bloques con declaraciones pisadas — y lee la primera línea de su salida, no cuentes los
-  bloques impresos: sólo enseña los 25 peores.
+- **Antes de dar por bueno un cambio de CSS, corre `npm run css:pisadas`.** Mira los dos
+  archivos y hoy reporta **4** bloques con declaraciones pisadas, desde los 143 que había.
+  Lee la primera línea de su salida, no cuentes los bloques impresos: sólo enseña los 25
+  peores. Acepta una ruta (`node scripts/css-pisadas.mjs src/panel.css`) y un filtro de
+  selector.
 - **390px no basta para probar móvil.** El iframe es la única forma de medir de verdad
   el comportamiento en pantallas reales en esta sesión.
 - **Hay dos píxeles de Meta con el mismo nombre y sólo uno recibe eventos.** Verifica el

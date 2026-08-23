@@ -1987,13 +1987,6 @@ textarea:focus-visible {
 
 /* --- Rejillas heredadas (páginas legales / catálogo) --- */
 
-@media (max-width: 968px) {
-
-  .container {
-    padding-left: 1.5rem;
-    padding-right: 1.5rem;
-  }
-}
 
 /* --- Movimiento reducido --- */
 @media (prefers-reduced-motion: reduce) {
@@ -2209,18 +2202,6 @@ textarea:focus-visible {
 
 .catalogo-buscar input::placeholder {
   color: var(--text-muted);
-}
-
-.catalogo-orden {
-  padding: 0.625rem 1.125rem;
-  background: var(--bg-color);
-  border: 1px solid var(--hairline);
-  border-radius: 100px;
-  font-family: inherit;
-  font-size: 0.875rem;
-  color: var(--ink);
-  cursor: pointer;
-  outline: none;
 }
 
 .catalogo-precio-label {
@@ -2499,7 +2480,6 @@ textarea:focus-visible {
 .ficha {
   background: var(--bg-marfil);
   min-height: 100vh;
-  padding-top: 6rem;
   padding-bottom: 7rem;
 }
 
@@ -2837,8 +2817,6 @@ textarea:focus-visible {
 
 /* Relacionadas */
 .ficha-relacionadas {
-  margin-top: 7rem;
-  padding-top: 3rem;
   border-top: 1px solid var(--hairline);
 }
 
@@ -2861,7 +2839,6 @@ textarea:focus-visible {
 .ficha-relacionadas-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1.5rem;
   margin-top: 1.75rem;
 }
 
@@ -2910,21 +2887,6 @@ textarea:focus-visible {
 
 .product-page-back-wrap {
   padding: 1.5rem 0 0;
-}
-
-.product-page-back {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  letter-spacing: 0.04em;
-  transition: color 0.25s ease;
-}
-
-.product-page-back:hover {
-  color: var(--text-primary);
 }
 
 /* Hero grid — mismo que siempre, en container */
@@ -3240,11 +3202,6 @@ textarea:focus-visible {
 }
 
 /* ── Dashboard ("Panel Dashboard") ── */
-.dash {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
 @keyframes modalSlideIn {
   from { opacity: 0; transform: translateY(16px) scale(0.97); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
@@ -3326,20 +3283,15 @@ textarea:focus-visible {
 .buy-modal-form {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
 }
 
 .buy-modal-field {
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
 }
 .buy-modal-field label {
-  font-size: 0.8rem;
-  font-weight: 600;
   color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
 }
 .buy-modal-field input {
   padding: 0.7rem 0.875rem;
@@ -3356,27 +3308,13 @@ textarea:focus-visible {
   border-color: var(--accent-gold);
   box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.12);
 }
-.buy-modal-input--error { border-color: #e53e3e !important; }
 .buy-modal-field-error {
-  font-size: 0.75rem;
-  color: #e53e3e;
   font-weight: 500;
 }
 
 .buy-modal-submit {
-  margin-top: 0.25rem;
-  padding: 0.875rem 1.5rem;
-  background: var(--text-primary);
   color: #fff;
-  border-radius: 8px;
-  font-size: 0.95rem;
-  font-weight: 600;
   letter-spacing: 0.02em;
-  transition: background 0.2s, transform 0.15s;
-}
-.buy-modal-submit:hover {
-  background: #222;
-  transform: translateY(-1px);
 }
 
 .buy-modal-loading {
@@ -3435,28 +3373,20 @@ textarea:focus-visible {
 
 .buy-modal-city-note {
   display: block;
-  margin-top: 0.5rem;
-  font-size: 0.78rem;
-  color: #888;
-  line-height: 1.5;
 }
 .buy-modal-city-note-link {
   background: none;
   border: none;
   padding: 0;
-  color: var(--accent-gold);
   font-weight: 600;
   cursor: pointer;
   font-size: inherit;
-  text-decoration: underline;
 }
 
 /* ── Form header with back button ────────────────────────────── */
 .buy-modal-form-header {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
-  margin-bottom: 0.25rem;
 }
 .buy-modal-form-header .buy-modal-title { margin-bottom: 0; }
 
@@ -3464,13 +3394,6 @@ textarea:focus-visible {
 .buy-cod-notice {
   display: flex;
   align-items: flex-start;
-  gap: 0.5rem;
-  background: #f0faf4;
-  border: 1px solid #b7e4c7;
-  border-radius: 8px;
-  padding: 0.75rem 1rem;
-  font-size: 0.82rem;
-  color: #276749;
   margin-bottom: 0.5rem;
 }
 .buy-cod-notice svg { flex-shrink: 0; margin-top: 2px; }
@@ -3489,7 +3412,6 @@ textarea:focus-visible {
   appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 0.85rem center;
   cursor: pointer;
   transition: border-color 0.2s;
 }
@@ -3499,29 +3421,6 @@ textarea:focus-visible {
 /* ============================================================
    CONFIRMACION page
    ============================================================ */
-
-.confirm-actions {
-  display: flex;
-  gap: 0.75rem;
-  justify-content: center;
-  flex-wrap: wrap;
-}
-
-.confirm-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.75rem 1.5rem;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  font-weight: 600;
-  transition: var(--transition-smooth);
-}
-.confirm-btn--primary {
-  background: var(--text-primary);
-  color: #fff;
-}
-.confirm-btn--primary:hover { background: #333; }
 
 /* ============================================================
    LEGAL PAGES
@@ -4381,8 +4280,7 @@ textarea:focus-visible {
   .catalogo-promesa {
     flex-direction: column;
     align-items: flex-start;
-    gap: 0.25rem;
-  }
+}
   .catalogo-promesa-valor { text-align: left; }
 
   /* El buscador se quedaba en un tercio del ancho, sin sitio ni para
@@ -4390,7 +4288,6 @@ textarea:focus-visible {
   .catalogo-herramientas { flex-wrap: wrap; }
   .catalogo-buscar { flex: 1 1 100%; }
   .catalogo-buscar input { width: 100%; }
-  .catalogo-orden { flex: 1 1 100%; }
 }
 
 /* ================================================================
@@ -4406,10 +4303,9 @@ textarea:focus-visible {
   .catalogo-filtros {
     position: sticky;
     top: var(--navbar-espacio);
-    background: rgba(251, 247, 242, 0.94);
     backdrop-filter: blur(18px);
     -webkit-backdrop-filter: blur(18px);
-  }
+}
 
   .catalogo-filtros-fila {
     flex-wrap: nowrap;
@@ -4525,8 +4421,7 @@ textarea:focus-visible {
 }
 
 .catalogo-panel-grupo { display: flex; flex-direction: column; gap: 0.625rem; }
-.catalogo-panel-grupo .catalogo-buscar,
-.catalogo-panel-grupo .catalogo-orden { width: 100%; }
+.catalogo-panel-grupo .catalogo-buscar{ width: 100%; }
 .catalogo-panel-grupo .catalogo-buscar input { width: 100%; }
 .catalogo-panel-grupo .riel { max-width: 100%; }
 
@@ -4540,9 +4435,6 @@ textarea:focus-visible {
 .catalogo-panel-pie .btn-pill { flex: 1; justify-content: center; }
 .catalogo-panel-pie .btn-pill:disabled { opacity: 0.4; }
 
-@media (min-width: 769px) {
-  .catalogo-panel-velo { display: none; }
-}
 
 /* ─── Abono del contraentrega ────────────────────────────────────────
    La cuenta partida en dos, antes de pagar. Que el saldo se lea claro es lo
@@ -4574,7 +4466,6 @@ textarea:focus-visible {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding-right: 44px;
   min-width: 0;
 }
 .pago-eyebrow {
@@ -5219,10 +5110,7 @@ textarea:focus-visible {
      banda oscura arranca debajo de la píldora de navegación y la pieza queda
      estrangulada contra ella. */
   padding-top: clamp(96px, 11vw, 132px);
-  padding-bottom: clamp(32px, 5vw, 64px);
 }
-.ficha-hero .ficha-volver a { color: rgba(255, 255, 255, 0.72); }
-.ficha-hero .ficha-volver a:hover { color: var(--oro-luz); }
 .ficha-hero .eyebrow { color: var(--oro-luz); }
 .ficha-hero .eyebrow::before { background: var(--oro-luz); }
 .ficha-hero .ficha-ref { color: rgba(255, 255, 255, 0.45); }
@@ -5232,10 +5120,7 @@ textarea:focus-visible {
 .ficha-hero .ficha-precio-valor { color: #fff; }
 .ficha-hero .ficha-precio-moneda,
 .ficha-hero .ficha-precio-envio { color: rgba(255, 255, 255, 0.6); }
-.ficha-hero .ficha-precio-envio-fuerte { color: rgba(255, 255, 255, 0.85); }
-.ficha-hero .ficha-precio-bloque,
-.ficha-hero .ficha-garantias,
-.ficha-hero .ficha-pagos { border-color: rgba(255, 255, 255, 0.14); }
+.ficha-hero .ficha-precio-bloque{ border-color: rgba(255, 255, 255, 0.14); }
 
 /* El punzón sobre cacao invierte: oro claro sobre fondo oscuro, que es donde
    cumple el contraste. */
@@ -5265,9 +5150,6 @@ textarea:focus-visible {
 .ficha-hero .ficha-btn-comprar:hover { background: #fff; }
 .ficha-hero .ficha-btn-wa { border-color: var(--oro-luz); color: var(--oro-luz); background: transparent; }
 .ficha-hero .ficha-btn-wa:hover { background: rgba(227, 201, 144, 0.08); }
-
-.ficha-hero .ficha-garantia-t { color: #fff; }
-.ficha-hero .ficha-garantia-s { color: rgba(255, 255, 255, 0.6); }
 .ficha-hero .pm-label { color: rgba(255, 255, 255, 0.45); }
 
 /* ─── La ficha del joyero ────────────────────────────────────────────
@@ -5653,9 +5535,7 @@ textarea:focus-visible {
    miniaturas que iba abajo partía el fondo oscuro en dos y le quitaba a la
    joya el único sitio donde tiene toda la luz. */
 .ficha-hero .pg-gallery {
-  border-radius: 2px;
   background: var(--ink);
-  border: 1px solid rgba(255, 255, 255, 0.08);
   /* Contra el alto de la pantalla y no contra el ancho: hay que descontar el
      navbar de arriba y la barra de compra de abajo, o la pieza se sale por el
      borde inferior y la primera impresión se pierde. */
@@ -5670,7 +5550,6 @@ textarea:focus-visible {
   /* contain y no cover: recortar un anillo por los bordes es perder
      justamente lo que la persona vino a mirar. */
   object-fit: contain;
-  padding: clamp(24px, 4vw, 48px);
   background: var(--ink);
 }
 .ficha-hero .pg-gallery-main:hover > img { transform: none; }
@@ -5701,11 +5580,8 @@ textarea:focus-visible {
 /* Miniaturas verticales, arriba a la derecha. */
 .ficha-hero .pg-gallery-thumbs {
   position: absolute;
-  right: clamp(16px, 3vw, 32px);
-  top: clamp(16px, 3vw, 32px);
   z-index: 3;
   display: flex;
-  flex-direction: column;
   gap: 10px;
 }
 .ficha-hero .pg-gallery-thumb {
@@ -5815,28 +5691,22 @@ textarea:focus-visible {
   text-transform: uppercase;
 }
 
-.ficha-hero .ficha-sellos { margin-top: 22px; }
-
 @media (max-width: 768px) {
   .ficha-hero .ficha-grid { grid-template-columns: 1fr; }
   /* En móvil el cuadrado ya lo da el ancho de la pantalla; solo hay que
      evitar que se coma el viewport entero y deje los botones fuera. */
-  .ficha-hero .pg-gallery { max-height: 62vh; }
 
   /* Volver y miniaturas pegados al borde de la foto. El despeje del navbar
      en móvil lo da el aire de la página, así que los 84px de escritorio se
      sumaban a ese aire y dejaban el botón flotando a media foto. */
   .ficha-hero .pg-volver,
   .ficha-hero .pg-gallery-thumbs { top: 16px; }
-  .ficha-hero .ficha-info { padding: clamp(28px, 6vw, 40px) 24px 40px; }
 }
 
 /* Las garantías sobre cacao. Se quedaron con el fondo marfil de cuando la
    ficha era clara, y encima el texto se pasó a blanco: blanco sobre marfil,
    invisible. Sobre oscuro el panel no necesita fondo — basta la retícula de
    líneas de pelo en blanco tenue. */
-.ficha-hero .ficha-garantias { background: rgba(255, 255, 255, 0.14); }
-.ficha-hero .ficha-garantia { background: var(--ink); }
 
 /* Volver y miniaturas despejan el navbar. Al ir la foto a sangre quedaron a
    la misma altura que la píldora de navegación, peleando con ella. */
@@ -5848,8 +5718,6 @@ textarea:focus-visible {
    como una etiqueta. Sobre cacao va con la misma cara que los punzones. */
 .ficha-hero .product-page-badges {
   position: absolute;
-  left: clamp(16px, 3vw, 32px);
-  bottom: clamp(16px, 3vw, 32px);
   z-index: 3;
   display: flex;
   gap: 8px;
@@ -5970,10 +5838,7 @@ textarea:focus-visible {
   .ficha-hero .pg-gallery {
     position: relative;
     inset: auto;
-    height: auto;
     min-height: 0;
-    aspect-ratio: 1;
-    max-height: 62vh;
     /* A sangre. El diseño viejo capaba la galería a 400px y la centraba, así
        que en cualquier teléfono más ancho que eso —414, 428, 430— la foto
        quedaba con una franja de cacao a cada lado. Y las esquinas redondeadas
@@ -5981,7 +5846,7 @@ textarea:focus-visible {
     max-width: none;
     margin: 0;
     border-radius: 0;
-  }
+}
 
   .ficha-hero .ficha-grid { min-height: 0; }
 }
@@ -6286,12 +6151,12 @@ textarea:focus-visible {
     flex-direction: column;
     align-items: flex-start;
     gap: 3px;
-    padding: 12px 10px;
     border-bottom: none;
-  }
+}
   .catalogo-promesa + .catalogo-promesa { border-left: 1px solid var(--hairline); }
   .catalogo-promesa-titulo { font-size: 0.6rem; letter-spacing: 0.14em; }
-  .catalogo-promesa-valor { font-size: 0.75rem; line-height: 1.3; text-align: left; }
+  .catalogo-promesa-valor { line-height: 1.3; text-align: left;
+}
 
   /* Todo lo de abajo persigue una sola cosa: que en el primer viewport se vea
      una joya.
@@ -6442,7 +6307,7 @@ textarea:focus-visible {
     border-radius: 0;
     overflow-x: auto;
     scrollbar-width: none;
-  }
+}
   .catalogo-filtros .riel::-webkit-scrollbar { display: none; }
 
   .catalogo-filtros .riel-btn {
@@ -6473,7 +6338,6 @@ textarea:focus-visible {
    la petición —lo que había que reducir eran las tarjetas—. Aquí solo queda
    el aire de la rejilla y del conteo. */
 @media (min-width: 769px) {
-  .catalogo-resumen { padding-bottom: 0.75rem; }
   .catalogo-grid { gap: 1.25rem; }
 }
 
@@ -6481,8 +6345,8 @@ textarea:focus-visible {
    y el titular baja a 56: sigue mandando en la página sin empujar la primera
    fila de fotos fuera del primer vistazo. */
 @media (min-width: 769px) {
-  .catalogo-filtros-fila { padding-top: 0.4375rem; padding-bottom: 0.4375rem; }
-  .catalogo-resumen { padding-bottom: 0.625rem; }
+  .catalogo-resumen {
+}
 }
 
 /* Último recorte. El relleno de arriba se queda en 92px: el navbar termina
@@ -6521,7 +6385,6 @@ textarea:focus-visible {
      renglón y la franja pasaba de 102 a 158 por 40px de campo de texto.
      Sin wrap, lo que sobra se lo reparten el riel de categorías —que ya
      sabe desplazarse— y el buscador. */
-  .catalogo-filtros-fila { flex-wrap: nowrap; }
   .catalogo-filtros-fila > .riel { min-width: 0; flex: 0 1 auto; }
   .catalogo-herramientas { flex: 0 1 230px; min-width: 0; }
   .catalogo-buscar { width: 100%; min-width: 0; }
@@ -6743,7 +6606,6 @@ textarea:focus-visible {
     right: 0;
     bottom: 0;
     z-index: 30;
-    display: flex;
     justify-content: center;
     padding: 16px 24px 24px;
     background: linear-gradient(to top, rgba(251, 247, 242, 0.94) 55%, rgba(251, 247, 242, 0));
@@ -6752,7 +6614,7 @@ textarea:focus-visible {
     opacity: 0;
     transform: translateY(120%);
     transition: transform 0.45s var(--ease), opacity 0.3s ease;
-  }
+}
   .catalogo-filtros-flotante--visible { opacity: 1; transform: none; }
   .catalogo-filtros-flotante .catalogo-filtros-btn {
     pointer-events: auto;
