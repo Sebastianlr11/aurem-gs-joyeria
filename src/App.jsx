@@ -49,6 +49,7 @@ const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'))
 const TermsOfService = lazy(() => import('./pages/TermsOfService'))
 const ReturnsPolicy = lazy(() => import('./pages/ReturnsPolicy'))
 const RingSizeGuide = lazy(() => import('./pages/RingSizeGuide'))
+const NoEncontrado  = lazy(() => import('./pages/NoEncontrado'))
 
 const PageLoader = () => (
   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
@@ -125,6 +126,18 @@ function App() {
             <ProtectedRoute>
               <ChatPanel />
             </ProtectedRoute>
+          } />
+
+          {/* Va la última, y con Navbar y Footer como cualquier página pública:
+              quien cae aquí llegó por un enlace roto y lo que necesita es poder
+              seguir navegando, no un callejón. Sin esta ruta, una URL inválida
+              renderizaba la página en blanco. */}
+          <Route path="*" element={
+            <>
+              <Navbar />
+              <NoEncontrado />
+              <Footer />
+            </>
           } />
         </Routes>
       </Suspense>
