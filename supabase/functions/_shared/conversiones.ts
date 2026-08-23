@@ -75,7 +75,7 @@ export type Venta = {
    * campaña aprende a tiempo; con la compra saliendo después, el ROAS sigue
    * siendo el de verdad.
    */
-  evento?: 'pedido' | 'compra'
+  evento?: 'pedido' | 'compra' | 'cancelacion'
 }
 
 /* Los nombres que espera cada plataforma. Coinciden a propósito con los que
@@ -84,15 +84,28 @@ export type Venta = {
 const NOMBRES = {
   compra: { meta: 'Purchase', tiktok: 'Purchase' },
   pedido: { meta: 'InitiateCheckout', tiktok: 'InitiateCheckout' },
+  /* Evento personalizado: ninguna de las dos plataformas tiene uno estándar
+     para devoluciones. La lista de Meta son 17 eventos y no hay ninguno de
+     reembolso ni forma documentada de revertir un Purchase ya mandado.
+
+     O sea que esto NO resta la venta de lo que Meta reporta. Sirve para tres
+     cosas: verlo en el Administrador de eventos, poder colgarle una conversión
+     personalizada, y darle a la plataforma una señal de qué clics acaban mal.
+     El retorno de verdad se corrige en el panel, contra el libro de caja. */
+  cancelacion: { meta: 'PedidoCancelado', tiktok: 'PedidoCancelado' },
 } as const
 
 /* El identificador del evento. La compra usa el número de pedido pelado
-   porque es el mismo que manda el píxel del navegador. El pedido lleva
-   sufijo: son dos hechos distintos sobre la misma venta, y sin distinguirlos
-   la plataforma pensaría que es el mismo contado dos veces y descartaría
-   uno. */
+   porque es EXACTAMENTE el mismo que manda el píxel del navegador: de ahí sale
+   la deduplicación entre las dos vías.
+
+   Los demás llevan sufijo. Son hechos distintos sobre la misma venta —el
+   pedido, la compra, la cancelación— y sin distinguirlos la plataforma
+   pensaría que es el mismo contado tres veces y descartaría dos. */
 const idEvento = (venta: Venta) =>
-  venta.evento === 'pedido' ? `${venta.pedidoId}-pedido` : venta.pedidoId
+  venta.evento && venta.evento !== 'compra'
+    ? `${venta.pedidoId}-${venta.evento}`
+    : venta.pedidoId
 
 /* ─── Cifrado ───────────────────────────────────────────────────────
    Las dos plataformas piden SHA-256 en hexadecimal, sobre el valor

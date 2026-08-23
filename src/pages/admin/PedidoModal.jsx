@@ -199,13 +199,29 @@ export default function PedidoModal({ order, products = [], onClose, onSaved }) 
         if (err) { setError(err.message || 'No se pudo guardar el pedido.'); return; }
 
         /* Un pedido cargado a mano y ya cobrado es una venta igual de real que
-           las demás, y los anuncios tienen que enterarse. */
+           las demás, y los anuncios tienen que enterarse. Y si se cancela uno
+           que ya se contó, también: es la única forma de que la cancelación
+           salga en el Administrador de eventos.
+
+           Aquí es donde tiene que estar y no en changeStatus(), porque cancelar
+           un pedido se hace editándolo, no avanzándolo — la tabla de Pedidos
+           sólo ofrece el paso siguiente del flujo, y 'cancelado' nunca lo es.
+
+           Los dos avisos son idempotentes del lado del servidor: cada uno tiene
+           su candado y la cancelación además exige que la venta se haya avisado
+           antes, así que no pasa nada si esto se dispara de más. */
         const id = isEdit ? order.id : creado?.id;
-        if (id && form.status === 'pagado') {
+        const aviso =
+            form.status === 'pagado'    ? {} :
+            form.status === 'cancelado' ? { evento: 'cancelacion' } : null;
+
+        if (id && aviso) {
             try {
-                await supabase.functions.invoke('conversion-pedido', { body: { pedidoId: id } });
+                await supabase.functions.invoke('conversion-pedido', {
+                    body: { pedidoId: id, ...aviso },
+                });
             } catch (ex) {
-                console.error('No se pudo avisar la venta a los anuncios:', ex);
+                console.error('No se pudo avisar a los anuncios:', ex);
             }
         }
         onSaved();
