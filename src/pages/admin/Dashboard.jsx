@@ -685,12 +685,35 @@ const DashboardHome = ({ products, orders, chatsPendientes, actualizadoEn, onRec
        dos fechas casi nunca coinciden, y el gráfico se leía como caja diaria
        sin serlo.
 
-       Fechar la plata de verdad pide un libro de movimientos que no existe:
+       Fechar la plata de verdad pedía un libro de movimientos que no existía:
        orders sólo tiene abono_pagado_en y status_updated_at, y el segundo es
        el ÚLTIMO cambio de estado, así que se pisa solo — cuando un pedido
-       llega a entregado ya no queda rastro de cuándo se pagó. Así que la barra
-       mide lo que sí se puede fechar sin inventar, que es lo que se pidió cada
-       día, y el texto lo dice con esas palabras.
+       llega a entregado ya no queda rastro de cuándo se pagó.
+
+       ESO YA ESTÁ RESUELTO. La tabla `pagos` existe desde el 22 de agosto de
+       2026 y anota cada movimiento con su fecha: el abono el día que entró y
+       el saldo el día de la entrega, por separado. Un disparador en `orders`
+       la mantiene cuadrada con recibidoDe() sola.
+
+       Esta barra sigue midiendo pedidos y no caja por una razón de calendario,
+       no de datos: cuando se hizo el libro no había ocurrido todavía ninguna
+       venta real, así que un gráfico de caja habría salido vacío catorce días
+       seguidos. Se dejó armado a propósito, para llenarlo cuando haya con qué.
+
+       CÓMO CAMBIARLO CUANDO LLEGUE EL MOMENTO
+       Traer del servidor las filas de `pagos` de los últimos catorce días,
+       excluyendo los pedidos de prueba:
+
+         select p.ocurrido_en::date as dia, sum(p.monto) as caja
+           from pagos p join orders o on o.id = p.order_id
+          where not o.es_prueba and p.ocurrido_en >= now() - interval '14 days'
+          group by 1;
+
+       y usar `caja` donde ahora va `pedido`. El texto de abajo vuelve a "Hoy
+       entraron $X" y la nota "Lo que se pidió, no lo que se cobró" sobra,
+       porque entonces sí será lo cobrado. */
+    /* Mientras tanto, la barra mide lo que sí se puede fechar sin inventar:
+       lo que se pidió cada día, y el texto lo dice con esas palabras.
 
        Los cancelados no cuentan: un pedido que se cayó no es demanda. */
     const DIAS_TENDENCIA = 14;
