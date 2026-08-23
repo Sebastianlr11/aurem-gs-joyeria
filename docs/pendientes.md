@@ -462,41 +462,52 @@ Verificado en el navegador, antes y después: `font-weight` de 800 a 400, `font-
 apilados y sin desbordes. `css:pisadas` pasó de 84 bloques a 82 y `.hero-h1` ya no sale en
 la lista.
 
-### 16. 🟡 `src/index.css` — podado lo muerto, falta partirlo
+### 16. ✅ `src/index.css` era un solo archivo de 17.850 líneas — resuelto
 
-**14.939 líneas**, desde las 17.850 del 23 de agosto.
+Ahora son dos: **`index.css` con 6.981 líneas** (la tienda y lo compartido) y
+**`panel.css` con 7.922** (el panel), y por el camino se fueron 2.910 líneas muertas.
 
-**Hecho el 23 de agosto: fuera 340 clases que no usa nadie.** Se cruzaron las 1.622 clases
-que define el CSS contra **todo** lo que puede emitir HTML en el repositorio —`src/`,
-`emails/`, `api/`, `supabase/functions/`, `index.html`, `scripts/`—: 83 archivos. Se
-quitaron 502 reglas y selectores, 2.910 líneas y 55 kB de fuente. **El bundle de CSS pasó
-de 300 kB a 255** (de 50,3 a 42,7 gzip), que son 7,5 kB menos en cada visita.
+**Lo que gana la clienta.** El CSS que descarga quien abre la portada pasó de **50,3 kB a
+19,2 kB comprimidos**. Menos de la mitad. Dos pasos:
 
-**La trampa que casi se lleva por delante el chat:** 46 clases parecían muertas y se
-construyen al vuelo — `chat-bubble--${msg.role}` genera `chat-bubble--user` y
-`chat-bubble--assistant`, que no aparecen literales en ninguna parte. Borrarlas habría
-dejado los mensajes sin estilo. El script descarta toda clase cuyo prefijo aparezca pegado
-a una interpolación; quien repita esto tiene que hacer lo mismo.
+| | CSS público (gzip) |
+|---|---|
+| Antes | 50,3 kB |
+| Tras podar 340 clases muertas | 42,7 kB |
+| Tras separar el panel | **19,2 kB** |
 
-**Verificado por huella de estilos, no a ojo.** Se capturaron las propiedades calculadas
-—22 por elemento— de **2.207 elementos en nueve páginas** (portada, catálogo, ficha, guía
-de tallas, privacidad, devoluciones, confirmación, login y recuperar contraseña), antes y
-después. **Cero diferencias.**
+**Paso 1 — fuera 340 clases que no usa nadie.** Se cruzaron las 1.622 clases del CSS contra
+los 83 archivos del repositorio que pueden emitir HTML. 502 reglas y 2.910 líneas menos.
 
-**Lo que falta, y por qué no se hizo:**
+> ⚠️ **La trampa:** 46 clases parecían muertas y se construyen al vuelo —
+> `chat-bubble--${msg.role}` genera `chat-bubble--user`, que no está escrita en ninguna
+> parte—. Borrarlas habría dejado los mensajes del chat sin estilo. El script descarta
+> toda clase cuyo prefijo aparezca pegado a una interpolación.
 
-1. **Partir el archivo en `index.css` + `admin.css`.** Medido: **137 kB, el 36 %, es CSS
-   que sólo usa el panel**, y hoy lo descarga cada clienta que abre la portada. Es el
-   premio gordo que queda. **Pero mover reglas cambia el orden de la cascada**: una regla
-   del panel que hoy está en la línea 5.000 pierde contra una compartida de la 12.000, y
-   en un archivo aparte cargado después ganaría. `css:pisadas` reporta 82 bloques con
-   declaraciones pisadas, muchos del panel, así que el riesgo es concreto y no teórico.
-   **No se hizo porque no se puede verificar sin entrar al panel**, y eso pide una sesión.
-2. **Unificar las tres capas de la ficha** (`.ficha-*`, `.product-page-*` y una reescritura
-   al final). Después de lo anterior.
+**Paso 2 — el panel a su propio archivo**, importado por `Dashboard.jsx` y `ChatPanel.jsx`,
+que ya van en trozos aparte. La tienda no lo pide nunca.
 
-Los 82 bloques pisados **no son lo mismo que las clases muertas**: son clases vivas cuyas
-declaraciones anula otra regla posterior. Se atacan con el punto 1, no borrando.
+> ⚠️ **Y la trampa gorda, que costó dos intentos:** decidir qué es "del panel" **por el
+> nombre de la clase no funciona**. Con una lista de prefijos, `.joyero` —que es la ficha
+> de producto— se fue al panel y la ficha se rompió: la sección creció de 1.263 a 7.349 px
+> y perdió su relleno. Se midió y se revirtió. El criterio bueno sale de cruzar cada clase
+> contra **dónde se usa de verdad**: sólo se mueve la que aparece en `src/pages/admin/` y en
+> ningún otro sitio. Diez reglas mixtas (`.chat-contact-item.active`, `.pm-riel-datos
+> .punzon`) se quedan donde estaban a propósito.
+
+**Cómo se verificó, que es la parte que importa.** Mover reglas cambia el orden de la
+cascada, y ante igual especificidad ahora gana `panel.css`. Se capturaron **24 propiedades
+calculadas de cada uno de 3.691 elementos, en once pantallas** —las ocho del panel más
+portada, catálogo y ficha—, antes y después: **cero diferencias**.
+
+Hizo falta un intento fallido para llegar ahí: la primera medición daba 486 diferencias
+falsas porque las fuentes no habían terminado de cargar cuando se medía. El control
+—medir dos veces el mismo CSS— lo destapó. La huella ahora espera a `document.fonts.ready`.
+
+**Lo que queda de este hallazgo:** unificar las tres capas de la ficha (`.ficha-*`,
+`.product-page-*` y una reescritura al final), y los 82 bloques que `css:pisadas` reporta
+con declaraciones pisadas. Eso **no es CSS muerto**: son clases vivas cuyas declaraciones
+anula otra regla posterior, y se atacan leyendo, no borrando.
 
 ### 17. `Dashboard.jsx` son 4.380 líneas (y `ChatPanel.jsx` 2.115)
 

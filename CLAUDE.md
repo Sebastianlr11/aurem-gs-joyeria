@@ -419,10 +419,18 @@ Cosas que ya costaron un incidente. Léelas antes de tocar lo que describen.
   esto, es de plan Pro y en este proyecto responde 403.
 - **Gmail borra los `<style>` externos.** Por eso `emails/_marca.tsx` duplica los tokens
   en línea y usa Georgia en vez de Marcellus.
-- **`src/index.css` tiene 17.850 líneas y arrastra capas del diseño anterior que
-  deshacen los cambios nuevos.** Antes de dar por bueno un cambio de CSS, corre
-  `npm run css:pisadas`. Hoy reporta **84** bloques con declaraciones muertas — y lee la
-  primera línea de su salida, no cuentes los bloques impresos: sólo enseña los 25 peores.
+- **El CSS son DOS archivos desde el 23-ago:** `src/index.css` (tienda y compartido,
+  6.981 líneas) y `src/panel.css` (el panel, 7.922), que importan `Dashboard.jsx` y
+  `ChatPanel.jsx`. **`panel.css` se carga después, así que ante igual especificidad gana.**
+  Si mueves una regla de un archivo al otro, compruébalo: se hizo midiendo 24 propiedades
+  calculadas de 3.691 elementos en once pantallas.
+- **Qué es "del panel" no se decide por el nombre de la clase.** Se intentó por prefijos y
+  `.joyero` —que es la ficha de producto— acabó en el panel y rompió la ficha. El criterio
+  es dónde se usa: sólo en `src/pages/admin/` y en ningún otro sitio.
+- **`index.css` arrastra capas del diseño anterior que deshacen los cambios nuevos.**
+  Antes de dar por bueno un cambio de CSS, corre `npm run css:pisadas`. Hoy reporta **82**
+  bloques con declaraciones pisadas — y lee la primera línea de su salida, no cuentes los
+  bloques impresos: sólo enseña los 25 peores.
 - **390px no basta para probar móvil.** El iframe es la única forma de medir de verdad
   el comportamiento en pantallas reales en esta sesión.
 - **Hay dos píxeles de Meta con el mismo nombre y sólo uno recibe eventos.** Verifica el

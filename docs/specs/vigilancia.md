@@ -40,6 +40,12 @@ El Dashboard lee `vigilancia_ultima` y muestra las averías y el "Revisado hace 
 | Pedidos despachados **sin costo anotado**, habiendo pauta corriendo | `:229` |
 | Endpoints que no responden o responden mal | `:255-259` |
 
+> **El webhook de Mercado Pago se espera en 401, no en 200.** Desde que la firma está
+> activa, un POST vacío y sin firmar es justo lo que debe rechazar. Con 200 el vigía
+> gritaba a diario por un webhook sano. Y esperar 401 avisa de lo contrario: si alguien
+> borrara `MP_WEBHOOK_SECRET`, la función volvería a aceptar todo con 200 y esta prueba se
+> encendería — es lo único del sistema que cazaría esa regresión.
+
 Los plazos (`:160-172`) son concretos, no genéricos, y **miran el flujo de pago, no sólo el
 estado**:
 

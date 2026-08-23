@@ -248,8 +248,18 @@ Deno.serve(async (req: Request) => {
   const base = Deno.env.get('SUPABASE_URL')!
   const sitio = Deno.env.get('APP_URL') ?? 'https://www.auremgsjoyeria.com'
 
+  /* El webhook espera 401 y NO 200, que es lo que decía antes.
+     Desde que `MP_WEBHOOK_SECRET` está puesto (23 de agosto de 2026), esta
+     sonda —un POST vacío y sin firmar— es exactamente lo que la función debe
+     rechazar. Con [200] el vigía llevaba días gritando "el webhook respondió
+     401" por un webhook que funcionaba perfectamente, y una alarma que siempre
+     suena es una alarma que nadie lee: justo lo que este archivo dice evitar.
+
+     Y esperar 401 vale doble: si alguien borra el secreto, la función vuelve a
+     fallar ABIERTA —acepta cualquier cosa y devuelve 200— y entonces esta
+     prueba se enciende. Es la única cosa del sistema que avisaría de eso. */
   const pruebas: Array<[string, string, number[]]> = [
-    ['El webhook de Mercado Pago', `${base}/functions/v1/mp-webhook`, [200]],
+    ['El webhook de Mercado Pago', `${base}/functions/v1/mp-webhook`, [401]],
     ['El sitio', sitio, [200]],
   ]
 
