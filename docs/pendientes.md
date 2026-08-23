@@ -1024,3 +1024,44 @@ un archivo de prueba en Storage. La tienda pública también: catálogo, `envio_
 - El aviso `ERROR` de Supabase sobre la vista `envio_publico` **es un falso positivo aquí**:
   se comprobó su definición y expone dos columnas, `abono_envio` y `tope_contraentrega`.
   Es exactamente para lo que existe.
+
+---
+
+## 30. ✅ Nada avisaba de que el candado se aflojara — resuelto
+
+El hallazgo de [#29](#29--cualquiera-podía-registrarse-y-leerlo-todo--resuelto) no fue sólo
+que la seguridad del panel estuviera mal: fue que **llevaba seis meses mal y no lo dijo
+nadie.** Arreglarlo no cierra eso. Lo que faltaba era que la próxima vez se entere alguien
+sin tener que preguntar.
+
+El vigía ya corre cada hora y ya manda correo cuando algo se cae, así que el sitio estaba
+hecho. Se le añadieron dos comprobaciones, y las dos son de una clase distinta al resto:
+no miran que algo funcione, miran que **algo siga cerrado**.
+
+**1. El candado de la base** — `public.politicas_flojas()`. Devuelve políticas del panel
+que no exigen `es_del_equipo()`, tablas que se quedaron sin RLS y funciones
+`SECURITY DEFINER` sin `search_path` fijo. Las dos únicas excepciones son deliberadas y
+públicas: el catálogo y las fotos. Cualquier otra cosa es un hallazgo aunque sea legítima —
+el vigía informa, no decide.
+
+La función es `SECURITY DEFINER` y está **revocada de `public`, `anon` y `authenticated`**,
+con `execute` sólo para `service_role`. Enumerar los agujeros de RLS es exactamente lo que
+no se le enseña a nadie más, y hoy era el día de acordarse.
+
+**2. La configuración de acceso** — lee `/auth/v1/settings`, que es público. Habría cazado
+**los dos** problemas del mismo día: `disable_signup === false` (el registro abierto, que
+era el agujero) y `external.email === false` (el susto de después: apagar el proveedor de
+correo creyendo cerrar el registro apaga también la entrada, y no se nota hasta que alguien
+cierra sesión).
+
+### Comprobado
+
+- `politicas_flojas()` devuelve **cero** con la base como está.
+- Se aflojó a propósito la política de `vigilancia_ultima` a `using (true)`: la reportó
+  —*«la política no exige es_del_equipo()»*— y volvió a cero al restaurarla.
+- El vigía desplegado con el CLI y disparado a mano: **200, cero hallazgos**, sin errores en
+  los logs. Cero hallazgos aquí significa que las dos comprobaciones corrieron bien, porque
+  un fallo de cualquiera de las dos se reporta como hallazgo.
+
+Lo único que queda sin probar de punta a punta es que un hallazgo real acabe en un correo,
+porque comprobarlo manda una alerta de verdad al equipo.

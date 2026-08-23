@@ -283,6 +283,75 @@ Deno.serve(async (req: Request) => {
     }
   }
 
+  /* ── 7. El candado del panel ────────────────────────────────────────
+     La premisa de seguridad del panel —que tener sesión es ser del equipo—
+     estuvo rota seis meses y no lo dijo nadie: las políticas decían
+     `using (true)` y el registro público estaba abierto, así que cualquiera
+     con un correo podía leer y borrar los pedidos. Se arregló el 23 de agosto
+     de 2026, pero arreglarlo no basta. Esto es para que la próxima vez lo diga
+     alguien sin que haya que preguntar.
+
+     Son dos preguntas distintas y hacen falta las dos: una mira la base y la
+     otra mira la configuración de Supabase, que no deja rastro en la base y se
+     cambia con un clic desde el navegador. */
+
+  const { data: flojas, error: errFlojas } = await db.rpc('politicas_flojas')
+  if (errFlojas) {
+    hallazgos.push({
+      que: 'No se pudo revisar el candado del panel',
+      detalle: errFlojas.message,
+      grave: true,
+    })
+  } else if (flojas?.length) {
+    for (const f of flojas as Array<{ donde: string; politica: string; motivo: string }>) {
+      hallazgos.push({
+        que: `${f.donde} quedó sin candado`,
+        detalle: `${f.motivo}${f.politica === '—' ? '' : ` · política «${f.politica}»`}`,
+        grave: true,
+      })
+    }
+  }
+
+  /* La configuración de Auth. Esto habría cazado los DOS problemas del 23 de
+     agosto: el registro abierto, que era el agujero, y el susto de después
+     —apagar «Enable email provider» creyendo cerrar el registro, que apaga
+     también la ENTRADA—. Lo segundo es especialmente traicionero porque no se
+     nota: la sesión abierta se sigue renovando sola con el token de refresco,
+     y el fallo aparece días más tarde, cuando alguien cierre sesión o entre
+     desde otro aparato.
+
+     El endpoint es público y no necesita secreto: es el mismo que consulta el
+     navegador para saber qué botones de entrada pintar. */
+  try {
+    const conf = await fetch(`${base}/auth/v1/settings`, {
+      headers: { apikey: Deno.env.get('SUPABASE_ANON_KEY') ?? '' },
+      signal: AbortSignal.timeout(10_000),
+    })
+    if (!conf.ok) throw new Error(`respondió ${conf.status}`)
+    const auth = await conf.json()
+
+    if (auth.disable_signup === false) {
+      hallazgos.push({
+        que: 'El registro público está abierto',
+        detalle: 'Cualquiera con un correo puede crearse una cuenta. Authentication → Sign In / Providers → «Allow new users to sign up».',
+        grave: true,
+      })
+    }
+    if (auth.external?.email === false) {
+      hallazgos.push({
+        que: 'Nadie puede entrar al panel',
+        detalle: 'El proveedor de correo está apagado, así que la entrada con correo y contraseña no funciona. No se nota hasta que alguien cierre sesión. Authentication → Sign In / Providers → Email → «Enable email provider».',
+        grave: true,
+      })
+    }
+  } catch (e) {
+    hallazgos.push({
+      que: 'No se pudo revisar la configuración de acceso',
+      detalle: e instanceof Error ? e.message : String(e),
+      grave: false,
+    })
+  }
+
   console.log(`vigilancia · ${plural(hallazgos.length, 'hallazgo', 'hallazgos')}`)
 
   /* Se deja escrito SIEMPRE, encuentre o no encuentre. Escribir sólo cuando

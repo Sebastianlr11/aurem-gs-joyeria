@@ -40,6 +40,8 @@ El Dashboard lee `vigilancia_ultima` y muestra las averías y el "Revisado hace 
 | **Pedidos parados por plazo** (tabla `PLAZOS`) | `:160-172` |
 | Pedidos despachados **sin costo anotado**, habiendo pauta corriendo | `:229` |
 | Endpoints que no responden o responden mal | `:255-259` |
+| **El candado del panel**: políticas sin `es_del_equipo()`, tablas sin RLS, `SECURITY DEFINER` sin `search_path` | `:286` |
+| **La configuración de acceso**: registro abierto, o proveedor de correo apagado | `:315` |
 
 > **El webhook de Mercado Pago se espera en 401, no en 200.** Desde que la firma está
 > activa, un POST vacío y sin firmar es justo lo que debe rechazar. Con 200 el vigía
@@ -66,6 +68,32 @@ como se vende casi todo.
 
 El plazo `cobrar` es la única avería de la lista donde puede haber **plata recogida y sin
 registrar**, y hasta ahora no la miraba nadie.
+
+### El candado del panel
+
+Las dos últimas comprobaciones son de otra clase que el resto: no vigilan que algo esté
+funcionando, vigilan que **algo siga cerrado**. Existen por lo que se descubrió el 23 de
+agosto de 2026 — la premisa de seguridad del panel llevaba seis meses rota, con todas las
+políticas en `using (true)` y el registro público abierto, y **no lo dijo nadie**.
+Arreglarlo no bastaba: hacía falta que la próxima vez lo dijera alguien sin preguntar.
+
+La de la base pregunta a `public.politicas_flojas()`, una función `SECURITY DEFINER`
+reservada a la llave de servicio —enumerar los agujeros de RLS es justo lo que no se le
+enseña a nadie más—. Trae tres cosas: políticas del panel que no exigen `es_del_equipo()`,
+tablas que se quedaron sin RLS, y funciones `SECURITY DEFINER` sin `search_path` fijo. Las
+dos únicas excepciones son deliberadas y públicas: el catálogo y las fotos de las piezas.
+Cualquier otra cosa es un hallazgo aunque sea legítima — **el vigía informa, no decide.**
+
+La de la configuración lee `/auth/v1/settings`, que es público y no necesita secreto.
+Mira dos banderas, y cada una corresponde a un problema real de ese mismo día:
+
+- `disable_signup === false` → el registro está abierto, que era el agujero.
+- `external.email === false` → **nadie puede entrar al panel.** Es el susto de después:
+  al cerrar el registro es facilísimo apagar «Enable email provider» en vez de «Allow new
+  users to sign up», y el primero apaga también la *entrada*. No se nota, porque la sesión
+  abierta se sigue renovando sola con el token de refresco; el fallo aparece días más tarde,
+  cuando alguien cierre sesión o entre desde otro aparato. Sin esta comprobación, la tienda
+  se queda sin panel y nadie se entera hasta que es urgente.
 
 ### Tablas
 
