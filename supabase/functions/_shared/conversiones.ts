@@ -268,7 +268,31 @@ async function aMeta(venta: Venta, momento: number): Promise<string> {
      
      El resto de las ventas —las del sitio— siguen siendo eventos web, y ahí
      lo obligatorio es el user agent. */
-  const porWhatsApp = !!venta.ctwaClid
+  /* TRES caminos, no dos, y elegir mal cuesta la venta entera en el informe.
+
+     Antes eran dos: con ctwa_clid iba como 'business_messaging' y TODO lo
+     demás como 'website'. El problema es que "todo lo demás" incluye los
+     pedidos que toma Valentina por WhatsApp sin que la clienta haya hecho
+     clic en ningún anuncio — que son 16 de cada 17 pedidos de este negocio.
+
+     Esos se mandaban como evento web sin agente de usuario, porque no hubo
+     navegador del cual sacarlo. Y Meta descarta los eventos 'website' que
+     llegan sin client_user_agent: no es opcional, está escrito abajo. O sea
+     que el canal por el que se vende casi todo se estaba reportando de una
+     forma que Meta puede tirar a la basura.
+
+     'chat' es el valor que Meta tiene para justo esto —"conversión hecha por
+     una app de mensajería, SMS o mensajería en línea"— y no pide agente de
+     usuario, porque no tendría sentido pedirlo.
+
+     El discriminante no es el canal sino si HUBO navegador, y eso lo prueba
+     el user agent: si lo hay, la venta ocurrió en el sitio. */
+  const deAnuncioWhatsApp = !!venta.ctwaClid
+  const deNavegador = !!venta.ua
+
+  const origen = deAnuncioWhatsApp ? 'business_messaging'
+    : deNavegador ? 'website'
+      : 'chat'
 
   const evento: Record<string, unknown> = {
     event_name: NOMBRES[venta.evento ?? 'compra'].meta,
@@ -276,12 +300,14 @@ async function aMeta(venta: Venta, momento: number): Promise<string> {
     /* El mismo identificador que usa el píxel del navegador. Meta junta las
        dos y cuenta una sola venta. */
     event_id: idEvento(venta),
-    action_source: porWhatsApp ? 'business_messaging' : 'website',
+    action_source: origen,
   }
 
-  if (porWhatsApp) {
+  if (deAnuncioWhatsApp) {
     evento.messaging_channel = 'whatsapp'
-  } else if (venta.url) {
+  } else if (deNavegador && venta.url) {
+    /* Sólo en los eventos web: una URL de origen en un pedido que se tomó
+       por chat es inventarse un sitio por el que la clienta nunca pasó. */
     evento.event_source_url = venta.url
   }
 
@@ -300,11 +326,17 @@ async function aMeta(venta: Venta, momento: number): Promise<string> {
         ctwa_clid: venta.ctwaClid,
         /* Meta descarta los eventos con action_source 'website' que llegan
            sin client_user_agent. No es opcional: sin esto la venta no se
-           registra. Viene del checkout, guardado con el pedido. En los de
-           mensajería no aplica —no hubo navegador— y mandarlos vacíos sólo
-           ensuciaría. */
-        client_user_agent: porWhatsApp ? null : venta.ua,
-        client_ip_address: porWhatsApp ? null : venta.ip,
+           registra. Viene del checkout, guardado con el pedido.
+
+           Por eso mismo, la ausencia de user agent es justo lo que hace que
+           esa venta NO sea un evento web — ver los tres caminos de arriba. Un
+           pedido tomado por chat va como 'chat' y ahí no se pide.
+
+           La IP sí se manda siempre que exista, también en los de chat: ayuda
+           a cruzar la venta con una persona y no depende del navegador. En los
+           de anuncio de WhatsApp se omite a propósito, que es como venía. */
+        client_user_agent: deNavegador ? venta.ua : null,
+        client_ip_address: deAnuncioWhatsApp ? null : venta.ip,
       }),
       custom_data: limpio({
         currency: 'COP',
