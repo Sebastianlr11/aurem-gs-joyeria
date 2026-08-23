@@ -5,7 +5,7 @@ Cada uno lleva dónde está, por qué importa y el arreglo propuesto.
 
 > **Revisado contra el código el 23 de agosto de 2026.** Cerrados ese día: la página de
 > error (#13), las meta de las páginas legales (#14), el JSON-LD y el Hero (#9, #10), el
-> lint en cero dentro del build (#23), la firma de Mercado Pago (#3, a falta del secreto)
+> lint en cero dentro del build (#23), la firma de Mercado Pago (#3, secreto incluido)
 > y la superficie de seguridad versionada (#4, a medias y a propósito).
 >
 > Lo ya resuelto está en [Resueltos](#resueltos) o marcado ✅ donde estaba. Un 🟡 quiere
@@ -112,34 +112,44 @@ se rechaza dentro.
 
 ## 🟠 Alto — gobernanza
 
-### 3. ✅ `mp-webhook` no valida la firma de Mercado Pago — código listo, falta el secreto
+### 3. ✅ `mp-webhook` no valida la firma de Mercado Pago — resuelto
 
-**Dónde:** `supabase/functions/mp-webhook/index.ts` — no hay `x-signature` ni
-`MP_WEBHOOK_SECRET` en ninguna parte del repositorio.
+**Dónde:** `supabase/functions/mp-webhook/index.ts`
 
-**Cuál es el riesgo real, con precisión.** La función **no se cree lo que le mandan**:
-toma el id del aviso y consulta el pago contra la API de Mercado Pago con
-`MP_ACCESS_TOKEN` antes de tocar nada. Eso significa que **no se puede falsificar un pago
-aprobado** invocando el endpoint — que sería lo grave.
+**Cuál era el riesgo real, con precisión.** La función **nunca se creyó lo que le
+mandaban**: toma el id del aviso y consulta el pago contra la API de Mercado Pago con
+`MP_ACCESS_TOKEN` antes de tocar nada. Eso significa que **no se podía falsificar un pago
+aprobado** invocando el endpoint — que habría sido lo grave.
 
-Lo que sí queda abierto: cualquiera puede invocar el endpoint con ids arbitrarios y
+Lo que sí quedaba abierto: cualquiera podía invocar el endpoint con ids arbitrarios y
 provocar consultas a la API de MP (posible agotamiento de cuota) y reprocesos. El candado
-`conversion_enviada_en` evita que se dupliquen conversiones y correos, así que el daño es
-ruido y consumo, no dinero ni datos.
+`conversion_enviada_en` evitaba que se duplicaran conversiones y correos, así que el daño
+era ruido y consumo, no dinero ni datos.
 
-**Hecho el 23 de agosto.** `firmaValida()` está en `mp-webhook/index.ts`, calcada de
-`wa-webhook`: HMAC SHA-256 sobre el esquema de Mercado Pago con comparación de tiempo
-constante. **Falla abierto mientras `MP_WEBHOOK_SECRET` no esté configurado** —diferencia
-deliberada con `wa-webhook`, para que desplegar el código antes de tener el secreto no
-tumbe los pagos—. Queda pendiente **de ti**: sacar el secreto del panel de Mercado Pago y
-ponerlo con `npx supabase secrets set MP_WEBHOOK_SECRET=… --project-ref suqwfpyeegcucflfutxd`.
-Hasta entonces el hallazgo sigue vivo en la práctica.
+**Hecho el 23 de agosto, completo.** `firmaValida()` está en `mp-webhook/index.ts`,
+calcada de `wa-webhook`: HMAC SHA-256 sobre el esquema de Mercado Pago
+(`id:<data.id>;request-id:<x-request-id>;ts:<ts>;`) con comparación de tiempo constante.
+Y **`MP_WEBHOOK_SECRET` ya está puesto** en los secretos de Supabase, así que la
+validación está activa de verdad, no en espera.
 
-**Arreglo propuesto (original).** Validar el `x-signature` que ya manda Mercado Pago, siguiendo su
-esquema `ts` + `v1` (HMAC SHA-256 sobre `id:<data.id>;request-id:<x-request-id>;ts:<ts>;`)
-con un `MP_WEBHOOK_SECRET` nuevo. Importante: **fallar cerrado sólo si el secreto está
-configurado**, para no tumbar los pagos el día del despliegue —el mismo patrón que ya usa
-`wa-webhook` con `WA_APP_SECRET`.
+*Verificado contra el endpoint real ese mismo día, y otra vez al cerrar este hallazgo:*
+sin `x-signature`, con firma inventada y con firma bien formada pero falsa, las tres
+responden **401** (antes las tres respondían 200); la notificación firmada por el
+simulador de Mercado Pago responde **200**.
+
+Dos detalles que conviene no perder:
+
+- **Falla abierto si el secreto desaparece** — diferencia deliberada con `wa-webhook`,
+  para que desplegar el código antes de tener el secreto no tumbe los pagos. Hoy el
+  secreto existe; si alguien lo borra, el endpoint vuelve a aceptar todo *en silencio*.
+- **Un pago real avisa por dos rutas.** En el panel de MP, la aplicación *Auremgsjoyeria*
+  tiene el webhook en modo productivo apuntando a la misma función con el evento *Pagos
+  (legacy)*, y además `create-preference` manda esa URL como `notification_url` de cada
+  preferencia. Es una red, no un problema: el candado `conversion_enviada_en` evita el
+  duplicado.
+
+**Lo único que falta ya no es red de seguridad sino confirmación:** un pago real de
+prueba, de punta a punta.
 
 ---
 

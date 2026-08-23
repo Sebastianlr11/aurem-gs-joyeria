@@ -150,9 +150,11 @@ incompleta.
 
 ## Límites conocidos y pendientes
 
-- **`mp-webhook` no valida la firma de Mercado Pago.** No se puede falsificar un pago
-  —la función consulta el pago real contra la API— pero el endpoint acepta invocaciones
-  arbitrarias. [pendientes #3](../pendientes.md).
+- ~~**`mp-webhook` no valida la firma de Mercado Pago.**~~ Resuelto el 23 de agosto:
+  `firmaValida()` valida el `x-signature` con `MP_WEBHOOK_SECRET`, que ya está puesto.
+  Sin firma o con firma falsa el endpoint responde 401. **Falla abierto si el secreto
+  desaparece**, a propósito, para que un despliegue sin secreto no tumbe los pagos.
+  [pendientes #3](../pendientes.md).
 - **La talla del selector de la ficha no llega al pedido.** Sólo al mensaje de WhatsApp.
 - Contraentrega es **sólo Bogotá**, forzado en el cliente.
 - La validación del formulario es por `onBlur`, no por submit.
