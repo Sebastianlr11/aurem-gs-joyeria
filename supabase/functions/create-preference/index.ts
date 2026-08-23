@@ -337,14 +337,32 @@ Deno.serve(async (req: Request) => {
         pending: `${appUrl}/confirmacion`,
       },
       external_reference: orderId,
-      /* A dónde avisa Mercado Pago cuando el pago cambia de estado.
-         Sin esto no avisa a ninguna parte: el cliente paga, la orden se queda
-         en "pendiente" para siempre, no sale el WhatsApp de confirmación y la
-         venta no llega ni a TikTok ni a Meta. Se descubrió en la primera
-         prueba con plata real —el pago entró y hubo que empujar el webhook a
-         mano—. Va en la preferencia y no en el panel de Mercado Pago para que
-         no dependa de una casilla que nadie recuerda haber marcado. */
-      notification_url: `${supabaseUrl}/functions/v1/mp-webhook`,
+      /* AQUÍ IBA `notification_url`, y se quitó el 23 de agosto de 2026.
+         Merece explicación porque parece que le estamos quitando al pago su
+         único aviso, y es al revés.
+
+         Se puso en su día porque un pago real entró y el pedido se quedó en
+         "pendiente": no había webhook configurado en el panel de Mercado Pago
+         y hubo que empujarlo a mano. La lección de entonces —"que no dependa
+         de una casilla que nadie recuerda haber marcado"— era buena, pero la
+         solución tenía un efecto que no se vio hasta el pago de prueba de hoy.
+
+         `notification_url` en una preferencia NO configura un webhook: configura
+         una notificación **IPN**, que es el mecanismo viejo. Llega como
+         `?id=…&topic=payment` en vez de `?data.id=…&type=payment`, y la propia
+         documentación de Mercado Pago dice que **a pesar de traer la cabecera
+         `x-Signature`, las IPN no se pueden validar con la clave secreta**. O
+         sea: desde que la firma está activa, cada IPN se rechaza con 401 por
+         diseño. En el pago de hoy se rechazaron nueve seguidas.
+
+         El que sí procesa el pago es el webhook del panel, en formato moderno y
+         con firma verificable: respondió 200 y el diagnóstico de Mercado Pago
+         lo reporta al 100 % de éxito. Con IPN fuera, queda un solo camino y
+         está firmado.
+
+         Si algún día ese webhook del panel se desconfigura, el vigía lo caza:
+         comprueba que mp-webhook responde 401 a un POST sin firmar, que es
+         justo lo que deja de pasar si alguien borra el secreto. */
       statement_descriptor: 'AUREM GS JOYERIA',
     }
 

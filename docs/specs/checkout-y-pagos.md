@@ -155,18 +155,26 @@ incompleta.
   Sin firma o con firma falsa el endpoint responde 401. **Falla abierto si el secreto
   desaparece**, a propósito, para que un despliegue sin secreto no tumbe los pagos.
   [pendientes #3](../pendientes.md).
-- 🟠 **El webhook *legacy* del panel de Mercado Pago recibe 401 en cada aviso.** Un pago
-  llega por dos rutas: la de la **preferencia** (`?data.id=…&type=payment`, que
-  `create-preference` pone como `notification_url`) y la del **panel** en modo productivo
-  (`?id=…&topic=payment`, más `topic=merchant_order`). **Sólo la primera valida.** La
-  segunda trae una firma que no cuadra con el manifiesto del esquema moderno, así que se
-  rechaza siempre — en el pago real del 23 de agosto se rechazaron 9 avisos seguidos.
+- ~~**El webhook del panel recibe 401 en cada aviso.**~~ **Resuelto el 23 de agosto, y el
+  culpable era nuestro código, no el panel.**
 
-  No se pierde ningún pago, porque la primera ruta hace todo el trabajo. Lo que no existe
-  es el respaldo que se creía tener, y Mercado Pago reintenta contra un endpoint que
-  siempre le contesta 401, que es como se acaba marcando un webhook como caído.
-  **Se arregla en el panel de Mercado Pago**, quitando el aviso legacy o pasándolo al
-  formato moderno. Los `merchant_order` tampoco los procesa la función.
+  Un pago llegaba por dos caminos. El del **panel de Mercado Pago** —sección *Webhooks*,
+  formato moderno `?data.id=…&type=payment`— trae firma verificable, responde **200** y es
+  el que procesa: en el pago real quedó registrado como `payment.created · 200 Entregada`.
+  El otro venía de **nuestra propia preferencia**: `create-preference` ponía
+  `notification_url`, y eso **no configura un webhook sino una notificación IPN**, el
+  mecanismo viejo, que llega como `?id=…&topic=payment` (más `topic=merchant_order`).
+
+  La documentación de Mercado Pago lo dice sin rodeos: *"Las notificaciones IPN van a ser
+  descontinuadas. Además, **a pesar de recibir el header `x-Signature`, no permiten la
+  validación mediante la clave secreta**"*. O sea que desde que la firma está activa,
+  **cada IPN se rechaza con 401 por diseño**. En el pago de prueba se rechazaron nueve.
+
+  Comprobado en el panel: la sección **IPN está vacía** —ninguna URL configurada— así que
+  las IPN salían únicamente de `notification_url`. Se quitó ese campo de la preferencia y
+  queda un solo camino, firmado. El comentario en `create-preference` cuenta la historia
+  entera, incluido por qué se había puesto.
+
 - **La talla del selector de la ficha no llega al pedido.** Sólo al mensaje de WhatsApp.
 - Contraentrega es **sólo Bogotá**, forzado en el cliente.
 - La validación del formulario es por `onBlur`, no por submit.
