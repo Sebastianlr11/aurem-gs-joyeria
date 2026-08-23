@@ -86,7 +86,8 @@ abrió**. Es el código más cuidado del frontend público en accesibilidad.
   crudo, sin `srcset` ni `width`/`height`. Provoca reflow y descarga la versión de 1600px
   en móvil — [pendientes #20](../pendientes.md).
 - Los rangos de precio están hardcodeados y no se ajustan al catálogo real.
-- `CATEGORIAS` incluye `Dijes`, que el `CHECK` de `supabase-schema.sql` no contempla — el
+- `CATEGORIAS` incluye `Dijes`, y el `CHECK` real de la base **sí lo contempla** (ver
+  `20260228_esquema_base.sql`); era el `supabase-schema.sql` viejo el que no — el
   esquema de la raíz está obsoleto, no la lista.
 - El botón flotante de WhatsApp se oculta en esta ruta a propósito.
 

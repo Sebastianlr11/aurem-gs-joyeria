@@ -44,13 +44,9 @@ ALTER TABLE public.chat_takeover ENABLE ROW LEVEL SECURITY;
 
 ALTER TABLE public.contact_tags ENABLE ROW LEVEL SECURITY;
 
-ALTER TABLE public.conversaciones ENABLE ROW LEVEL SECURITY;
-
 ALTER TABLE public.customers ENABLE ROW LEVEL SECURITY;
 
 ALTER TABLE public.gasto_pauta ENABLE ROW LEVEL SECURITY;
-
-ALTER TABLE public.message_history ENABLE ROW LEVEL SECURITY;
 
 ALTER TABLE public.notes ENABLE ROW LEVEL SECURITY;
 
@@ -71,10 +67,6 @@ ALTER TABLE public.taller_precios ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.vigilancia_ultima ENABLE ROW LEVEL SECURITY;
 
 ALTER TABLE public.whatsapp_conversaciones ENABLE ROW LEVEL SECURITY;
-
-ALTER TABLE public.whatsapp_conversaciones_respaldo ENABLE ROW LEVEL SECURITY;
-
-ALTER TABLE public.whatsapp_dedup ENABLE ROW LEVEL SECURITY;
 
 
 /* ══ 2. Políticas: quién puede tocar qué ══ */
@@ -150,12 +142,6 @@ CREATE POLICY conocimiento_auth_read ON public.taller_conocimiento
 
 DROP POLICY IF EXISTS conocimiento_auth_write ON public.taller_conocimiento;
 CREATE POLICY conocimiento_auth_write ON public.taller_conocimiento
-  AS PERMISSIVE FOR ALL TO authenticated
-  USING (true)
-  WITH CHECK (true);
-
-DROP POLICY IF EXISTS conversaciones_admin ON public.conversaciones;
-CREATE POLICY conversaciones_admin ON public.conversaciones
   AS PERMISSIVE FOR ALL TO authenticated
   USING (true)
   WITH CHECK (true);
@@ -531,52 +517,6 @@ END;
 $function$
 ;
 
-CREATE OR REPLACE FUNCTION public.guardar_mensajes(p_whatsapp text, p_user_msg text, p_assistant_msg text)
- RETURNS void
- LANGUAGE plpgsql
- SECURITY DEFINER
-AS $function$
-DECLARE
-  v_ts   TEXT;
-  v_new  JSONB;
-BEGIN
-  v_ts := TO_CHAR(NOW() AT TIME ZONE 'America/Bogota', 'YYYY-MM-DD"T"HH24:MI:SS');
-
-  UPDATE public.conversaciones
-  SET
-    mensajes = (
-      WITH existing AS (
-        SELECT value AS m
-        FROM jsonb_array_elements(mensajes)
-        ORDER BY (value->>'ts') DESC
-        LIMIT 28
-      ),
-      added AS (
-        SELECT jsonb_build_object('role','user','content',p_user_msg,'ts',v_ts) AS m
-        UNION ALL
-        SELECT jsonb_build_object('role','assistant','content',p_assistant_msg,'ts',v_ts)
-      )
-      SELECT jsonb_agg(m ORDER BY (m->>'ts'))
-      FROM (SELECT m FROM existing UNION ALL SELECT m FROM added) t
-    ),
-    ultima_interaccion = NOW(),
-    updated_at         = NOW()
-  WHERE whatsapp = p_whatsapp;
-
-  IF NOT FOUND THEN
-    INSERT INTO public.conversaciones (whatsapp, mensajes)
-    VALUES (
-      p_whatsapp,
-      jsonb_build_array(
-        jsonb_build_object('role','user','content',p_user_msg,'ts',v_ts),
-        jsonb_build_object('role','assistant','content',p_assistant_msg,'ts',v_ts)
-      )
-    );
-  END IF;
-END;
-$function$
-;
-
 CREATE OR REPLACE FUNCTION public.marcar_cliente_de_prueba()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -655,36 +595,12 @@ end;
 $function$
 ;
 
-CREATE OR REPLACE FUNCTION public.obtener_conversacion(p_whatsapp text)
- RETURNS jsonb
- LANGUAGE plpgsql
- SECURITY DEFINER
-AS $function$
-DECLARE
-  v_conv public.conversaciones;
-BEGIN
-  SELECT * INTO v_conv
-  FROM public.conversaciones
-  WHERE whatsapp = p_whatsapp;
-
-  IF NOT FOUND THEN
-    INSERT INTO public.conversaciones (whatsapp, mensajes, contexto, estado)
-    VALUES (p_whatsapp, '[]'::jsonb, '{}'::jsonb, 'activa')
-    RETURNING * INTO v_conv;
-  END IF;
-
-  RETURN jsonb_build_object(
-    'id',                  v_conv.id,
-    'whatsapp',            v_conv.whatsapp,
-    'mensajes',            v_conv.mensajes,
-    'contexto',            v_conv.contexto,
-    'estado',              v_conv.estado,
-    'ultima_interaccion',  v_conv.ultima_interaccion
-  );
-END;
-$function$
-;
-
+/* Aquí estaban `guardar_mensajes` y `obtener_conversacion`, las dos de la era
+   n8n. Se quitan de este archivo —no sólo se borran en
+   `20260823_las_rpc_estaban_abiertas.sql`— porque **no se podían ni crear** en
+   un entorno nuevo: `obtener_conversacion` declaraba una variable del tipo de
+   la tabla `conversaciones`, y CREATE FUNCTION sí valida eso. Comprobado.
+   Dejarlas aquí habría partido la cadena de migraciones en este punto. */
 CREATE OR REPLACE FUNCTION public.pedido_publico(p_id uuid)
  RETURNS TABLE(amount numeric, abono_monto numeric, payment_method text, product_id uuid, product_name text)
  LANGUAGE sql
@@ -910,9 +826,6 @@ $function$
 DROP TRIGGER IF EXISTS trg_cancel_duplicate_orders ON public.orders;
 CREATE TRIGGER trg_cancel_duplicate_orders AFTER INSERT ON public.orders FOR EACH ROW EXECUTE FUNCTION cancel_duplicate_pending_orders();
 
-DROP TRIGGER IF EXISTS trg_conversaciones_updated_at ON public.conversaciones;
-CREATE TRIGGER trg_conversaciones_updated_at BEFORE UPDATE ON public.conversaciones FOR EACH ROW EXECUTE FUNCTION set_updated_at();
-
 DROP TRIGGER IF EXISTS trg_marcar_cliente_de_prueba ON public.customers;
 CREATE TRIGGER trg_marcar_cliente_de_prueba BEFORE INSERT OR UPDATE OF phone, email ON public.customers FOR EACH ROW EXECUTE FUNCTION marcar_cliente_de_prueba();
 
@@ -924,3 +837,39 @@ CREATE TRIGGER trg_registrar_pago AFTER INSERT OR UPDATE OF status, amount, abon
 
 DROP TRIGGER IF EXISTS trg_sync_customer_from_order ON public.orders;
 CREATE TRIGGER trg_sync_customer_from_order AFTER INSERT ON public.orders FOR EACH ROW EXECUTE FUNCTION sync_customer_from_order();
+
+/* ── Nota añadida el 23 de agosto de 2026, después de aplicada ────────
+   Este archivo tocaba cuatro tablas que ese mismo día se borraron
+   (`20260823_fuera_las_tablas_muertas.sql`): conversaciones, message_history,
+   whatsapp_dedup y whatsapp_conversaciones_respaldo. Sobre la base real no
+   cambia nada —ya se aplicó—, pero en un ENTORNO NUEVO estas sentencias
+   fallaban: ALTER TABLE y CREATE POLICY sobre una tabla que no existe es un
+   error, no un no-op, y la cadena de migraciones se partía justo aquí.
+
+   Se envuelven en comprobaciones de existencia en vez de borrarlas: así el
+   archivo sigue contando lo que pasó ese día —que esas tablas existían y se
+   cerraron— sin impedir que la base se pueda reconstruir. Es la excepción a
+   "una migración aplicada no se reescribe", y la razón es justamente la que
+   motiva el pendiente #4: un repositorio que no puede levantar su base no
+   sirve de nada. */
+
+do $guardia$
+begin
+  if to_regclass('public.conversaciones') is not null then
+    execute 'alter table public.conversaciones enable row level security';
+    execute 'drop policy if exists conversaciones_admin on public.conversaciones';
+    execute 'create policy conversaciones_admin on public.conversaciones as permissive for all to authenticated using (true) with check (true)';
+    execute 'drop trigger if exists trg_conversaciones_updated_at on public.conversaciones';
+    execute 'create trigger trg_conversaciones_updated_at before update on public.conversaciones for each row execute function set_updated_at()';
+  end if;
+  if to_regclass('public.message_history') is not null then
+    execute 'alter table public.message_history enable row level security';
+  end if;
+  if to_regclass('public.whatsapp_dedup') is not null then
+    execute 'alter table public.whatsapp_dedup enable row level security';
+  end if;
+  if to_regclass('public.whatsapp_conversaciones_respaldo') is not null then
+    execute 'alter table public.whatsapp_conversaciones_respaldo enable row level security';
+  end if;
+end
+$guardia$;

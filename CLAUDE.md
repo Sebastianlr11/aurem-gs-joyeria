@@ -170,7 +170,7 @@ redesplegar). **La programación no está versionada**: para verla, `SELECT * FR
 
 | Tabla | ¿Migración en repo? | Para qué |
 |---|---|---|
-| `products` | sí (`supabase-schema.sql`, **desactualizado**) | Catálogo |
+| `products` | sí (`20260228_esquema_base.sql`) | Catálogo |
 | `orders` | parcial (sólo columnas añadidas) | Pedidos |
 | `order_items` | **no** | Piezas de un pedido multi-pieza |
 | `customers` | **no** | Clientes |

@@ -99,7 +99,8 @@ Ver [admin-pedidos](admin-pedidos.md) y `supabase/migrations/20260823_costos_del
   panel** — [pendientes #20](../pendientes.md).
 - No hay reordenación por arrastre de las imágenes de una pieza.
 - El borrado de una pieza **no borra sus archivos del Storage**: quedan huérfanos.
-- `supabase-schema.sql` de la raíz no refleja las columnas reales de `products`
+- ~~`supabase-schema.sql` no refleja las columnas reales de `products`~~ — borrado el 23
+  de agosto; lo reemplaza `20260228_esquema_base.sql`
   ([pendientes #7](../pendientes.md)).
 
 ## Cómo probarlo
