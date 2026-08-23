@@ -36,9 +36,11 @@ mensajes de commit. Es una convención dura del proyecto, no una preferencia.
 
 ```bash
 npm run dev          # Vite en http://localhost:5173
-npm run build        # sitemap.mjs && correos.mjs && tsc -b && vite build
+npm run build        # eslint && vitest && sitemap.mjs && correos.mjs && tsc -b && vite build
 npm run preview      # Sirve /dist
-npm run lint         # ESLint (NO corre en el build)
+npm run lint         # ESLint (sí corre en el build)
+npm test             # Vitest, una pasada
+npm run test:mirar   # Vitest en marcha, repitiendo al guardar
 
 npm run sitemap      # Regenera public/sitemap.xml desde Supabase
 npm run correos      # esbuild: emails/_render.ts -> api/_plantillas.mjs
@@ -52,9 +54,26 @@ Tres advertencias sobre el build:
 1. **`api/_plantillas.mjs` es un artefacto generado** por `scripts/correos.mjs` y está
    en `.gitignore`. No lo edites a mano: se sobrescribe en cada build. Si `api/correo.js`
    falla con "cannot find module", corre `npm run correos`.
-2. **No hay tests, y el lint no corre en el build.** Nada impide que entre código roto.
+2. **El lint y las pruebas corren en el build, y lo tumban.** Es a propósito: es lo único
+   que impide que entre código roto, porque no hay revisión de nadie más.
 3. `scripts/sitemap.mjs` nunca tumba el build: si le faltan las variables de Supabase,
    emite sólo las rutas fijas y sigue.
+
+### Las pruebas
+
+Hay **43, en `src/lib/dinero.test.js` y `src/lib/caja.test.js`**, y cubren sólo las
+cuentas de plata. Es donde se empezó a propósito: es el único sitio donde un error **no
+se ve**. Un fallo de CSS se nota al abrir la pantalla y uno de enrutado tumba la página,
+pero una cuenta mal hecha enseña un número redondo, con signo de pesos y perfectamente
+creíble — que es exactamente lo que pasó cuando el panel daba por cobrado un contraentrega
+que iba en camino.
+
+La tabla de `recibidoDe` en la prueba **es** la tabla de §8 de este documento. Si cambias
+la regla de negocio, cambia ahí; si la rompes sin querer, el build no pasa.
+
+Las pruebas viven al lado de lo que prueban, no en una carpeta aparte, y corren en Node
+sin jsdom: lo que se prueba hoy son funciones puras. El día que se pruebe un componente,
+se le pone jsdom a ese archivo.
 
 ---
 
