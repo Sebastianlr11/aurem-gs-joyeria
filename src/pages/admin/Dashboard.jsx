@@ -11,6 +11,7 @@ import EliminarPieza from './EliminarPieza';
 import { refDe } from '../../lib/referencia';
 import PedidoModal from './PedidoModal';
 import { CLAVE_RESPUESTAS, RESPUESTAS_POR_DEFECTO, comoTexto } from '../../lib/respuestasRapidas';
+import '../../panel.css';
 
 /* ─── Constants ──────────────────────────────────────────────────── */
 const CATEGORIES = ['Anillos', 'Collares', 'Aretes', 'Pulseras', 'Dijes'];

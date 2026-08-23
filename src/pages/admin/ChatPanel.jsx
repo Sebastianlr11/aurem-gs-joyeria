@@ -7,6 +7,7 @@ import EliminarChat from './EliminarChat';
 import { descargarChat, borrarFotosDe } from '../../lib/chatArchivo';
 import { leerRespuestas } from '../../lib/respuestasRapidas';
 import { NAV } from './adminNav.jsx';
+import '../../panel.css';
 
 /* ─── Helpers ───────────────────────────────────────────────────── */
 const normalizePhone = (p) => {
