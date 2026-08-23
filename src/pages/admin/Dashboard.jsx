@@ -487,6 +487,16 @@ const ConfirmModal = ({ title, text, onClose, onConfirm }) => {
 
 /* ─── DashboardHome ──────────────────────────────────────────────── */
 
+/* Lo que Valentina le promete a la clienta, palabra por palabra desde
+   taller_conocimiento: "si la pieza hay que fabricarla desde cero, son de 5 a
+   8 días entre fabricación y entrega". Se usa el borde de arriba, que es la
+   promesa que de verdad hay que cumplir. */
+const DIAS_PROMESA = 8;
+
+/* La talla dentro del texto de la nota: "… | Ciudad: Bogotá | Talla: 4.5 ·
+   Pedido tomado por Valentina". Aguanta coma o punto decimal. */
+const RE_TALLA = /talla[:\s]+(\d+(?:[.,]\d+)?)/i;
+
 /* Ingresos de un conjunto de pedidos. MercadoPago va neto de comisión y
    retenciones; el contraentrega cuenta lo que de verdad entró.
 
@@ -638,11 +648,64 @@ const DashboardHome = ({ products, orders, chatsPendientes, actualizadoEn, verPr
     const sinResponder = chatsPendientes.length;
 
 
-    /* Una pieza agotada que sigue publicada es plata de pauta llevando gente a
-       algo que no se puede comprar. Se mira aparte de lo demás porque no se
-       arregla atendiendo un pedido: se arregla fabricando o despublicando. */
-    const agotadas = products.filter(p => p.stock === 0);
-    const ultima = products.filter(p => p.stock === 1);
+    /* ─── La cola del taller ──────────────────────────────────────────
+       Lo único que el taller hace todos los días y no salía en ninguna
+       pantalla: qué hay que fabricar, para quién, de qué talla y para cuándo.
+       Hasta ahora había que abrir pedido por pedido para saberlo.
+
+       En este sitio ocupa el lugar que tenía el aviso de piezas agotadas, que
+       filtraba por `stock === 0` y `stock === 1`. Las cinco piezas tienen
+       `stock` en null y nada en el sistema lo mueve nunca —no hay disparador
+       que descuente al vender, sólo se edita a mano—, así que ese bloque no se
+       podía encender jamás. Con todo fabricándose por encargo, el inventario
+       no significa nada y la cola sí.
+
+       El plazo sale de lo que Valentina le promete a la clienta, palabra por
+       palabra desde taller_conocimiento: "si la pieza hay que fabricarla desde
+       cero, son de 5 a 8 días entre fabricación y entrega". Se usa el borde de
+       arriba, que es la promesa que hay que cumplir.
+
+       Cuelga de `ahora` —el minutero de arriba— y no de Date.now(): llamar al
+       reloj dentro de un useMemo es impuro mientras React renderiza, y además
+       dejaría los días congelados hasta que cambiara un pedido. */
+    const cola = useMemo(() => {
+        const porId = new Map(products.map(p => [p.id, p]));
+
+        return orders
+            .filter(o => enGrupo(o, 'despachar'))
+            .map(o => {
+                const dias = Math.floor((ahora - new Date(o.created_at).getTime()) / 86400000);
+
+                /* La talla de los pedidos que tomó Valentina viene dentro del
+                   texto de la nota —"… | Talla: 4.5 · Pedido tomado por
+                   Valentina"— porque order_items es más nueva que ellos. Se
+                   rescata de ahí cuando la fila no la trae. */
+                const deLaNota = o.notes?.match(RE_TALLA)?.[1] ?? null;
+
+                const piezas = (o.piezas?.length
+                    ? o.piezas
+                    : [{ product_id: o.product_id, nombre: o.product_name, cantidad: 1, talla: null }]
+                ).map(p => ({
+                    ...p,
+                    talla: p.talla || deLaNota,
+                    esAnillo: porId.get(p.product_id)?.category === 'Anillos',
+                }));
+
+                return {
+                    id: o.id,
+                    cliente: o.customer_name || 'Sin nombre',
+                    piezas,
+                    dias,
+                    restan: DIAS_PROMESA - dias,
+                    /* El checkout del sitio todavía no captura la talla —está
+                       dicho así en ProductPage.jsx— y sin ella un anillo no se
+                       puede empezar. Es lo que de verdad frena al taller, y
+                       hasta ahora no se veía hasta abrir el pedido. */
+                    faltaTalla: piezas.some(p => p.esAnillo && !p.talla),
+                };
+            })
+            .sort((a, b) => a.restan - b.restan);
+    }, [orders, products, ahora]);
 
     const hallazgos = revision?.hallazgos ?? [];
     const revisadoHace = revision?.corrida_en
@@ -855,21 +918,50 @@ const DashboardHome = ({ products, orders, chatsPendientes, actualizadoEn, verPr
                 </section>
             )}
 
-            {/* Una pieza agotada y publicada es pauta pagando clics hacia algo
-                que nadie puede comprar. No es una tarea del día: es plata
-                yéndose mientras nadie mira. */}
-            {(agotadas.length > 0 || ultima.length > 0) && (
-                <section className="jornada-stock">
-                    <span className="jornada-stock-texto">
-                        {agotadas.length > 0 && (
-                            <><strong>{agotadas.length === 1 ? `${agotadas[0].name} está agotada` : `${agotadas.length} piezas están agotadas`}</strong>
-                            {' '}y siguen publicadas. </>
-                        )}
-                        {ultima.length > 0 && (
-                            <>{ultima.length === 1 ? `De ${ultima[0].name} queda una sola unidad.` : `De ${ultima.length} piezas queda una sola unidad.`}</>
-                        )}
-                    </span>
-                    <button className="jornada-stock-link" onClick={() => onNavigate('products')}>Ver el catálogo →</button>
+            {/* Lo que hay que fabricar. Va antes de "Atender hoy" porque una
+                pieza que se pasa de los ocho días ya no se arregla atendiendo
+                un pedido: hay que sentarse a hacerla. */}
+            {cola.length > 0 && (
+                <section className="jornada-panel jornada-taller">
+                    <div className="jornada-panel-head">
+                        <span className="jornada-panel-titulo">En el taller</span>
+                        <span className="jornada-panel-nota">
+                            {cola.length} pedido{cola.length !== 1 ? 's' : ''} por fabricar · se prometen en 8 días
+                        </span>
+                    </div>
+                    {cola.map(t => (
+                        <button key={t.id} className="jornada-taller-fila" onClick={() => onNavigate('orders')}>
+                            <span className="jornada-taller-texto">
+                                <span className="jornada-taller-cliente">{t.cliente}</span>
+                                <span className="jornada-taller-piezas">
+                                    {t.piezas.map((p, i) => (
+                                        <span key={i}>
+                                            {i > 0 && ' · '}
+                                            {p.cantidad > 1 ? `${p.cantidad}× ` : ''}{p.nombre}
+                                            {p.talla
+                                                ? <em> talla {p.talla}</em>
+                                                : p.esAnillo ? <em className="jornada-taller-sinTalla"> sin talla</em> : null}
+                                        </span>
+                                    ))}
+                                </span>
+                            </span>
+                            {t.faltaTalla && (
+                                <span className="jornada-taller-aviso">Falta la talla</span>
+                            )}
+                            <span className={`jornada-taller-plazo${t.restan < 0 ? ' jornada-taller-plazo--tarde' : t.restan <= 2 ? ' jornada-taller-plazo--justo' : ''}`}>
+                                <span className="jornada-taller-dias">
+                                    {t.restan < 0
+                                        ? `${-t.restan} día${-t.restan !== 1 ? 's' : ''} tarde`
+                                        : t.restan === 0 ? 'vence hoy'
+                                        : `${t.restan} día${t.restan !== 1 ? 's' : ''}`}
+                                </span>
+                                <span className="jornada-taller-desde">
+                                    pedido hace {t.dias === 0 ? 'hoy' : `${t.dias} día${t.dias !== 1 ? 's' : ''}`}
+                                </span>
+                            </span>
+                            <span className="jornada-tarea-chevron"><JIcon name="chevron" size={18} /></span>
+                        </button>
+                    ))}
                 </section>
             )}
 
@@ -3889,7 +3981,7 @@ const Dashboard = () => {
         setLoadingO(true);
         const { data } = await supabase
             .from('orders')
-            .select('*, piezas:order_items(nombre, precio, cantidad, talla, creado_en)')
+            .select('*, piezas:order_items(product_id, nombre, precio, cantidad, talla, creado_en)')
             .order('created_at', { ascending: false });
         setOrders(data || []); setLoadingO(false);
     }, []);

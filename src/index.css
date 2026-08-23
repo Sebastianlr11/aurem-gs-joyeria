@@ -16511,23 +16511,55 @@ textarea:focus-visible {
 }
 .jornada-averia-fila--leve .jornada-averia-que { font-weight: 400; }
 
-/* Inventario. Menos grave que una avería pero más urgente que una tarea:
-   mientras siga publicada, la pauta paga clics hacia algo que no se vende. */
-.jornada-stock {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 1rem; flex-wrap: wrap;
-  background: var(--bg-arena);
-  border-radius: 2px;
-  padding: 0.9rem 1.25rem;
-  margin-bottom: 1.5rem;
+/* La cola del taller. Ocupa el sitio que tenía el aviso de inventario, que
+   filtraba por un `stock` que nadie mueve y por eso no se encendía nunca.
+   Con todo fabricándose por encargo, lo que apremia es qué falta hacer. */
+.jornada-taller { margin-bottom: 1.5rem; }
+
+.jornada-taller-fila {
+  display: flex; align-items: center; gap: 1rem;
+  width: 100%;
+  padding: 1.05rem 1.6rem;
+  border: 0; border-top: 1px solid var(--hairline);
+  background: none; text-align: left; cursor: pointer;
+  transition: var(--transition-smooth);
 }
-.jornada-stock-texto { font-size: 0.9rem; line-height: 1.55; color: var(--ink); }
-.jornada-stock-texto strong { font-weight: 700; }
-.jornada-stock-link {
-  font-family: var(--font-ui); font-size: 0.72rem; font-weight: 700;
-  letter-spacing: 0.12em; text-transform: uppercase;
-  color: var(--oro-ink); background: none; border: 0; cursor: pointer;
+.jornada-taller-fila:hover { background: var(--bg-arena); }
+
+.jornada-taller-texto { display: flex; flex-direction: column; gap: 0.2rem; min-width: 0; flex: 1; }
+.jornada-taller-cliente {
+  font-size: 0.95rem; font-weight: 600; color: var(--ink);
+}
+.jornada-taller-piezas {
+  font-size: 0.82rem; color: var(--text-secondary); line-height: 1.5;
+}
+.jornada-taller-piezas em { font-style: normal; color: var(--oro-ink); }
+
+/* Sin talla un anillo no se puede ni empezar, así que se dice dos veces: en
+   la pieza y como aviso aparte. No es redundancia — con varias piezas, la
+   primera dice CUÁL falta y el aviso dice que el pedido está frenado. */
+.jornada-taller-piezas em.jornada-taller-sinTalla { color: var(--accent-red); }
+.jornada-taller-aviso {
+  font-family: var(--font-ui); font-size: 0.66rem; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--accent-red);
   white-space: nowrap;
+}
+
+.jornada-taller-plazo {
+  display: flex; flex-direction: column; align-items: flex-end; gap: 0.15rem;
+  white-space: nowrap;
+}
+.jornada-taller-dias {
+  font-size: 0.9rem; font-weight: 700; color: var(--ink);
+}
+.jornada-taller-desde { font-size: 0.72rem; color: var(--text-secondary); }
+.jornada-taller-plazo--justo .jornada-taller-dias { color: var(--oro-ink); }
+.jornada-taller-plazo--tarde .jornada-taller-dias { color: var(--accent-red); }
+
+@media (max-width: 768px) {
+  .jornada-taller-fila { padding: 1rem 1.1rem; gap: 0.7rem; flex-wrap: wrap; }
+  .jornada-taller-aviso { order: 3; width: 100%; }
 }
 
 /* Pauta. Debajo de la banda de dinero y con el mismo cacao: entra y sale son
