@@ -4058,6 +4058,24 @@ const Dashboard = () => {
         setChatsPendientes(data || []);
     }, []);
 
+    /* Los mensajes sin leer, para el globo del sidebar. ChatPanel ya lo
+       pasaba; el Dashboard montaba AdminSidebar sin la prop, así que el globo
+       sólo aparecía estando ya en el chat — justo donde no hace falta.
+
+       Se cuenta IGUAL que allá (is_read = false y role = 'user') y no con
+       chatsPendientes, que es otra pregunta: un chat puede estar leído y sin
+       responder. Dos pantallas del mismo panel enseñando números distintos
+       bajo el mismo globo es el bug que ya costó caro con el dinero. */
+    const [chatNoLeidos, setChatNoLeidos] = useState(0);
+    const fetchNoLeidos = useCallback(async () => {
+        const { count } = await supabase
+            .from('whatsapp_conversaciones')
+            .select('*', { count: 'exact', head: true })
+            .eq('is_read', false)
+            .eq('role', 'user');
+        setChatNoLeidos(count || 0);
+    }, []);
+
     const irA = useCallback((id) => {
         const destino = NAV.find(n => n.id === id);
         if (destino?.path) navigate(destino.path); else setSection(id);
@@ -4068,11 +4086,16 @@ const Dashboard = () => {
     const [verPruebas, setVerPruebas] = useState(() => localStorage.getItem('aurem:ver-pruebas') === 'si');
     useEffect(() => { localStorage.setItem('aurem:ver-pruebas', verPruebas ? 'si' : 'no'); }, [verPruebas]);
 
+    /* Sólo para tener los datos del usuario en el sidebar. El portero es
+       ProtectedRoute, que desde el 23 de agosto de 2026 escucha
+       onAuthStateChange: si no hay sesión no se llega hasta aquí, y si
+       caduca estando dentro, saca solo. Este efecto tenía su propio
+       navigate('/admin/login') y sobraba. */
     useEffect(() => {
         supabase.auth.getSession().then(({ data: { session } }) => {
-            if (!session) navigate('/admin/login'); else setSession(session);
+            if (session) setSession(session);
         });
-    }, [navigate]);
+    }, []);
 
     const fetchProducts = useCallback(async () => {
         setLoadingP(true);
@@ -4110,9 +4133,9 @@ const Dashboard = () => {
     const [actualizadoEn, setActualizadoEn] = useState(null);
 
     const recargarTodo = useCallback(async () => {
-        await Promise.all([fetchProducts(), fetchOrders(), fetchCustomers(), fetchChatsPendientes()]);
+        await Promise.all([fetchProducts(), fetchOrders(), fetchCustomers(), fetchChatsPendientes(), fetchNoLeidos()]);
         setActualizadoEn(Date.now());
-    }, [fetchProducts, fetchOrders, fetchCustomers, fetchChatsPendientes]);
+    }, [fetchProducts, fetchOrders, fetchCustomers, fetchChatsPendientes, fetchNoLeidos]);
 
     useEffect(() => {
         // eslint-disable-next-line react-hooks/set-state-in-effect -- Cargar al montar. recargarTodo es un useCallback estable y marca la hora al terminar, que es de lo que vive el "Actualizado hace…".
@@ -4164,7 +4187,7 @@ const Dashboard = () => {
     return (
         <div className="admin-layout">
             {/* Sidebar */}
-            <AdminSidebar session={session} activeId={section} onNavClick={setSection} />
+            <AdminSidebar session={session} activeId={section} onNavClick={setSection} chatUnread={chatNoLeidos} />
 
             {/* Main content */}
             <main className="admin-content">

@@ -381,6 +381,15 @@ textarea:focus-visible {
   overflow: hidden;
 }
 
+/* Esta rejilla vivía sola, 7.500 líneas más abajo, dentro de un bloque HERO
+   SECTION del diseño anterior que además pisaba al titular. Al quitar ese
+   bloque (23 de agosto de 2026) se vino aquí, que es donde se busca. */
+.hero-content-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  gap: 4rem;
+  align-items: start;
+}
 
 .hero-left-col {
   display: flex;
@@ -575,6 +584,33 @@ textarea:focus-visible {
 
   .hero-btns .btn-pill {
     flex: 1 1 auto;
+  }
+}
+
+/* Dos píldoras lado a lado no caben en un teléfono: "Escribir por WhatsApp"
+   se parte en dos renglones y la fila se descuadra. Esta regla venía del
+   bloque duplicado del hero y es lo único de allí que valía la pena
+   conservar, así que se trajo aquí al borrarlo. */
+@media (max-width: 600px) {
+  /* El aire de arriba lo daba el bloque duplicado, no el bueno. Al borrarlo
+     el hero pasaba a heredar los 7rem de la regla de 968px: 32px más de
+     vacío justo en el primer pantallazo del teléfono, que es el que decide.
+     Se conserva lo que la página venía mostrando; cambiar el ritmo vertical
+     del móvil es otra decisión y no es la de este arreglo. */
+  .hero-section {
+    padding: 5rem 0 3rem;
+  }
+
+  .hero-btns {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .hero-btns .btn-pill {
+    width: 100%;
+    justify-content: space-between;
+    white-space: nowrap;
   }
 }
 
@@ -1155,18 +1191,41 @@ textarea:focus-visible {
 .faq-item {
   padding: 1.5rem 0;
   border-bottom: 1px solid var(--hairline);
-  cursor: pointer;
 }
 
 .faq-item:first-child {
   border-top: 1px solid var(--hairline);
 }
 
+/* El <h3> sólo envuelve al botón: no aporta caja ni ritmo, y su margen por
+   defecto descuadraría el padding del item. */
+.faq-question-h {
+  margin: 0;
+}
+
+/* Esto era un <div> y ahora es un <button>, así que hay que devolverle la
+   apariencia que el navegador le quita: fondo, borde, relleno, el ancho
+   completo y la alineación del texto. */
 .faq-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 1.5rem;
+  width: 100%;
+  padding: 0;
+  background: none;
+  border: 0;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+/* El foco tiene que verse: es el único aviso de dónde está quien navega con
+   el teclado, y hasta ahora esta sección no se podía enfocar siquiera. */
+.faq-header:focus-visible {
+  outline: 2px solid var(--oro);
+  outline-offset: 3px;
 }
 
 .faq-question {
@@ -7907,66 +7966,6 @@ textarea:focus-visible {
 }
 @media (max-width: 600px) {
   .container { padding-left: 1.25rem; padding-right: 1.25rem; }
-}
-
-/* ================================================================
-   HERO SECTION
-   ================================================================ */
-.hero-section     { padding: 8rem 0 5rem; }
-.hero-content-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
-  gap: 4rem;
-  align-items: start;
-}
-.hero-left-col  { padding-right: 2rem; padding-top: 2rem; }
-.hero-right-col { padding-left: 2rem; }
-
-.hero-h1 {
-  font-size: 5rem;
-  line-height: 1.05;
-  margin-bottom: 1rem;
-  letter-spacing: -0.04em;
-  font-weight: 800;
-}
-
-.hero-subtitle {
-  font-size: 1.25rem;
-  color: var(--text-secondary);
-  margin-bottom: 3rem;
-  max-width: 480px;
-  font-weight: 400;
-}
-
-.hero-btns {
-  display: flex;
-  gap: 1rem;
-  align-items: center;
-}
-
-.hero-social-proof {
-  margin-top: 5rem;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-@media (max-width: 968px) {
-  .hero-section         { padding: 6rem 0 4rem; }
-  .hero-content-grid    { grid-template-columns: 1fr; gap: 0; }
-  .hero-right-col       { display: none; }
-  .hero-left-col        { padding-right: 0; padding-top: 1.5rem; }
-  .hero-h1              { font-size: clamp(2.8rem, 7vw, 4.2rem); }
-  .hero-subtitle        { font-size: 1.1rem; margin-bottom: 2rem; }
-}
-
-@media (max-width: 600px) {
-  .hero-section         { padding: 5rem 0 3rem; }
-  .hero-h1              { font-size: 2.6rem; }
-  .hero-subtitle        { font-size: 1rem; margin-bottom: 1.75rem; }
-  .hero-btns            { flex-direction: column; align-items: stretch; gap: 0.75rem; }
-  .hero-btns .btn-pill  { width: 100%; justify-content: space-between; white-space: nowrap; }
-  .hero-social-proof    { margin-top: 3rem; }
 }
 
 /* ================================================================

@@ -297,12 +297,14 @@ const ChatPanel = () => {
         notifAudioRef.current.play().catch(() => {});
     }, []);
 
-    /* ─── Auth ───────────────────────────────────────────────────── */
+    /* ─── Auth ─────────────────────────────────────────────────────
+       Sólo para el sidebar. Quien vigila la sesión es ProtectedRoute, que
+       escucha onAuthStateChange y saca del panel si caduca. */
     useEffect(() => {
         supabase.auth.getSession().then(({ data: { session } }) => {
-            if (!session) navigate('/admin/login'); else setSession(session);
+            if (session) setSession(session);
         });
-    }, [navigate]);
+    }, []);
 
     /* ─── Load contacts ──────────────────────────────────────────── */
     const fetchContacts = useCallback(async (silent = false) => {
