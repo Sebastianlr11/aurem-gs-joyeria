@@ -27,6 +27,7 @@ function leerOriginal() {
     ogDescripcion: contenido('meta[property="og:description"]'),
     ogImagen: contenido('meta[property="og:image"]'),
     ogTipo: contenido('meta[property="og:type"]'),
+    robots: contenido('meta[name="robots"]'),
   };
   return original;
 }
@@ -54,7 +55,7 @@ function canonica(url) {
  * lo deshace, para usarla como limpieza de un efecto: sin ella, salir de una
  * ficha hacia el catálogo dejaría el título del anillo puesto.
  */
-export function ponerMeta({ titulo, descripcion, imagen, ruta, tipo = 'website' }) {
+export function ponerMeta({ titulo, descripcion, imagen, ruta, tipo = 'website', robots }) {
   if (typeof document === 'undefined') return () => {};
   const base = leerOriginal();
   const url = ruta ? `${RAIZ}${ruta}` : RAIZ;
@@ -69,6 +70,10 @@ export function ponerMeta({ titulo, descripcion, imagen, ruta, tipo = 'website' 
   poner('meta[name="twitter:title"]', titulo);
   poner('meta[name="twitter:description"]', descripcion);
   poner('meta[name="twitter:image"]', imagen);
+  /* index.html declara `index, follow` para todo el sitio, así que una
+     pantalla que NO deba indexarse tiene que decirlo — y deshacerlo al salir,
+     o dejaría el sitio entero en noindex. */
+  if (robots) poner('meta[name="robots"]', robots);
   canonica(url);
 
   return () => {
@@ -79,6 +84,7 @@ export function ponerMeta({ titulo, descripcion, imagen, ruta, tipo = 'website' 
     poner('meta[property="og:image"]', base.ogImagen);
     poner('meta[property="og:url"]', RAIZ);
     poner('meta[property="og:type"]', base.ogTipo);
+    poner('meta[name="robots"]', base.robots);
     canonica(RAIZ + '/');
   };
 }
