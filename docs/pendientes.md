@@ -1176,6 +1176,24 @@ carrera y el cancelar— queda en `chat/ficha.test.js`, 6 pruebas más, **76 en 
 Rotas a propósito: quitar la salvaguarda de carrera (1 fallo) y devolver el cancelar a como
 estaba (1 fallo).
 
-**En total, en el día: 2.123 → 1.721 líneas, un 19 % menos**, seis archivos nuevos y cuatro
-fallos latentes encontrados. Queda la selección en lote (4 estados), la purga (6) y el
-selector de imágenes del catálogo (7).
+**Cuarto tramo: 1.721 → 1.623 líneas.** Sale el selector de imágenes del catálogo —el
+diálogo para mandarle a una clienta la foto de una pieza— con cuatro estados más y el
+envío. Es el mismo patrón del buscador: se monta y se desmonta con `showImagePicker`, así
+que **desaparecen tres limpiezas a mano** que había que acordarse de hacer en Escape, en el
+botón que lo abre y en el clic fuera.
+
+El envío se movió **tal cual**, sin tocar una línea, y es lo único de todo el refactor que
+no se ha podido comprobar: pulsar «Enviar» manda una foto de verdad a una clienta de verdad
+por WhatsApp, y eso no tiene deshacer. Sí se comprobó todo lo demás: abre en la rejilla con
+las cinco piezas, buscar «trinidad» deja una, una búsqueda sin resultados da el mensaje
+vacío, elegir una pieza pasa al segundo paso con el pie propuesto —«Anillo Majestuosa -
+$500.000»—, «Volver» regresa, y Escape, el botón y el clic fuera lo cierran. Al reabrirlo
+vuelve limpio al primer paso.
+
+**Y la selección en lote no se saca**: no es un bloque, está entretejida con cada fila de la
+lista de contactos. Sacarla sola dejaría el código peor que como está; lo suyo es que salga
+el día que salga la lista entera.
+
+**En total, en el día: 2.123 → 1.623 líneas, un 24 % menos**, siete archivos nuevos y cuatro
+fallos latentes encontrados. Queda la purga (6 estados) y la lista de contactos con su
+selección en lote (4).
