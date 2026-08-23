@@ -17,8 +17,9 @@
  *
  * 3. Fecha las dos puntas igual. El gasto siempre vino filtrado por fecha,
  *    pero la plata salía del ESTADO de los pedidos creados en el periodo, que
- *    no tiene fecha de cobro. Con fabricación de 5 a 8 días más el envío,
- *    pedir y cobrar casi nunca caen en la misma ventana: el retorno dividía
+ *    no tiene fecha de cobro. Entre pedir y cobrar pasan días —el taller se
+ *    toma dos o tres en despachar y el envío otro tanto—, así que casi nunca
+ *    caen en la misma ventana: el retorno dividía
  *    peras entre manzanas. Ahora la caja sale del libro de movimientos
  *    (src/lib/caja.js), fechada y neta de la comisión de Mercado Pago.
  */
@@ -121,8 +122,8 @@ export default function PautaRetorno({ orders, periodStart, periodDays, verPrueb
        Antes esto era `orders.reduce((s, o) => s + recibidoDe(o), 0)`: la plata
        de los pedidos CREADOS en el periodo, sin importar cuándo se cobró. El
        gasto sí venía fechado, así que el retorno dividía peras entre manzanas
-       — y con fabricación de 5 a 8 días más el envío, pedir y cobrar casi
-       nunca caen en la misma ventana. */
+       — y entre pedir y cobrar pasan días, así que casi nunca caen en la
+       misma ventana. */
     const recibido = caja?.total ?? 0;
 
     const vendido = vivos.reduce((s, o) => s + Number(o.amount), 0);

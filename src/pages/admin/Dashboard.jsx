@@ -487,11 +487,17 @@ const ConfirmModal = ({ title, text, onClose, onConfirm }) => {
 
 /* ─── DashboardHome ──────────────────────────────────────────────── */
 
-/* Lo que Valentina le promete a la clienta, palabra por palabra desde
-   taller_conocimiento: "si la pieza hay que fabricarla desde cero, son de 5 a
-   8 días entre fabricación y entrega". Se usa el borde de arriba, que es la
-   promesa que de verdad hay que cumplir. */
-const DIAS_PROMESA = 8;
+/* Los días que tiene el taller para despachar, no para entregar: cuando la
+   pieza sale por la puerta, el trabajo del taller terminó y lo que queda es
+   la transportadora.
+
+   Son 3 porque así trabaja el taller —el pedido llega, y se despacha al
+   segundo o tercer día—, y con el envío la clienta la recibe en 3 a 4 días en
+   Bogotá. Antes esto decía 8, tomado del "5 a 8 días" que Valentina promete;
+   pero ese plazo es de las piezas A MEDIDA, las que se diseñan desde cero, no
+   del catálogo. Contar 8 aquí daba cinco días de holgura que no existen y la
+   cola no habría avisado hasta que el pedido ya estuviera perdido. */
+const DIAS_PROMESA = 3;
 
 /* La talla dentro del texto de la nota: "… | Ciudad: Bogotá | Talla: 4.5 ·
    Pedido tomado por Valentina". Aguanta coma o punto decimal. */
@@ -660,10 +666,8 @@ const DashboardHome = ({ products, orders, chatsPendientes, actualizadoEn, verPr
        podía encender jamás. Con todo fabricándose por encargo, el inventario
        no significa nada y la cola sí.
 
-       El plazo sale de lo que Valentina le promete a la clienta, palabra por
-       palabra desde taller_conocimiento: "si la pieza hay que fabricarla desde
-       cero, son de 5 a 8 días entre fabricación y entrega". Se usa el borde de
-       arriba, que es la promesa que hay que cumplir.
+       El plazo son los DIAS_PROMESA de arriba: los días que tiene el taller
+       para despachar, no para entregar.
 
        Cuelga de `ahora` —el minutero de arriba— y no de Date.now(): llamar al
        reloj dentro de un useMemo es impuro mientras React renderiza, y además
@@ -926,7 +930,7 @@ const DashboardHome = ({ products, orders, chatsPendientes, actualizadoEn, verPr
                     <div className="jornada-panel-head">
                         <span className="jornada-panel-titulo">En el taller</span>
                         <span className="jornada-panel-nota">
-                            {cola.length} pedido{cola.length !== 1 ? 's' : ''} por fabricar · se prometen en 8 días
+                            {cola.length} pedido{cola.length !== 1 ? 's' : ''} por fabricar · salen en 3 días
                         </span>
                     </div>
                     {cola.map(t => (
