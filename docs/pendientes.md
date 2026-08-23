@@ -509,14 +509,42 @@ falsas porque las fuentes no habían terminado de cargar cuando se medía. El co
 con declaraciones pisadas. Eso **no es CSS muerto**: son clases vivas cuyas declaraciones
 anula otra regla posterior, y se atacan leyendo, no borrando.
 
-### 17. `Dashboard.jsx` son 4.380 líneas (y `ChatPanel.jsx` 2.115)
+### 17. 🟡 `Dashboard.jsx` era un archivo de 4.398 líneas — empezado, con el camino probado
 
-Contiene las 7 secciones del panel, más `DashboardHome`, `ProductsSection`,
-`OrdersSection`, `CustomersSection`, `ReportsSection`, `NotesSection`, `SettingsSection`,
-`PrecioOroCard`, `ConocimientoCard`, `CustomerModal`, `ShipModal`…
+**3.642 líneas**, y una sección fuera. El fichero tiene siete secciones (`DashboardHome`,
+`ProductsSection`, `OrdersSection`, `CustomersSection`, `ReportsSection`, `NotesSection`,
+`SettingsSection`) que **ya reciben props y no comparten estado**, así que salen enteras.
 
-**Arreglo:** un archivo por sección en `src/pages/admin/secciones/`, dejando `Dashboard.jsx`
-como el contenedor que resuelve `?tab=`, la carga de datos y el lente `es_prueba`.
+**Hecho el 23 de agosto: `SettingsSection` vive en `src/pages/admin/secciones/Ajustes.jsx`**
+(771 líneas, con `PrecioOroCard` y `ConocimientoCard`, que sólo usa esa pantalla). Se creó
+`secciones/comunes.js` para `fmt`, `fmtDate` y `norm`, que comparten varias.
+
+**Verificado igual que el CSS:** 24 propiedades calculadas de cada elemento de Ajustes,
+Anotaciones y el Dashboard, antes y después. **Cero diferencias.**
+
+**Cuánto cuesta cada una, medido.** Al sacar una sección hay que llevarse sus símbolos de
+primer nivel, y no todas están igual de sueltas:
+
+| Sección | Líneas | Símbolos comunes que usa |
+|---|---|---|
+| `SettingsSection` | 420 | 3 ✅ hecha |
+| `NotesSection` | 162 | 5 |
+| `CustomersSection` | 217 | 8 |
+| `ProductsSection` | 331 | 6 |
+| `DashboardHome` | 696 | 9 |
+| `ReportsSection` | 779 | 12 |
+| `OrdersSection` | 463 | **24** |
+
+`OrdersSection` es la que más ata: usa los modales, las insignias, los grupos, los avisos
+de conversión y el despacho. Conviene dejarla para el final, o no tocarla.
+
+**Y una advertencia de método para quien siga.** Verificar esto exige medir antes y
+después, y el servidor de desarrollo **recarga la página al cambiar los archivos**, lo que
+borra la referencia que tenías en memoria. La forma que funciona: dejar la pestaña en una
+página estática (`/robots.txt`) y cargar la aplicación dentro de un iframe. Y esperar a
+`document.fonts.ready` antes de medir, o salen decenas de diferencias falsas de ancho.
+
+`ChatPanel.jsx` (2.115 líneas) sigue entero.
 
 ### 18. ✅ `ProtectedRoute` no reaccionaba a que expirara la sesión — resuelto
 
