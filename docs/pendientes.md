@@ -220,22 +220,30 @@ paso de fotos y —por diseño, para no dejar archivos huérfanos— **no borra 
 
 ---
 
-### 6. `.claude/` está en `.gitignore`
+### 6. ✅ `.claude/` estaba en `.gitignore` — resuelto
 
-La skill `designing-aurem-gs` —que es la versión operativa de `DESIGN.md`, con los hex y
-las prohibiciones listas para construir— **no viaja con el repositorio**. Quien clone se
-queda sin ella.
+La skill `designing-aurem-gs` —la versión operativa de `DESIGN.md`, con los hex y las
+prohibiciones listas para construir— no viajaba con el repositorio. Quien clonara volvía a
+inventarse el sistema de diseño.
 
-**Arreglo propuesto:** versionar `.claude/skills/` dejando fuera
-`.claude/settings.local.json` (que sí es local):
+**Hecho el 23 de agosto.** La regla quedó más estrecha que la propuesta original:
 
 ```gitignore
 .claude/*
 !.claude/skills/
+.claude/skills/*
+!.claude/skills/designing-aurem-gs/
 ```
 
-De paso: esa skill dice importar las fuentes desde `fonts.googleapis.com`, cosa que el
-proyecto ya no hace desde que se autoalojan. Corregir ese bloque.
+Los dos últimos renglones no estaban previstos y hacen falta: las otras cinco entradas de
+`.claude/skills/` son **symlinks a skills instaladas fuera del repositorio**
+(`../../.agents/skills/…`, y `.agents/` también está ignorado). Versionarlas habría metido
+cinco enlaces rotos en el clon de cualquiera. `settings.local.json` sigue fuera, que es
+donde debe estar.
+
+Y se corrigió lo que la skill decía de las fuentes: pedía importarlas de
+`fonts.googleapis.com`, y el proyecto las autoaloja desde que eso arregló un LCP de 5,7 s.
+Dejarla así era sembrar la regresión en quien la use para construir.
 
 ---
 
@@ -336,19 +344,23 @@ sección por prueba de confianza verificable (fotos del taller, punzón, garant�
 o retirarla hasta tener clientes. Lo que no se puede es dejarla como está cuando empiecen
 a entrar pedidos reales.
 
-### 12. 🟡 Verificar que Valentina no siga diciendo "SIN CONFIRMAR" — la base, limpia; el seed, no
+### 12. ✅ El seed de Valentina decía "SIN CONFIRMAR" — resuelto
 
-`supabase/migrations/20260818_taller_conocimiento.sql:27-29` sembró las 6 filas marcadas
-*"SIN CONFIRMAR"*, y Valentina lee esa tabla en caliente para componer su prompt.
+`20260818_taller_conocimiento.sql` sembró los seis temas marcados *"SIN CONFIRMAR"*, y
+Valentina lee esa tabla en caliente. Los claims se verificaron con el joyero el 20 de
+agosto y la base se corrigió a mano, pero el seed se quedó atrás: **un entorno nuevo nacía
+mintiendo** — con una Valentina diciéndole a la clienta que no tiene confirmado si el
+estuche va incluido, cuando va, y hace meses.
 
-**Comprobado el 23 de agosto, y era eso.** Las 6 filas de la base están activas y
-ninguna dice "SIN CONFIRMAR": envíos, medios de pago, piezas a medida, qué va incluido,
-garantía y piedras. Valentina no está diciéndolo.
+**Hecho el 23 de agosto.** `20260823_conocimiento_al_dia.sql` deja el conocimiento
+exactamente como está en producción, **volcado desde la base y no transcrito**: se generó
+con `quote_literal` desde Postgres y se verificó comparando el `md5` de cada uno de los
+siete temas contra la base. Los siete coinciden.
 
-**Pero el seed sigue con 7.** `20260818_taller_conocimiento.sql` no se toca —está
-aplicada—, así que hace falta **una migración nueva** que deje el conocimiento donde ya
-está la producción. Mientras no exista, un entorno nuevo nace mintiendo. Es lo único que
-queda de este hallazgo.
+Es idempotente (`on conflict (tema) do update`), así que corre sobre la base que ya existe
+sin romper nada, e incluye los dos temas del 23 de agosto —devoluciones y la garantía
+completa—, con lo que absorbe a `20260823_conocimiento_devoluciones.sql`. Esa se queda
+donde está: una migración aplicada no se reescribe.
 
 ### 13. ✅ No hay ruta 404 — resuelto
 
@@ -407,10 +419,15 @@ El bloque además define `.hero-right-col` y `.hero-social-proof`, que no existe
 **Arreglo:** borrar el bloque duplicado y confirmar con `npm run css:pisadas`, que hoy lo
 reporta como el primero de la lista.
 
-### 16. `src/index.css` son 17.781 líneas
+### 16. `src/index.css` son 17.850 líneas
 
-**25 bloques con declaraciones muertas** — venían de 84, así que la limpieza va avanzando.
-Los que quedan son casi todos del panel (`.admin-topbar-avatar`, `.chat-contact-item`,
+**84 bloques con declaraciones muertas.** Ojo con esta cifra, porque este documento la
+tuvo mal: decía 25 *"venían de 84, la limpieza va avanzando"*, y la limpieza no había
+avanzado nada. `scripts/css-pisadas.mjs` **reporta 84 en su primera línea pero sólo imprime
+los 25 peores** (`.slice(0, 25)`), y alguien contó los impresos. Medido de nuevo el 23 de
+agosto: siguen siendo 84, y ninguno es completamente inerte.
+
+Son casi todos del panel (`.admin-nav-item`, `.admin-topbar-avatar`, `.chat-contact-item`,
 `.chat-quick-replies`…), pisados por la capa de rediseño posterior.
 
 Siguen conviviendo tres capas para la ficha de producto (`.ficha-*`, `.product-page-*` y
@@ -503,21 +520,30 @@ cuidado del resto (`Catalog.jsx:252-297` implementa un focus trap completo a man
 
 **Arreglo:** `<button aria-expanded={abierto} aria-controls={id}>` en la cabecera.
 
-### 22. Cosas pequeñas
+### 22. ✅ Cosas pequeñas — resueltas
 
-- `src/pages/ProductPage.jsx:5` — `Wallet` de Mercado Pago se importa y **nunca se usa**;
-  el flujo final es un `<a href={initPoint}>`. Peso muerto en el bundle.
-- `src/pages/admin/ResetPassword.jsx` — conserva el diseño anterior ("PORTAL EXCLUSIVO",
-  logo como `<img>`) mientras `Login` ya usa `<Isotipo />` y la dirección nueva. Además
-  tiene un `onAuthStateChange` con el cuerpo vacío (líneas 14-22) y props de Framer Motion
-  (línea 79) sobre un `div` plano, restos de la migración.
-- `scripts/prerender.mjs` (201 líneas) está **huérfano**: no lo invoca ningún script de
-  `package.json`. Su función la asumió `api/ficha.js`. Candidato a borrar.
-- `.claude/settings.local.json` conserva ~60 permisos con rutas de Windows
-  (`C:\Users\PC\Desktop\developer\Joyeria`) del equipo anterior. Ya no aplican.
-- El contador de oferta de la ficha (`ProductPage.jsx:35-38`) **se reinicia solo** a otras
-  24 h cuando llega a cero. Funciona como está escrito; decidir si la urgencia perpetua es
-  lo que se quiere.
+Dos se habían arreglado solas por el camino y no lo sabíamos: el `Wallet` de Mercado Pago
+que se importaba sin usarse **ya no está**, y `.claude/settings.local.json` **ya no tiene**
+las rutas de Windows del equipo anterior.
+
+De las otras tres, el 23 de agosto:
+
+- **`scripts/prerender.mjs` borrado.** 201 líneas que no invocaba ningún script de
+  `package.json`; su trabajo lo asumió `api/ficha.js`. Queda en el historial de git.
+- **`ResetPassword` alineado con `Login`.** Se había quedado con el diseño anterior
+  —"PORTAL EXCLUSIVO", el isotipo como `<img>`— mientras la puerta de entrada ya estaba en
+  la dirección nueva: el enlace del correo te dejaba en una tienda distinta. Ahora comparte
+  columna, isotipo y tipografía con `Login`, sin las cifras, que ahí no pintan nada.
+  De paso se fueron el `onAuthStateChange` con el cuerpo vacío y los props de Framer Motion
+  sobre `div` planos. **Dato de paso:** las seis clases que usaba el marcado viejo
+  (`admin-login-brand-name`, `-brand-line`, `-brand-tagline`, `-logo-wrap`,
+  `-portal-label`, `-header`) **no tienen una sola regla en `index.css`**. Llevaban tiempo
+  sin estilo ninguno.
+- **El contador de oferta se queda reiniciándose solo**, decidido explícitamente. Lo que
+  anuncia no es una promoción con fecha —no hay campaña ni stock reservado—, así que la
+  alternativa honesta no era ponerle un fin de verdad sino quitarlo. Queda escrito en
+  `ProductPage.jsx` para que no vuelva a parecer un descuido: si algún día hay una oferta
+  real con fecha, el plazo tiene que salir de la pieza y no de `localStorage`.
 
 ### 23. ✅ Nada impide que entre código roto — resuelto a medias, y a propósito
 
@@ -535,39 +561,29 @@ navegador y de React a las edge functions de Deno y a las plantillas de correo. 
 **Lo que sigue faltando son los tests.** No hay ninguno, y montar el andamiaje es otro
 proyecto. El lint en el build es el escalón realista, no el destino.
 
-### 24. `npm run build` no corre en esta máquina
-
-Descubierto al verificar esta documentación (22 de agosto de 2026):
+### 24. ✅ `npm run build` no corría en esta máquina — resuelto
 
 ```
 sh: node_modules/.bin/tsc: /bin/sh: bad interpreter: Operation not permitted
 ```
 
-**No es un problema del código.** El compilador funciona invocado directamente
-(`node node_modules/typescript/bin/tsc -b` → sin errores, y `vite build` compila los 11
-chunks). Lo que falla es el **shim de shell** de `node_modules/.bin/tsc`, que macOS no
-deja ejecutar — probablemente un atributo extendido de cuarentena o los permisos del
-directorio (`node_modules` está como `drwxrwxrwx`).
+Nunca fue un problema del código: era la **cuarentena de macOS** sobre los shims de
+`node_modules/.bin`, no los permisos del directorio. El diagnóstico quedó cerrado el 23 de
+agosto con tres comprobaciones: `xattr` mostraba `com.apple.quarantine`, un script propio
+con los mismos permisos sí corría, y fallaban todos los shims por igual mientras invocarlos
+por Node funcionaba.
 
-**Diagnóstico confirmado el 23 de agosto.** Es la cuarentena, no los permisos. Tres
-comprobaciones:
-
-- `xattr node_modules/.bin/eslint` → `com.apple.quarantine` (y `com.apple.provenance`).
-- Un script `#!/bin/sh` recién creado por mí, con los mismos permisos, **sí corre**. Así
-  que no es el directorio ni el modo `drwxrwxrwx`.
-- Alcanza a **todos** los shims, no sólo a `tsc`: `vite` y `eslint` fallan igual.
-  Invocados por Node funcionan (`node node_modules/eslint/bin/eslint.js --version` →
-  v9.39.3).
-
-**Arreglo:**
+**Arreglado el 23 de agosto** con el comando que ya estaba propuesto:
 
 ```bash
 xattr -dr com.apple.quarantine node_modules/.bin
 ```
 
-**No tumba ningún despliegue**, y eso ya está comprobado: Vercel construye en su propia
-máquina, y el build con el lint dentro pasó allá en 30 segundos. Es una molestia local —
-en esta máquina hay que invocar las herramientas por Node.
+`npm run lint` y `npm run build` corren. Ojo con una cosa: **vuelve a pasar cada vez que se
+reinstalen las dependencias**, porque los archivos llegan marcados otra vez. Si algún día
+`npm run build` falla con "bad interpreter", es esto, y el comando es el mismo.
+
+Nunca tumbó ningún despliegue: Vercel construye en su propia máquina.
 
 ---
 

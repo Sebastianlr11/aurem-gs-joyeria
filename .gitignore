@@ -18,8 +18,19 @@ dist-ssr
 .idea
 .DS_Store
 
-# Claude Code local settings
-.claude/
+# Claude Code: lo local se ignora, las skills NO.
+# `designing-aurem-gs` es la versión operativa de DESIGN.md —los hex, las
+# reglas de tipografía y las prohibiciones, listas para construir—. Estaba
+# dentro de .claude/ y por eso no viajaba: quien clonara el repositorio se
+# quedaba sin ella y volvía a inventarse el sistema de diseño.
+#
+# Sólo viaja la nuestra: las otras entradas de .claude/skills/ son symlinks a
+# skills instaladas fuera del repositorio (../../.agents/skills/…), y
+# versionar un symlink roto es peor que no versionar nada.
+.claude/*
+!.claude/skills/
+.claude/skills/*
+!.claude/skills/designing-aurem-gs/
 *.suo
 *.ntvs*
 *.njsproj
