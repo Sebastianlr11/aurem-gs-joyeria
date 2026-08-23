@@ -251,28 +251,40 @@ que no incluye `Dijes`, que sí está en `CATEGORIAS` de `Catalog.jsx:8`.
 
 ## 🟡 Medio — lo que le prometemos al cliente
 
-### 8. La política de devoluciones se contradice con el FAQ
+### 8. ✅ La política de devoluciones se contradecía con el FAQ — resuelto
 
-- `src/components/Faq.jsx:21` — *"Tienes **30 días** desde la recepción, con la pieza en su
-  estado y embalaje original."*
-- `src/pages/ReturnsPolicy.jsx:21` — *"derecho a retractarte […] dentro de los **5 días
-  hábiles** siguientes a la recepción"*, y `:36` — *"Han transcurrido más de 5 días hábiles"*
-  como causal de rechazo.
+El FAQ (`src/components/Faq.jsx`) prometía **30 días** para devolver; la política
+(`src/pages/ReturnsPolicy.jsx`) decía **5 días hábiles**. Dos pantallas del mismo sitio con
+plazos distintos por escrito, y **obliga el más generoso**: el sitio se estaba
+comprometiendo a 30 días sin quererlo.
 
-Dos pantallas del mismo sitio prometen plazos distintos por escrito, y el FAQ es el más
-generoso. **Probablemente el FAQ confunde dos cosas distintas** que la política sí separa:
-el **retracto** (5 días hábiles, Ley 1480) y la **garantía contra defectos de fabricación**
-(`ReturnsPolicy.jsx:60`, 30 días). No son lo mismo: una permite devolver sin justificación,
-la otra cubre que la pieza salga defectuosa.
+Era la confusión que se sospechaba: el FAQ mezclaba el **retracto** (Ley 1480, 5 días
+hábiles, sin justificación) con la **garantía** (30 días, y sólo si la pieza salió
+defectuosa). No son lo mismo.
 
-**Decidir cuál es el real** —5 días hábiles es el mínimo legal; 30 días para devolver sin
-causa sería una promesa comercial voluntaria y vinculante— y redactar el FAQ distinguiendo
-retracto de garantía.
+**Decidido el 23 de agosto de 2026: el plazo de devolución es el legal, 5 días hábiles.**
+El FAQ ya lo dice así, separando el retracto —que el cliente paga— de la pieza defectuosa
+o equivocada —que pagamos nosotros—.
 
-**Además:** la política está fechada en **febrero de 2025** mientras privacidad y términos
-dicen **agosto de 2026**. Y hay un tercer plazo en circulación: la migración
-`20260822_conversaciones_purgables.sql` afirma que **la garantía del metal es de por vida**,
-lo que no aparece en ninguna de las dos pantallas. Conviene alinear los tres.
+**De paso quedaron alineadas las tres promesas de garantía**, que también discrepaban. Los
+Términos ya tenían el modelo bueno y ahora lo repiten el FAQ y la política:
+
+| Garantía | Cubre |
+|---|---|
+| **De por vida** | El **metal**: que una plata 925 sea plata 925. Ajustes de talla y pulido sin costo. |
+| **30 días** | **Defectos de fabricación**: engastes, soldaduras, acabados. |
+| — | **Las piedras no entran en ninguna**, y se revisan caso por caso. |
+
+El FAQ decía que la garantía de por vida cubría los defectos de fabricación, que es justo
+lo que choca con los 30 días. Y la política sólo mencionaba los 30 días: era la pantalla
+que el cliente abre para reclamar y la que se quedaba corta frente a lo que la ficha de
+cada pieza promete. La fecha de la política, que decía **febrero de 2025**, quedó en agosto
+de 2026 como las otras dos.
+
+> ⚠️ **Falta la mitad que no está en el código.** Valentina responde desde
+> `taller_conocimiento` en Supabase, no desde estos archivos. Si esa tabla todavía dice 30
+> días, la clienta que pregunte por WhatsApp va a oír el plazo viejo. Hay que revisarla en
+> el panel → Ajustes.
 
 ### 9. ✅ El JSON-LD de la portada promete lo que el sitio ya retiró — resuelto
 

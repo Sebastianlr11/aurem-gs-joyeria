@@ -27,11 +27,24 @@ const faqs = [
     },
     {
         question: '¿Cómo funciona la garantía de por vida?',
-        answer: 'Cubre el metal de por vida contra defectos de fabricación: ajustes de talla y pulido, sin costo. Las piedras no entran en esa garantía; si se suelta o se daña una, escríbenos y lo revisamos caso por caso.',
+        /* Decía que la garantía de por vida cubría los defectos de
+           fabricación, y eso choca de frente con los 30 días que prometen los
+           Términos y la política. Son dos garantías distintas y así están
+           escritas allá: de por vida responde por LA LEY DEL METAL —que una
+           plata 925 sea plata 925—, y los 30 días por el trabajo del taller.
+           Aquí se decía en una sola frase y quedaba pareciendo la misma. */
+        answer: 'Son dos. De por vida respondemos por el metal: que una pieza marcada como plata 925 sea plata 925 y un oro 18k sea oro 18k, y los ajustes de talla y el pulido van sin costo siempre. Aparte, 30 días contra defectos de fabricación —engastes, soldaduras y acabados—. Las piedras no entran en ninguna de las dos; si se suelta o se daña una, escríbenos y lo revisamos caso por caso.',
     },
     {
         question: '¿Puedo devolver o cambiar una pieza?',
-        answer: 'Tienes 30 días desde la recepción, con la pieza en su estado y embalaje original.',
+        /* Decía "30 días" y la política de devoluciones decía 5 días hábiles.
+           Dos pantallas del mismo sitio prometiendo plazos distintos, y por
+           escrito obliga el más generoso: el sitio se estaba comprometiendo a
+           30 días sin quererlo. Aquí se confundían el retracto (Ley 1480, 5
+           días hábiles) con la garantía (30 días, y sólo si la pieza salió
+           defectuosa). El plazo real, decidido el 23 de agosto de 2026, es el
+           legal. */
+        answer: 'Tienes 5 días hábiles desde que la recibes para retractarte sin darnos ninguna razón, con la pieza sin usar y en su empaque original —es tu derecho de retracto—. El envío de retorno en ese caso corre por tu cuenta. Cosa distinta es que la pieza llegue defectuosa o no sea la que pediste: eso lo cubrimos nosotros, envío incluido.',
     },
     {
         question: '¿Ofrecen grabados personalizados?',

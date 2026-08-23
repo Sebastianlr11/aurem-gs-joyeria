@@ -20,7 +20,7 @@ const ReturnsPolicy = () => (
       <div className="legal-header">
         <span className="section-label">Legal</span>
         <h1>Política de Devoluciones</h1>
-        <p>Última actualización: febrero de 2025</p>
+        <p>Última actualización: agosto de 2026</p>
       </div>
 
       <div className="legal-body">
@@ -63,8 +63,19 @@ const ReturnsPolicy = () => (
           </ul>
         </Section>
 
-        <Section title="5. Garantía de calidad">
-          <p>Todas nuestras piezas cuentan con una garantía de <strong>30 días</strong> contra defectos de fabricación. Si tu joya presenta algún problema de calidad dentro de este período, la reemplazamos o reparamos sin costo adicional.</p>
+        {/* Decía sólo "30 días contra defectos de fabricación", y el sitio
+            promete además una garantía de por vida en el metal —en la ficha de
+            cada pieza, en el FAQ y en los Términos—. Esta pantalla es la que
+            el cliente abre para reclamar, así que era justo la que se estaba
+            quedando corta. Las dos garantías se separan como en los Términos:
+            una responde por el material, la otra por el trabajo. */}
+        <Section title="5. Garantías">
+          <p>Tus piezas tienen dos garantías nuestras, que se suman a la garantía legal del Estatuto del Consumidor y nunca la reemplazan:</p>
+          <ul>
+            <li><strong>De por vida en el metal:</strong> que una pieza marcada como plata 925 sea plata 925, y que un oro 18k sea oro 18k. Los ajustes de talla y el pulido van sin costo.</li>
+            <li><strong>30 días contra defectos de fabricación:</strong> engastes, soldaduras y acabados. Dentro de ese plazo reemplazamos o reparamos sin costo adicional.</li>
+          </ul>
+          <p>Las piedras no entran en ninguna de las dos. Si una se suelta o se daña, escríbenos y lo revisamos caso por caso.</p>
         </Section>
 
         <Section title="6. Gastos de envío en devoluciones">
