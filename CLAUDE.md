@@ -159,7 +159,11 @@ Los dos endpoints de Vercel:
 **Los disparos periódicos van por `pg_cron` dentro de Supabase.** `plantillas-programadas`
 y `vigilancia` se invocan con el header `x-cron-secreto`, cuyo valor está en
 `ajustes_internos.cron_secreto` (no en variables de entorno, para poder rotarlo sin
-redesplegar). **La programación no está versionada**: para verla, `SELECT * FROM cron.job;`.
+redesplegar). **La programación sí está versionada** desde el 23 de agosto:
+`20260823_el_reloj_de_la_base.sql`. Son dos trabajos — `avisos-whatsapp`
+(`0 0,1,13-23 * * *`, que en Bogotá son las 8 a las 20) y `vigilancia` (`30 * * * *`).
+Los tres valores que necesitan —`url_funciones`, `clave_anon`, `cron_secreto`— viven en
+`ajustes_internos`, no en la migración, y ésta se niega a aplicarse si falta alguno.
 
 ---
 
@@ -188,7 +192,7 @@ redesplegar). **La programación no está versionada**: para verla, `SELECT * FR
 | `taller_precios` | sí | Fila única: oro, recargo, abono, tope, IVA de pauta |
 | `taller_conocimiento` | sí | Base de conocimiento editable de Valentina |
 | `plantillas_enviadas` | sí | Candado anti-duplicado de plantillas de WhatsApp |
-| `ajustes_internos` | **no** | Clave/valor: `cron_secreto`, `telefonos_avisos` |
+| `ajustes_internos` | **no** | Clave/valor: `cron_secreto`, `clave_anon`, `url_funciones`, `telefonos_avisos`, `contactos_equipo` |
 | `vigilancia_ultima` | **no** | Fila id=1 con el último informe del vigía |
 | `envio_publico` | **no** (es una vista) | Expone sólo `abono_envio` y `tope_contraentrega` |
 | `pagos` | **no** | El libro de movimientos que lee `src/lib/caja.js`. Lo llena el trigger `registrar_pago` |
@@ -253,6 +257,7 @@ desde el 23-ago: el costo vive en el pedido.)
 | `20260822_conversaciones_purgables.sql` | Función `conversaciones_purgables()` — retención |
 | `20260822_pedido_publico.sql` | 🔒 `pedido_publico(uuid)` y anulación de la política mina |
 | `20260822_quitar_respaldos_de_chats.sql` | Elimina los respaldos del 22-ago |
+| `20260823_el_reloj_de_la_base.sql` | Declara los dos trabajos de `pg_cron`; antes el horario sólo vivía en la base |
 
 `20260822_cerrar_conversaciones_a_anon.sql` arregló un fallo del mismo tipo que el que
 sigue abierto en `orders`: `whatsapp_conversaciones` y `chat_takeover` tenían políticas

@@ -94,18 +94,22 @@ excluido, con independencia de la lógica de cada aviso.
 
 **Los disparos están programados con `pg_cron` dentro de Supabase**, autenticados con el
 header `x-cron-secreto`, cuyo valor vive en `ajustes_internos.cron_secreto` — no en
-variables de entorno, para poder rotarlo sin redesplegar. **La programación en sí no está
-versionada en el repo**: vive en la base, como el resto del esquema
-([pendientes #4](../pendientes.md)).
+variables de entorno, para poder rotarlo sin redesplegar. **La programación está
+versionada** desde el 23 de agosto de 2026 en `20260823_el_reloj_de_la_base.sql`:
+
+```
+avisos-whatsapp   0 0,1,13-23 * * *   (UTC)
+```
+
+Que en Bogotá (UTC-5) es **de 8 de la mañana a 8 de la noche, cada hora en punto**. Fuera
+de esa franja no se manda nada: una plantilla a las tres de la madrugada no ayuda a nadie
+y sí quema el candado de `plantillas_enviadas`.
 
 **El aviso de despacho ya está hecho y desplegado**; sólo espera a que Meta apruebe la
 plantilla `pedido_en_camino`.
 
 ## Límites conocidos y pendientes
 
-- **La programación de `pg_cron` no está versionada.** No hay forma de saber desde el repo
-  cada cuánto corren estas funciones; hay que consultarlo en la base
-  (`SELECT * FROM cron.job;`).
 - El aviso `pedido_en_camino` está bloqueado por la aprobación de Meta.
 - No hay panel de plantillas: para saber qué se mandó hay que consultar
   `plantillas_enviadas` a mano.
