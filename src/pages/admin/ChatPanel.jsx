@@ -9,182 +9,14 @@ import { leerRespuestas } from '../../lib/respuestasRapidas';
 import { NAV } from './adminNav.jsx';
 import '../../panel.css';
 
-/* ─── Helpers ───────────────────────────────────────────────────── */
-const normalizePhone = (p) => {
-    if (!p) return '';
-    const digits = p.replace(/\D/g, '');
-    if (digits.length === 10) return '57' + digits;
-    return digits;
-};
+import {
+    ACUSE, MESES_PURGA, PRESET_TAGS, STATUS_PEDIDO,
+    fmtDate, fmtDateFull, fmtSeparador, fmtTime, iniciales,
+    isSameDay, normalizePhone, sortMessages, truncate,
+} from './chat/comunes';
+import { ChatErrorBoundary, ImagenDelChat, PieDeFoto } from './chat/piezas';
+import BuscadorDeMensajes from './chat/BuscadorDeMensajes';
 
-const fmtTime = (d) => new Date(d).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
-const fmtDate = (d) => new Date(d).toLocaleDateString('es-CO', { day: '2-digit', month: 'short' });
-/* Iniciales del nombre, hasta dos, como en el retrato del diseño. */
-const iniciales = (nombre) => {
-    if (!nombre) return '#';
-    const partes = String(nombre).trim().split(/\s+/).filter(Boolean);
-    return (partes[0][0] + (partes[1]?.[0] || '')).toUpperCase();
-};
-/* Cómo se lee cada estado en la ficha, en vez del valor crudo. */
-const STATUS_PEDIDO = {
-    pendiente: 'Pago pendiente', pagado: 'Pagado', procesando: 'Procesando',
-    enviado: 'Enviado', entregado: 'Entregado', cancelado: 'Cancelado',
-};
-/* El separador del hilo: "Hoy", "Ayer", el día de la semana si es de
-   este año, y la fecha completa si es más viejo. */
-/* Qué significa cada acuse al pasar el cursor. */
-/**
- * Lo que se lee bajo la foto de un cliente.
- *
- * El contenido guardado es "📷 <lo que vio el modelo>" y, si el cliente
- * escribió un pie, sus palabras entre comillas al final. Esa descripción
- * existe para Valentina: es lo que lee en su siguiente turno, y sin ella
- * vería "[image]" y perdería el hilo. Pero con la foto delante, al joyero no
- * le aporta nada — le quita sitio a lo único que importa, que es la pieza y
- * lo que el cliente pidió con sus palabras.
- *
- * Así que se enseña el pie del cliente y la descripción queda a un clic, por
- * si alguna vez hay que revisar qué entendió el modelo.
- */
-function PieDeFoto({ contenido }) {
-    const [abierta, setAbierta] = useState(false);
-
-    const texto = String(contenido || '');
-    if (!texto) return null;
-
-    const conPie = texto.match(/^📷\s*([\s\S]*?)\n\n"([\s\S]*)"$/);
-    const descripcion = conPie ? conPie[1].trim() : texto.replace(/^📷\s*/, '').trim();
-    const pie = conPie ? conPie[2].trim() : null;
-
-    return (
-        <div className="chat-bubble-content">
-            {pie ? <span>{pie}</span> : null}
-            {descripcion ? (
-                <div className="chat-foto-visto">
-                    <button type="button" onClick={() => setAbierta(v => !v)}>
-                        {abierta ? 'Ocultar lo que vio Valentina' : 'Lo que vio Valentina'}
-                    </button>
-                    {abierta ? <p>{descripcion}</p> : null}
-                </div>
-            ) : null}
-        </div>
-    );
-}
-
-/**
- * La imagen de un mensaje, venga de donde venga.
- *
- * Hay dos clases y se distinguen por la forma: las que mandamos nosotros son
- * fotos del catálogo y llevan URL pública completa; las que manda el cliente
- * viven en un bucket privado y sólo se guarda su ruta, porque son
- * correspondencia suya —mandan comprobantes, capturas, fotos de su mano— y
- * eso no puede quedar colgando de un enlace público.
- *
- * La firma dura una hora, de sobra para mirar un chat, y se pide sólo cuando
- * la burbuja se pinta: firmar todo el historial de entrada sería pedir
- * decenas de URLs que nadie va a abrir.
- */
-function ImagenDelChat({ ruta, onAbrir }) {
-    const [src, setSrc] = useState(() => (String(ruta).startsWith('http') ? ruta : null));
-
-    useEffect(() => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect -- La URL firmada de Storage llega después, y la ruta puede cambiar sin que el componente se desmonte. El estado inicial ya resuelve el caso de una URL directa; esto cubre el resto.
-        if (String(ruta).startsWith('http')) { setSrc(ruta); return; }
-        let vivo = true;
-        supabase.storage.from('chat-media').createSignedUrl(ruta, 3600)
-            .then(({ data }) => { if (vivo && data?.signedUrl) setSrc(data.signedUrl); });
-        return () => { vivo = false; };
-    }, [ruta]);
-
-    // Mientras se firma se deja el hueco, para que el hilo no salte al cargar.
-    if (!src) return <div className="chat-bubble-image chat-bubble-image--cargando" />;
-
-    return (
-        <img
-            src={src}
-            alt=""
-            className="chat-bubble-image chat-bubble-image--clickable"
-            onClick={() => onAbrir(src)}
-        />
-    );
-}
-
-const ACUSE = {
-    sending: 'Enviando…',
-    sent: 'Enviado a WhatsApp',
-    delivered: 'Entregado en el teléfono',
-    read: 'Leído por el cliente',
-    failed: 'No se pudo enviar',
-};
-const fmtSeparador = (d) => {
-    const f = new Date(d);
-    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
-    const dia = new Date(f); dia.setHours(0, 0, 0, 0);
-    const dias = Math.round((hoy - dia) / 86400000);
-    if (dias === 0) return 'Hoy';
-    if (dias === 1) return 'Ayer';
-    if (dias < 7) return f.toLocaleDateString('es-CO', { weekday: 'long' });
-    if (f.getFullYear() === hoy.getFullYear()) {
-        return f.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' });
-    }
-    return f.toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' });
-};
-const fmtDateFull = (d) => new Date(d).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
-const isSameDay = (a, b) => {
-    const da = new Date(a), db = new Date(b);
-    return da.getFullYear() === db.getFullYear() && da.getMonth() === db.getMonth() && da.getDate() === db.getDate();
-};
-
-/* Cuánto silencio antes de que una conversación sea candidata a purga. Un año
-   deja pasar la temporada entera de regalos —diciembre, San Valentín, día de la
-   madre— antes de dar a alguien por perdido. Es también el valor por defecto de
-   `conversaciones_purgables` en la base; se pasa explícito para que cambiarlo
-   sea esta línea y no una migración. */
-const MESES_PURGA = 12;
-
-const truncate = (s, n = 50) => s && s.length > n ? s.slice(0, n) + '...' : s;
-
-/* ─── Sort helper: user before assistant when same timestamp ─── */
-const sortMessages = (msgs) => {
-    if (!msgs) return [];
-    return [...msgs].sort((a, b) => {
-        const t = new Date(a.created_at) - new Date(b.created_at);
-        if (t !== 0) return t;
-        if (a.role === 'user' && b.role === 'assistant') return -1;
-        if (a.role === 'assistant' && b.role === 'user') return 1;
-        return 0;
-    });
-};
-
-/* Una etiqueta es un nombre, no un estado: la palabra ya distingue una
-   de otra y no hace falta un color por cada una. Eran cinco matices de
-   otra paleta —azul, verde, ámbar, oro brillante, morado— y en la
-   marca sólo hay un oro. El chip ya se pintaba así; lo único que
-   quedaba de colores era el botón de añadir. */
-const PRESET_TAGS = [
-    { label: 'Interesado', color: '#A8863F' },
-    { label: 'Cliente', color: '#A8863F' },
-    { label: 'Seguimiento', color: '#A8863F' },
-    { label: 'VIP', color: '#A8863F' },
-    { label: 'Mayorista', color: '#A8863F' },
-];
-
-/* ─── Error Boundary ───────────────────────────────────────────── */
-class ChatErrorBoundary extends React.Component {
-    constructor(props) { super(props); this.state = { error: null }; }
-    static getDerivedStateFromError(error) { return { error }; }
-    componentDidCatch(err, info) { console.error('ChatPanel crash:', err, info); }
-    render() {
-        if (this.state.error) {
-            return React.createElement('div', { style: { padding: 40, textAlign: 'center' } },
-                React.createElement('h3', null, 'Error en el panel de chat'),
-                React.createElement('p', { style: { color: 'var(--error-ink)', fontFamily: 'monospace', fontSize: '0.85rem' } }, String(this.state.error)),
-                React.createElement('button', { onClick: () => this.setState({ error: null }), style: { marginTop: 16, padding: '8px 16px', cursor: 'pointer' } }, 'Reintentar')
-            );
-        }
-        return this.props.children;
-    }
-}
 
 /* ═══════════════════════════════════════════════════════════════════
    CHAT PANEL
@@ -241,9 +73,6 @@ const ChatPanel = () => {
     const [sendError, setSendError] = useState(null);
     const [contactFilter, setContactFilter] = useState('todos');
     const [pendingPhones, setPendingPhones] = useState(new Set());
-    const [msgSearchQuery, setMsgSearchQuery] = useState('');
-    const [msgSearchResults, setMsgSearchResults] = useState([]);
-    const [searchingMsgs, setSearchingMsgs] = useState(false);
     const [showMsgSearch, setShowMsgSearch] = useState(false);
     const [toasts, setToasts] = useState([]);
     const [showExportMenu, setShowExportMenu] = useState(false);
@@ -417,18 +246,6 @@ const ChatPanel = () => {
                 if (data) setPendingPhones(new Set(data.map(o => normalizePhone(o.customer_phone)).filter(Boolean)));
             });
     }, [session]);
-
-    /* ─── Debounced message search ────────────────────────────── */
-    useEffect(() => {
-        if (!msgSearchQuery.trim()) { setMsgSearchResults([]); return; }
-        const timer = setTimeout(async () => {
-            setSearchingMsgs(true);
-            const { data } = await supabase.rpc('buscar_conversaciones', { p_query: msgSearchQuery.trim() });
-            setMsgSearchResults(data || []);
-            setSearchingMsgs(false);
-        }, 400);
-        return () => clearTimeout(timer);
-    }, [msgSearchQuery]);
 
     /* ─── Keep refs in sync ───────────────────────────────────── */
     useEffect(() => { takeoverMapRef.current = takeoverMap; }, [takeoverMap]);
@@ -1099,7 +916,7 @@ const ChatPanel = () => {
             if (e.key === 'Escape') {
                 if (lightboxImg) { closeLightbox(); return; }
                 if (confirmArchive) { setConfirmArchive(null); return; }
-                if (showMsgSearch) { setShowMsgSearch(false); setMsgSearchQuery(''); setMsgSearchResults([]); return; }
+                if (showMsgSearch) { setShowMsgSearch(false); return; }
                 if (showExportMenu) { setShowExportMenu(false); return; }
                 if (showContactInfo) { setShowContactInfo(false); return; }
                 if (showQuickReplies) { setShowQuickReplies(false); return; }
@@ -1623,27 +1440,10 @@ const ChatPanel = () => {
 
                                 {/* Message search bar */}
                                 {showMsgSearch && (
-                                    <div className="chat-msg-search-bar">
-                                        <input type="text" className="chat-msg-search-input" placeholder="Buscar en mensajes..."
-                                               value={msgSearchQuery} onChange={e => setMsgSearchQuery(e.target.value)} autoFocus />
-                                        {searchingMsgs && <span className="chat-msg-search-spinner" />}
-                                        {msgSearchResults.length > 0 && (
-                                            <div className="chat-msg-search-results">
-                                                {msgSearchResults.slice(0, 8).map((r, i) => (
-                                                    <button key={i} className="chat-msg-search-result" onClick={() => {
-                                                        setActiveContact(r.phone_number);
-                                                        setShowMsgSearch(false);
-                                                        setMsgSearchQuery('');
-                                                        setMsgSearchResults([]);
-                                                    }}>
-                                                        <span className="chat-msg-search-phone">{r.phone_number}</span>
-                                                        <span className="chat-msg-search-text">{truncate(r.content, 60)}</span>
-                                                        <span className="chat-msg-search-time">{fmtDate(r.created_at)}</span>
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
+                                    <BuscadorDeMensajes onElegir={telefono => {
+                                        setActiveContact(telefono);
+                                        setShowMsgSearch(false);
+                                    }} />
                                 )}
 
                                 {/* Takeover banner */}

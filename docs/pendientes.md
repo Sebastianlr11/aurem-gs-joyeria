@@ -577,8 +577,10 @@ el recargado en caliente deja de funcionar.
 El trozo de JavaScript del panel pesa lo mismo que antes (162 kB), así que no se duplicó
 nada por el camino.
 
-**`ChatPanel.jsx` sigue entero**, con 2.115 líneas. Es una sola pantalla, no siete metidas
-en una, así que no tiene la misma costura por donde partirlo.
+**`ChatPanel.jsx` se empezó a partir el mismo día** — ver
+[#31](#31--chatpaneljsx-era-un-solo-componente-de-1926-líneas--empezado). No tiene la
+costura de `Dashboard.jsx`, que eran siete pantallas metidas en una: aquí es **una sola
+pantalla**, así que hay que ir por grupos de estado y comprobando cada paso.
 
 ### 18. ✅ `ProtectedRoute` no reaccionaba a que expirara la sesión — resuelto
 
@@ -1065,3 +1067,48 @@ cierra sesión).
 
 Lo único que queda sin probar de punta a punta es que un hallazgo real acabe en un correo,
 porque comprobarlo manda una alerta de verdad al equipo.
+
+---
+
+## 31. 🟡 `ChatPanel.jsx` era un solo componente de 1.926 líneas — empezado
+
+`Dashboard.jsx` se pudo partir en una tarde porque eran **siete pantallas metidas en un
+archivo** y ya eran independientes. Este no se parece en nada: de sus 2.123 líneas, 1.926
+eran **un único componente con 55 estados y 103 hooks**. No hay costura evidente, y no hay
+ni una prueba que avise si se rompe algo — así que se va por pasos verificables, no de un
+tirón.
+
+Los 55 estados sí forman grupos, y esa es la costura real: selector de imágenes del
+catálogo (7), ficha del contacto (5), buscador de mensajes (4), visor de fotos (2),
+selección y archivado en lote (4), borrado de fotos y purga (6), avisos (1), y el núcleo
+—sesión, contactos, mensajes, envío, tiempo real, control manual—.
+
+**Hecho el 23 de agosto: 2.123 → 1.923 líneas.**
+
+- `chat/comunes.js` — los 13 formatos y constantes. Cero riesgo: no dependen de nada.
+  De paso se devolvieron a su sitio dos comentarios que llevaban ochenta líneas separados
+  de lo que explicaban.
+- `chat/piezas.jsx` — `PieDeFoto`, `ImagenDelChat` y `ChatErrorBoundary`, las tres únicas
+  cosas del archivo que ya recibían lo suyo por props. Aparte de `comunes.js` porque
+  `react-refresh/only-export-components` no deja mezclar componentes y constantes.
+- `chat/BuscadorDeMensajes.jsx` — el primer **grupo de estado** que sale, con tres de los
+  55 y uno de los efectos.
+
+Lo del buscador es el patrón que conviene repetir, porque **quitó código en vez de
+moverlo**. El panel tenía que limpiar la consulta y los resultados a mano en cada salida
+—Escape, elegir un resultado, volver a pulsar la lupa— y cualquiera de las tres se podía
+olvidar. Ahora se monta y se desmonta con `showMsgSearch`, así que el estado nace y muere
+solo. Y al sacarlo, el lint señaló un `setState` síncrono dentro del efecto que llevaba ahí
+desde siempre: en vez de silenciarlo, lo que se pinta pasó a **deducirse** del campo en
+lugar de guardarse, que además quita un estado que podía quedar desfasado.
+
+Comprobado en el navegador, no razonado: el buscador se abre con el foco puesto, «anillo»
+devuelve 2 resultados, borrar el texto los quita, Escape cierra, al reabrir el campo viene
+limpio, y elegir un resultado cierra y lleva a ese chat. Y el resto del panel sigue
+entero: contactos, burbujas, separadores de día, acuses, iniciales, hora y estado del
+pedido — que son justamente los helpers que se mudaron.
+
+**Lo que queda**, por orden de lo más fácil de verificar sin efectos secundarios: el visor
+de fotos (2 estados), los avisos (1), la ficha del contacto (5), la selección en lote (4),
+la purga (6) y el selector de imágenes del catálogo (7). El núcleo —tiempo real, envío,
+control manual— es lo último y lo que menos conviene tocar sin pruebas.
