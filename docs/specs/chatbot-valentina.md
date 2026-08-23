@@ -163,7 +163,7 @@ anuncio prometía algo que no está en las políticas, no confirmarlo y escalar*
 
 ## Límites conocidos y pendientes
 
-- **Verificar `taller_conocimiento`.** El seed de la migración dejó las 6 filas marcadas
+- **Verificar `taller_conocimiento`.** El seed de la migración dejó las primeras 6 filas marcadas
   *"SIN CONFIRMAR"*, y Valentina lee esa tabla en caliente. Los claims ya se verificaron
   con el joyero, así que lo probable es que la base esté al día y sólo el seed haya
   quedado atrás — pero conviene confirmarlo, y actualizar el seed

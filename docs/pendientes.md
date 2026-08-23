@@ -281,10 +281,19 @@ que el cliente abre para reclamar y la que se quedaba corta frente a lo que la f
 cada pieza promete. La fecha de la política, que decía **febrero de 2025**, quedó en agosto
 de 2026 como las otras dos.
 
-> ⚠️ **Falta la mitad que no está en el código.** Valentina responde desde
-> `taller_conocimiento` en Supabase, no desde estos archivos. Si esa tabla todavía dice 30
-> días, la clienta que pregunte por WhatsApp va a oír el plazo viejo. Hay que revisarla en
-> el panel → Ajustes.
+**La mitad que no está en el código también quedó hecha.** Valentina responde desde
+`taller_conocimiento`, no desde estos archivos, y resultó que **no decía 30 días: no decía
+nada**. El tema no existía en la tabla. La regla 1 del prompt le prohíbe inventar plazos,
+así que escalaba en vez de mentir —bien—, pero una pregunta tan común no debería llegar a
+una persona. Se le escribió el tema *Devoluciones y retracto* y se completó *Garantía*, que
+sólo mencionaba la de por vida. Va versionado en
+`supabase/migrations/20260823_conocimiento_devoluciones.sql`.
+
+> ⚠️ **Una pregunta legal que quedó abierta.** El artículo 47 excluye del retracto los
+> bienes *"confeccionados conforme a las especificaciones del consumidor"*, y en este taller
+> **todo se hace por encargo**. Ni el sitio ni Valentina invocan esa excepción —prometen los
+> 5 días a todo el mundo—, que es lo prudente mientras nadie lo consulte con un abogado.
+> Dicho quede: si algún día se quiere invocar, hay que cambiarlo en los dos sitios a la vez.
 
 ### 9. ✅ El JSON-LD de la portada promete lo que el sitio ya retiró — resuelto
 
