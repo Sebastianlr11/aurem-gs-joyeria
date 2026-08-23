@@ -139,6 +139,9 @@ async function despachados(): Promise<Envio[]> {
     .from('orders')
     .select('id, customer_name, customer_phone, product_name, tracking_number, carrier, status_updated_at')
     .eq('status', 'enviado')
+    /* Los pedidos del equipo no reciben avisos de cliente. El resto del panel
+       ya los separa con es_prueba; esta función era la única que no. */
+    .eq('es_prueba', false)
     .not('tracking_number', 'is', null)
     .not('customer_phone', 'is', null)
     .gte('status_updated_at', new Date(Date.now() - 48 * HORA).toISOString())
@@ -199,6 +202,7 @@ async function sinPagar(): Promise<Envio[]> {
     .from('orders')
     .select('id, customer_name, customer_phone, product_name')
     .eq('status', 'pendiente')
+    .eq('es_prueba', false)
     .eq('payment_method', 'mercadopago')
     .not('mp_preference_id', 'is', null)
     .not('customer_phone', 'is', null)
@@ -252,7 +256,26 @@ async function enfriadas(): Promise<Envio[]> {
     .in('customer_phone', candidatos)
 
   const compraron = new Set((conPedido ?? []).map((o) => o.customer_phone))
-  const frios = candidatos.filter((t) => !compraron.has(t))
+
+  /* Y los contactos del equipo tampoco: probar el bot con el número de un
+     amigo no es una cotización que se enfrió, y mandarle seguimiento comercial
+     a la casa es ruido — o peor, si la plantilla es de Marketing.
+
+     Se comparan los últimos diez dígitos, no la cadena entera: el mismo número
+     aparece como 3143602930, +573143602930 y 573143602930 según por dónde
+     entre. Es el mismo criterio que usan los disparadores de es_prueba en la
+     base, y aquí hace falta porque estos teléfonos vienen de las
+     conversaciones y no de un pedido. */
+  const diezUltimos = (t: string | null | undefined) =>
+    String(t ?? '').replace(/\D/g, '').slice(-10)
+
+  const { data: dePrueba } = await db
+    .from('customers').select('phone').eq('es_prueba', true)
+  const delEquipo = new Set((dePrueba ?? []).map((c) => diezUltimos(c.phone)).filter(Boolean))
+
+  const frios = candidatos.filter(
+    (t) => !compraron.has(t) && !delEquipo.has(diezUltimos(t)),
+  )
   if (!frios.length) return []
 
   const [{ data: piezas }, { data: clientes }] = await Promise.all([
