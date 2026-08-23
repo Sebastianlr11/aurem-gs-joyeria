@@ -669,8 +669,8 @@ Los 29 de fuera de `src/` eran todos falsos: la configuración le aplicaba las r
 navegador y de React a las edge functions de Deno y a las plantillas de correo. Ahora
 `eslint.config.js` tiene un bloque por contexto.
 
-**Lo que sigue faltando son los tests.** No hay ninguno, y montar el andamiaje es otro
-proyecto. El lint en el build es el escalón realista, no el destino.
+~~**Lo que sigue faltando son los tests.**~~ — **hechos el 23 de agosto**, ver
+[#28](#28--no-había-ni-una-prueba--resuelto-donde-importa).
 
 ### 24. ✅ `npm run build` no corría en esta máquina — resuelto
 
@@ -857,3 +857,51 @@ El bucket bajó de 38 archivos a 30, y **de 30 huérfanos posibles a cero**. El 
 hizo con la sesión del panel, contra la política `product_images_auth_delete`, no por
 detrás con la llave de servicio: si el camino que usa la aplicación no sirviera para
 borrar, había que saberlo.
+
+
+---
+
+## 28. ✅ No había ni una prueba — resuelto donde importa
+
+Montar el andamiaje resultó ser media hora, no un proyecto: **Vitest lee la misma
+`vite.config.ts`**, así que no hay una segunda configuración que mantener. Lo que sí
+necesitaba pensarse era **por dónde empezar**, porque cubrir el repositorio entero sí es
+otro proyecto.
+
+Se empezó por las cuentas de plata, y el motivo es el que ordena todo lo demás: **es el
+único sitio donde un error no se ve.** Un fallo de CSS se nota al abrir la pantalla y uno
+de enrutado tumba la página. Una cuenta mal hecha enseña un número redondo, con signo de
+pesos, perfectamente creíble — y ya pasó: el panel daba por cobrados $550.000 de un pedido
+contraentrega que iba en camino, cuando lo único que había entrado eran los $20.000 del
+abono. Con pauta encendida, eso es calcular el retorno contra ingresos imaginarios.
+
+**43 pruebas** en `src/lib/dinero.test.js` y `src/lib/caja.test.js`, que corren en 170 ms:
+
+- **La tabla de `recibidoDe` de la prueba ES la tabla de CLAUDE.md §8.** No son casos
+  inventados: es la regla de negocio escrita de forma que la máquina la compruebe. Los
+  seis estados por las dos formas de pago, más el error original escrito aparte, para que
+  se lea como advertencia y no como una fila más de una lista.
+- **De `caja.js` se prueban las tres decisiones que sólo se ven leyendo el código**: que
+  un abono cuenta como Mercado Pago aunque el pedido sea contraentrega (son dos rieles
+  dentro del mismo pedido), que la comisión se le descuenta sólo a lo que pasó por Mercado
+  Pago —y no a Nequi ni al efectivo—, y que el día de un movimiento es el día en Bogotá
+  y no en UTC.
+- El cliente de Supabase se sustituye por uno de mentira. No por evitar la red: es que la
+  prueba necesita un reverso, un pago por Nequi y un cobro de las diez de la noche, y la
+  base de producción no tiene ninguna de las tres cosas.
+
+**Y se comprobó que las pruebas sirven, que es el paso que casi nadie da.** Una batería
+que pasa siempre no vale nada, así que se rompió el código a propósito tres veces:
+
+| Lo que se rompió | Pruebas que lo cazaron |
+|---|---|
+| Un contraentrega `enviado` vuelve a contar entero (el error original) | **4** |
+| El abono deja de contarse como Mercado Pago | **2** |
+| El día se cuenta en UTC y no en Bogotá | **1** |
+
+Las tres se cazaron. El código quedó restaurado y las 43 vuelven a pasar.
+
+**Corren en el build**, después del lint y antes de todo lo demás, así que un despliegue
+con las cuentas rotas no sale. Lo que queda sin cubrir es todo lo demás —componentes,
+edge functions, el bot— y eso sigue siendo otro proyecto; pero ahora hay dónde escribir
+la prueba siguiente en vez de dónde empezar.

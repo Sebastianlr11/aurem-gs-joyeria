@@ -5,10 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "eslint . && node scripts/sitemap.mjs && node scripts/correos.mjs && tsc -b && vite build",
+    "build": "eslint . && vitest run && node scripts/sitemap.mjs && node scripts/correos.mjs && tsc -b && vite build",
     "imagenes": "node scripts/imagenes.mjs",
     "css:pisadas": "node scripts/css-pisadas.mjs",
     "lint": "eslint .",
+    "test": "vitest run",
+    "test:mirar": "vitest",
     "preview": "vite preview",
     "sitemap": "node scripts/sitemap.mjs",
     "email": "email dev --dir emails --port 3010",
@@ -37,6 +39,7 @@
     "sharp": "^0.35.3",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.48.0",
-    "vite": "^7.3.1"
+    "vite": "^7.3.1",
+    "vitest": "^4.1.11"
   }
 }
