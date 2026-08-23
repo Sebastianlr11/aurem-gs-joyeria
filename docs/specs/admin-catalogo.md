@@ -21,7 +21,8 @@ sitios donde se usan**: la web y WhatsApp — que no aceptan el mismo formato.
 | `src/pages/admin/ProductModal.jsx:33-44` | Corrección del `numeric` "550000.00" |
 | `src/pages/admin/ProductModal.jsx:172-185` | Subida optimizada en el navegador |
 | `src/pages/admin/EliminarPieza.jsx` | Borrado con fricción (183 líneas) |
-| `src/lib/optimizarFoto.js` | `versionesDeFoto()` — WebP + gemela JPEG |
+| `src/lib/optimizarFoto.js` | `versionesDeFoto()` — WebP, gemela JPEG y copias de 400/800 |
+| `src/lib/fotoProducto.js` | La otra mitad: arma el `srcset` al pintar |
 
 ### Tablas y Storage
 
@@ -43,6 +44,12 @@ agosto de 2026):
 |---|---|
 | `.webp` | La web — pesa menos |
 | `.jpeg` (gemela) | **WhatsApp, que no acepta WebP** |
+
+Y desde el 23 de agosto, además, dos copias chicas (`-w400.webp`, `-w800.webp`) para el
+`srcset`. El nombre de la grande lleva su tamaño real —`-893x1600.webp`— y **esa marca es
+lo único que le dice al sitio que las copias existen**; por eso las copias se suben
+primero y el nombre se decide después: prometer archivos que fallaron pintaría una foto
+rota. Ver `fotoProducto.js` y [pendientes #20](../pendientes.md).
 
 WhatsApp falla con un **200 engañoso**: la API responde correctamente y el mensaje
 simplemente nunca llega. Fue caro de diagnosticar precisamente por eso.
@@ -76,9 +83,10 @@ panel de pauta avisa de las piezas que lo tienen para no calcular retornos sobre
 
 ## Límites conocidos y pendientes
 
-- **Las fotos no se sirven optimizadas al visitante.** `ProductCard.jsx:51` y la galería de
-  la ficha usan `<img>` crudo, sin `srcset` ni `width`/`height`. Se optimizan **al subir**,
-  no **al entregar** — [pendientes #20](../pendientes.md).
+- **Las fotos ya publicadas siguen sin `srcset`.** El mecanismo está (`fotoProducto.js`),
+  pero sólo trabaja con fotos que se suban de ahora en adelante: las que ya están en
+  Storage no llevan la marca en el nombre. Para que sirva hay que **resubirlas desde el
+  panel** — [pendientes #20](../pendientes.md).
 - No hay reordenación por arrastre de las imágenes de una pieza.
 - El borrado de una pieza **no borra sus archivos del Storage**: quedan huérfanos.
 - `supabase-schema.sql` de la raíz no refleja las columnas reales de `products`

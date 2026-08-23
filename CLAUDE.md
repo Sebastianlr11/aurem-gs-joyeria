@@ -404,6 +404,12 @@ Cosas que ya costaron un incidente. Léelas antes de tocar lo que describen.
   mensaje nunca llega. Por eso cada foto de producto se guarda **dos veces**: la `.webp`
   para la web y una gemela `.jpeg` para WhatsApp (`src/lib/optimizarFoto.js`). **Borrar
   las `.jpeg` deja a Valentina sin poder mandar fotos.**
+- **El nombre de una foto de producto es información, no decoración.** La marca
+  `-<ancho>x<alto>.webp` al final es lo único que le dice al sitio que existen las copias
+  `-w400.webp` y `-w800.webp` del `srcset` (`src/lib/fotoProducto.js`), y la gemela de
+  WhatsApp se deriva cambiándole la extensión. **Renombrar o mover un archivo del bucket
+  rompe las dos cosas.** El transformador de imágenes de Supabase, que habría evitado todo
+  esto, es de plan Pro y en este proyecto responde 403.
 - **Gmail borra los `<style>` externos.** Por eso `emails/_marca.tsx` duplica los tokens
   en línea y usa Georgia en vez de Marcellus.
 - **`src/index.css` tiene 17.781 líneas y arrastra capas del diseño anterior que

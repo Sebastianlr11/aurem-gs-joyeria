@@ -96,10 +96,18 @@ Dos mecanismos, para dos problemas:
 |---|---|---|
 | `src/components/Foto.jsx` | Fotos **estáticas** del sitio: `<picture>` + WebP + fallback JPG | Hero, Collections, TiltedCarousel |
 | `src/lib/optimizarFoto.js` | Fotos de **producto**, al **subirlas** desde el panel | ProductModal |
+| `src/lib/fotoProducto.js` | Fotos de **producto**, al **entregarlas**: arma el `srcset` | ProductCard, ProductPage |
 
-> **Las fotos de producto no pasan por `Foto.jsx`**: `ProductCard.jsx:51` y la galería usan
-> `<img>` crudo, sin `srcset` ni dimensiones. Se optimizan al subir, no al entregar —
-> [pendientes #20](../pendientes.md).
+> **Las fotos de producto no pasan por `Foto.jsx`**, que sirve archivos estáticos de
+> `/assets`. Tienen su propia pareja: `optimizarFoto.js` genera los tamaños al subir
+> —400, 800 y la grande— y `fotoProducto.js` los arma en un `srcset` al pintar.
+>
+> El transformador de Supabase Storage habría hecho esto al vuelo, pero **es de plan Pro**
+> (403 `FeatureNotEnabled` en este proyecto). Por eso los tamaños se generan una sola vez,
+> al subir, y **qué tamaños existen lo dice el nombre del archivo**: la marca
+> `-<ancho>x<alto>.webp` al final. Sin marca, no hay `srcset` — ver
+> [pendientes #20](../pendientes.md), donde queda dicho que las fotos ya publicadas no la
+> tienen y hay que resubirlas.
 
 ## El CSS: 17.781 líneas en un archivo
 

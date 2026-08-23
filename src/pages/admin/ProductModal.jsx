@@ -161,13 +161,33 @@ export default function ProductModal({ product, onClose, onSaved }) {
            celular con 1536×2752 y varios megas, y se guardaban tal cual: eso
            es exactamente lo que baja después cada clienta que abre la ficha.
            Si algo falla, sube la original. */
-        const { principal, gemela } = await versionesDeFoto(original);
+        const { principal, gemela, variantes, ancho, alto } = await versionesDeFoto(original);
 
-        /* El mismo nombre para las dos, sólo cambia la extensión. Es la
-           convención de la que depende wa.ts para pedir la JPEG: el sitio usa
-           la WebP porque pesa una fracción, pero WhatsApp no acepta WebP. */
         const base = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-        const ruta = (f) => `${base}.${f.name.split('.').pop()}`;
+
+        /* Las copias chicas van PRIMERO, y el nombre de la grande se decide
+           después según cómo les fue. El motivo: la marca `-893x1600` en el
+           nombre de la grande es lo único que le dice al sitio que existe un
+           `srcset` (ver fotoProducto.js). Ponerla antes de saber si las
+           copias subieron sería prometer archivos que quizá no están, y el
+           navegador pintaría una foto rota — bastante peor que una pesada. */
+        let conVariantes = variantes.length > 0;
+        if (conVariantes) {
+            const idas = await Promise.all(variantes.map(v => supabase.storage
+                .from('product-images')
+                .upload(`${base}-w${v.ancho}.webp`, v.archivo, { upsert: false })));
+            const falla = idas.find(r => r.error);
+            if (falla) {
+                console.error('No se pudieron subir los tamaños chicos:', falla.error.message);
+                conVariantes = false;
+            }
+        }
+
+        /* El mismo nombre para las dos grandes, sólo cambia la extensión. Es
+           la convención de la que depende wa.ts para pedir la JPEG: el sitio
+           usa la WebP porque pesa una fracción, pero WhatsApp no acepta WebP. */
+        const sufijo = conVariantes ? `-${ancho}x${alto}` : '';
+        const ruta = (f) => `${base}${sufijo}.${f.name.split('.').pop()}`;
 
         const { error: upErr } = await supabase.storage
             .from('product-images').upload(ruta(principal), principal, { upsert: false });
