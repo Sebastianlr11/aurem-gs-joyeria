@@ -76,6 +76,20 @@ export type Venta = {
    * siendo el de verdad.
    */
   evento?: 'pedido' | 'compra' | 'cancelacion'
+  /**
+   * Código de prueba de Meta o TikTok.
+   *
+   * Con él puesto, el evento aparece en la pestaña de eventos de prueba de
+   * cada plataforma y NO cuenta como conversión real: es la única forma de
+   * comprobar que una compra llega bien sin meter una venta falsa en los
+   * informes ni enseñarle basura al algoritmo.
+   *
+   * Viaja por llamada y no por variable de entorno a propósito. Una variable
+   * encendida y olvidada convertiría TODAS las ventas de verdad en pruebas
+   * —dejarían de contar y nadie se enteraría hasta cerrar el mes—, y ese
+   * riesgo no compensa la comodidad.
+   */
+  testEventCode?: string | null
 }
 
 /* Los nombres que espera cada plataforma. Coinciden a propósito con los que
@@ -178,6 +192,9 @@ async function aTikTok(venta: Venta, momento: number): Promise<string> {
   const cuerpo = {
     event_source: 'web',
     event_source_id: TIKTOK_PIXEL,
+    /* Sólo en pruebas. TikTok no guarda los eventos que llegan con este
+       código: los enseña en la pestaña de prueba del píxel y los descarta. */
+    ...(venta.testEventCode ? { test_event_code: venta.testEventCode } : {}),
     data: [{
       /* TikTok renombró CompletePayment a Purchase en mayo de 2025. Este
          nombre tiene que ser idéntico al que dispara el píxel del navegador
@@ -269,6 +286,9 @@ async function aMeta(venta: Venta, momento: number): Promise<string> {
   }
 
   const cuerpo = {
+    /* Sólo en pruebas: con esto el evento sale en la pestaña "Probar eventos"
+       del Administrador de eventos y no cuenta como conversión. */
+    ...(venta.testEventCode ? { test_event_code: venta.testEventCode } : {}),
     data: [{
       ...evento,
       user_data: limpio({
