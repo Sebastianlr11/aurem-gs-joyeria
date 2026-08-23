@@ -462,52 +462,65 @@ Verificado en el navegador, antes y después: `font-weight` de 800 a 400, `font-
 apilados y sin desbordes. `css:pisadas` pasó de 84 bloques a 82 y `.hero-h1` ya no sale en
 la lista.
 
-### 16. ✅ `src/index.css` era un solo archivo de 17.850 líneas — resuelto
+### 16. ✅ `src/index.css` era un solo archivo de 17.850 líneas — resuelto del todo
 
-Ahora son dos: **`index.css` con 6.981 líneas** (la tienda y lo compartido) y
-**`panel.css` con 7.922** (el panel), y por el camino se fueron 2.910 líneas muertas.
-
-**Lo que gana la clienta.** El CSS que descarga quien abre la portada pasó de **50,3 kB a
-19,2 kB comprimidos**. Menos de la mitad. Dos pasos:
+De 17.850 líneas en un archivo a **6.842 + 7.549 en dos**. Y lo que descarga quien abre la
+portada, de **50,3 a 18,7 kB comprimidos**: un tercio de lo que era.
 
 | | CSS público (gzip) |
 |---|---|
 | Antes | 50,3 kB |
-| Tras podar 340 clases muertas | 42,7 kB |
-| Tras separar el panel | **19,2 kB** |
+| Podar 340 clases muertas | 42,7 kB |
+| Separar el panel a `panel.css` | 19,2 kB |
+| Quitar las declaraciones anuladas | **18,7 kB** |
 
-**Paso 1 — fuera 340 clases que no usa nadie.** Se cruzaron las 1.622 clases del CSS contra
-los 83 archivos del repositorio que pueden emitir HTML. 502 reglas y 2.910 líneas menos.
+**Primero hubo que arreglar el diagnóstico.** `css-pisadas.mjs` apilaba el contexto cuando
+una línea *empezaba* por `@media` y lo desapilaba cuando una línea era exactamente `}`.
+Una media query de una sola línea —`@media (min-width: 769px) { .admin-layout { … } }`, y
+las hay a docenas— se apilaba y **no se desapilaba nunca**: el contexto quedaba
+contaminado para todo lo que viniera detrás, y dos reglas que viven en medias distintas
+parecían estar en el mismo sitio. El informe se usa para decidir qué borrar, así que con
+el contexto mal, borrar lo que dice **sí** cambia la página.
 
-> ⚠️ **La trampa:** 46 clases parecían muertas y se construyen al vuelo —
-> `chat-bubble--${msg.role}` genera `chat-bubble--user`, que no está escrita en ninguna
-> parte—. Borrarlas habría dejado los mensajes del chat sin estilo. El script descarta
-> toda clase cuyo prefijo aparezca pegado a una interpolación.
+Reescrito para recorrer carácter a carácter, y de paso mira los dos archivos. La cifra
+real no eran 82 bloques: eran **143**, con 20 inertes enteros donde el informe decía 0.
 
-**Paso 2 — el panel a su propio archivo**, importado por `Dashboard.jsx` y `ChatPanel.jsx`,
-que ya van en trozos aparte. La tienda no lo pide nunca.
+**Después, la poda: 339 declaraciones que no hacían nada.** Sólo se tocó lo que el informe
+marca —mismo selector, mismo contexto, redefinida más abajo—, que por construcción es un
+no-op. Con una salvedad que el informe no contempla y el podador sí: **si la de arriba
+lleva `!important` y la de abajo no, gana la de arriba**; esas se dejan en paz. Quedaron
+20 reglas vacías, que también se fueron. Las pisadas bajaron de 143 a **4**.
 
-> ⚠️ **Y la trampa gorda, que costó dos intentos:** decidir qué es "del panel" **por el
-> nombre de la clase no funciona**. Con una lista de prefijos, `.joyero` —que es la ficha
-> de producto— se fue al panel y la ficha se rompió: la sección creció de 1.263 a 7.349 px
-> y perdió su relleno. Se midió y se revirtió. El criterio bueno sale de cruzar cada clase
-> contra **dónde se usa de verdad**: sólo se mueve la que aparece en `src/pages/admin/` y en
-> ningún otro sitio. Diez reglas mixtas (`.chat-contact-item.active`, `.pm-riel-datos
-> .punzon`) se quedan donde estaban a propósito.
+**Y una segunda tanda de 28 clases muertas** que la poda anterior había perdonado por un
+fallo mío: la guarda contra clases construidas al vuelo comparaba por subcadena, y
+`pd-ficha${…}` de `PedidoModal` contenía `ficha${`, así que salvó todas las `.ficha-*`
+muertas. El error iba hacia el lado seguro —dejar CSS de más—, pero se corrigió con
+frontera de palabra.
 
-**Cómo se verificó, que es la parte que importa.** Mover reglas cambia el orden de la
-cascada, y ante igual especificidad ahora gana `panel.css`. Se capturaron **24 propiedades
-calculadas de cada uno de 3.691 elementos, en once pantallas** —las ocho del panel más
-portada, catálogo y ficha—, antes y después: **cero diferencias**.
+**Verificado, y la verificación se equivocó primero.** La primera comparación daba 363
+diferencias en la portada. No eran de la poda: midiendo el CSS **viejo** en ese momento
+salían las mismas 363 —el entorno de medición había cambiado entre una pasada y otra, con
+valores sub-píxel delatores (`1351,88px` → `1352px`, un borde de `0,625px` → `1px`)—.
+Rehecha la referencia en las mismas condiciones: **12 pantallas, 4.007 elementos, 26
+propiedades cada uno, cero diferencias.**
 
-Hizo falta un intento fallido para llegar ahí: la primera medición daba 486 diferencias
-falsas porque las fuentes no habían terminado de cargar cuando se medía. El control
-—medir dos veces el mismo CSS— lo destapó. La huella ahora espera a `document.fonts.ready`.
+### Lo de "las tres capas de la ficha": no había tres capas
 
-**Lo que queda de este hallazgo:** unificar las tres capas de la ficha (`.ficha-*`,
-`.product-page-*` y una reescritura al final), y los 82 bloques que `css:pisadas` reporta
-con declaraciones pisadas. Eso **no es CSS muerto**: son clases vivas cuyas declaraciones
-anula otra regla posterior, y se atacan leyendo, no borrando.
+El hallazgo original decía que convivían `.ficha-*`, `.product-page-*` y una reescritura
+al final, y proponía unificarlas. Al mirarlo de cerca, después de quitar lo muerto, **no
+son tres capas compitiendo por lo mismo**: son tres espacios de nombres con tres trabajos,
+y los tres los usa el mismo archivo (`ProductPage.jsx`).
+
+| Espacio | Clases en uso | Qué es |
+|---|---|---|
+| `.ficha-*` | 51 | El contenido de la ficha |
+| `.pg-*` | 19 | La galería y el visor a pantalla completa |
+| `.product-page-*` | 10 | **Sólo estados de borde**: esqueleto de carga, 404, marcador de posición, botón de volver |
+
+Unificarlas sería renombrar clases en el JSX y en el CSS sin que nadie note nada. Y el
+riesgo no es simétrico: `.product-page-skeleton-line` y `.product-page-notfound` sólo se
+ven **un segundo al cargar o cuando algo falla**, que es justo donde una errata no la caza
+nadie. Se quedan como están, y queda dicho por qué para que no vuelva a proponerse.
 
 ### 17. ✅ `Dashboard.jsx` era un archivo de 4.398 líneas — resuelto
 
