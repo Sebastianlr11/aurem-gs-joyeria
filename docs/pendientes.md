@@ -162,14 +162,20 @@ la API de Mercado Pago, abono registrado como abono, libro de caja, correo de co
 y conversiones a Meta y TikTok — más la plantilla de WhatsApp de pago recibido, que no
 estaba en la lista.
 
-> 🟠 **Y destapó una cosa que se daba por buena y no lo era.** Un pago avisa por dos rutas
-> y **sólo una funciona**: la de la preferencia (`?data.id=…&type=payment`) valida y
-> procesa; la del panel de Mercado Pago en modo productivo (`?id=…&topic=payment`) devuelve
-> **401 siempre** porque su firma no cuadra con el manifiesto del esquema moderno. En ese
-> pago se rechazaron nueve avisos seguidos. No se pierde ningún pago, pero **el respaldo
-> que se creía tener no existe**, y Mercado Pago reintenta contra un endpoint que siempre
-> le contesta 401. Se arregla en el panel de MP: quitar el aviso *legacy* o pasarlo al
-> formato moderno. Ver [checkout-y-pagos](specs/checkout-y-pagos.md).
+> **Y destapó una cosa que se daba por buena y no lo era, resuelta el mismo día.** Un pago
+> llegaba por dos caminos y uno se rechazaba con 401 en cada intento — nueve en ese pago.
+>
+> **El culpable no era el panel de Mercado Pago sino nuestro código.**
+> `create-preference` ponía `notification_url` en la preferencia, y eso **no configura un
+> webhook: configura una notificación IPN**, el mecanismo viejo. La documentación de MP
+> dice que las IPN van a descontinuarse y que **a pesar de traer `x-Signature` no se pueden
+> validar con la clave secreta** — así que desde que la firma está activa, cada una se
+> rechaza por diseño.
+>
+> Comprobado en el panel antes de tocar nada: la sección **IPN está vacía** y la de
+> **Webhooks** tiene nuestra URL con la entrega `payment.created · 200`. Se quitó el campo
+> de la preferencia; queda un solo camino y está firmado. Ver
+> [checkout-y-pagos](specs/checkout-y-pagos.md).
 
 ---
 
