@@ -36,7 +36,7 @@ Este documento es el mapa de la base. Y su hallazgo principal es incómodo:
 | `pagos` | ❌ | El libro de movimientos de `caja.js`, llenado por el trigger `registrar_pago` |
 | **Las RPC de analítica** | ❌ | — |
 | `chats_sin_responder`, `conversaciones_purgables` | ✅ | migraciones del 22-ago |
-| Programación de `pg_cron` | ❌ | vive en la base |
+| Programación de `pg_cron` | ✅ | `20260823_el_reloj_de_la_base.sql` |
 
 ### Las tablas, por área
 
@@ -68,7 +68,7 @@ Este documento es el mapa de la base. Y su hallazgo principal es incómodo:
 | `taller_conocimiento` | `tema`, `contenido` — lo que Valentina puede afirmar |
 | `plantillas_enviadas` | **Dos índices únicos parciales** (por pedido / por persona) |
 | `gasto_pauta` | Único por `fecha, canal` |
-| `ajustes_internos` | Clave/valor: `cron_secreto`, `telefonos_avisos` |
+| `ajustes_internos` | Clave/valor: `cron_secreto`, `clave_anon`, `url_funciones`, `telefonos_avisos`, `contactos_equipo` |
 | `vigilancia_ultima` | Fila id=1 con `hallazgos[]` y `corrida_en` |
 | `notes` | Anotaciones internas con prioridad |
 | `envio_publico` (vista) | Expone **sólo** `abono_envio` y `tope_contraentrega` |

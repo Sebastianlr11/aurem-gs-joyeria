@@ -18,7 +18,8 @@ durante horas sin que nadie lo sepa.
 ### Flujo
 
 ```
-pg_cron → POST /functions/v1/vigilancia   (header x-cron-secreto)
+pg_cron cada hora en el minuto 30  ·  '30 * * * *'
+      → POST /functions/v1/vigilancia   (header x-cron-secreto)
   ├── valida el secreto contra ajustes_internos.cron_secreto
   │     (comparación de largo constante, :29-34)
   ├── corre las comprobaciones → Hallazgo[] { que, detalle, grave }
@@ -112,8 +113,6 @@ hace X". Un panel que no dice cuándo se revisó por última vez no distingue "t
 
 ## Límites conocidos y pendientes
 
-- **La programación de `pg_cron` no está versionada.** Desde el repo no se sabe cada cuánto
-  corre. Consultar con `SELECT * FROM cron.job;` — [pendientes #4](../pendientes.md).
 - **Nadie vigila al vigía.** Si la función deja de correr, lo único que lo delata es que el
   "Revisado hace X" del panel envejece — y hay que mirarlo.
 - Los umbrales están hardcodeados, no configurables desde Ajustes.

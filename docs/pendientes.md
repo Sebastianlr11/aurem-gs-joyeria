@@ -749,3 +749,44 @@ Quedan tres hexadecimales en `src/panel.css`: el verde de WhatsApp sobre el icon
 WhatsApp, la definición de `--error-luz` y uno dentro de un comentario. `css:pisadas`
 reporta **0 bloques** en el panel. Verificado en las ocho pantallas: cero contrastes por
 debajo de AA y cero desbordes.
+
+---
+
+## 26. ✅ El horario del reloj sólo vivía en la base — resuelto
+
+Dos cosas de este sistema pasan solas: el aviso de WhatsApp cuando un chat lleva rato
+esperando (`plantillas-programadas`) y el vigía que comprueba cada media hora que todo
+sigue en pie (`vigilancia`). Las dispara `pg_cron` **dentro** de la base.
+
+Esa programación no estaba escrita en ninguna parte. Para saber a qué hora corría algo
+había que entrar a la base y preguntar. Si el proyecto se perdía se perdía con él la
+única copia del horario, y un entorno nuevo levantado desde este repositorio se quedaba
+**mudo**: nadie avisaba de nada y nadie vigilaba nada, sin un solo error que lo delatara.
+
+**Resuelto el 23 de agosto** con `20260823_el_reloj_de_la_base.sql`:
+
+```
+avisos-whatsapp   0 0,1,13-23 * * *   → 8:00 a 20:00 en Bogotá, cada hora en punto
+vigilancia        30 * * * *          → cada hora en el minuto 30, a todas horas
+```
+
+Tres decisiones que vale la pena dejar escritas:
+
+- **Los valores no están en la migración**, que se commitea. `url_funciones`, `clave_anon`
+  y `cron_secreto` viven en `ajustes_internos`; el comando los lee **al ejecutarse**, así
+  que el secreto se puede rotar sin volver a desplegar nada. Antes la llave pública iba
+  pegada dentro del comando.
+- **La migración se niega a aplicarse si falta alguno de los tres.** Sin eso, en un
+  entorno nuevo quedarían dos trabajos programados fallando en silencio a las tres de la
+  mañana, que es peor que no tenerlos.
+- **No hay una función que envuelva la llamada**, aunque sería lo natural para no duplicar
+  quince líneas. Sería otra `SECURITY DEFINER` en `public` — justo lo que se cerró esta
+  misma mañana en [#25](#25--las-rpc-estaban-abiertas-a-la-llave-pública--resuelto) — y
+  peor: cualquiera con la llave pública podría llamarla y disparar plantillas de WhatsApp
+  de verdad a clientas de verdad. El texto del comando vive en `cron.job`, que PostgREST
+  no expone.
+
+Comprobado antes de tocar producción —la URL y la cabecera nuevas resuelven exactamente a
+las viejas para los dos trabajos— y después: el vigía disparado con el comando nuevo
+responde **200 `{"ok":true,"hallazgos":0}`**. Los dos trabajos siguen activos, con el
+mismo `jobid` y el mismo horario, y ya ninguno lleva una llave pegada dentro.
