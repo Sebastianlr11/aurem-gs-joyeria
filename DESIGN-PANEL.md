@@ -289,32 +289,36 @@ joyas**. Nombra lo que pasa y lo que falta:
 
 ## Lo que hoy no cumple este documento
 
-Medido sobre `src/panel.css` el 23 de agosto de 2026. No es una lista de reproches:
-es el trabajo que queda, en orden de lo que más se nota.
+Medido sobre `src/panel.css`. La primera columna es lo que había el 23 de agosto por la
+mañana; la segunda, lo que queda después de la limpieza de esa tarde.
 
-| Qué | Cuánto | Nota |
-|---|---|---|
-| Colores escritos a pelo | **491** | Deberían ser `var()` |
-| `#D4AF37` (oro brillante) | 19 | Prohibido por `DESIGN.md` |
-| `#B8860B` (otro oro) | 12 | Ídem |
-| `#1A1A1A` / `#1A1A1E` | 23 | La tinta es `#1C1714` |
-| Grises fríos genéricos | ~30 | `#888`, `#aaa`, `#666`, `#555` |
-| Rojos y ámbares de Tailwind | 20 | `#dc2626`, `#f59e0b` |
-| `--accent-red` | 3 | En `.jornada-taller-*` |
-| Radios fuera de sistema | ~50 | 10px (24), 12px (9), 20px (8), 8px, 9px, 14px… (el 16px del chat no cuenta: es la excepción de arriba) |
-| Tamaños de letra distintos | **16** | Entre 0,63 y 1rem. Deberían ser 6 |
+| Qué | Había | Queda | Nota |
+|---|---|---|---|
+| Colores escritos a pelo | 491 | **202** | 285 pasaron a `var()` |
+| `#D4AF37` (oro brillante) | 19 + 21 en `rgba()` | **0** | Prohibido por `DESIGN.md` |
+| `#B8860B` (otro oro) | 12 | **0** | Ídem |
+| Degradados de oro | 5 | **0** | `DESIGN.md` los prohíbe; ahora es oro plano |
+| `#1A1A1A` / `#1A1A1E` / `#111` | 23 | **0** | La tinta es `--ink` |
+| `#0C1220` (azul del diseño viejo) | 4 | **0** | → `--ink` |
+| Grises fríos (`#888`, `#aaa`, `#666`…) | ~44 | **0** | → `--text-secondary` / `--text-muted` |
+| Rojos y ámbares de Tailwind | 30 | **0** | → `--error-ink` / `--oro` |
+| `--accent-red` | 3 | **0** | El token queda definido pero ya no lo usa nadie |
+| Tamaños de letra distintos | 16 | 16 | Entre 0,63 y 1rem. Deberían ser 6 |
 
-**Y una herencia que ya está medio resuelta sola, dos veces.** Los cinco
-`.badge--color` de tipo Tailwind (`:1012-1016`) están **anulados** por una regla
-posterior que los pinta a todos iguales y mete el estado en el punto. Y la burbuja
-del chat tenía un degradado casi negro (`#1a1a1e → #252528`, `:2116`) que otra regla
-posterior sustituye por `var(--ink)` limpio.
+**Y los tonos de error dejaron de ser hex sueltos:** `--error-ink` (`#8C2F1E`),
+`--error-fuerte` (`#5E2114`) y `--error-fondo` (`#FBEDE9`) son tokens en `:root`. Estaban
+escritos a mano en 42 sitios.
 
-Es el mismo patrón las dos veces: **el panel ya llegó a la regla buena y se dejó la
-mala debajo**. Por eso el trabajo que queda casi nunca es decidir qué debería ser;
-es borrar la versión vieja. Esas reglas están entre los 82 bloques pisados que
-reporta `npm run css:pisadas` y se pueden quitar sin que nada cambie —comprobado con
-el método de la huella—.
+**Lo que se ganó no fue sólo coherencia, fue contraste.** Los grises fríos que había
+—`#888` sobre `#fafafa`— daban **3,40:1, por debajo de AA**. El gris cálido de la marca da
+**4,85:1** y pasa. El botón de borrar subió de 4,41 a 7,52.
+
+**Los 202 que quedan piden criterio, no un reemplazo en lote.** Son casi todos variantes de
+marfil y de línea de pelo (`#f0ede6`, `#faf9f6`, `#e0ddd6`, `#e8e5de`, `#f5f3ee`…): mapearlos
+al token **cambia el tono**, y hacerlo de golpe movería la temperatura de todo el panel. Se
+decide mirando. Aparte hay tres legítimos que no se tocan: el verde de WhatsApp
+(`#25d366`), el degradado del punzón (`#241E1A`, que `DESIGN.md` especifica) y el verde de
+resuelto (`#2E5D46`).
 
 ## Cómo se probó lo que dice este documento
 

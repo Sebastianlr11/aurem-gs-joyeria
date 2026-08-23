@@ -33,6 +33,18 @@
   --oro-hairline: rgba(168, 134, 63, 0.35);
   --oro-velo: rgba(168, 134, 63, 0.08);
   --accent-gold: #A8863F;
+  /* Los tonos de error de la marca. Estaban escritos a pelo en 42 sitios
+     entre los dos archivos de CSS: son de la casa —cacao quemado, no rojo de
+     producto tecnológico— y merecían nombre. */
+  --error-ink: #8C2F1E;
+  --error-fuerte: #5E2114;
+  --error-fondo: #FBEDE9;
+
+  /* MUERTO. `--accent-red` es el rojo del diseño anterior y DESIGN.md lo
+     prohíbe como acento: es frío y rompe la calidez de todo lo demás. Se deja
+     definido un tiempo por si algo externo lo referencia, pero ninguna regla
+     de este proyecto lo usa desde el 23 de agosto de 2026. Para errores, los
+     tres de arriba. */
   --accent-red: #ea4335;
   /* legado: catálogo / admin */
 
@@ -162,7 +174,7 @@ textarea:focus-visible {
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--oro-ink);
-  background: linear-gradient(180deg, #ffffff 0%, var(--bg-marfil) 100%);
+  background: linear-gradient(180deg, var(--bg-color) 0%, var(--bg-marfil) 100%);
   border: 1px solid var(--oro-hairline);
   clip-path: polygon(6px 0, calc(100% - 6px) 0, 100% 50%, calc(100% - 6px) 100%, 6px 100%, 0 50%);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
@@ -171,7 +183,7 @@ textarea:focus-visible {
 
 .punzon--dark {
   color: var(--oro-luz);
-  background: linear-gradient(180deg, #241E1A 0%, #1C1714 100%);
+  background: linear-gradient(180deg, #241E1A 0%, var(--ink) 100%);
   border-color: rgba(227, 201, 144, 0.3);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
@@ -197,7 +209,7 @@ textarea:focus-visible {
 
 .btn-pill.black {
   background-color: var(--ink);
-  color: #fff;
+  color: var(--bg-color);
   border-color: var(--ink);
 }
 
@@ -788,7 +800,7 @@ textarea:focus-visible {
   align-items: center;
   justify-content: center;
   color: var(--oro);
-  background: linear-gradient(180deg, #fff 0%, var(--bg-marfil) 100%);
+  background: linear-gradient(180deg, var(--bg-color) 0%, var(--bg-marfil) 100%);
   transition: var(--transition-smooth);
 }
 
@@ -912,7 +924,7 @@ textarea:focus-visible {
 .score-trust {
   font-size: 1rem;
   font-weight: 700;
-  color: #fff;
+  color: var(--bg-color);
 }
 
 .score-tagline {
@@ -1143,7 +1155,7 @@ textarea:focus-visible {
 .faq-icon--open {
   background-color: var(--oro);
   border-color: var(--oro);
-  color: #fff;
+  color: var(--bg-color);
 }
 
 .faq-body {
@@ -1240,7 +1252,7 @@ textarea:focus-visible {
   font-weight: 400;
   font-size: clamp(2.5rem, 4vw, 3.5rem);
   line-height: 1.054;
-  color: #fff;
+  color: var(--bg-color);
 }
 
 .contact-title em {
@@ -1358,7 +1370,7 @@ textarea:focus-visible {
 .contact-card-value {
   font-size: 0.9375rem;
   font-weight: 600;
-  color: #fff;
+  color: var(--bg-color);
 }
 
 .contact-form {
@@ -1393,7 +1405,7 @@ textarea:focus-visible {
   border-radius: 2px;
   padding: 0.9375rem 1rem;
   font-size: 0.9375rem;
-  color: #fff;
+  color: var(--bg-color);
   font-family: inherit;
   outline: none;
   transition: border-color 0.3s ease, background-color 0.3s ease;
@@ -1435,7 +1447,7 @@ textarea:focus-visible {
 
 .contact-interest-btn:hover {
   border-color: rgba(227, 201, 144, 0.45);
-  color: #fff;
+  color: var(--bg-color);
 }
 
 .contact-interest-btn.active {
@@ -1459,7 +1471,7 @@ textarea:focus-visible {
 }
 
 .contact-submit:hover {
-  background-color: #fff;
+  background-color: var(--bg-color);
   transform: translateY(-2px);
 }
 
@@ -1470,7 +1482,7 @@ textarea:focus-visible {
 
 .contact-submit--sent {
   background-color: #2E5D46;
-  color: #fff;
+  color: var(--bg-color);
   pointer-events: none;
 }
 
@@ -1625,7 +1637,7 @@ textarea:focus-visible {
   transition: border-color 0.3s ease;
 }
 
-.footer-credit a:hover { border-bottom-color: var(--oro-luz); color: #fff; }
+.footer-credit a:hover { border-bottom-color: var(--oro-luz); color: var(--bg-color); }
 
 @media (max-width: 968px) {
   .footer { padding-top: 2rem; }
@@ -1759,7 +1771,7 @@ textarea:focus-visible {
   gap: 0.5rem;
   padding: 0.75rem 1.625rem;
   background-color: var(--ink);
-  color: #fff;
+  color: var(--bg-color);
   border-radius: 100px;
   font-size: 0.875rem;
   font-weight: 700;
@@ -2314,7 +2326,7 @@ textarea:focus-visible {
   height: 46px;
   border-radius: 100px;
   background: var(--ink);
-  color: #fff;
+  color: var(--bg-color);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2326,7 +2338,7 @@ textarea:focus-visible {
 }
 .pieza-btn:hover {
   background: var(--ink-soft);
-  color: #fff;
+  color: var(--bg-color);
   transform: translateY(-2px);
   box-shadow: 0 14px 30px rgba(28, 23, 20, 0.18);
 }
@@ -2754,7 +2766,7 @@ textarea:focus-visible {
 .ficha-talla--on {
   background: var(--ink);
   border-color: var(--ink);
-  color: #fff;
+  color: var(--bg-color);
   font-weight: 700;
 }
 
@@ -2776,7 +2788,7 @@ textarea:focus-visible {
   width: 100%;
   padding: 1.1875rem 2rem;
   background: var(--ink);
-  color: #fff;
+  color: var(--bg-color);
   font-family: inherit;
   font-size: 0.9375rem;
   font-weight: 700;
@@ -3048,7 +3060,7 @@ textarea:focus-visible {
   background: rgba(255,255,255,0.08);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  color: #fff;
+  color: var(--bg-color);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -3073,7 +3085,7 @@ textarea:focus-visible {
   background: rgba(255,255,255,0.08);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  color: #fff;
+  color: var(--bg-color);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -3149,14 +3161,14 @@ textarea:focus-visible {
   padding: 0.75rem 1.75rem;
   border-radius: 100px;
   background: var(--text-primary);
-  color: #fff;
+  color: var(--bg-color);
   font-size: 0.85rem;
   font-weight: 700;
   text-decoration: none;
   transition: background 0.2s;
 }
 
-.product-page-back-btn:hover { background: #333; }
+.product-page-back-btn:hover { background: var(--text-secondary); }
 
 /* Skeletons */
 .product-page-skeleton-img {
@@ -3255,7 +3267,7 @@ textarea:focus-visible {
 }
 
 .buy-modal-box {
-  background: #fff;
+  background: var(--bg-color);
   border-radius: 2px;
   width: 100%;
   max-width: 420px;
@@ -3300,20 +3312,20 @@ textarea:focus-visible {
   font-size: 0.95rem;
   font-family: inherit;
   color: var(--text-primary);
-  background: #fff;
+  background: var(--bg-color);
   transition: border-color 0.2s, box-shadow 0.2s;
   outline: none;
 }
 .buy-modal-field input:focus {
   border-color: var(--accent-gold);
-  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.12);
+  box-shadow: 0 0 0 3px rgba(168, 134, 63, 0.12);
 }
 .buy-modal-field-error {
   font-weight: 500;
 }
 
 .buy-modal-submit {
-  color: #fff;
+  color: var(--bg-color);
   letter-spacing: 0.02em;
 }
 
@@ -3355,18 +3367,18 @@ textarea:focus-visible {
   text-align: center;
   color: var(--text-secondary);
 }
-.buy-modal-error svg { color: #e53e3e; }
+.buy-modal-error svg { color: var(--error-ink); }
 .buy-modal-error p { font-size: 0.95rem; }
 .buy-modal-retry {
   padding: 0.6rem 1.5rem;
   background: var(--text-primary);
-  color: #fff;
+  color: var(--bg-color);
   border-radius: 8px;
   font-size: 0.9rem;
   font-weight: 600;
   transition: background 0.2s;
 }
-.buy-modal-retry:hover { background: #333; }
+.buy-modal-retry:hover { background: var(--text-secondary); }
 
 /* ── Payment method selector ─────────────────────────────────── */
 
@@ -3407,8 +3419,8 @@ textarea:focus-visible {
   border: 1.5px solid #e0e0e0;
   border-radius: 8px;
   font-size: 0.92rem;
-  color: #111;
-  background: #fff;
+  color: var(--ink);
+  background: var(--bg-color);
   appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
@@ -3416,7 +3428,7 @@ textarea:focus-visible {
   transition: border-color 0.2s;
 }
 .buy-modal-field select:focus { outline: none; border-color: var(--accent-gold); }
-.buy-modal-field select.buy-modal-input--error { border-color: #e53e3e; }
+.buy-modal-field select.buy-modal-input--error { border-color: var(--error-ink); }
 
 /* ============================================================
    CONFIRMACION page
@@ -3444,7 +3456,7 @@ textarea:focus-visible {
 }
 .legal-header p {
   font-size: 0.85rem;
-  color: #999;
+  color: var(--text-muted);
   margin: 0;
 }
 
@@ -3464,7 +3476,7 @@ textarea:focus-visible {
 }
 .legal-section p {
   font-size: 0.92rem;
-  color: #444;
+  color: var(--text-secondary);
   line-height: 1.75;
   margin-bottom: 0.6rem;
 }
@@ -3475,7 +3487,7 @@ textarea:focus-visible {
 }
 .legal-section li {
   font-size: 0.92rem;
-  color: #444;
+  color: var(--text-secondary);
   line-height: 1.75;
   margin-bottom: 0.25rem;
 }
@@ -3496,7 +3508,7 @@ textarea:focus-visible {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  color: var(--bg-color);
   box-shadow: 0 4px 20px rgba(37, 211, 102, 0.45);
   opacity: 0;
   transform: scale(0.7);
@@ -3659,7 +3671,7 @@ textarea:focus-visible {
   font-weight: 400;
   font-size: clamp(2.5rem, 5.6vw, 4.5rem);
   line-height: 1.04;
-  color: #fff;
+  color: var(--bg-color);
   max-width: 20ch;
 }
 
@@ -3767,7 +3779,7 @@ textarea:focus-visible {
 
 .talla-chip--on {
   background: var(--ink);
-  color: #fff;
+  color: var(--bg-color);
   border-color: var(--ink);
 }
 
@@ -4009,7 +4021,7 @@ textarea:focus-visible {
 .talla-faq--on .talla-faq-icono {
   background: var(--oro);
   border-color: var(--oro);
-  color: #fff;
+  color: var(--bg-color);
 }
 
 .talla-faq-a {
@@ -4250,7 +4262,7 @@ textarea:focus-visible {
 .chat-tag-pill.active {
   background: var(--ink);
   border-color: var(--ink);
-  color: #fff;
+  color: var(--bg-color);
 }
 
 @media (max-width: 768px) {
@@ -4631,7 +4643,7 @@ textarea:focus-visible {
   border: none;
   border-radius: 100px;
   background: var(--ink);
-  color: #fff;
+  color: var(--bg-color);
   font-family: var(--font-ui);
   font-size: 0.9375rem;
   font-weight: 700;
@@ -4854,7 +4866,7 @@ textarea:focus-visible {
   border: none;
   border-radius: 100px;
   background: var(--ink);
-  color: #fff;
+  color: var(--bg-color);
   font-family: var(--font-ui);
   font-size: 1rem;
   font-weight: 700;
@@ -4980,7 +4992,7 @@ textarea:focus-visible {
   height: 56px;
   border-radius: 100px;
   background: var(--ink);
-  color: #fff;
+  color: var(--bg-color);
   font-family: var(--font-ui);
   font-size: 1rem;
   font-weight: 700;
@@ -5105,7 +5117,7 @@ textarea:focus-visible {
 
 .ficha-hero {
   background: var(--ink);
-  color: #fff;
+  color: var(--bg-color);
   /* Este aire es el que despeja el navbar, que va fijo encima. Sin él la
      banda oscura arranca debajo de la píldora de navegación y la pieza queda
      estrangulada contra ella. */
@@ -5114,10 +5126,10 @@ textarea:focus-visible {
 .ficha-hero .eyebrow { color: var(--oro-luz); }
 .ficha-hero .eyebrow::before { background: var(--oro-luz); }
 .ficha-hero .ficha-ref { color: rgba(255, 255, 255, 0.45); }
-.ficha-hero .ficha-nombre { color: #fff; }
+.ficha-hero .ficha-nombre { color: var(--bg-color); }
 .ficha-hero .ficha-nombre em { color: var(--oro-luz); }
 .ficha-hero .ficha-desc { color: rgba(255, 255, 255, 0.72); }
-.ficha-hero .ficha-precio-valor { color: #fff; }
+.ficha-hero .ficha-precio-valor { color: var(--bg-color); }
 .ficha-hero .ficha-precio-moneda,
 .ficha-hero .ficha-precio-envio { color: rgba(255, 255, 255, 0.6); }
 .ficha-hero .ficha-precio-bloque{ border-color: rgba(255, 255, 255, 0.14); }
@@ -5131,7 +5143,7 @@ textarea:focus-visible {
   box-shadow: none;
 }
 
-.ficha-hero .ficha-tallas-titulo { color: #fff; }
+.ficha-hero .ficha-tallas-titulo { color: var(--bg-color); }
 .ficha-hero .ficha-tallas-guia { color: var(--oro-luz); }
 .ficha-hero .ficha-tallas-nota { color: rgba(255, 255, 255, 0.55); }
 .ficha-hero .ficha-talla {
@@ -5147,7 +5159,7 @@ textarea:focus-visible {
 }
 
 .ficha-hero .ficha-btn-comprar { background: var(--bg-marfil); color: var(--ink); }
-.ficha-hero .ficha-btn-comprar:hover { background: #fff; }
+.ficha-hero .ficha-btn-comprar:hover { background: var(--bg-color); }
 .ficha-hero .ficha-btn-wa { border-color: var(--oro-luz); color: var(--oro-luz); background: transparent; }
 .ficha-hero .ficha-btn-wa:hover { background: rgba(227, 201, 144, 0.08); }
 .ficha-hero .pm-label { color: rgba(255, 255, 255, 0.45); }
@@ -5422,7 +5434,7 @@ textarea:focus-visible {
   font-size: 1.35rem;
   font-weight: 300;
   letter-spacing: -0.02em;
-  color: #fff;
+  color: var(--bg-color);
   font-variant-numeric: tabular-nums;
 }
 .ficha-barra-precio small {
@@ -5456,7 +5468,7 @@ textarea:focus-visible {
   cursor: pointer;
   transition: var(--transition-smooth);
 }
-.ficha-barra-comprar:hover { background: #fff; transform: translateY(-2px); }
+.ficha-barra-comprar:hover { background: var(--bg-color); transform: translateY(-2px); }
 .ficha-barra-wa {
   flex: none;
   width: 52px;
@@ -5568,7 +5580,7 @@ textarea:focus-visible {
   border-radius: 100px;
   background: var(--ink-soft);
   border: 1px solid rgba(255, 255, 255, 0.18);
-  color: #fff;
+  color: var(--bg-color);
   font-family: var(--font-ui);
   font-size: 0.82rem;
   line-height: 1;
@@ -5731,7 +5743,7 @@ textarea:focus-visible {
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--oro-luz);
-  background: linear-gradient(180deg, #241E1A, #1C1714);
+  background: linear-gradient(180deg, #241E1A, var(--ink));
   border: 1px solid rgba(227, 201, 144, 0.32);
   border-radius: 2px;
 }
@@ -6324,7 +6336,7 @@ textarea:focus-visible {
   .catalogo-filtros .riel-btn--on {
     background: var(--ink);
     border-color: var(--ink);
-    color: #fff;
+    color: var(--bg-color);
     font-weight: 600;
   }
   .catalogo-filtros .riel-btn--on .riel-n { color: var(--oro-luz); }
@@ -6626,7 +6638,7 @@ textarea:focus-visible {
     border: none;
     border-radius: 100px;
     background: var(--ink);
-    color: #fff;
+    color: var(--bg-color);
     font-family: var(--font-ui);
     font-size: 0.9rem;
     font-weight: 600;
@@ -6729,7 +6741,7 @@ textarea:focus-visible {
     justify-content: center;
     border-radius: 100px;
     background: var(--ink);
-    color: #fff;
+    color: var(--bg-color);
     font-size: 0.65rem;
     font-weight: 700;
   }
