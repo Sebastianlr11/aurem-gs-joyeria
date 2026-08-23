@@ -43,6 +43,10 @@ export default function PedidoDespachado({
   const porPagar = saldo != null && saldo > 0
   const primerNombre = String(nombre || '').trim().split(/\s+/)[0]
   const enBogota = /bogot/i.test(ciudad || '')
+  /* Aquí SÍ son 24 a 48 horas: este correo sale cuando la pieza ya está
+     despachada, así que lo único que falta es la transportadora. En el correo
+     de confirmación el mismo número prometía la mitad del plazo, porque ahí la
+     pieza ni siquiera estaba hecha. */
   const plazo = enBogota ? '24 a 48 horas' : '2 a 3 días'
 
   return (

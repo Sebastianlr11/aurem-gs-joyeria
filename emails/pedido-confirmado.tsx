@@ -44,10 +44,15 @@ export default function PedidoConfirmado({
   const primerNombre = String(nombre || '').trim().split(/\s+/)[0]
   const enBogota = /bogot/i.test(ciudad || '')
 
-  /* El plazo depende de a dónde va. El diseño traía "24 a 48 horas hábiles"
-     fijo, y eso sólo es cierto en Bogotá: al resto del país la transportadora
-     tarda de 2 a 3 días. */
-  const plazo = enBogota ? '24 a 48 horas' : '2 a 3 días'
+  /* El plazo COMPLETO desde este correo, que sale al confirmar el pedido:
+     cuando la clienta lo lee, la pieza todavía no existe. Se hace por encargo,
+     el taller se toma 2 a 3 días en despacharla, y encima va el envío — 1 día
+     en Bogotá y 2 a 3 al resto.
+
+     Decía "24 a 48 horas", que es sólo el tramo de la transportadora. Ese
+     plazo es correcto en el correo de DESPACHO, donde la pieza ya salió; aquí
+     prometía la mitad del tiempo real. */
+  const plazo = enBogota ? '3 a 4 días' : '4 a 6 días'
 
   /* Una tarjeta por pieza. La referencia va sólo en la última, porque
      identifica al pedido entero y repetirla en cada una la haría parecer un

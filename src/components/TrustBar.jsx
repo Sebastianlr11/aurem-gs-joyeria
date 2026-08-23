@@ -33,10 +33,16 @@ const ShieldIcon = () => (
 );
 
 const items = [
-    /* El plazo se parte por ciudad: el taller despacha al día siguiente y en
-       Bogotá se entrega en 24 a 48 h, pero al resto del país la transportadora
-       tarda 2 a 3 días. Prometerlo a todo el país era prometer de más. */
-    { icon: <TruckIcon />, title: 'Envío a toda Colombia', sub: '24 a 48 h en Bogotá · 2 a 3 días al resto' },
+    /* El plazo COMPLETO, desde que pide hasta que la tiene: cada pieza se hace
+       por encargo y el taller se toma 2 a 3 días en despachar, más 1 día de
+       transportadora en Bogotá y 2 a 3 al resto del país.
+
+       Antes decía "24 a 48 h en Bogotá", que es sólo el tramo de la
+       transportadora DESPUÉS de despachar. Era cierto y engañaba igual: junto
+       al precio se lee como el tiempo de espera, y la clienta contaba dos días
+       cuando eran cuatro. Prometer de menos y cumplir vale más que un titular
+       bonito y un mensaje de "¿y mi pedido?" al tercer día. */
+    { icon: <TruckIcon />, title: 'Envío a toda Colombia', sub: 'Entrega en 3 a 4 días en Bogotá · 4 a 6 al resto' },
     { icon: <CashIcon />, title: 'Pago contra entrega', sub: 'En Bogotá' },
     /* Acá va sólo lo que se cumple SIEMPRE. El certificado salió de esta
        barra porque tiene un costo aparte: prometerlo junto al envío y la

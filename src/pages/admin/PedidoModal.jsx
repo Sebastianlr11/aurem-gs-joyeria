@@ -367,7 +367,7 @@ export default function PedidoModal({ order, products = [], onClose, onSaved }) 
                     </section>
 
                     <section className="pd-sec">
-                        <Regla extra={<><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M1 3h15v13H1zM16 8h4l3 3v5h-7z" /><circle cx="5.5" cy="18.5" r="2.5" /><circle cx="18.5" cy="18.5" r="2.5" /></svg>24 a 48 horas hábiles</>}>Envío</Regla>
+                        <Regla extra={<><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M1 3h15v13H1zM16 8h4l3 3v5h-7z" /><circle cx="5.5" cy="18.5" r="2.5" /><circle cx="18.5" cy="18.5" r="2.5" /></svg>3 a 4 días en Bogotá</>}>Entrega</Regla>
 
                         <Campo etiqueta="Dirección" apunte="calle, número, barrio y detalles de entrega">
                             <input
