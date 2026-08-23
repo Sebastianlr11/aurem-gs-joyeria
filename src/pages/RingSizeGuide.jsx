@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { waUrl } from '../lib/whatsapp';
+import Meta from '../components/Meta';
 
 /* Tabla estándar de tallas US: circunferencia interior en milímetros.
    El diámetro se deriva dividiendo por π, no se guarda por separado. */
@@ -109,6 +110,15 @@ const RingSizeGuide = () => {
 
     return (
         <main className="talla">
+            {/* De las cuatro páginas que heredaban el head de la portada, ésta
+                es la única que alguien busca en Google —"cómo saber mi talla de
+                anillo" es una consulta con volumen—, así que la descripción va
+                escrita para ese momento y no como aviso legal. */}
+            <Meta
+                titulo="Guía de tallas de anillos | Aurem Gs Joyería"
+                descripcion="Cómo saber tu talla de anillo midiendo el dedo con un hilo, sin salir de casa. Tabla de tallas 3 a 12.5 en sistema US y ajuste sin costo en el taller."
+                ruta="/guia-de-tallas"
+            />
 
             <section className="talla-head">
                 <div className="talla-head-eyebrow">

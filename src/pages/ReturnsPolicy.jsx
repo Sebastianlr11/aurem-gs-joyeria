@@ -1,4 +1,5 @@
 import React from 'react';
+import Meta from '../components/Meta';
 
 const Section = ({ title, children }) => (
   <div className="legal-section">
@@ -8,7 +9,13 @@ const Section = ({ title, children }) => (
 );
 
 const ReturnsPolicy = () => (
-  <main className="legal-page">
+  <>
+    <Meta
+      titulo="Política de devoluciones | Aurem Gs Joyería"
+      descripcion="Cuándo se puede devolver o cambiar una pieza, qué cubre la garantía del metal y cómo pedirlo."
+      ruta="/politica-de-devoluciones"
+    />
+    <main className="legal-page">
     <div className="container">
       <div className="legal-header">
         <span className="section-label">Legal</span>
@@ -73,6 +80,7 @@ const ReturnsPolicy = () => (
       </div>
     </div>
   </main>
+  </>
 );
 
 export default ReturnsPolicy;
