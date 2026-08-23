@@ -202,12 +202,12 @@ Deno.serve(async (req: Request) => {
     }
   }
 
-  /* ── 5. Pauta corriendo sobre costos inventados ─────────────────────
-     Los costos de relleno existen para poder armar el panel antes de que el
-     joyero dé los reales. Son útiles y no hacen daño mientras no haya plata
-     en juego. El día que entra el primer peso de pauta cambian de naturaleza:
-     el margen que sale de ellos es inventado, y con un margen inventado se
-     decide mal cuánto gastar — siempre hacia arriba, que es el lado caro.
+  /* ── 5. Pauta corriendo a ciegas sobre el margen ────────────────────
+     Un pedido despachado del que no se anotó qué costó no hace daño mientras
+     no haya plata en juego. El día que entra el primer peso de pauta cambia
+     de naturaleza: sin ese número el panel puede decir cuánto se vendió pero
+     no cuánto quedó, y se decide mal cuánto gastar — siempre hacia arriba,
+     que es el lado caro.
 
      El aviso vive acá y no sólo en el panel porque el panel hay que abrirlo,
      y esto es justo lo que se olvida. */
