@@ -101,3 +101,41 @@ export class ChatErrorBoundary extends React.Component {
         return this.props.children;
     }
 }
+
+/**
+ * La foto de un chat a pantalla completa.
+ *
+ * El estado y el cierre en dos tiempos viven en `useVisorDeFotos`; esto sólo
+ * pinta. El clic en la imagen no se propaga a propósito: el fondo cierra, y
+ * sin eso pulsar la propia foto la cerraría.
+ */
+export function VisorDeFoto({ foto, cerrando, cerrar }) {
+    if (!foto) return null;
+    return (
+        <div className={`pg-lightbox ${cerrando ? 'lb-closing' : ''}`} onClick={cerrar}>
+            <button className="pg-lightbox-close" onClick={cerrar} aria-label="Cerrar">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+            <img className="pg-lightbox-img" src={foto} alt="" onClick={e => e.stopPropagation()} />
+        </div>
+    );
+}
+
+/**
+ * La pila de avisos de mensaje nuevo. Tocar uno abre esa conversación y se
+ * lleva el aviso: ya cumplió.
+ */
+export function AvisosDeChat({ avisos, onElegir, onDescartar }) {
+    if (!avisos.length) return null;
+    return (
+        <div className="chat-toast-container">
+            {avisos.map(a => (
+                <div key={a.id} className="chat-toast"
+                     onClick={() => { onElegir(a.telefono); onDescartar(a.id); }}>
+                    <strong>{a.nombre}</strong>
+                    <span>{a.texto}</span>
+                </div>
+            ))}
+        </div>
+    );
+}

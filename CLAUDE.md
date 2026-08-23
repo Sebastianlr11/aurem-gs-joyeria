@@ -39,7 +39,7 @@ npm run dev          # Vite en http://localhost:5173
 npm run build        # eslint && vitest && sitemap.mjs && correos.mjs && tsc -b && vite build
 npm run preview      # Sirve /dist
 npm run lint         # ESLint (sí corre en el build)
-npm test             # Vitest, una pasada
+npm test             # Vitest, una pasada (70 pruebas)
 npm run test:mirar   # Vitest en marcha, repitiendo al guardar
 
 npm run sitemap      # Regenera public/sitemap.xml desde Supabase
@@ -61,9 +61,20 @@ Tres advertencias sobre el build:
 
 ### Las pruebas
 
-Hay **58**: `dinero.test.js` y `caja.test.js` cubren las cuentas de plata, y
-`fotosEnStorage.test.js` la deducción de qué archivos se borran. Se empezó por el dinero a
-propósito, porque es el único sitio donde un error **no se ve**. Un fallo de CSS se nota al abrir la pantalla y uno de enrutado tumba la página,
+Hay **70**: `dinero.test.js` y `caja.test.js` cubren las cuentas de plata,
+`fotosEnStorage.test.js` la deducción de qué archivos se borran, y
+`chat/ganchos.test.js` el visor de fotos y los avisos del chat. Se empezó por el dinero a
+propósito, porque es el único sitio donde un error **no se ve**.
+
+Los ganchos del chat se prueban por otra razón: **no hay forma de probarlos a mano**. Para
+ver el visor hace falta una foto en un hilo y para ver un aviso hace falta que entre un
+mensaje de WhatsApp de verdad; forzarlo insertando una fila haría que el cron le mandara
+una plantilla real a un número real. Sacarlos de `ChatPanel.jsx` los volvió comprobables,
+que es la mitad del motivo para sacarlos.
+
+Ese archivo corre en jsdom, y se pide **por archivo** con `// @vitest-environment jsdom`
+en la primera línea, no en la configuración global: montar jsdom para las funciones puras
+son segundos de arranque en cada corrida a cambio de nada. Un fallo de CSS se nota al abrir la pantalla y uno de enrutado tumba la página,
 pero una cuenta mal hecha enseña un número redondo, con signo de pesos y perfectamente
 creíble — que es exactamente lo que pasó cuando el panel daba por cobrado un contraentrega
 que iba en camino.

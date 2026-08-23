@@ -14,7 +14,8 @@ import {
     fmtDate, fmtDateFull, fmtSeparador, fmtTime, iniciales,
     isSameDay, normalizePhone, sortMessages, truncate,
 } from './chat/comunes';
-import { ChatErrorBoundary, ImagenDelChat, PieDeFoto } from './chat/piezas';
+import { AvisosDeChat, ChatErrorBoundary, ImagenDelChat, PieDeFoto, VisorDeFoto } from './chat/piezas';
+import { useAvisos, useVisorDeFotos } from './chat/ganchos';
 import BuscadorDeMensajes from './chat/BuscadorDeMensajes';
 
 
@@ -74,12 +75,16 @@ const ChatPanel = () => {
     const [contactFilter, setContactFilter] = useState('todos');
     const [pendingPhones, setPendingPhones] = useState(new Set());
     const [showMsgSearch, setShowMsgSearch] = useState(false);
-    const [toasts, setToasts] = useState([]);
+    const avisos = useAvisos();
     const [showExportMenu, setShowExportMenu] = useState(false);
     const [statusMap, setStatusMap] = useState({});   // { [phone]: { is_resolved, is_archived } }
     const [tagsMap, setTagsMap] = useState({});        // { [phone]: [{ id, tag_name, color }] }
-    const [lightboxImg, setLightboxImg] = useState(null);
-    const [lightboxClosing, setLightboxClosing] = useState(false);
+    const visor = useVisorDeFotos();
+    /* Se sacan sueltas las dos que usa el manejador de Escape. `visor` es un
+       objeto nuevo en cada render, así que ponerlo entero en las dependencias
+       volvería a montar el escuchador de teclado sesenta veces por minuto;
+       `cerrar` es estable y `foto` sólo cambia cuando cambia la foto. */
+    const { foto: fotoAbierta, cerrar: cerrarVisor } = visor;
     const [confirmArchive, setConfirmArchive] = useState(null); // phone to archive
     /* Lo que se está a punto de borrar —una conversación o un lote entero— y el
        menú de la fila que está abierto. Son dos cosas distintas: el menú se abre
@@ -121,7 +126,6 @@ const ChatPanel = () => {
     const notifAudioRef = useRef(null);
     const contactsRef = useRef(contacts);
     const fetchContactsTimerRef = useRef(null);
-    const toastTimersRef = useRef([]);
     const navigate = useNavigate();
 
     /* ─── Cached notification sound ───────────────────────────────── */
@@ -524,12 +528,13 @@ const ChatPanel = () => {
                                 .then(() => {});
                         }
                     } else if (newMsg.role === 'user') {
-                        // Toast for message from non-active contact
-                        const contactName = contactsRef.current.find(c => c.phone_number === newMsg.phone_number)?.customer_name || newMsg.phone_number;
-                        const toastId = `toast-${Date.now()}`;
-                        setToasts(prev => [...prev.slice(-4), { id: toastId, name: contactName, text: truncate(newMsg.content, 50), phone: newMsg.phone_number }]);
-                        const toastTimer = setTimeout(() => setToasts(prev => prev.filter(t => t.id !== toastId)), 5000);
-                        toastTimersRef.current.push(toastTimer);
+                        /* Aviso de que entró un mensaje en OTRA conversación.
+                           El reloj y el descarte los lleva el gancho. */
+                        avisos.avisar({
+                            nombre: contactsRef.current.find(c => c.phone_number === newMsg.phone_number)?.customer_name || newMsg.phone_number,
+                            texto: truncate(newMsg.content, 50),
+                            telefono: newMsg.phone_number,
+                        });
                     }
 
                     // Refresh contacts list (debounced to avoid flooding with rapid messages)
@@ -611,8 +616,6 @@ const ChatPanel = () => {
             if (fallbackInterval) clearInterval(fallbackInterval);
             if (fallbackMsgInterval) clearInterval(fallbackMsgInterval);
             clearTimeout(fetchContactsTimerRef.current);
-            toastTimersRef.current.forEach(t => clearTimeout(t));
-            toastTimersRef.current = [];
         };
     }, [session]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -802,7 +805,7 @@ const ChatPanel = () => {
         setStatusMap(sinLosIdos);
         setTagsMap(sinLosIdos);
         setTakeoverMap(sinLosIdos);
-        setToasts(prev => prev.filter(t => !idos.has(t.phone)));
+        avisos.olvidar(idos);
         setSeleccion(prev => (prev ? new Set([...prev].filter(p => !idos.has(p))) : prev));
         setMenuFila(null);
 
@@ -853,13 +856,6 @@ const ChatPanel = () => {
             ...prev,
             [phone]: (prev[phone] || []).filter(t => t.id !== tagId),
         }));
-    };
-
-    /* ─── Lightbox ───────────────────────────────────────────────── */
-    const openLightbox = (url) => { setLightboxImg(url); setLightboxClosing(false); };
-    const closeLightbox = () => {
-        setLightboxClosing(true);
-        setTimeout(() => { setLightboxImg(null); setLightboxClosing(false); }, 300);
     };
 
     /* ─── Llevarse el hilo ───────────────────────────────────────── */
@@ -914,7 +910,7 @@ const ChatPanel = () => {
             }
             // Escape → close panels cascade
             if (e.key === 'Escape') {
-                if (lightboxImg) { closeLightbox(); return; }
+                if (fotoAbierta) { cerrarVisor(); return; }
                 if (confirmArchive) { setConfirmArchive(null); return; }
                 if (showMsgSearch) { setShowMsgSearch(false); return; }
                 if (showExportMenu) { setShowExportMenu(false); return; }
@@ -926,7 +922,7 @@ const ChatPanel = () => {
         };
         document.addEventListener('keydown', handleGlobalKeyDown);
         return () => document.removeEventListener('keydown', handleGlobalKeyDown);
-    }, [showContactInfo, showQuickReplies, showImagePicker, activeContact, showMsgSearch, showExportMenu, lightboxImg, confirmArchive]);
+    }, [showContactInfo, showQuickReplies, showImagePicker, activeContact, showMsgSearch, showExportMenu, fotoAbierta, cerrarVisor, confirmArchive]);
 
     /* ─── Sidebar nav ─────────────────────────────────────────────── */
     const handleNavClick = (id) => {
@@ -1487,7 +1483,7 @@ const ChatPanel = () => {
                                                                 sello. */}
                                                             {msg.message_type === 'image' ? (
                                                                 msg.media_url
-                                                                    ? <ImagenDelChat ruta={msg.media_url} onAbrir={openLightbox} />
+                                                                    ? <ImagenDelChat ruta={msg.media_url} onAbrir={visor.abrir} />
                                                                     : <div className="chat-foto-borrada">Foto borrada</div>
                                                             ) : null}
                                                             {msg.message_type === 'image' && msg.role === 'user'
@@ -1888,30 +1884,16 @@ const ChatPanel = () => {
                         </div>
                     )}
 
-                    {/* Toast notifications */}
-                    {toasts.length > 0 && (
-                        <div className="chat-toast-container">
-                            {toasts.map(t => (
-                                <div key={t.id} className="chat-toast" onClick={() => { selectContact(t.phone); setToasts(prev => prev.filter(x => x.id !== t.id)); }}>
-                                    <strong>{t.name}</strong>
-                                    <span>{t.text}</span>
-                                </div>
-                            ))}
-                        </div>
-                    )}
+                    <AvisosDeChat
+                        avisos={avisos.avisos}
+                        onElegir={selectContact}
+                        onDescartar={avisos.descartar}
+                    />
                 </div>
             </main>
         </div>
 
-        {/* Lightbox */}
-        {lightboxImg && (
-            <div className={`pg-lightbox ${lightboxClosing ? 'lb-closing' : ''}`} onClick={closeLightbox}>
-                <button className="pg-lightbox-close" onClick={closeLightbox} aria-label="Cerrar">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                </button>
-                <img className="pg-lightbox-img" src={lightboxImg} alt="" onClick={e => e.stopPropagation()} />
-            </div>
-        )}
+        <VisorDeFoto {...visor} />
         </>
     );
 };
