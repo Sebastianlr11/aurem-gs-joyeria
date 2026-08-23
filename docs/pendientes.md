@@ -18,6 +18,10 @@ Cada uno lleva dónde está, por qué importa y el arreglo propuesto.
 >
 > **La numeración no se reutiliza.** Los specs de `docs/specs/` enlazan a estos números,
 > así que un hallazgo resuelto se marca ✅ pero conserva el suyo.
+>
+> **#11 y #20 se retiraron el 23 de agosto de 2026 por decisión del dueño**, no por estar
+> resueltos: las reseñas se quedan como están hasta que él decida cambiarlas, y las fotos
+> se van a resubir todas de una vez. Los números no se reutilizan tampoco.
 
 **Índice**
 - [Resueltos](#resueltos)
@@ -361,31 +365,22 @@ Es lo que Google lee. Además usa URLs **sin `www`**, incoherentes con la canón
 oro 18k, oro blanco y plata 925, con esmeralda colombiana—, el certificado figura como
 opcional y con su precio, y `url` y `logo` van con `www`, igual que la canónica.
 
-### 10. 🟡 Hero y Reviews prometían platino y certificación incluida — Hero resuelto
+### 10. ✅ Hero y Reviews prometían platino y certificación incluida — resuelto
 
-**El Hero, hecho el 23 de agosto:** ya no anuncia collares, pulseras ni platino, y la
-garantía dice "en el metal" en los dos sitios donde aparece, no sólo en uno.
+**El Hero, el 23 de agosto:** dejó de anunciar collares, pulseras y platino, y la garantía
+dice "en el metal" en los dos sitios donde aparece, no sólo en uno.
 
-**Reviews sigue igual, por decisión tuya.** `Reviews.jsx:18` tiene un testimonio que
-insinúa que la certificación va incluida. Se va cuando se vayan las reseñas inventadas
-(#11): se cambian el día que haya testimonios reales.
+**Reviews, el 23 de agosto.** El testimonio de `Reviews.jsx` daba por hecho que el
+certificado viene con la pieza —*"La certificación de autenticidad me dio total
+confianza"*—, cuando lo emite un laboratorio gemológico, es opcional y cuesta $50.000
+aparte. Ahora lo dice como lo que es: *"Pedí **aparte** el certificado del laboratorio y
+llegó con su código para verificarlo en línea"*.
 
-### 11. Las reseñas son inventadas
-
-**Dónde:** `src/components/Reviews.jsx:4-29, 51-58`
-
-Cuatro testimonios con nombre y foto, *"4,9/5"*, *"+500 piezas entregadas"*, *"+100
-clientes"*. **Todo hardcodeado, y no hay clientes reales todavía** — los 17 pedidos de la
-base son del equipo.
-
-Esto no es un detalle estético: en Colombia la SIC sanciona la publicidad engañosa, y los
-testimonios falsos con cifras concretas son el caso de libro. Además `taller_conocimiento`
-puede estar alimentando a Valentina con esas mismas cifras.
-
-**Opciones, de mejor a peor:** conectar reseñas reales cuando las haya; sustituir la
-sección por prueba de confianza verificable (fotos del taller, punzón, garantía escrita);
-o retirarla hasta tener clientes. Lo que no se puede es dejarla como está cuando empiecen
-a entrar pedidos reales.
+De paso se corrigieron otros dos del mismo tipo, que se habían quedado atrás cuando el
+Hero se arregló: hablaban de **un collar y unas pulseras**, y el catálogo sólo tiene
+anillos y dijes —comprobado contra la base: 4 anillos y 1 dije—. Ahora cada testimonio se
+apoya en algo que la tienda sí cumple: el punzón de la ley, el estuche —que va incluido en
+todas—, la guía de seguimiento y el plazo real de 3 a 4 días en Bogotá.
 
 ### 12. ✅ El seed de Valentina decía "SIN CONFIRMAR" — resuelto
 
@@ -597,50 +592,6 @@ cuenta los no leídos **igual que el chat** (`is_read = false` y `role = 'user'`
 De paso quedó desmentido un comentario del propio `Dashboard.jsx`: dice que `is_read` «no
 se mantiene», y sí se mantiene — `ChatPanel` lo marca al abrir la conversación. Lo que no
 sirve es para saber si algo está *respondido*, que es otra cosa.
-
-### 20. 🟡 Las fotos de producto no están optimizadas en la entrega — hecho el mecanismo, faltan las fotos
-
-`src/components/catalog/ProductCard.jsx` y la galería de `ProductPage.jsx` usaban
-`<img src={product.image_url}>` crudo: **sin `srcset` y sin `width`/`height`**. La tarjeta
-del catálogo sí llevaba `loading="lazy"`; la galería de la ficha no, y sus miniaturas de
-52px descargaban la foto entera — abrir una ficha de tres fotos bajaba las tres a tamaño
-completo aunque no se mirara ninguna.
-
-**El transformador de imágenes de Supabase Storage no sirve aquí: es de plan Pro.**
-Comprobado el 23 de agosto contra el proyecto — `/storage/v1/render/image/public/...`
-responde `403 FeatureNotEnabled`. El arreglo propuesto originalmente (`?width=`) no era
-viable sin pagar.
-
-**Hecho el 23 de agosto.** Los tamaños se generan **al subir**, extendiendo lo que
-`optimizarFoto.js` ya hacía —lienzo, dos versiones, WebP— con copias de 400 y 800 px de
-ancho. Y como el catálogo no tiene columna donde anotar qué copias existen, **lo dice el
-nombre del archivo**: una foto con el tratamiento completo termina en `-<ancho>x<alto>.webp`
-y a su lado viven `-w400.webp` y `-w800.webp`. `src/lib/fotoProducto.js` lee esa marca y
-arma el `srcset`; si no está —foto vieja, o URL pegada a mano en el panel— devuelve la URL
-sola. Eso es deliberado: **un `srcset` inventado apuntaría a archivos que no existen y la
-clienta vería una foto rota**, que es peor que una foto pesada.
-
-También se puso `width`/`height` (donde no estorban), `decoding="async"`, `loading="lazy"`
-en las miniaturas y `fetchpriority="high"` en la foto grande de la ficha, que es el LCP de
-esa pantalla.
-
-Verificado en Chrome con DPR 2: la tarjeta pide la de **800**, la galería la **grande**, la
-miniatura la de **400**. Y comprobado renglón a renglón que el nombre que escribe la subida
-y el que lee el `srcset` coinciden en todos los casos —incluida una foto tan chica que no
-genera copias, y la gemela `.jpeg` de WhatsApp, que sigue saliendo del mismo nombre—.
-
-**Lo que falta, y no se arregla solo: las fotos que ya están subidas no tienen la marca,
-así que hoy siguen bajando en tamaño completo.** El mecanismo sólo entra a trabajar con
-fotos nuevas. Para que sirva en las cinco piezas publicadas hay que **volver a subir sus
-fotos desde el panel** — no hay migración posible desde aquí, porque las copias se generan
-en el navegador de quien sube.
-
-Dos detalles para quien toque esto después:
-
-- **Cambiar la lista de anchos (`ANCHOS` en `fotoProducto.js`) obliga a resubir.** Las
-  fotos que ya están en Storage se generaron con 400 y 800 y con ningún otro.
-- **Nadie borra los archivos de Storage** cuando se borra una pieza —ya pasaba antes con
-  la WebP y la gemela—, así que ahora quedan huérfanas dos copias más por foto.
 
 ### 21. ✅ El acordeón del FAQ no era accesible — resuelto
 
