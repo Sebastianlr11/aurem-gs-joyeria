@@ -318,7 +318,7 @@ Deno.serve(async (req: Request) => {
     }
   })()
 
-  // @ts-ignore EdgeRuntime existe en el entorno de Supabase
+  // @ts-expect-error EdgeRuntime existe en el entorno de Supabase pero no en sus tipos
   if (typeof EdgeRuntime !== 'undefined') EdgeRuntime.waitUntil(trabajo)
   else await trabajo
 

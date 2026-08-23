@@ -20,9 +20,7 @@
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '../../lib/supabase';
-
-/* La misma referencia que se ve en la tarjeta del catálogo. */
-const refDe = (p) => `AG-${String(p?.id ?? '').replace(/\D/g, '').slice(-4).padStart(4, '0')}`;
+import { refDe } from '../../lib/referencia';
 
 /* En español los números pequeños se escriben con letra, y esta frase se lee
    como una frase, no como un informe. */
@@ -179,5 +177,3 @@ export default function EliminarPieza({ product, onClose, onDeleted }) {
         </div>
     );
 }
-
-export { refDe };

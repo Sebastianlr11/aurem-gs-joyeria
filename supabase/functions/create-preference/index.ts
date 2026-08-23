@@ -259,7 +259,7 @@ Deno.serve(async (req: Request) => {
     /* No se espera: el cliente está mirando una pantalla de carga y la
        medición no puede costarle segundos. Si el entorno no deja trabajo en
        segundo plano, se deja correr sin await —avisarVenta nunca lanza. */
-    // @ts-ignore EdgeRuntime existe en el entorno de Supabase
+    // @ts-expect-error EdgeRuntime existe en el entorno de Supabase pero no en sus tipos
     if (typeof EdgeRuntime !== 'undefined') EdgeRuntime.waitUntil(avisoPedido)
 
     /* El contraentrega también pasa por Mercado Pago, pero sólo por el abono.

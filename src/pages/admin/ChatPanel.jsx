@@ -87,6 +87,7 @@ function ImagenDelChat({ ruta, onAbrir }) {
     const [src, setSrc] = useState(() => (String(ruta).startsWith('http') ? ruta : null));
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- La URL firmada de Storage llega después, y la ruta puede cambiar sin que el componente se desmonte. El estado inicial ya resuelve el caso de una URL directa; esto cubre el resto.
         if (String(ruta).startsWith('http')) { setSrc(ruta); return; }
         let vivo = true;
         supabase.storage.from('chat-media').createSignedUrl(ruta, 3600)
@@ -128,16 +129,6 @@ const fmtSeparador = (d) => {
     return f.toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' });
 };
 const fmtDateFull = (d) => new Date(d).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
-/* Cuánto hace del último mensaje, en corto: "Hoy", "Ayer", "3 d", "5 sem". */
-const fmtDesde = (d) => {
-    const dias = Math.floor((Date.now() - new Date(d)) / 86400000);
-    if (dias <= 0) return 'Hoy';
-    if (dias === 1) return 'Ayer';
-    if (dias < 7) return `${dias} d`;
-    if (dias < 60) return `${Math.floor(dias / 7)} sem`;
-    return `${Math.floor(dias / 30)} m`;
-};
-
 const isSameDay = (a, b) => {
     const da = new Date(a), db = new Date(b);
     return da.getFullYear() === db.getFullYear() && da.getMonth() === db.getMonth() && da.getDate() === db.getDate();
@@ -458,7 +449,7 @@ const ChatPanel = () => {
                                     body: `El chat ${phone} necesita atención manual`,
                                     icon: '/assets/logo-isotipo.png',
                                 });
-                            } catch (e) {}
+                            } catch { /* El navegador puede negarse a mostrar el aviso; no es motivo para romper nada. */ }
                         }
                     }
                 });
@@ -478,6 +469,7 @@ const ChatPanel = () => {
             .subscribe();
 
         return () => { supabase.removeChannel(channel); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchTakeover no está memorizada: añadirla volvería a suscribir el canal de Realtime en cada render. La suscripción tiene que vivir mientras viva la sesión, que es lo que dice la dependencia.
     }, [session]);
 
     /* ─── Load messages for active contact ────────────────────────── */
@@ -574,6 +566,7 @@ const ChatPanel = () => {
             setTimeout(() => bajarAlFinal(true), 50);
         }
         prevMsgCountRef.current = messages.length;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- A propósito sólo messages.length: esto baja la lista cuando LLEGA un mensaje, no cuando cambia cualquier cosa de uno que ya estaba.
     }, [messages.length]);
 
     /* En el celular el chat ocupa la pantalla completa y se ancla entre las
@@ -662,7 +655,7 @@ const ChatPanel = () => {
                                 body: truncate(newMsg.content, 80),
                                 icon: '/assets/logo-isotipo.png',
                             });
-                        } catch (e) {}
+                        } catch { /* Igual que arriba: si el aviso no sale, el mensaje ya llegó al panel. */ }
                     }
 
                     // Auto-unarchive if new message from archived contact
@@ -1108,7 +1101,7 @@ const ChatPanel = () => {
         };
         document.addEventListener('keydown', handleGlobalKeyDown);
         return () => document.removeEventListener('keydown', handleGlobalKeyDown);
-    }, [showContactInfo, showQuickReplies, showImagePicker, activeContact, showMsgSearch, showExportMenu, lightboxImg, confirmArchive]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [showContactInfo, showQuickReplies, showImagePicker, activeContact, showMsgSearch, showExportMenu, lightboxImg, confirmArchive]);
 
     /* ─── Sidebar nav ─────────────────────────────────────────────── */
     const handleNavClick = (id) => {

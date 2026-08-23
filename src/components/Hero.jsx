@@ -2,7 +2,7 @@ import React from 'react'
 import Foto from './Foto'
 import { Link } from 'react-router-dom'
 import { waUrl } from '../lib/whatsapp';
-import { isotipoPaths } from './Isotipo';
+import { isotipoPaths } from './isotipoPaths';
 
 const WhatsAppIcon = () => (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
