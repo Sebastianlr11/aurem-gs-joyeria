@@ -54,8 +54,8 @@ const SECCIONES = [
 ];
 
 const VACIO = {
-    name: '', category: 'Anillos', price: '', compare_price: '', costo: '',
-    costo_provisional: false, description: '', image_url: '', is_new: false,
+    name: '', category: 'Anillos', price: '', compare_price: '',
+    description: '', image_url: '', is_new: false,
     is_featured: false, stock: '', metal: '', piedra: '', engaste: '', talla_rango: '',
 };
 
@@ -105,7 +105,6 @@ export default function ProductModal({ product, onClose, onSaved }) {
             ...VACIO, ...product,
             price: aDigitos(product.price),
             compare_price: aDigitos(product.compare_price),
-            costo: aDigitos(product.costo),
             stock: product.stock ?? '',
         };
     });
@@ -238,11 +237,6 @@ export default function ProductModal({ product, onClose, onSaved }) {
     /* ── Lo que verá la clienta ───────────────────────────────────── */
 
     const precio = numero(form.price);
-    const costo = numero(form.costo);
-    const hayMargen = precio !== null && costo !== null && precio > 0;
-    const margen = hayMargen ? precio - costo : null;
-    const pct = hayMargen ? (margen / precio) * 100 : null;
-    const costoAbsurdo = hayMargen && margen <= 0;
 
     const inventario = useMemo(() => {
         if (form.stock === '' || form.stock === null || form.stock === undefined) {
@@ -271,10 +265,6 @@ export default function ProductModal({ product, onClose, onSaved }) {
             category: form.category,
             price: precio,
             compare_price: comparar && comparar > precio ? comparar : null,
-            /* Vacío es "no lo sé todavía", no cero. Un costo de cero diría que
-               la pieza es pura ganancia, que es peor que no saber. */
-            costo: costo,
-            costo_provisional: !!form.costo_provisional && costo !== null,
             description: texto(form.description) || null,
             images,
             image_url: images[0] || texto(form.image_url) || null,
@@ -400,56 +390,20 @@ export default function ProductModal({ product, onClose, onSaved }) {
                                     alCambiar={v => set('compare_price', v)}
                                     ayuda="Se tacha junto al precio nuevo."
                                 />
-                                <CampoPlata
-                                    etiqueta="Costo de la pieza"
-                                    marcador="Oro, mano de obra, estuche"
-                                    valor={form.costo}
-                                    alCambiar={v => set('costo', v)}
-                                    ayuda="Todo lo que hay que pagar para entregarla."
-                                />
                             </div>
 
-                            {/* El margen es el número con el que se decide cuánta pauta
-                                aguanta esta pieza. Antes era una línea de ayuda debajo
-                                de un campo, del mismo tamaño que "sólo para anillos". */}
-                            <div className={`pm-margen${costoAbsurdo ? ' pm-margen--mal' : ''}`}>
-                                <div className="pm-margen-izq">
-                                    <span className="pm-margen-t">
-                                        {costoAbsurdo ? 'Cuesta más de lo que se vende' : 'Deja por pieza'}
-                                    </span>
-                                    <span className="pm-margen-s">
-                                        {costoAbsurdo
-                                            ? 'Revisa el precio o el costo: así, cada venta pierde plata.'
-                                            : hayMargen
-                                                ? 'Precio de venta menos el costo de la pieza.'
-                                                : 'Escribe el costo para ver cuánto deja esta pieza.'}
-                                    </span>
-                                </div>
-                                <div className="pm-margen-der">
-                                    <span className="pm-margen-v">{hayMargen ? `$${fmt(margen)}` : '—'}</span>
-                                    <span className="pm-margen-pct">
-                                        {hayMargen ? `${pct.toFixed(1).replace('.', ',')} %` : 'sin costo'}
-                                    </span>
-                                </div>
-                            </div>
+                            {/* Aquí vivía el costo de la pieza, y con él un margen
+                                calculado sobre un número fijo del catálogo. No se
+                                podía mantener: el oro se mueve y el flete depende de
+                                a dónde va, así que el campo se llenaba de
+                                estimaciones y el panel terminaba avisando de que sus
+                                propios márgenes eran de relleno.
 
-                            {/* Un costo inventado se ve idéntico a uno de verdad, y el
-                                margen que sale de él también. La casilla es lo que
-                                permite ponerlos sin que se vuelvan mentira: mientras
-                                esté marcada, el panel lo dice en todas partes. */}
-                            {costo !== null && (
-                                <label className="pm-casilla">
-                                    <input
-                                        type="checkbox"
-                                        checked={!!form.costo_provisional}
-                                        onChange={e => set('costo_provisional', e.target.checked)}
-                                    />
-                                    <span>
-                                        Es un número de relleno, todavía no lo confirmó el joyero.
-                                        {form.costo_provisional && ' Mientras esté marcado, el panel avisa de que este margen es inventado.'}
-                                    </span>
-                                </label>
-                            )}
+                                Desde el 23 de agosto de 2026 el costo se anota en el
+                                PEDIDO, al despachar, cuando ya se sabe qué costó de
+                                verdad — y queda congelado ahí, igual que el precio se
+                                congela en order_items. Ver la migración
+                                20260823_costos_del_pedido.sql. */}
                         </section>
 
                         <section data-sec="inventario" className="pm-sec">

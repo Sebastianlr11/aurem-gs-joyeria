@@ -44,8 +44,8 @@ Este documento es el mapa de la base. Y su hallazgo principal es incómodo:
 
 | Tabla | Columnas destacadas |
 |---|---|
-| `products` | `name`, `description`, `price`, `compare_price`, `category`, `metal`, `piedra`, `engaste`, `talla_rango`, `images[]`, `image_url`, `stock`, `costo`, `costo_provisional`, `is_new`, `is_featured` |
-| `orders` | `customer_name/email/phone`, `product_id`, `product_name`, `amount`, `status`, `payment_method`, `order_source`, `notes`, `carrier`, `tracking_number`, `mp_preference_id`, `mp_payment_id`, `mp_status`, `status_updated_at`, `es_prueba`, `shipping_address/city/department`, `abono_monto`, `abono_pagado_en`, `conversion_enviada_en` + atribución |
+| `products` | `name`, `description`, `price`, `compare_price`, `category`, `metal`, `piedra`, `engaste`, `talla_rango`, `images[]`, `image_url`, `stock`, `is_new`, `is_featured`, y `costo`/`costo_provisional` **muertas** desde el 23-ago |
+| `orders` | `customer_name/email/phone`, `product_id`, `product_name`, `amount`, `status`, `payment_method`, `order_source`, `notes`, `carrier`, `tracking_number`, `mp_preference_id`, `mp_payment_id`, `mp_status`, `status_updated_at`, `es_prueba`, `shipping_address/city/department`, `abono_monto`, `abono_pagado_en`, `conversion_enviada_en`, `costo_taller`, `costo_envio`, `costo_anotado_en` + atribución |
 | `order_items` | `order_id`, `product_id`, `nombre`, `precio`, `cantidad`, `talla`, `creado_en` — **precios congelados** |
 | `customers` | Datos del cliente + `no_escribir` |
 
@@ -110,6 +110,7 @@ Este documento es el mapa de la base. Y su hallazgo principal es incómodo:
 | `20260822_conversaciones_purgables.sql` | Retención de conversaciones |
 | `20260822_pedido_publico.sql` | 🔒 `pedido_publico(uuid)` + `DROP` de la política mina |
 | `20260822_quitar_respaldos_de_chats.sql` | Elimina los tres respaldos del 22-ago |
+| `20260823_costos_del_pedido.sql` | `costo_taller`, `costo_envio`, `costo_anotado_en` en `orders`; jubila `products.costo` |
 
 ### Los fallos de acceso público, cerrados
 

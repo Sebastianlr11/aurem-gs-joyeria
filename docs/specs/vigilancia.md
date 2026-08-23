@@ -37,7 +37,7 @@ El Dashboard lee `vigilancia_ultima` y muestra las averías y el "Revisado hace 
 | Mensajes esperando entrega | `:110` |
 | Mensajes colgados | `:131` |
 | **Pedidos parados por plazo** (tabla `PLAZOS`) | `:160-172` |
-| Piezas con costo de relleno **habiendo pauta corriendo** | `:229` |
+| Pedidos despachados **sin costo anotado**, habiendo pauta corriendo | `:229` |
 | Endpoints que no responden o responden mal | `:255-259` |
 
 Los plazos (`:160-172`) son concretos, no genéricos, y **miran el flujo de pago, no sólo el
@@ -84,9 +84,16 @@ no, por ejemplo, el uso de CPU.
 cuyo cobro nadie registró es plata que se puede perder de vista, no un detalle
 administrativo.
 
-**Avisa si hay piezas con costo de relleno mientras corre pauta** (`:229`). Es una
-comprobación de negocio, no técnica: si el costo es un supuesto, el retorno también, y con
-pauta encendida se están tomando decisiones de inversión sobre un número inventado.
+**Avisa si hay pedidos despachados sin costo anotado mientras corre pauta** (`:229`). Es
+una comprobación de negocio, no técnica: sin ese número el panel puede decir cuánto se
+vendió pero no cuánto quedó, y con pauta encendida se estarían tomando decisiones de
+inversión a ciegas.
+
+Hasta el 23 de agosto de 2026 la pregunta era otra —"¿hay piezas con costo de relleno en el
+catálogo?"— porque el costo vivía en `products`. Al mudarse al pedido, la comprobación se
+mudó con él: mira los pedidos `enviado` o `entregado` de los últimos 60 días, sin
+`costo_taller` y que no sean prueba. **Sólo los despachados**: pedirle el costo a un pedido
+que el taller aún no entregó sería pedir algo que nadie sabe.
 
 **El secreto vive en la base, no en variables de entorno** (`:38-45`), y se compara en
 tiempo constante (`:29-34`). En la base se puede rotar sin redesplegar la función.

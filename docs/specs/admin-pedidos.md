@@ -63,6 +63,16 @@ en WhatsApp, no en el correo.
 **Los pedidos manuales existen porque la mayoría de las ventas no pasan por la web.** Entran
 conversando. `PedidoModal` los registra con el mismo formato, así el panel cuenta todo.
 
+**El costo del pedido se pide sólo al editar, nunca al crearlo.** Es la misma razón por la
+que la guía tampoco se pide al crear: cuando el pedido nace, nadie sabe todavía qué va a
+costar. El costo del taller —con el oro del día— y el del flete se anotan al despachar, en
+la sección «Lo que costó», y quedan **congelados en ese pedido** igual que el precio se
+congela en `order_items`. Un pedido viejo no cambia de margen porque hoy suba el oro.
+
+Antes esto vivía en el catálogo, como un costo fijo por pieza. No se podía mantener, así
+que se llenaba de estimaciones y el panel terminaba avisando de que sus propios márgenes
+eran de relleno. Ver `supabase/migrations/20260823_costos_del_pedido.sql`.
+
 **`PedidoModal` nombra lo que falta antes de intentar guardar** (el pie del modal), en vez
 de rechazar al pulsar. Y **explica qué implica cada método de pago** (`PAGOS`, `:32-58`) en
 la misma pantalla donde se elige: quien registra el pedido no tiene por qué recordar que

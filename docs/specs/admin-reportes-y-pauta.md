@@ -23,7 +23,7 @@ entra, y que **en Colombia cada millón de pauta cuesta 1.190.000** con IVA.
 | `src/pages/admin/Dashboard.jsx:2085-2087` | Ticket promedio — usa `amount` completo, comentado a propósito |
 | `src/pages/admin/Dashboard.jsx:2363` | Entrada a `PautaRetorno` |
 | `src/pages/admin/PautaRetorno.jsx` | Gasto de pauta y retorno (274 líneas) |
-| `src/pages/admin/PautaRetorno.jsx:51-53` | Aviso de piezas con `costo_provisional` |
+| `src/pages/admin/PautaRetorno.jsx` | Aviso de pedidos sin costo anotado, y la utilidad |
 
 ### RPC que consume
 
@@ -34,8 +34,9 @@ entra, y que **en Colombia cada millón de pauta cuesta 1.190.000** con IVA.
 
 ### Tablas
 
-`gasto_pauta` (único por `fecha, canal`), `taller_precios.iva_pauta`, `orders`, `products`
-(para `costo` y `costo_provisional`).
+`gasto_pauta` (único por `fecha, canal`), `taller_precios.iva_pauta`, `orders` (incluidas
+`costo_taller` y `costo_envio`). **Ya no consulta `products`**: desde el 23 de agosto de
+2026 el costo vive en el pedido.
 
 ## Decisiones tomadas y por qué
 
@@ -49,9 +50,15 @@ del que dependen las decisiones de inversión. El factor vive en `taller_precios
 divergen durante días: hay ventas comprometidas cuya plata todavía no entró. Un solo número
 tendría que elegir entre optimista y pesimista, y las dos elecciones engañan.
 
-**Se avisa de las piezas con `costo_provisional`** (`PautaRetorno.jsx:51-53`). Si el costo
-es un supuesto, el margen es un supuesto, y el retorno también. Mejor decirlo que dar un
-número con falsa precisión.
+**Hay una cifra que responde "¿esto deja plata?" y no sólo "¿esto vende?"**: *Queda
+después de todo* = lo vendido − lo que costó el taller − el flete − la pauta con IVA. El
+múltiplo del ROAS no basta para decidir presupuesto: un 3× con una pieza que deja el 10 %
+pierde plata, y hasta el 23 de agosto de 2026 el panel no tenía cómo verlo.
+
+**Y se avisa de los pedidos sin costo anotado**, que es lo que hace que esa cifra salga
+corta. Se dice sobre cuántos pedidos está calculada: un margen sobre uno de cinco no es
+mentira, pero tampoco es el periodo. Antes el aviso miraba `products.costo_provisional`,
+cuando el costo era un número fijo del catálogo.
 
 **El ticket promedio sí usa `amount` completo** (`:2085-2087`), a diferencia del resto de
 las cifras — y está comentado en el código para que nadie lo "arregle". El ticket es
@@ -80,8 +87,9 @@ uno recibe eventos**. Antes de concluir que una campaña no convierte, verifica 
    **$1.190.000** de costo real, no un millón.
 2. **Caja vs venta:** con un pedido contraentrega a medio cobrar, los dos retornos deben
    dar distinto.
-3. **Costo provisional:** marca una pieza con `costo_provisional` y véndela. El panel debe
-   avisar de que el margen es un supuesto.
+3. **Costos del pedido:** anota el costo del taller y el del flete en un pedido vendido.
+   *Queda después de todo* debe bajar en esa cantidad. Deja otro pedido sin costo: el panel
+   debe avisar y decir sobre cuántos de cuántos calculó.
 4. **Duplicado:** intenta anotar dos veces el mismo día y canal. Debe rechazarlo el índice
    único.
 5. **Comisiones:** compara `calcMPNet` con una liquidación real de Mercado Pago.

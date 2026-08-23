@@ -83,6 +83,7 @@ const VACIO = {
     status: 'pendiente', payment_method: 'contraentrega',
     notes: '', carrier: '', tracking_number: '',
     shipping_address: '', shipping_city: '', shipping_department: '',
+    costo_taller: '', costo_envio: '',
 };
 
 const Regla = ({ children, extra }) => (
@@ -116,6 +117,8 @@ export default function PedidoModal({ order, products = [], onClose, onSaved }) 
             payment_method: order.payment_method || '',
             carrier: order.carrier || '',
             tracking_number: order.tracking_number || '',
+            costo_taller: aDigitos(order.costo_taller),
+            costo_envio: aDigitos(order.costo_envio),
         };
     });
     const [saving, setSaving] = useState(false);
@@ -142,6 +145,15 @@ export default function PedidoModal({ order, products = [], onClose, onSaved }) 
     };
 
     const monto = numero(form.amount);
+
+    /* Lo que este pedido deja de verdad. No sale del catálogo: sale de lo que
+       costó ESTE pedido, anotado cuando ya se sabe. Ver la migración
+       20260823_costos_del_pedido.sql. */
+    const costoTaller = numero(form.costo_taller);
+    const costoEnvio = numero(form.costo_envio);
+    const hayCosto = costoTaller !== null || costoEnvio !== null;
+    const deja = hayCosto ? monto - (costoTaller || 0) - (costoEnvio || 0) : null;
+    const margen = deja !== null && monto > 0 ? Math.round((deja / monto) * 100) : null;
 
     /* Lo que falta, en el orden en que aparece en el formulario. Se nombra en
        vez de sólo apagar el botón: un botón apagado sin explicación obliga a
@@ -184,6 +196,14 @@ export default function PedidoModal({ order, products = [], onClose, onSaved }) 
             shipping_address: texto(form.shipping_address) || null,
             shipping_city: texto(form.shipping_city) || null,
             shipping_department: texto(form.shipping_department) || null,
+            /* Vacío es "todavía no se sabe", no cero. Un costo de cero diría
+               que la pieza salió gratis, y el margen mentiría hacia arriba. */
+            costo_taller: costoTaller,
+            costo_envio: costoEnvio,
+            /* La fecha se pone la primera vez y no se vuelve a mover: sirve
+               para distinguir un margen que es un hecho de uno que es un
+               hueco, no para auditar ediciones. */
+            costo_anotado_en: hayCosto ? (order?.costo_anotado_en || new Date().toISOString()) : null,
         };
         if (!isEdit) payload.order_source = 'manual';
 
@@ -420,6 +440,51 @@ export default function PedidoModal({ order, products = [], onClose, onSaved }) 
                                     />
                                 </Campo>
                             </div>
+                        )}
+
+                        {/* Sólo al editar, y por la misma razón que la guía: cuando
+                            se crea el pedido nadie sabe todavía qué va a costar. El
+                            costo se anota cuando el taller entrega y el flete ya se
+                            pagó — ese es el momento en que el número existe.
+
+                            Antes esto vivía en el catálogo, como un costo fijo por
+                            pieza. Con el oro moviéndose eso era imposible de mantener
+                            y terminaba lleno de estimaciones, así que los márgenes del
+                            panel salían de una predicción. Aquí salen de un hecho, y
+                            queda congelado en este pedido igual que el precio. */}
+                        {isEdit && (
+                            <>
+                                <Regla extra="cuando ya se sepa">Lo que costó</Regla>
+
+                                <div className="pd-rejilla">
+                                    <Campo etiqueta="Costo del taller" apunte="oro, mano de obra, estuche">
+                                        <input
+                                            className="pd-input"
+                                            inputMode="numeric"
+                                            value={form.costo_taller}
+                                            onChange={e => set('costo_taller', e.target.value.replace(/\D/g, ''))}
+                                            placeholder="Déjalo vacío si aún no lo sabes"
+                                        />
+                                    </Campo>
+                                    <Campo etiqueta="Costo del flete" apunte="lo que se pagó, no lo que cobraste">
+                                        <input
+                                            className="pd-input"
+                                            inputMode="numeric"
+                                            value={form.costo_envio}
+                                            onChange={e => set('costo_envio', e.target.value.replace(/\D/g, ''))}
+                                            placeholder="Déjalo vacío si aún no lo sabes"
+                                        />
+                                    </Campo>
+                                </div>
+
+                                <span className="pd-ayuda">
+                                    {deja === null
+                                        ? 'Sin esto el panel puede decir cuánto vendiste, pero no cuánto te quedó.'
+                                        : deja <= 0
+                                            ? `Este pedido pierde $${fmt(-deja)}: cuesta más de lo que se cobró.`
+                                            : <>Este pedido deja <strong>${fmt(deja)}</strong>{margen !== null && ` (${margen} %)`}, antes de pauta y comisiones.</>}
+                                </span>
+                            </>
                         )}
 
                         <div className="pd-campo">
