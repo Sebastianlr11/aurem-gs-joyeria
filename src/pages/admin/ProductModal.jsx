@@ -21,6 +21,7 @@
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '../../lib/supabase';
+import { borrarFotos } from '../../lib/fotosEnStorage';
 import { versionesDeFoto } from '../../lib/optimizarFoto';
 
 const CATEGORIES = ['Anillos', 'Collares', 'Aretes', 'Pulseras', 'Dijes'];
@@ -232,6 +233,11 @@ export default function ProductModal({ product, onClose, onSaved }) {
         setTocado(true);
     };
 
+    /* Sólo se saca de la lista. Borrar el archivo aquí sería adelantarse:
+       quien quita una foto y después cierra el modal sin guardar espera
+       encontrarla donde estaba, y en cambio tendría una ficha apuntando a un
+       archivo que ya no existe. El borrado de verdad va en `guardar`, cuando
+       la decisión ya es firme. */
     const quitarFoto = (idx) => { setImages(prev => prev.filter((_, i) => i !== idx)); setTocado(true); };
 
     /* ── Lo que verá la clienta ───────────────────────────────────── */
@@ -285,6 +291,20 @@ export default function ProductModal({ product, onClose, onSaved }) {
         else ({ error: err } = await supabase.from('products').insert([payload]));
         setSaving(false);
         if (err) { setError(err.message); return; }
+
+        /* Las fotos que se quitaron de la ficha se van del bucket. Antes se
+           quedaban ahí, públicas y sin que nada las nombrara: la única forma
+           de encontrarlas era comparar el bucket entero contra la base.
+
+           Se hace después de guardar y con la lista que de verdad quedó
+           grabada, no con la del formulario: si el update falla, no se ha
+           borrado nada. */
+        if (isEdit) {
+            const quedaron = new Set(images);
+            const sobran = (product.images || []).filter(u => !quedaron.has(u));
+            if (sobran.length) borrarFotos(sobran);
+        }
+
         onSaved();
     };
 
