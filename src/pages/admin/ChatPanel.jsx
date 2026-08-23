@@ -15,6 +15,7 @@ import {
 import { AvisosDeChat, ChatErrorBoundary, ImagenDelChat, PieDeFoto, VisorDeFoto } from './chat/piezas';
 import { useAvisos, useFichaDelContacto, useVisorDeFotos } from './chat/ganchos';
 import FichaDelContacto from './chat/FichaDelContacto';
+import SelectorDeImagen from './chat/SelectorDeImagen';
 import BuscadorDeMensajes from './chat/BuscadorDeMensajes';
 
 
@@ -60,10 +61,6 @@ const ChatPanel = () => {
     const imagenDePedido = (o) => (
         products.find(p => p.id === o.product_id) || products.find(p => p.name === o.product_name)
     )?.image_url || null;
-    const [productSearch, setProductSearch] = useState('');
-    const [imageCaption, setImageCaption] = useState('');
-    const [selectedProduct, setSelectedProduct] = useState(null);
-    const [sendingImage, setSendingImage] = useState(false);
     const [takeoverMap, setTakeoverMap] = useState({});
     const [showContactInfo, setShowContactInfo] = useState(() => window.innerWidth >= 1200);
     /* El interruptor se queda aquí —lo tocan el botón de la cabecera, Escape y
@@ -643,28 +640,6 @@ const ChatPanel = () => {
     };
 
     /* ─── Enviar una foto del catálogo ───────────────────────────── */
-    const handleSendImage = async (product) => {
-        if (!activeContact || sendingImage) return;
-        setSendingImage(true);
-        const caption = imageCaption.trim() || `${product.name} - $${Number(product.price).toLocaleString('es-CO')}`;
-
-        try {
-            const { data, error } = await supabase.functions.invoke('wa-send', {
-                body: { telefono: activeContact, texto: caption, imagenUrl: product.image_url },
-            });
-            if (error || data?.error) throw new Error(data?.error || error.message);
-        } catch (e) {
-            console.error('No se pudo enviar la imagen:', e);
-            setSendError(e.message || 'No se pudo enviar la imagen.');
-        }
-
-        setShowImagePicker(false);
-        setSelectedProduct(null);
-        setImageCaption('');
-        setProductSearch('');
-        setSendingImage(false);
-    };
-
     /* ─── Toggle takeover ───────────────────────────────────────── */
     const handleToggleTakeover = async () => {
         if (!activeContact) return;
@@ -850,7 +825,6 @@ const ChatPanel = () => {
             }
             if (imagePickerRef.current && !imagePickerRef.current.contains(e.target)) {
                 setShowImagePicker(false);
-                setSelectedProduct(null);
             }
             if (exportMenuRef.current && !exportMenuRef.current.contains(e.target)) {
                 setShowExportMenu(false);
@@ -887,7 +861,7 @@ const ChatPanel = () => {
                 if (showExportMenu) { setShowExportMenu(false); return; }
                 if (showContactInfo) { setShowContactInfo(false); return; }
                 if (showQuickReplies) { setShowQuickReplies(false); return; }
-                if (showImagePicker) { setShowImagePicker(false); setSelectedProduct(null); return; }
+                if (showImagePicker) { setShowImagePicker(false); return; }
                 if (activeContact) { setActiveContact(null); setMobileShowChat(false); return; }
             }
         };
@@ -1009,11 +983,6 @@ const ChatPanel = () => {
         setActiveContact(phone);
         setMobileShowChat(true);
     };
-
-    const filteredProducts = products.filter(p => {
-        if (!productSearch) return true;
-        return p.name.toLowerCase().includes(productSearch.toLowerCase());
-    });
 
     if (!session) return null;
 
@@ -1527,7 +1496,7 @@ const ChatPanel = () => {
                                         </button>
                                         <button
                                             className="chat-image-trigger"
-                                            onClick={() => { setShowImagePicker(!showImagePicker); setShowQuickReplies(false); setSelectedProduct(null); }}
+                                            onClick={() => { setShowImagePicker(!showImagePicker); setShowQuickReplies(false); }}
                                             title="Enviar imagen de producto"
                                         >
                                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
@@ -1549,81 +1518,14 @@ const ChatPanel = () => {
                                         )}
 
                                         {/* Image picker panel */}
-                                        {showImagePicker && (
-                                            <div className="chat-image-picker" ref={imagePickerRef}>
-                                                <div className="chat-image-picker-head">
-                                                    <h4>{selectedProduct ? 'Enviar imagen' : 'Selecciona un producto'}</h4>
-                                                    <button className="chat-image-picker-close" onClick={() => { setShowImagePicker(false); setSelectedProduct(null); }}>&times;</button>
-                                                </div>
-                                                {!selectedProduct ? (
-                                                    <>
-                                                        <div className="chat-image-search-wrap">
-                                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                                                            <input
-                                                                type="text"
-                                                                className="chat-image-search"
-                                                                placeholder="Buscar producto..."
-                                                                value={productSearch}
-                                                                onChange={e => setProductSearch(e.target.value)}
-                                                                autoFocus
-                                                            />
-                                                        </div>
-                                                        <div className="chat-image-grid">
-                                                            {filteredProducts.slice(0, 12).map(p => (
-                                                                <button key={p.id} className="chat-image-picker-item" onClick={() => { setSelectedProduct(p); setImageCaption(`${p.name} - $${Number(p.price).toLocaleString('es-CO')}`); }}>
-                                                                    <div className="chat-image-picker-thumb">
-                                                                        <img src={p.image_url} alt={p.name} loading="lazy" onError={e => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }} />
-                                                                        <div className="chat-image-picker-fallback" style={{display:'none'}}>
-                                                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div className="chat-image-picker-details">
-                                                                        <span className="chat-image-picker-name">{p.name}</span>
-                                                                        <span className="chat-image-picker-price">${Number(p.price).toLocaleString('es-CO')}</span>
-                                                                    </div>
-                                                                </button>
-                                                            ))}
-                                                            {filteredProducts.length === 0 && (
-                                                                <div className="chat-image-empty">No se encontraron productos</div>
-                                                            )}
-                                                        </div>
-                                                    </>
-                                                ) : (
-                                                    <div className="chat-image-preview">
-                                                        <div className="chat-image-preview-img-wrap">
-                                                            <img src={selectedProduct.image_url} alt={selectedProduct.name} onError={e => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }} />
-                                                            <div className="chat-image-preview-fallback" style={{display:'none'}}>
-                                                                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                                                                <span>{selectedProduct.name}</span>
-                                                            </div>
-                                                        </div>
-                                                        <div className="chat-image-preview-info">
-                                                            <strong>{selectedProduct.name}</strong>
-                                                            <span>${Number(selectedProduct.price).toLocaleString('es-CO')}</span>
-                                                        </div>
-                                                        <input
-                                                            type="text"
-                                                            className="chat-image-caption"
-                                                            value={imageCaption}
-                                                            onChange={e => setImageCaption(e.target.value)}
-                                                            placeholder="Escribe un mensaje para acompañar..."
-                                                        />
-                                                        <div className="chat-image-preview-actions">
-                                                            <button className="chat-image-cancel-btn" onClick={() => setSelectedProduct(null)}>
-                                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-                                                                Volver
-                                                            </button>
-                                                            <button className="chat-image-send-btn" onClick={() => handleSendImage(selectedProduct)} disabled={sendingImage}>
-                                                                {sendingImage ? (
-                                                                    <><div className="chat-send-spinner" /> Enviando...</>
-                                                                ) : (
-                                                                    <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Enviar</>
-                                                                )}
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
+{showImagePicker && (
+                                            <SelectorDeImagen
+                                                piezas={products}
+                                                telefono={activeContact}
+                                                contenedor={imagePickerRef}
+                                                onCerrar={() => setShowImagePicker(false)}
+                                                onError={setSendError}
+                                            />
                                         )}
                                     </div>
                                     <textarea
