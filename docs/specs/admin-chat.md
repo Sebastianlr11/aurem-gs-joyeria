@@ -2,8 +2,8 @@
 
 > **Estado:** en producción
 > **Última revisión:** 2026-08-22
-> **Ruta:** `/admin/chat` · `src/pages/admin/ChatPanel.jsx` (1.923 líneas) + `chat/`
-> (`comunes.js`, `piezas.jsx`, `BuscadorDeMensajes.jsx`)
+> **Ruta:** `/admin/chat` · `src/pages/admin/ChatPanel.jsx` (1.905 líneas) + `chat/`
+> (`comunes.js`, `piezas.jsx`, `ganchos.js`, `BuscadorDeMensajes.jsx`)
 
 ## Qué resuelve
 

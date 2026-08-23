@@ -1108,7 +1108,41 @@ limpio, y elegir un resultado cierra y lleva a ese chat. Y el resto del panel si
 entero: contactos, burbujas, separadores de día, acuses, iniciales, hora y estado del
 pedido — que son justamente los helpers que se mudaron.
 
-**Lo que queda**, por orden de lo más fácil de verificar sin efectos secundarios: el visor
-de fotos (2 estados), los avisos (1), la ficha del contacto (5), la selección en lote (4),
-la purga (6) y el selector de imágenes del catálogo (7). El núcleo —tiempo real, envío,
-control manual— es lo último y lo que menos conviene tocar sin pruebas.
+**Segundo tramo, el mismo día: 1.923 → 1.905 líneas.** Salieron el visor de fotos y los
+avisos, a `chat/ganchos.js`. Son ganchos y no componentes porque lo que estorbaba no era la
+pintura —nueve y diez líneas de JSX— sino el estado, los relojes y la limpieza, repartidos
+por **cuatro sitios distintos** del componente grande.
+
+Y aquí el refactor **encontró dos fallos latentes**, los dos del mismo tipo: relojes mal
+llevados.
+
+- **El visor no cancelaba nunca el reloj del cierre.** Se cierra en dos tiempos —primero la
+  clase que desvanece, 300 ms después se quita la imagen—, y si abrías una foto durante esos
+  300 ms, el reloj viejo llegaba puntual y **te cerraba la que acababas de abrir**. Al salir
+  de la pantalla con el visor abierto, además, el temporizador seguía vivo.
+- **Los avisos usaban `toast-${Date.now()}` como identificador.** Dos mensajes en el mismo
+  milisegundo —dos clientas a la vez, o un mensaje troceado— compartían id: React repetía la
+  clave y el reloj del primero **se llevaba los dos por delante**.
+
+### Y ahora el chat se puede probar
+
+Estas dos piezas **no se pueden verificar a mano**, y eso es lo que las hacía peligrosas:
+para ver el visor hace falta una foto en un hilo, y para ver un aviso hace falta que entre
+un mensaje de WhatsApp de verdad — forzarlo insertando una fila haría que el cron le mandara
+una plantilla real a un número real.
+
+Sacarlas del archivo grande las volvió comprobables, así que se montó el entorno para ello
+(`@testing-library/react` + `jsdom`, pedido por archivo con `// @vitest-environment jsdom`
+para no cargarlo en las pruebas puras). **12 pruebas nuevas, 70 en total**, y los dos fallos
+de arriba quedan escritos como prueba para que no vuelvan.
+
+Rotas a propósito tres veces, para comprobar que sirven: quitar el `clearTimeout` al abrir
+(1 fallo), volver al identificador por milisegundo (3) y olvidarse de apagar los relojes al
+salir (4).
+
+Eso desbloquea lo que queda: cada grupo que salga de `ChatPanel.jsx` a partir de ahora se
+puede probar en vez de sólo mirarse.
+
+**Lo que queda**, por orden: la ficha del contacto (5 estados), la selección en lote (4), la
+purga (6) y el selector de imágenes del catálogo (7). El núcleo —tiempo real, envío, control
+manual— es lo último y lo que menos conviene tocar.
