@@ -53,8 +53,14 @@ const Hero = () => {
                         </h1>
 
                         <p className="hero-subtitle hero-anim" style={{ '--hero-delay': '0.5s' }}>
-                            Anillos, collares y pulseras en oro 18k, plata 925 y platino. Cada pieza sale de
-                            nuestro taller sellada con su ley y con garantía de por vida en el metal.
+                            {/* Lo que hay de verdad en el catálogo: 4 anillos y 1 dije, en oro
+                                18k, oro blanco 18k y plata 925. Decía "collares y pulseras" —no hay
+                                ninguno— y "platino" —ni una pieza—. Prometer surtido que no existe
+                                trae a alguien a buscar un collar y lo deja con las manos vacías; el
+                                encargo a medida es mejor argumento y además es cierto. */}
+                            Anillos y dijes en oro 18k y plata 925, con esmeralda colombiana natural. Cada
+                            pieza sale de nuestro taller sellada con su ley y con garantía de por vida en
+                            el metal. Lo que no esté en el catálogo, lo hacemos a medida.
                         </p>
 
                         <div className="hero-btns hero-anim" style={{ '--hero-delay': '0.62s' }}>
@@ -77,11 +83,13 @@ const Hero = () => {
                         <div className="hero-rule" />
 
                         <div className="hero-marks hero-anim" style={{ '--hero-delay': '0.82s' }}>
+                            {/* Sin PT950: un punzón de platino junto a los otros dos dice que
+                                hay piezas de platino selladas, y no hay ninguna. Vuelve el día que
+                                se publique una. */}
                             <span className="punzon">18K</span>
                             <span className="punzon">925</span>
-                            <span className="punzon">PT950</span>
                             <p className="hero-marks-note">
-                                Cada pieza sellada con su ley y con garantía de por vida.
+                                Cada pieza sellada con su ley y con garantía de por vida en el metal.
                             </p>
                         </div>
                     </div>

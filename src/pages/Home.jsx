@@ -12,9 +12,17 @@ const orgJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'JewelryStore',
     name: 'Aurem Gs Joyería',
-    url: 'https://auremgsjoyeria.com',
-    logo: 'https://auremgsjoyeria.com/assets/logo-isotipo.png',
-    description: 'Joyería de lujo en oro 18k, plata 925 y platino. Anillos, collares, pulseras y aretes con certificación de autenticidad. Envío a toda Colombia.',
+    /* Con www, igual que la canónica de index.html. Sin él eran dos
+       identidades para el mismo sitio a ojos de Google. */
+    url: 'https://www.auremgsjoyeria.com',
+    logo: 'https://www.auremgsjoyeria.com/assets/logo-isotipo.png',
+    /* Esto es lo que Google lee del negocio, y prometía tres cosas que no son:
+       platino —ni una pieza—, collares, pulseras y aretes —tampoco—, y
+       "certificación de autenticidad" como si fuera incluida, cuando cuesta
+       $50.000 aparte. Es la misma corrección que ya se hizo en la ficha, el
+       catálogo y la pantalla de pago; el dato estructurado se había quedado
+       atrás justo donde nadie lo mira. */
+    description: 'Joyería en oro 18k y plata 925 con esmeralda colombiana natural. Anillos y dijes de catálogo, y piezas a medida hechas en nuestro taller. Envío a toda Colombia.',
     address: { '@type': 'PostalAddress', addressCountry: 'CO' },
     priceRange: '$$',
     sameAs: ['https://www.instagram.com/auremgsjoyeria'],

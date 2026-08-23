@@ -6,7 +6,15 @@ import { useAparecer, useAparecerGrupo } from '../lib/aparecer';
 const faqs = [
     {
         question: '¿Qué materiales utilizan en sus joyas?',
-        answer: 'Oro 18k, plata 925, platino y piedras certificadas. Todos con certificación de origen.',
+        /* Decía "Todos con certificación de origen", y no van todos: el
+           certificado lo emite un laboratorio gemológico, es opcional y cuesta
+           $50.000 aparte. Así lo dice ya WhyUs.jsx y así se lo dice Valentina a
+           la clienta; esta respuesta se había quedado atrás y prometía incluido
+           lo que se cobra.
+
+           El platino se queda, pero dicho como lo que es: un metal que el
+           taller trabaja por encargo, no algo que haya publicado. */
+        answer: 'Oro 18k, oro blanco 18k y plata 925, con esmeralda colombiana natural. También trabajamos platino por encargo. El certificado del laboratorio gemológico —procedencia de la piedra, material y ley del metal— es opcional y cuesta $50.000.',
     },
     {
         question: '¿Cuánto tarda la entrega?',
