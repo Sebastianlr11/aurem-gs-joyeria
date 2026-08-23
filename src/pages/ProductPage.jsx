@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { waUrl } from '../lib/whatsapp';
-import { Wallet, initMercadoPago } from '@mercadopago/sdk-react';
+import { initMercadoPago } from '@mercadopago/sdk-react';
 
 /* El SDK de pagos se arranca acá y no en App.jsx.
    Allá el import era estático, así que entraba al paquete principal y se
@@ -14,6 +14,7 @@ initMercadoPago(import.meta.env.VITE_MP_PUBLIC_KEY, { locale: 'es-CO' });
 import ProductCard from '../components/catalog/ProductCard';
 import { pixelVerPieza, pixelIniciarPago } from '../lib/pixeles'
 import { ponerMeta, ponerProductoJsonLd } from '../lib/meta'
+import { refDe } from '../lib/referencia'
 import { datosDeAtribucion } from '../lib/atribucion';
 
 /* ── Countdown hook: 24 h rolling, persiste en localStorage ─────── */
@@ -148,7 +149,6 @@ const BuyModal = ({ product, onClose }) => {
   const [paymentMethod, setPaymentMethod] = useState('mp'); // 'mp' | 'cod'
   const [form, setForm] = useState({ name: '', email: '', phone: '', city: '', address: '', department: '' });
   const [errors, setErrors] = useState({});
-  const [preferenceId, setPreferenceId] = useState(null);
   const [abono, setAbono] = useState(null);
   /* El abono se pide al abrir, no al pagar. Tiene que estar anunciado en la
      primera pantalla: descubrirlo después de llenar el formulario se lee como
@@ -246,7 +246,6 @@ const BuyModal = ({ product, onClose }) => {
       if (error || !data) throw new Error(data?.error || error?.message || 'Error desconocido');
 
       if (!data.preferenceId) throw new Error(data?.error || 'Error desconocido');
-      setPreferenceId(data.preferenceId);
       setInitPoint(data.initPoint);
       /* El contraentrega también pasa por la pasarela, pero sólo por el abono.
          El servidor devuelve cuánto es y cuánto queda, para no calcularlo dos
@@ -718,7 +717,7 @@ const Gallery = ({ images, badges, volver, referencia }) => {
         const dy = t.clientY - toque.current.y;
         if (Math.abs(dx) > UMBRAL && Math.abs(dx) > Math.abs(dy)) {
             toque.current.deslizo = true;
-            dx < 0 ? next() : prev();
+            if (dx < 0) next(); else prev();
         }
     };
 
@@ -744,6 +743,7 @@ const Gallery = ({ images, badges, volver, referencia }) => {
         };
         window.addEventListener('keydown', onKey);
         return () => { document.body.style.overflow = ''; window.removeEventListener('keydown', onKey); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- next y prev cierran sobre activeIdx, que sí está en las dependencias: el efecto se rehace cuando cambia y toma las funciones nuevas. Meterlas también obligaría a memorizarlas para no reinstalar el listener en cada render.
     }, [lightbox, activeIdx]);
 
     if (images.length === 0) {
@@ -936,6 +936,7 @@ const ProductPage = () => {
 
     useEffect(() => {
         if (!loading && product && searchParams.get('buy') === '1') {
+            // eslint-disable-next-line react-hooks/set-state-in-effect -- Abrir el modal porque la URL trae ?buy=1 es un disparo único, no un estado derivado: si se derivara, cerrarlo lo volvería a abrir en el render siguiente.
             setShowBuyModal(true);
         }
     }, [loading, product, searchParams]);
@@ -946,13 +947,17 @@ const ProductPage = () => {
        sin necesidad: la barra existe para cuando el botón se pierde al bajar
        a leer la ficha, no para acompañarlo. */
     const accionesRef = useRef(null);
-    const [barraVisible, setBarraVisible] = useState(false);
+    /* El respaldo se decide aquí y no dentro del efecto: si el navegador no
+       trae IntersectionObserver, la barra nace visible. Es un botón de compra
+       — vale más que estorbe un poco a que desaparezca para siempre. */
+    const [barraVisible, setBarraVisible] = useState(
+        () => typeof IntersectionObserver === 'undefined',
+    );
 
     useEffect(() => {
-        /* Sin IntersectionObserver la barra se queda fija y visible. Es un
-           botón de compra: vale más que estorbe un poco a que desaparezca
-           para siempre porque el navegador no soporta la API. */
-        if (typeof IntersectionObserver === 'undefined') { setBarraVisible(true); return; }
+        /* El caso sin IntersectionObserver ya quedó resuelto al crear el
+           estado, arriba. */
+        if (typeof IntersectionObserver === 'undefined') return;
         const el = accionesRef.current;
         if (!el) return;
         /* rootMargin recorta el borde de abajo por la altura de la propia
@@ -1009,7 +1014,10 @@ const ProductPage = () => {
     const TALLAS = ['5', '6', '7', '8', '9', '10', '11', '12'];
 
     const enOferta = product.compare_price && product.compare_price > product.price;
-    const referencia = `REF. AG-${String(product.id).replace(/\D/g, '').slice(-4).padStart(4, '0')}`;
+    /* La misma que enseña el catálogo y la que pide el diálogo de eliminar.
+       Estaba escrita a mano aquí y en EliminarPieza; si se separaran, el
+       diálogo pediría una referencia distinta de la que la clienta ve. */
+    const referencia = `REF. ${refDe(product)}`;
 
     /* El punzón de ley: la marca que un orfebre golpea dentro de la pieza. Sale
        del metal escrito en el catálogo, recortado a la ley sola —"Plata 925"

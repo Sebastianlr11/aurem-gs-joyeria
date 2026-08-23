@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "node scripts/sitemap.mjs && node scripts/correos.mjs && tsc -b && vite build",
+    "build": "eslint . && node scripts/sitemap.mjs && node scripts/correos.mjs && tsc -b && vite build",
     "imagenes": "node scripts/imagenes.mjs",
     "css:pisadas": "node scripts/css-pisadas.mjs",
     "lint": "eslint .",

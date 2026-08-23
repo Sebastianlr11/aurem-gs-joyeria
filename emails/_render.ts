@@ -66,7 +66,10 @@ export async function componer(plantilla: Plantilla, datos: Record<string, unkno
   const C = PLANTILLAS[plantilla]
   if (!C) throw new Error(`Plantilla desconocida: ${plantilla}`)
 
-  const elemento = React.createElement(C as React.ComponentType<any>, datos as any)
+  /* `datos` ya viene tipado como Record<string, unknown>, así que el cast
+     puede decir eso mismo en vez de `any`: cada plantilla declara las props
+     que de verdad usa, y esto sólo es el despacho dinámico entre ellas. */
+  const elemento = React.createElement(C as React.ComponentType<Record<string, unknown>>, datos)
   /* El texto plano no es decorativo: hay clientes que sólo leen esa parte, y
      sin ella algunos filtros puntúan el correo como sospechoso. */
   const [html, texto] = await Promise.all([

@@ -68,6 +68,7 @@ export default function PautaRetorno({ orders, periodStart, periodDays, verPrueb
         setCargando(false);
     }, []);
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Cargar al montar.
     useEffect(() => { cargar(); }, [cargar]);
 
     /* La caja del MISMO periodo que el gasto. Cuelga de periodStart y no de

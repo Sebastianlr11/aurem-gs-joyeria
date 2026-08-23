@@ -56,7 +56,7 @@ export async function piezasDelPedido(
   }
 
   const ids = filas.map((f) => f.product_id).filter(Boolean)
-  let catalogo: Record<string, any> = {}
+  const catalogo: Record<string, any> = {}
   if (ids.length) {
     try {
       const { data } = await supabase

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { waUrl } from '../lib/whatsapp'
@@ -6,11 +6,26 @@ import { pixelCompra } from '../lib/pixeles'
 
 const enPesos = (n) => `$${Math.round(Number(n) || 0).toLocaleString('es-CO')}`
 
+/* Fuera del componente a propósito. Definida dentro, React la trataba como un
+   componente NUEVO en cada render: desmontaba y volvía a montar cada fila en
+   vez de actualizarla. Sólo usa sus props, así que no había motivo para que
+   viviera ahí. */
+const Fila = ({ etiqueta, children }) => (
+  <div className="conf-fila">
+    <span>{etiqueta}</span>
+    <span>{children}</span>
+  </div>
+)
+
 const Confirmacion = () => {
   const [searchParams] = useSearchParams()
   const [pedido, setPedido] = useState(null)
   const [copiado, setCopiado] = useState(false)
-  const [medido, setMedido] = useState(false)
+  /* Un ref y no estado: esto no se pinta, sólo impide que el píxel cuente la
+     misma compra dos veces si la pantalla se vuelve a renderizar. Como estado
+     obligaba a un setState dentro del efecto —y a un render de más— para algo
+     que nadie ve. */
+  const medido = useRef(false)
 
   const paymentId   = searchParams.get('payment_id')
   const status      = searchParams.get('status')
@@ -58,15 +73,15 @@ const Confirmacion = () => {
      dos plataformas los juntan y cuentan una sola venta. El valor sale de la
      base y no de la URL, que la puede cambiar cualquiera. */
   useEffect(() => {
-    if (!aprobado || !externalRef || !pedido || medido) return
-    setMedido(true)
+    if (!aprobado || !externalRef || !pedido || medido.current) return
+    medido.current = true
     pixelCompra({
       pedidoId: externalRef,
       valor: pedido.amount,
       piezaId: pedido.product_id,
       piezaNombre: pedido.product_name,
     })
-  }, [aprobado, externalRef, pedido, medido])
+  }, [aprobado, externalRef, pedido])
 
   const numero = externalRef ? externalRef.slice(0, 8).toUpperCase() : null
 
@@ -87,13 +102,6 @@ const Confirmacion = () => {
     mobile: `Hola! 🙏 Acabo de hacer un pedido en *Aurem Gs Joyería*${numero ? ` (orden ${numero})` : ''} y necesito ayuda. Me pueden asistir?`,
     desktop: `Hola! Acabo de hacer un pedido en *Aurem Gs Joyería*${numero ? ` (orden ${numero})` : ''} y necesito ayuda. Me pueden asistir?`,
   })
-
-  const Fila = ({ etiqueta, children }) => (
-    <div className="conf-fila">
-      <span>{etiqueta}</span>
-      <span>{children}</span>
-    </div>
-  )
 
   return (
     <main className="conf">

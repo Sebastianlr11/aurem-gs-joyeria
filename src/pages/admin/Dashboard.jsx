@@ -7,7 +7,8 @@ import AdminSidebar from './AdminSidebar';
 import { NAV } from './adminNav.jsx';
 import PautaRetorno from './PautaRetorno';
 import ProductModal from './ProductModal';
-import EliminarPieza, { refDe } from './EliminarPieza';
+import EliminarPieza from './EliminarPieza';
+import { refDe } from '../../lib/referencia';
 import PedidoModal from './PedidoModal';
 import { CLAVE_RESPUESTAS, RESPUESTAS_POR_DEFECTO, comoTexto } from '../../lib/respuestasRapidas';
 
@@ -768,8 +769,11 @@ const DashboardHome = ({ products, orders, chatsPendientes, actualizadoEn, verPr
     }, [orders, products, ahora]);
 
     const hallazgos = revision?.hallazgos ?? [];
+    /* Con `ahora` y no con Date.now(): llamar al reloj mientras React
+       renderiza es impuro, y de paso esto se refresca con el minutero en vez
+       de quedarse clavado en la hora en que se montó la pantalla. */
     const revisadoHace = revision?.corrida_en
-        ? Math.round((Date.now() - new Date(revision.corrida_en).getTime()) / 60000)
+        ? Math.round((ahora - new Date(revision.corrida_en).getTime()) / 60000)
         : null;
 
     const pendiente = porConfirmar + porDespachar + sinResponder;
@@ -880,7 +884,7 @@ const DashboardHome = ({ products, orders, chatsPendientes, actualizadoEn, verPr
     const hoyTendencia = tendencia[tendencia.length - 1];
 
     const haceCuanto = (fecha) => {
-        const min = Math.round((Date.now() - new Date(fecha).getTime()) / 60000);
+        const min = Math.round((ahora - new Date(fecha).getTime()) / 60000);
         if (min < 1) return 'ahora';
         if (min < 60) return `hace ${min} min`;
         const h = Math.round(min / 60);
@@ -3106,6 +3110,7 @@ const NotesSection = () => {
         setLoading(false);
     }, []);
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Cargar al montar. La regla del compilador es más estricta que el problema: reestructurar cargadores que funcionan, en un panel que acaba de entrar en producción, arriesga más de lo que arregla.
     useEffect(() => { fetchNotes(); }, [fetchNotes]);
 
     const toggleComplete = async (note) => {
@@ -3252,6 +3257,11 @@ const NotesSection = () => {
    mercado le daría precios distintos a dos clientes el mismo día.
    ─────────────────────────────────────────────────────────────────── */
 const PrecioOroCard = () => {
+    /* El reloj leído una sola vez, al montar. Llamar a Date.now() mientras
+       React renderiza es impuro; y para "hace cuántos días se actualizó el
+       precio del oro" no hace falta minutero: nadie deja esta tarjeta abierta
+       de un día para otro. */
+    const [ahora] = useState(() => Date.now());
     const [precios, setPrecios] = useState(null);
     const [gramo, setGramo] = useState('');
     const [recargoTxt, setRecargoTxt] = useState('');
@@ -3321,7 +3331,7 @@ const PrecioOroCard = () => {
     const recargo = Number(String(recargoTxt).replace(/[^\d]/g, '')) || 0;
     const minimo = Number(String(minimoTxt).replace(/[^\d.,]/g, '').replace(',', '.')) || 0;
     const porGramo = (Number(String(gramo).replace(/[^\d]/g, '')) || 0) + recargo;
-    const dias = Math.floor((Date.now() - new Date(precios.actualizado_en).getTime()) / 86400000);
+    const dias = Math.floor((ahora - new Date(precios.actualizado_en).getTime()) / 86400000);
     const viejo = dias >= 3;
     const pesos = n => `$${Math.round(n).toLocaleString('es-CO')}`;
 
@@ -3656,6 +3666,7 @@ const SettingsSection = () => {
         supabase.auth.getSession().then(({ data: { session } }) => {
             if (session && session.user) setCurrentUserId(session.user.id);
         });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchAdminUsers no está memorizada y esto tiene que correr una sola vez, al montar.
     }, []);
 
     const handleDeleteAdmin = async (userId) => {
@@ -4006,7 +4017,7 @@ const SettingsSection = () => {
    MAIN DASHBOARD
 ═══════════════════════════════════════════════════════════════════ */
 const Dashboard = () => {
-    const [searchParams, setSearchParams] = useSearchParams();
+    const [searchParams] = useSearchParams();
     const [session, setSession]     = useState(null);
     const [section, setSection]     = useState(() => searchParams.get('tab') || 'dashboard');
     const [products, setProducts]   = useState([]);
@@ -4091,6 +4102,7 @@ const Dashboard = () => {
     }, [fetchProducts, fetchOrders, fetchCustomers, fetchChatsPendientes]);
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- Cargar al montar. recargarTodo es un useCallback estable y marca la hora al terminar, que es de lo que vive el "Actualizado hace…".
         if (session) recargarTodo();
     }, [session, recargarTodo]);
 

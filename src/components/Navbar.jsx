@@ -28,6 +28,7 @@ const Navbar = () => {
         return () => { document.body.style.overflow = ''; };
     }, [menuOpen]);
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Cerrar el menú al navegar ES un efecto de la navegación, no un estado derivable: también tiene que cerrarse con el botón atrás del navegador.
     useEffect(() => { setMenuOpen(false); }, [location.pathname]);
 
     const closeMenu = useCallback(() => setMenuOpen(false), []);
