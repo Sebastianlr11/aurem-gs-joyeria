@@ -1,27 +1,41 @@
 import React from 'react';
 import { waUrl } from '../lib/whatsapp';
 
+/* Los testimonios sólo pueden decir cosas que la tienda cumple de verdad.
+   Decían tres que no:
+
+   - «La certificación de autenticidad me dio total confianza» daba por hecho
+     que el certificado viene con la pieza. NO viene: lo emite un laboratorio
+     gemológico, es opcional y cuesta $50.000 aparte. Es exactamente lo mismo
+     que se corrigió en el Hero y en el FAQ; aquí seguía en pie.
+   - «Recibí el collar» y «las pulseras» hablan de piezas que el catálogo no
+     tiene. Sólo hay anillos y dijes, y por eso el Hero dejó de anunciar
+     collares y pulseras el 23 de agosto.
+
+   Ahora cada uno se apoya en algo comprobable: el punzón de la ley, el estuche
+   —que sí va incluido en todas—, la guía de seguimiento, el plazo real de 3 a
+   4 días en Bogotá, y el certificado dicho como lo que es: aparte. */
 const reviews = [
     {
-        quote: 'La calidad del anillo superó todas mis expectativas. Un diseño impecable.',
+        quote: 'El anillo llegó con el punzón de la ley marcado por dentro. Eso fue lo que me terminó de convencer.',
         name: 'María González',
         role: 'Novia',
         initials: 'MG',
     },
     {
-        quote: 'Recibí el collar en un embalaje precioso. Se nota la atención al detalle.',
+        quote: 'El dije vino en su estuche y con la guía para seguirlo desde que salió del taller.',
         name: 'Carlos Ruiz',
         role: 'Cliente',
         initials: 'CR',
     },
     {
-        quote: 'La certificación de autenticidad me dio total confianza.',
+        quote: 'Pedí aparte el certificado del laboratorio y llegó con su código para verificarlo en línea.',
         name: 'Ana Martínez',
         role: 'Coleccionista',
         initials: 'AM',
     },
     {
-        quote: 'Las pulseras son incluso más bonitas en persona. Envío rapidísimo.',
+        quote: 'Lo pedí un martes y lo tenía el viernes en Bogotá. La esmeralda es natural, se le nota.',
         name: 'Laura Sánchez',
         role: 'Cliente frecuente',
         initials: 'LS',

@@ -82,9 +82,10 @@ abrió**. Es el código más cuidado del frontend público en accesibilidad.
 
 - **No escala.** Una consulta que trae el catálogo entero deja de funcionar a partir de
   unos cientos de piezas.
-- **Las tarjetas no optimizan imagen**: `ProductCard.jsx:51` usa `<img src={image_url}>`
-  crudo, sin `srcset` ni `width`/`height`. Provoca reflow y descarga la versión de 1600px
-  en móvil — [pendientes #20](../pendientes.md).
+- **Las tarjetas ya optimizan imagen** desde el 23 de agosto: `srcset`, `sizes`,
+  `width`/`height` y `decoding="async"` vía `src/lib/fotoProducto.js`. Con la salvedad de
+  que una foto sólo entra en el juego de tamaños si se subió con el tratamiento nuevo; las
+  anteriores se sirven enteras hasta que se resuban.
 - Los rangos de precio están hardcodeados y no se ajustan al catálogo real.
 - `CATEGORIAS` incluye `Dijes`, y el `CHECK` real de la base **sí lo contempla** (ver
   `20260228_esquema_base.sql`); era el `supabase-schema.sql` viejo el que no — el

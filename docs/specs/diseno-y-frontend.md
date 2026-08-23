@@ -105,9 +105,8 @@ Dos mecanismos, para dos problemas:
 > El transformador de Supabase Storage habría hecho esto al vuelo, pero **es de plan Pro**
 > (403 `FeatureNotEnabled` en este proyecto). Por eso los tamaños se generan una sola vez,
 > al subir, y **qué tamaños existen lo dice el nombre del archivo**: la marca
-> `-<ancho>x<alto>.webp` al final. Sin marca, no hay `srcset` — ver
-> [pendientes #20](../pendientes.md), donde queda dicho que las fotos ya publicadas no la
-> tienen y hay que resubirlas.
+> `-<ancho>x<alto>.webp` al final. **Sin marca, no hay `srcset`**, y las fotos subidas
+> antes del 23 de agosto no la tienen: se sirven enteras hasta que se resuban.
 
 ## Dos documentos de diseño, no uno
 

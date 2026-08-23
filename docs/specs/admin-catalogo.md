@@ -51,7 +51,7 @@ Y desde el 23 de agosto, además, dos copias chicas (`-w400.webp`, `-w800.webp`)
 `srcset`. El nombre de la grande lleva su tamaño real —`-893x1600.webp`— y **esa marca es
 lo único que le dice al sitio que las copias existen**; por eso las copias se suben
 primero y el nombre se decide después: prometer archivos que fallaron pintaría una foto
-rota. Ver `fotoProducto.js` y [pendientes #20](../pendientes.md).
+rota. Ver `fotoProducto.js`.
 
 WhatsApp falla con un **200 engañoso**: la API responde correctamente y el mensaje
 simplemente nunca llega. Fue caro de diagnosticar precisamente por eso.
@@ -93,10 +93,10 @@ Ver [admin-pedidos](admin-pedidos.md) y `supabase/migrations/20260823_costos_del
 
 ## Límites conocidos y pendientes
 
-- **Las fotos ya publicadas siguen sin `srcset`.** El mecanismo está (`fotoProducto.js`),
-  pero sólo trabaja con fotos que se suban de ahora en adelante: las que ya están en
-  Storage no llevan la marca en el nombre. Para que sirva hay que **resubirlas desde el
-  panel** — [pendientes #20](../pendientes.md).
+- **Las fotos ya publicadas no llevan la marca en el nombre**, así que se sirven a tamaño
+  completo. El mecanismo (`fotoProducto.js`) sólo trabaja con fotos que se suban de ahora
+  en adelante; no hay migración posible, porque las copias se generan en el navegador de
+  quien sube. **Se resuelve solo cuando se resuban**, que es lo previsto.
 - No hay reordenación por arrastre de las imágenes de una pieza.
 - El borrado de una pieza **no borra sus archivos del Storage**: quedan huérfanos.
 - ~~`supabase-schema.sql` no refleja las columnas reales de `products`~~ — borrado el 23

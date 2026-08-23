@@ -84,12 +84,16 @@ anchos. El hero lleva `fetchPriority="high"`.
 
 ## Límites conocidos y pendientes
 
-- **Las reseñas son inventadas** y hay cifras concretas ("4,9/5", "+500 piezas
-  entregadas") sin un solo cliente real detrás. Riesgo con la SIC, no sólo estético —
-  ver [pendientes #11](../pendientes.md).
-- **El JSON-LD de `Home.jsx:11-21` promete platino, collares/pulseras/aretes y
-  certificación incluida**: las cuatro promesas que el resto del sitio ya retiró. Es lo
-  que lee Google — [pendientes #9](../pendientes.md).
+- **Las reseñas de `Reviews.jsx` son inventadas**, igual que el "4,9/5", las "+500 piezas
+  entregadas" y los "+100 clientes". **Se quedan así por decisión del dueño**, tomada el 23
+  de agosto de 2026, hasta que él avise. No es un pendiente: es una decisión, y no hace
+  falta volver a plantearla.
+
+  Lo que sí se corrigió ese día es lo que *prometían*: un testimonio daba por incluido el
+  certificado —cuesta $50.000 aparte— y otros dos hablaban de un collar y unas pulseras que
+  el catálogo no tiene. Ahora se apoyan en el punzón, el estuche, la guía y el plazo real.
+- ~~**El JSON-LD promete platino, collares y certificación incluida**~~ — corregido; el
+  comentario de `Home.jsx` deja escrito qué decía y por qué se cambió.
 - `Hero.jsx:56-57` y `Reviews.jsx:18` siguen prometiendo platino y certificación incluida
   en texto visible.
 - **El titular sale en negrita sintética** por un bloque CSS duplicado que le mete
