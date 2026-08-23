@@ -61,9 +61,9 @@ Tres advertencias sobre el build:
 
 ### Las pruebas
 
-Hay **43, en `src/lib/dinero.test.js` y `src/lib/caja.test.js`**, y cubren sólo las
-cuentas de plata. Es donde se empezó a propósito: es el único sitio donde un error **no
-se ve**. Un fallo de CSS se nota al abrir la pantalla y uno de enrutado tumba la página,
+Hay **58**: `dinero.test.js` y `caja.test.js` cubren las cuentas de plata, y
+`fotosEnStorage.test.js` la deducción de qué archivos se borran. Se empezó por el dinero a
+propósito, porque es el único sitio donde un error **no se ve**. Un fallo de CSS se nota al abrir la pantalla y uno de enrutado tumba la página,
 pero una cuenta mal hecha enseña un número redondo, con signo de pesos y perfectamente
 creíble — que es exactamente lo que pasó cuando el panel daba por cobrado un contraentrega
 que iba en camino.
