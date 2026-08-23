@@ -112,7 +112,12 @@ Cosas que hay que saber antes de tocar el enrutado:
   vuelta es el botón sobre la foto.
 - **El panel son sólo dos rutas.** Productos, Pedidos, Clientes, Reportes, Anotaciones y
   Ajustes **no son rutas**: son secciones del mismo `Dashboard`, conmutadas por estado y
-  sincronizadas con `?tab=`.
+  sincronizadas con `?tab=`. Los identificadores del parámetro están **en inglés**
+  (`products`, `orders`, `customers`, `reports`, `notes`, `settings`), no en español.
+  Desde el 23-ago cada una vive en `src/pages/admin/secciones/`; en `Dashboard.jsx` (390
+  líneas) sólo queda el contenedor. Lo que comparten varias está en `secciones/comunes.js`
+  (datos) y `secciones/piezas.jsx` (componentes) — separados porque
+  `react-refresh/only-export-components` no deja mezclarlos.
 - **`capturarClic()` e `iniciarPixeles()` corren a nivel de módulo** (`App.jsx:24-25`),
   no dentro de un efecto. React ejecuta los efectos de los hijos antes que los del
   padre, y metidos en un efecto se perdía el primer `PageView` de cada carga.

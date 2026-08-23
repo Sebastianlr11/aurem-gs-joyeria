@@ -509,42 +509,50 @@ falsas porque las fuentes no habían terminado de cargar cuando se medía. El co
 con declaraciones pisadas. Eso **no es CSS muerto**: son clases vivas cuyas declaraciones
 anula otra regla posterior, y se atacan leyendo, no borrando.
 
-### 17. 🟡 `Dashboard.jsx` era un archivo de 4.398 líneas — empezado, con el camino probado
+### 17. ✅ `Dashboard.jsx` era un archivo de 4.398 líneas — resuelto
 
-**3.642 líneas**, y una sección fuera. El fichero tiene siete secciones (`DashboardHome`,
-`ProductsSection`, `OrdersSection`, `CustomersSection`, `ReportsSection`, `NotesSection`,
-`SettingsSection`) que **ya reciben props y no comparten estado**, así que salen enteras.
+**390 líneas.** Las siete secciones viven en `src/pages/admin/secciones/`:
 
-**Hecho el 23 de agosto: `SettingsSection` vive en `src/pages/admin/secciones/Ajustes.jsx`**
-(771 líneas, con `PrecioOroCard` y `ConocimientoCard`, que sólo usa esa pantalla). Se creó
-`secciones/comunes.js` para `fmt`, `fmtDate` y `norm`, que comparten varias.
-
-**Verificado igual que el CSS:** 24 propiedades calculadas de cada elemento de Ajustes,
-Anotaciones y el Dashboard, antes y después. **Cero diferencias.**
-
-**Cuánto cuesta cada una, medido.** Al sacar una sección hay que llevarse sus símbolos de
-primer nivel, y no todas están igual de sueltas:
-
-| Sección | Líneas | Símbolos comunes que usa |
+| Archivo | Líneas | |
 |---|---|---|
-| `SettingsSection` | 420 | 3 ✅ hecha |
-| `NotesSection` | 162 | 5 |
-| `CustomersSection` | 217 | 8 |
-| `ProductsSection` | 331 | 6 |
-| `DashboardHome` | 696 | 9 |
-| `ReportsSection` | 779 | 12 |
-| `OrdersSection` | 463 | **24** |
+| `Portada.jsx` | 771 | El dashboard: qué hay que atender hoy |
+| `Ajustes.jsx` | 771 | Precios del taller y el conocimiento de Valentina |
+| `Reportes.jsx` | 739 | Analítica, canales y retorno de pauta |
+| `Pedidos.jsx` | 656 | Estado, despacho y conversión |
+| `Productos.jsx` | 383 | El catálogo |
+| `Anotaciones.jsx` | 246 | Las notas del equipo |
+| `Clientes.jsx` | 237 | Las clientas y lo que compraron |
+| `comunes.js` | 208 | Formato, metadatos de estado y canal, despacho |
+| `piezas.jsx` | 209 | Insignias y modales que comparten varias |
 
-`OrdersSection` es la que más ata: usa los modales, las insignias, los grupos, los avisos
-de conversión y el despacho. Conviene dejarla para el final, o no tocarla.
+En `Dashboard.jsx` queda lo que de verdad es del contenedor: qué sección se ve, de dónde
+salen los datos, cuándo se recargan y el riel lateral.
 
-**Y una advertencia de método para quien siga.** Verificar esto exige medir antes y
-después, y el servidor de desarrollo **recarga la página al cambiar los archivos**, lo que
-borra la referencia que tenías en memoria. La forma que funciona: dejar la pestaña en una
-página estática (`/robots.txt`) y cargar la aplicación dentro de un iframe. Y esperar a
-`document.fonts.ready` antes de medir, o salen decenas de diferencias falsas de ancho.
+**El reparto no se hizo a ojo.** Se calculó el **cierre transitivo** de dependencias: qué
+símbolos usa cada sección, incluidos los que usa a través de otro ayudante. Mirar sólo el
+cuerpo de cada sección dejaba fuera nueve símbolos —`CARRIERS` dentro de `ShipModal`,
+`EMPTY_NOTE` dentro de `NoteModal`, `NEXT_ACTION_PREPAID` dentro de `getNextAction`…— y
+habría producido seis archivos que no compilan. Regla: **lo que usan dos secciones o más
+va a común; lo que usa una sola se va con ella.**
 
-`ChatPanel.jsx` (2.115 líneas) sigue entero.
+**Por qué son dos archivos comunes y no uno.** `comunes.js` lleva datos y funciones;
+`piezas.jsx`, componentes. No es gusto: la regla `react-refresh/only-export-components`
+—que sí corre en el build— prohíbe que un archivo exporte las dos cosas, porque entonces
+el recargado en caliente deja de funcionar.
+
+**Verificado por partida doble.** Que se vea igual no basta en un refactor de JavaScript:
+
+- **Estilos:** 24 propiedades calculadas de cada uno de **2.573 elementos en las ocho
+  pantallas**, antes y después. Cero diferencias.
+- **Comportamiento:** se recorrieron las siete secciones desde el riel, se abrió el modal
+  de pedido y se cerró. **Cero errores de ejecución**, y el pie del modal sigue nombrando
+  lo que falta.
+
+El trozo de JavaScript del panel pesa lo mismo que antes (162 kB), así que no se duplicó
+nada por el camino.
+
+**`ChatPanel.jsx` sigue entero**, con 2.115 líneas. Es una sola pantalla, no siete metidas
+en una, así que no tiene la misma costura por donde partirlo.
 
 ### 18. ✅ `ProtectedRoute` no reaccionaba a que expirara la sesión — resuelto
 
