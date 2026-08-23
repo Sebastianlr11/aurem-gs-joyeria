@@ -310,7 +310,7 @@ mañana; la segunda, lo que queda después de la limpieza de esa tarde.
 
 | Qué | Había | Queda | Nota |
 |---|---|---|---|
-| Colores escritos a pelo | 491 | **202** | 285 pasaron a `var()` |
+| Colores escritos a pelo | 491 | **45** | 446 pasaron a `var()` |
 | `#D4AF37` (oro brillante) | 19 + 21 en `rgba()` | **0** | Prohibido por `DESIGN.md` |
 | `#B8860B` (otro oro) | 12 | **0** | Ídem |
 | Degradados de oro | 5 | **0** | `DESIGN.md` los prohíbe; ahora es oro plano |
@@ -334,12 +334,35 @@ próximo. Verificado sobre **2.892 elementos en siete pantallas**: 1.120 cambiar
 tamaño —era el objetivo— y **cero desbordes nuevos**. Los saltos mayores fueron **hacia
 arriba**: había etiquetas a 9,6px y el suelo ahora es 10,88px.
 
-**Los 202 colores que quedan piden criterio, no un reemplazo en lote.** Son casi todos variantes de
-marfil y de línea de pelo (`#f0ede6`, `#faf9f6`, `#e0ddd6`, `#e8e5de`, `#f5f3ee`…): mapearlos
-al token **cambia el tono**, y hacerlo de golpe movería la temperatura de todo el panel. Se
-decide mirando. Aparte hay tres legítimos que no se tocan: el verde de WhatsApp
-(`#25d366`), el degradado del punzón (`#241E1A`, que `DESIGN.md` especifica) y el verde de
-resuelto (`#2E5D46`).
+**Los 45 que quedan no son deuda: son decisiones.** De los 202 que quedaban por la mañana
+se mapearon 157, y los que siguen escritos a pelo están ahí a propósito, en tres grupos:
+
+- **Colores que codifican un estado** (26 valores): el verde del «modo IA», el de «pagado»,
+  el azul de «procesando», el ámbar del modo manual, los rosados de «va mal». Cambiarlos al
+  token más cercano los vuelve grises y **les quita el significado**. Lo correcto no es
+  cambiarles el color: es pasarlos al **punto de intensidad** que define este documento, y
+  eso es tocar componentes, no colores.
+- **El gris de los acuses de WhatsApp** (`#8696A0`, `#9CA3AF`), que imita los ticks de la
+  aplicación real. Cambiarlo rompe el reconocimiento.
+- **Los de terceros y los especificados**: el verde de WhatsApp (`#25D366`, `#1EBE5D`), el
+  verde de «resuelto» (`#2E5D46`) y el degradado del punzón (`#241E1A`, que `DESIGN.md`
+  fija).
+
+**Cómo se decidió cada uno, que es lo que hace que esto no sea un reemplazo a ciegas.** El
+mapeo mira tres cosas, no una:
+
+1. **La distancia** al token, con pesos perceptuales — no aritmética RGB plana.
+2. **El papel**: un separador va a `--hairline`, un fondo a los fondos, una tinta a las
+   tintas. Sin esto, un gris neutro de separador acabó una vez en el rosa de error sólo
+   porque el número decía que estaba cerca.
+3. **El tono**: al oro sólo pueden llegar colores que ya eran cálidos (18°–62°). Sin esto,
+   un gris **azulado** de texto aterrizaba en oro pálido y dejaba de leerse como texto de
+   apoyo. Al final sólo dos ámbares del aviso de modo manual fueron a oro, que es
+   exactamente donde este documento lo pone.
+
+Verificado sobre **3.427 elementos en ocho pantallas**: 78 cambiaron de color —los
+buscados—, **cero contrastes por debajo de AA** calculando la transparencia compuesta, y
+**cero desbordes**.
 
 ## Cómo se probó lo que dice este documento
 

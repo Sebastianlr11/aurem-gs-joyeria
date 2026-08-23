@@ -1492,14 +1492,14 @@ textarea:focus-visible {
 }
 
 .contact-input--error {
-  border-color: #C4756B !important;
+  border-color: var(--error-ink) !important;
 }
 
 .contact-field-error {
   display: block;
   margin-top: 0.3rem;
   font-size: 0.78rem;
-  color: #C4756B;
+  color: var(--text-muted);
 }
 
 @media (max-width: 968px) {
@@ -2364,7 +2364,7 @@ textarea:focus-visible {
 
 .pieza-esqueleto {
   aspect-ratio: 3 / 5;
-  background: linear-gradient(100deg, var(--bg-arena) 30%, #f8f3ec 50%, var(--bg-arena) 70%);
+  background: linear-gradient(100deg, var(--bg-arena) 30%, var(--bg-marfil) 50%, var(--bg-arena) 70%);
   background-size: 200% 100%;
   border: 1px solid var(--hairline);
   border-radius: 2px;
@@ -2894,7 +2894,7 @@ textarea:focus-visible {
 .product-page {
   padding-top: 6rem;
   min-height: 100vh;
-  background: #fafafa;
+  background: var(--bg-marfil);
 }
 
 .product-page-back-wrap {
@@ -2915,7 +2915,7 @@ textarea:focus-visible {
   min-height: 480px;
   border-radius: 24px;
   overflow: hidden;
-  background: linear-gradient(135deg, #f5f0e8 0%, #ede5d0 100%);
+  background: linear-gradient(135deg, var(--bg-arena) 0%, var(--bg-arena) 100%);
   display: flex;
   flex-direction: column;
 }
@@ -3175,7 +3175,7 @@ textarea:focus-visible {
   border-radius: 24px;
   height: 72vh;
   min-height: 480px;
-  background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%);
+  background: linear-gradient(90deg, var(--bg-marfil) 25%, var(--bg-arena) 50%, var(--bg-marfil) 75%);
   background-size: 200% 100%;
   animation: skeleton-shimmer 1.4s infinite;
 }
@@ -3189,7 +3189,7 @@ textarea:focus-visible {
 
 .product-page-skeleton-line {
   border-radius: 8px;
-  background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%);
+  background: linear-gradient(90deg, var(--bg-marfil) 25%, var(--bg-arena) 50%, var(--bg-marfil) 75%);
   background-size: 200% 100%;
   animation: skeleton-shimmer 1.4s infinite;
 }
@@ -3344,7 +3344,7 @@ textarea:focus-visible {
 .buy-modal-spinner {
   width: 40px;
   height: 40px;
-  border: 3px solid #eee;
+  border: 3px solid var(--bg-arena);
   border-top-color: var(--accent-gold);
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
@@ -3416,7 +3416,7 @@ textarea:focus-visible {
 .buy-modal-field select {
   width: 100%;
   padding: 0.65rem 0.85rem;
-  border: 1.5px solid #e0e0e0;
+  border: 1.5px solid var(--hairline);
   border-radius: 8px;
   font-size: 0.92rem;
   color: var(--ink);
@@ -3445,7 +3445,7 @@ textarea:focus-visible {
 .legal-header {
   margin-bottom: 3rem;
   padding-bottom: 2rem;
-  border-bottom: 1px solid #e5e5e5;
+  border-bottom: 1px solid var(--bg-arena);
 }
 .legal-header h1 {
   font-size: clamp(2rem, 4vw, 3rem);
@@ -4546,7 +4546,7 @@ textarea:focus-visible {
 .pago-op:hover { border-color: rgba(168, 134, 63, 0.32); }
 .pago-op--on {
   border-color: rgba(168, 134, 63, 0.55);
-  background: #FDFBF7;
+  background: var(--bg-marfil);
 }
 .pago-op:focus-visible { outline: 2px solid var(--oro); outline-offset: 3px; }
 
