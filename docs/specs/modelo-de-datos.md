@@ -33,7 +33,7 @@ Este documento es el mapa de la base. Y su hallazgo principal es incómodo:
 | `ajustes_internos` | ❌ | — |
 | `vigilancia_ultima` | ❌ | — |
 | vista `envio_publico` | ❌ | — |
-| `message_history`, `whatsapp_dedup`, `conversaciones` | ❌ | ☠️ muertas |
+| `pagos` | ❌ | El libro de movimientos de `caja.js`, llenado por el trigger `registrar_pago` |
 | **Las RPC de analítica** | ❌ | — |
 | `chats_sin_responder`, `conversaciones_purgables` | ✅ | migraciones del 22-ago |
 | Programación de `pg_cron` | ❌ | vive en la base |
@@ -111,6 +111,9 @@ Este documento es el mapa de la base. Y su hallazgo principal es incómodo:
 | `20260822_pedido_publico.sql` | 🔒 `pedido_publico(uuid)` + `DROP` de la política mina |
 | `20260822_quitar_respaldos_de_chats.sql` | Elimina los tres respaldos del 22-ago |
 | `20260823_costos_del_pedido.sql` | `costo_taller`, `costo_envio`, `costo_anotado_en` en `orders`; jubila `products.costo` |
+| `20260823_conocimiento_devoluciones.sql` | Devoluciones y garantía completa para Valentina |
+| `20260823_conocimiento_al_dia.sql` | El seed del conocimiento, volcado de producción |
+| `20260823_fuera_las_tablas_muertas.sql` | 🔒 Borra las 3 tablas de la era n8n y el cuarto respaldo de chats |
 
 ### Los fallos de acceso público, cerrados
 
@@ -123,7 +126,12 @@ respondido— **y borrarla**.
 La migración documenta la verificación que sostiene el cambio: quién toca de verdad cada
 tabla, comprobado sobre el repositorio entero. Tres de las cinco no las usa **nadie**
 (`message_history`, `whatsapp_dedup`, `conversaciones`: cero referencias, cero filas) y
-quedaron sin ninguna política, alcanzables sólo por `service_role`.
+quedaron sin ninguna política, alcanzables sólo por `service_role`. **El 23 de agosto se
+borraron del todo**, junto con una cuarta que nadie había documentado —
+`whatsapp_conversaciones_respaldo`, con 79 mensajes de 6 chats que ya no estaban en la
+tabla viva—. Ver `20260823_fuera_las_tablas_muertas.sql`: una copia entera de los chats en
+otra tabla hacía falsa la promesa de borrado que el panel y la política de privacidad le
+hacen a la clienta.
 
 Las Edge Functions no se enteran del cambio: usan `admin()` de `_shared/wa.ts`, que es
 `SERVICE_ROLE_KEY` y **se salta RLS por completo**.

@@ -394,38 +394,38 @@ talla de anillo", que es la única de las cuatro que alguien busca.
 
 ## 🔵 Deuda técnica
 
-### 15. El titular de la portada sale en negrita sintética
+### 15. ✅ El titular de la portada salía en negrita sintética — resuelto
 
-**Dónde:** bloque `HERO SECTION` en `src/index.css:7913`, que pisa al original de `:375`.
-El selector duplicado está en `:7925`.
+Un bloque `HERO SECTION` del diseño anterior, en `src/index.css:7913` y **fuera de toda
+media query**, pisaba a `.hero-h1` con `font-weight: 800`. Marcellus sólo tiene el peso
+400, así que el navegador engordaba los trazos por su cuenta: el titular de la portada
+—que además es el elemento LCP— salía emborronado, contra lo que dice `DESIGN.md`.
 
-Está **fuera de toda media query**, así que gana siempre. `.hero-h1` pierde sus cuatro
-declaraciones:
+**Hecho el 23 de agosto**, y no borrando el bloque de un tajo como se había propuesto,
+porque no se podía: **`.hero-content-grid` tenía ahí su única definición de escritorio**.
+Borrarlo tal cual habría dejado la portada sin rejilla. Así que la rejilla se mudó al
+bloque bueno, se conservó el apilado de los botones en el celular —que sí es del diseño de
+ahora— y se fue todo lo demás, incluidas `.hero-right-col` y `.hero-social-proof`, que no
+existen en ningún JSX.
 
-```
-L393  .hero-h1
-      font-weight: 400                    →  L7925 gana con 800
-      font-size: clamp(3rem, 5vw, 4.5rem) →  L7925 gana con 5rem
-      line-height: 1.014                  →  L7925 gana con 1.05
-      letter-spacing: -0.015em            →  L7925 gana con -0.04em
-```
+Un efecto colateral que hubo que devolver: al irse el bloque, el hero pasaba a heredar los
+`7rem` de la regla de 968px y ganaba 32px de vacío arriba **en el primer pantallazo del
+teléfono**, que es el que decide. Se conservó el `5rem 0 3rem` que la página venía
+mostrando: cambiar el ritmo vertical del móvil es otra decisión y no era la de este
+arreglo.
 
-Marcellus **sólo tiene peso 400** (`src/fuentes.css`), así que el navegador engorda los
-trazos por su cuenta: el titular de la portada se ve emborronado y contradice `DESIGN.md`.
-
-El bloque además define `.hero-right-col` y `.hero-social-proof`, que no existen en
-`Hero.jsx` — es un resto del diseño anterior.
-
-**Arreglo:** borrar el bloque duplicado y confirmar con `npm run css:pisadas`, que hoy lo
-reporta como el primero de la lista.
+Verificado en el navegador, antes y después: `font-weight` de 800 a 400, `font-size` de
+80px a 67,6px (el `clamp` de siempre), y a 390px reales —con iframe— peso 400, botones
+apilados y sin desbordes. `css:pisadas` pasó de 84 bloques a 82 y `.hero-h1` ya no sale en
+la lista.
 
 ### 16. `src/index.css` son 17.850 líneas
 
-**84 bloques con declaraciones muertas.** Ojo con esta cifra, porque este documento la
+**82 bloques con declaraciones muertas** —eran 84 antes de cerrar el #15—. Ojo con esta cifra, porque este documento la
 tuvo mal: decía 25 *"venían de 84, la limpieza va avanzando"*, y la limpieza no había
 avanzado nada. `scripts/css-pisadas.mjs` **reporta 84 en su primera línea pero sólo imprime
 los 25 peores** (`.slice(0, 25)`), y alguien contó los impresos. Medido de nuevo el 23 de
-agosto: siguen siendo 84, y ninguno es completamente inerte.
+agosto: 84 antes del #15 y 82 después, y ninguno es completamente inerte.
 
 Son casi todos del panel (`.admin-nav-item`, `.admin-topbar-avatar`, `.chat-contact-item`,
 `.chat-quick-replies`…), pisados por la capa de rediseño posterior.
@@ -440,7 +440,7 @@ muerto y no aparece en ningún JSX (riesgo cero, ganancia inmediata); después s
 `index.css` + `admin.css`; y sólo entonces plantear unificar las tres capas de la ficha.
 No hacerlo todo de una vez.
 
-### 17. `Dashboard.jsx` son 4.100 líneas (y `ChatPanel.jsx` 2.135)
+### 17. `Dashboard.jsx` son 4.380 líneas (y `ChatPanel.jsx` 2.115)
 
 Contiene las 7 secciones del panel, más `DashboardHome`, `ProductsSection`,
 `OrdersSection`, `CustomersSection`, `ReportsSection`, `NotesSection`, `SettingsSection`,
@@ -449,24 +449,36 @@ Contiene las 7 secciones del panel, más `DashboardHome`, `ProductsSection`,
 **Arreglo:** un archivo por sección en `src/pages/admin/secciones/`, dejando `Dashboard.jsx`
 como el contenedor que resuelve `?tab=`, la carga de datos y el lente `es_prueba`.
 
-### 18. `ProtectedRoute` no reacciona a que expire la sesión
+### 18. ✅ `ProtectedRoute` no reaccionaba a que expirara la sesión — resuelto
 
-`src/components/ProtectedRoute.jsx:9-18` llama a `getSession()` **una sola vez al montar**
-y no se suscribe a `onAuthStateChange`. Si la sesión caduca o se cierra en otra pestaña,
-la ruta sigue montada hasta que algo la remonte.
+`getSession()` una sola vez al montar: preguntaba al entrar y no volvía a preguntar. Si el
+token caducaba —o si cerrabas sesión en otra pestaña— el panel seguía montado, enseñando
+los datos que ya tenía y fallando en cada consulta nueva sin decir por qué. Sólo se salía
+recargando a mano.
 
-**Arreglo:** suscribirse a `onAuthStateChange` y limpiar en el `return` del efecto. De
-paso, quitar las comprobaciones redundantes de `Dashboard.jsx:3688-3692` y
-`ChatPanel.jsx:297-301`.
+**Hecho el 23 de agosto.** `ProtectedRoute` se suscribe a `onAuthStateChange` y se
+desuscribe en el `return` del efecto. Cubre las tres cosas: la sesión que caduca, la que se
+cierra en otra pestaña y la renovación silenciosa del token, que es lo que pasa casi
+siempre.
 
-### 19. El contador de mensajes sin leer no se ve en el Dashboard
+Y se quitaron los dos `navigate('/admin/login')` redundantes de `Dashboard` y `ChatPanel`:
+esos efectos siguen ahí sólo para tener los datos del usuario en el sidebar. El portero es
+uno solo.
 
-`ChatPanel.jsx:1106` pasa `chatUnread`, pero `Dashboard.jsx:3783` monta `AdminSidebar`
-**sin esa prop**. El badge sólo aparece cuando ya estás en el chat, que es justo donde no
-hace falta.
+### 19. ✅ El contador de mensajes sin leer no se veía en el Dashboard — resuelto
 
-**Arreglo:** el Dashboard ya consulta los no leídos para la tarjeta "Sin responder";
-pasarlos al sidebar.
+`ChatPanel` pasaba `chatUnread` a `AdminSidebar`; el `Dashboard` lo montaba **sin la
+prop**, así que el globo sólo aparecía estando ya en el chat — justo donde no hace falta.
+
+**Hecho el 23 de agosto**, aunque no como decía el arreglo propuesto. Sugería reusar los
+chats sin responder que el Dashboard ya consulta, y **son otra pregunta**: un chat puede
+estar leído y sin responder. Usarlos habría puesto dos números distintos bajo el mismo
+globo según la pantalla — el bug que ya costó caro con el dinero. Así que el Dashboard
+cuenta los no leídos **igual que el chat** (`is_read = false` y `role = 'user'`).
+
+De paso quedó desmentido un comentario del propio `Dashboard.jsx`: dice que `is_read` «no
+se mantiene», y sí se mantiene — `ChatPanel` lo marca al abrir la conversación. Lo que no
+sirve es para saber si algo está *respondido*, que es otra cosa.
 
 ### 20. 🟡 Las fotos de producto no están optimizadas en la entrega — hecho el mecanismo, faltan las fotos
 
@@ -512,13 +524,25 @@ Dos detalles para quien toque esto después:
 - **Nadie borra los archivos de Storage** cuando se borra una pieza —ya pasaba antes con
   la WebP y la gemela—, así que ahora quedan huérfanas dos copias más por foto.
 
-### 21. El acordeón del FAQ no es accesible
+### 21. ✅ El acordeón del FAQ no era accesible — resuelto
 
-`src/components/Faq.jsx:34` — el `onToggle` está en un `div`, no en un `<button>`: no hay
-foco por teclado, ni `aria-expanded`, ni anuncio a lectores de pantalla. Contrasta con el
-cuidado del resto (`Catalog.jsx:252-297` implementa un focus trap completo a mano).
+El `onToggle` estaba en un `<div>`: se abría con el ratón y con nada más. Sin foco de
+teclado, sin `aria-expanded`, y un lector de pantalla leía seis titulares sueltos sin
+manera de saber que se despliegan ni cuál está abierto.
 
-**Arreglo:** `<button aria-expanded={abierto} aria-controls={id}>` en la cabecera.
+**Hecho el 23 de agosto.** La anidación es `h3 > button` y no al revés, que es lo que
+proponía el arreglo: el contenido de un `<button>` sólo admite texto y elementos de línea,
+así que un `<h3>` dentro es marcado inválido. Así el titular sigue siendo titular para
+quien navega por encabezados, y lo que se pulsa es un botón de verdad, con `aria-expanded`
+y `aria-controls`.
+
+El panel cerrado sigue en el DOM —la transición de altura necesita de dónde animar—, así
+que lleva `aria-hidden` cuando está cerrado: sin eso, un lector de pantalla lee las seis
+respuestas de corrido.
+
+Verificado con el teclado en el navegador: Tab recorre las seis preguntas, el foco se ve
+—`outline` de 2px en `--oro`, que antes no existía porque no había nada que enfocar— y
+`aria-expanded` cambia al pulsar.
 
 ### 22. ✅ Cosas pequeñas — resueltas
 

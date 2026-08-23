@@ -186,7 +186,12 @@ redesplegar). **La programación no está versionada**: para verla, `SELECT * FR
 | `ajustes_internos` | **no** | Clave/valor: `cron_secreto`, `telefonos_avisos` |
 | `vigilancia_ultima` | **no** | Fila id=1 con el último informe del vigía |
 | `envio_publico` | **no** (es una vista) | Expone sólo `abono_envio` y `tope_contraentrega` |
-| `message_history`, `whatsapp_dedup`, `conversaciones` | **no** | ☠️ **Muertas**: cero referencias en el código y cero filas. Sin políticas desde el 22-ago (sólo `service_role`) |
+| `pagos` | **no** | El libro de movimientos que lee `src/lib/caja.js`. Lo llena el trigger `registrar_pago` |
+
+**Ya no existen** `message_history`, `whatsapp_dedup`, `conversaciones` ni
+`whatsapp_conversaciones_respaldo`: borradas el 23-ago
+(`20260823_fuera_las_tablas_muertas.sql`). Las tres primeras eran restos de la era n8n; la
+cuarta era una copia entera de los chats que hacía falsa la promesa de borrado del panel.
 
 ### Columnas que importan
 
