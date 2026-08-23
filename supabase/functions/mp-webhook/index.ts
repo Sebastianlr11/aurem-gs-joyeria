@@ -10,6 +10,75 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS, GET',
 }
 
+/**
+ * ¿Este aviso lo mandó Mercado Pago de verdad?
+ *
+ * Conviene ser preciso con lo que esto arregla y lo que no, porque el titular
+ * asusta más que el hecho: **nunca se pudo falsificar un pago**. Esta función
+ * no se cree lo que le mandan — toma el id del aviso y le pregunta a la API de
+ * Mercado Pago con MP_ACCESS_TOKEN antes de tocar la base. Un aviso inventado
+ * con un id cualquiera devuelve 404 y no pasa nada.
+ *
+ * Lo que sí quedaba abierto: cualquiera podía invocar el endpoint con ids
+ * arbitrarios y gastarte cuota de la API. Ruido y consumo, no dinero.
+ *
+ * ABIERTA SI NO HAY SECRETO, y es a propósito. `wa-webhook` falla cerrado
+ * siempre porque sin su secreto cualquiera podría hacer hablar al bot. Aquí no:
+ * si esto fallara cerrado, desplegar el código antes de configurar el secreto
+ * dejaría de procesar pagos y las clientas pagarían sin que el pedido se
+ * enterara. Se activa sola el día que exista MP_WEBHOOK_SECRET.
+ *
+ * El esquema es el de Mercado Pago: la cabecera `x-signature` trae
+ * `ts=…,v1=…`, y v1 es el HMAC SHA-256 de `id:<data.id>;request-id:<x-request-id>;ts:<ts>;`
+ * — cada campo se omite, junto con su clave, si no viene.
+ *
+ * Sin ventana de caducidad sobre el `ts` a propósito: Mercado Pago reintenta
+ * un aviso durante horas, y rechazar los reintentos por viejos perdería
+ * exactamente los pagos que el reintento venía a salvar.
+ */
+async function firmaValida(req: Request, url: URL): Promise<boolean> {
+  const secreto = Deno.env.get('MP_WEBHOOK_SECRET')
+  if (!secreto) return true
+
+  const cabecera = req.headers.get('x-signature')
+  if (!cabecera) {
+    console.error('Aviso sin x-signature con el secreto configurado: se rechaza')
+    return false
+  }
+
+  const partes: Record<string, string> = {}
+  for (const trozo of cabecera.split(',')) {
+    const i = trozo.indexOf('=')
+    if (i > 0) partes[trozo.slice(0, i).trim()] = trozo.slice(i + 1).trim()
+  }
+  const ts = partes.ts
+  const recibido = partes.v1
+  if (!ts || !recibido) return false
+
+  /* El id va en minúsculas cuando es alfanumérico, según su documentación. */
+  const idAviso = (url.searchParams.get('data.id') || url.searchParams.get('id') || '').toLowerCase()
+  const idPeticion = req.headers.get('x-request-id') ?? ''
+
+  let manifiesto = ''
+  if (idAviso) manifiesto += `id:${idAviso};`
+  if (idPeticion) manifiesto += `request-id:${idPeticion};`
+  manifiesto += `ts:${ts};`
+
+  const clave = await crypto.subtle.importKey(
+    'raw', new TextEncoder().encode(secreto),
+    { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'],
+  )
+  const firma = await crypto.subtle.sign('HMAC', clave, new TextEncoder().encode(manifiesto))
+  const esperado = [...new Uint8Array(firma)].map((b) => b.toString(16).padStart(2, '0')).join('')
+
+  /* Comparación de tiempo constante, igual que en wa-webhook: una comparación
+     que sale antes cuando el primer carácter no coincide filtra la firma. */
+  if (recibido.length !== esperado.length) return false
+  let dif = 0
+  for (let i = 0; i < esperado.length; i++) dif |= recibido.charCodeAt(i) ^ esperado.charCodeAt(i)
+  return dif === 0
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -17,6 +86,16 @@ Deno.serve(async (req: Request) => {
 
   try {
     const url = new URL(req.url)
+
+    /* Antes de nada. Con el secreto puesto, un aviso sin firma válida no llega
+       ni a consultarle nada a la API de Mercado Pago — que es justo el consumo
+       que esto viene a cerrar. */
+    if (!await firmaValida(req, url)) {
+      return new Response(JSON.stringify({ error: 'Firma inválida' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
 
     /* El identificador del pago llega de dos formas según la clase de aviso.
        El IPN antiguo lo pone en la URL (?id=…&topic=payment); el webhook
