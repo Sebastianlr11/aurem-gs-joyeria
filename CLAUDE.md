@@ -157,7 +157,7 @@ Cosas que hay que saber antes de tocar el enrutado:
 | `correo-despacho` | JWT de admin | `/api/correo` → Resend | `CORREO_SECRETO`, `APP_URL` |
 | `plantillas-programadas` | `x-cron-secreto` desde BD | Meta Cloud API | `PLANTILLAS_ACTIVAS` |
 | `vigilancia` | `x-cron-secreto` desde BD | HTTP checks, `/api/correo` | `CORREO_SECRETO`, `APP_URL` |
-| `create-admin` | JWT (**cualquiera**) | Supabase Auth Admin | `SUPABASE_SERVICE_ROLE_KEY` |
+| `create-admin` | JWT con `app_metadata.rol = 'dueño'` | Supabase Auth Admin | `SUPABASE_SERVICE_ROLE_KEY` |
 
 Módulos compartidos en `supabase/functions/_shared/`:
 
@@ -277,6 +277,8 @@ desde el 23-ago: el costo vive en el pedido.)
 | `20260822_pedido_publico.sql` | 🔒 `pedido_publico(uuid)` y anulación de la política mina |
 | `20260822_quitar_respaldos_de_chats.sql` | Elimina los respaldos del 22-ago |
 | `20260823_el_reloj_de_la_base.sql` | Declara los dos trabajos de `pg_cron`; antes el horario sólo vivía en la base |
+| `20260823_tener_sesion_no_es_ser_del_equipo.sql` | 🔒 Las 20 políticas del panel exigen `es_del_equipo()`, no sólo tener sesión |
+| `20260823_storage_tambien_pide_ser_del_equipo.sql` | 🔒 Lo mismo para las fotos: subir y borrar pide rol de equipo |
 
 `20260822_cerrar_conversaciones_a_anon.sql` arregló un fallo del mismo tipo que el que
 sigue abierto en `orders`: `whatsapp_conversaciones` y `chat_takeover` tenían políticas
@@ -306,6 +308,14 @@ en local los píxeles quedan apagados y no ensucian la medición.
 
 Todo lo que empieza por `VITE_` **acaba dentro del bundle público**. La anon key de
 Supabase es visible para cualquiera: la seguridad real depende enteramente de RLS.
+
+Y RLS, desde el 23 de agosto de 2026, **no se conforma con que tengas sesión**. Todas las
+políticas del panel llaman a `public.es_del_equipo()`, que exige `app_metadata.rol` ∈
+(`dueño`, `equipo`). Antes decían `to authenticated using (true)`, y eso significaba que
+cualquiera que se registrara —el registro público estaba abierto— podía leer y borrar
+pedidos, clientes y conversaciones. **El registro ya está cerrado, pero el candado no
+depende de ese interruptor.** Si añades una tabla al panel, su política se escribe con
+`es_del_equipo()`, nunca con `using (true)`.
 
 **Para desplegar Edge Functions**: siempre con el CLI (`npx supabase functions deploy`)
 y un token personal. Nunca transcribiendo el código a mano en el dashboard.

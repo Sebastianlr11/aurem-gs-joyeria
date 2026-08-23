@@ -44,7 +44,10 @@ Alta/baja de administradores
 
 ### Tablas
 
-`auth.users` de Supabase. **No hay tabla de roles ni de perfiles.**
+`auth.users` de Supabase. **No hay tabla de roles ni de perfiles**: el rol vive en
+`app_metadata.rol` de cada cuenta y vale `dueño` o `equipo`. Lo lee
+`public.es_del_equipo()`, la función de la que cuelgan todas las políticas RLS del panel
+desde el 23 de agosto de 2026.
 
 ### Variables de entorno
 
@@ -61,7 +64,19 @@ con el mismo fondo; separarlas en dos rutas habría duplicado la vitrina.
 
 **La autorización real la hace RLS, no el frontend.** `ProtectedRoute` decide qué se
 *renderiza*; lo que se puede *leer y escribir* lo decide Supabase. Es la separación
-correcta — y por eso el fallo de RLS en `orders` es tan grave: el candado real está ahí.
+correcta, y por eso el candado tiene que estar bien puesto ahí.
+
+**Y tener sesión no es ser del equipo.** Hasta el 23 de agosto de 2026 sí lo era: las
+veinte políticas del panel decían `to authenticated using (true)`, y el propio código lo
+daba por sentado —«en este proyecto todo usuario de Supabase Auth es administrador»—. Esa
+premisa dependía enteramente de que nadie más pudiera conseguir una sesión, **y el registro
+público estaba abierto**. Ahora cada política llama a `public.es_del_equipo()`, que exige
+el rol en `app_metadata`; el registro cerrado es una segunda barrera, no la única.
+
+El orden en que se aplica importa y está escrito en la migración: **primero se sellan los
+roles, después se comprueba que la sesión abierta ya los lleva, y sólo entonces se cambian
+las políticas.** Un JWT lleva el `app_metadata` que existía cuando se emitió; al revés, el
+cambio deja fuera del panel a todo el mundo hasta que renueve el token.
 
 **Hay exactamente dos niveles: dueño y administrador.** El dueño se marca con
 `app_metadata.rol = 'dueño'` —que sólo se escribe con la llave de servicio, a diferencia de
