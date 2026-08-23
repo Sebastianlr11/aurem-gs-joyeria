@@ -3,8 +3,14 @@
 Hallazgos encontrados al documentar el proyecto el **22 de agosto de 2026**.
 Cada uno lleva dónde está, por qué importa y el arreglo propuesto.
 
-> **Revisado contra el código el 22 de agosto de 2026, tras los commits de esa tarde.**
-> Lo ya resuelto está en [Resueltos](#resueltos). El resto sigue vivo y verificado.
+> **Revisado contra el código el 23 de agosto de 2026.** Cerrados ese día: la página de
+> error (#13), las meta de las páginas legales (#14), el JSON-LD y el Hero (#9, #10), el
+> lint en cero dentro del build (#23), la firma de Mercado Pago (#3, a falta del secreto)
+> y la superficie de seguridad versionada (#4, a medias y a propósito).
+>
+> Lo ya resuelto está en [Resueltos](#resueltos) o marcado ✅ donde estaba. Un 🟡 quiere
+> decir que se hizo la parte que se podía y queda dicho qué falta. El resto sigue vivo y
+> verificado.
 >
 > **La numeración no se reutiliza.** Los specs de `docs/specs/` enlazan a estos números,
 > así que un hallazgo resuelto se marca ✅ pero conserva el suyo.
@@ -106,7 +112,7 @@ se rechaza dentro.
 
 ## 🟠 Alto — gobernanza
 
-### 3. `mp-webhook` no valida la firma de Mercado Pago
+### 3. ✅ `mp-webhook` no valida la firma de Mercado Pago — código listo, falta el secreto
 
 **Dónde:** `supabase/functions/mp-webhook/index.ts` — no hay `x-signature` ni
 `MP_WEBHOOK_SECRET` en ninguna parte del repositorio.
@@ -121,7 +127,15 @@ provocar consultas a la API de MP (posible agotamiento de cuota) y reprocesos. E
 `conversion_enviada_en` evita que se dupliquen conversiones y correos, así que el daño es
 ruido y consumo, no dinero ni datos.
 
-**Arreglo propuesto.** Validar el `x-signature` que ya manda Mercado Pago, siguiendo su
+**Hecho el 23 de agosto.** `firmaValida()` está en `mp-webhook/index.ts`, calcada de
+`wa-webhook`: HMAC SHA-256 sobre el esquema de Mercado Pago con comparación de tiempo
+constante. **Falla abierto mientras `MP_WEBHOOK_SECRET` no esté configurado** —diferencia
+deliberada con `wa-webhook`, para que desplegar el código antes de tener el secreto no
+tumbe los pagos—. Queda pendiente **de ti**: sacar el secreto del panel de Mercado Pago y
+ponerlo con `npx supabase secrets set MP_WEBHOOK_SECRET=… --project-ref suqwfpyeegcucflfutxd`.
+Hasta entonces el hallazgo sigue vivo en la práctica.
+
+**Arreglo propuesto (original).** Validar el `x-signature` que ya manda Mercado Pago, siguiendo su
 esquema `ts` + `v1` (HMAC SHA-256 sobre `id:<data.id>;request-id:<x-request-id>;ts:<ts>;`)
 con un `MP_WEBHOOK_SECRET` nuevo. Importante: **fallar cerrado sólo si el secreto está
 configurado**, para no tumbar los pagos el día del despliegue —el mismo patrón que ya usa
@@ -129,7 +143,7 @@ configurado**, para no tumbar los pagos el día del despliegue —el mismo patr�
 
 ---
 
-### 4. El repositorio no puede reconstruir su propia base de datos
+### 4. 🟡 El repositorio no puede reconstruir su base — la mitad que importa, hecha
 
 **Dónde:** `supabase/migrations/`
 
@@ -155,7 +169,17 @@ de migración decía una cosa y la base otra**, y no había forma de notarlo des
 repositorio. Mientras el esquema no esté versionado, leer las migraciones **no** es leer
 la base.
 
-**Arreglo propuesto:**
+**Hecho el 23 de agosto: `supabase/migrations/20260823_superficie_de_seguridad.sql`.**
+926 líneas extraídas del catálogo —`pg_policies`, `pg_get_functiondef`,
+`pg_get_triggerdef`—: 20 sentencias de RLS, 24 políticas, 21 funciones y 6 disparadores.
+Eso es **quién puede tocar qué**, que es lo que se revisa en un diff y lo que dejó pasar
+las cinco tablas abiertas.
+
+Lo que **sigue faltando** es el volcado de tablas: sin `supabase db pull` un entorno vacío
+no se levanta desde este repo, y ese comando pide la contraseña de la base. Su cabecera lo
+dice para que nadie lo confunda con una migración reproducible.
+
+**Arreglo pendiente:**
 
 ```bash
 npx supabase link --project-ref <ref>
@@ -240,7 +264,7 @@ dicen **agosto de 2026**. Y hay un tercer plazo en circulación: la migración
 `20260822_conversaciones_purgables.sql` afirma que **la garantía del metal es de por vida**,
 lo que no aparece en ninguna de las dos pantallas. Conviene alinear los tres.
 
-### 9. El JSON-LD de la portada promete lo que el sitio ya retiró
+### 9. ✅ El JSON-LD de la portada promete lo que el sitio ya retiró — resuelto
 
 **Dónde:** `src/pages/Home.jsx:11-21`
 
@@ -251,12 +275,18 @@ dicen que el certificado cuesta $50.000 aparte).
 
 Es lo que Google lee. Además usa URLs **sin `www`**, incoherentes con la canónica.
 
-**Arreglo:** alinear el JSON-LD con lo que realmente se vende y poner `www`.
+**Hecho el 23 de agosto.** El `JewelryStore` dice ahora lo que hay —anillos y dijes en
+oro 18k, oro blanco y plata 925, con esmeralda colombiana—, el certificado figura como
+opcional y con su precio, y `url` y `logo` van con `www`, igual que la canónica.
 
-### 10. Hero y Reviews siguen prometiendo platino y certificación incluida
+### 10. 🟡 Hero y Reviews prometían platino y certificación incluida — Hero resuelto
 
-`src/components/Hero.jsx:56-57` y `src/components/Reviews.jsx:18`. Mismo problema que #9,
-en texto visible.
+**El Hero, hecho el 23 de agosto:** ya no anuncia collares, pulseras ni platino, y la
+garantía dice "en el metal" en los dos sitios donde aparece, no sólo en uno.
+
+**Reviews sigue igual, por decisión tuya.** `Reviews.jsx:18` tiene un testimonio que
+insinúa que la certificación va incluida. Se va cuando se vayan las reseñas inventadas
+(#11): se cambian el día que haya testimonios reales.
 
 ### 11. Las reseñas son inventadas
 
@@ -275,32 +305,47 @@ sección por prueba de confianza verificable (fotos del taller, punzón, garant�
 o retirarla hasta tener clientes. Lo que no se puede es dejarla como está cuando empiecen
 a entrar pedidos reales.
 
-### 12. Verificar que Valentina no siga diciendo "SIN CONFIRMAR"
+### 12. 🟡 Verificar que Valentina no siga diciendo "SIN CONFIRMAR" — la base, limpia; el seed, no
 
 `supabase/migrations/20260818_taller_conocimiento.sql:27-29` sembró las 6 filas marcadas
 *"SIN CONFIRMAR"*, y Valentina lee esa tabla en caliente para componer su prompt.
 
-Los claims de envío, estuche, certificado y garantía **ya se verificaron con el joyero**,
-así que lo más probable es que la base esté actualizada y sólo el seed haya quedado
-atrás. **Confirmarlo** (`SELECT * FROM taller_conocimiento;`) y, si es así, actualizar el
-seed para que un entorno nuevo no nazca mintiendo.
+**Comprobado el 23 de agosto, y era eso.** Las 6 filas de la base están activas y
+ninguna dice "SIN CONFIRMAR": envíos, medios de pago, piezas a medida, qué va incluido,
+garantía y piedras. Valentina no está diciéndolo.
 
-### 13. No hay ruta 404
+**Pero el seed sigue con 7.** `20260818_taller_conocimiento.sql` no se toca —está
+aplicada—, así que hace falta **una migración nueva** que deje el conocimiento donde ya
+está la producción. Mientras no exista, un entorno nuevo nace mintiendo. Es lo único que
+queda de este hallazgo.
+
+### 13. ✅ No hay ruta 404 — resuelto
 
 `src/App.jsx` no define `path="*"`. Cualquier URL inválida cae en el rewrite de
 `vercel.json` y renderiza **una página en blanco** con el botón de WhatsApp flotando.
 
-**Arreglo:** una `<Route path="*">` con Navbar + Footer, mensaje corto y salidas al
-catálogo y a WhatsApp. Reutilizar el patrón de estado vacío de `Catalog.jsx:185-242`.
+**Hecho el 23 de agosto:** `src/pages/NoEncontrado.jsx`, con la voz del estado vacío del
+catálogo —que resuelve el mismo problema, "no está lo que buscas", y aquí siempre termina
+igual: se puede hacer por encargo—. Lleva `robots: noindex, follow`, para lo cual hubo que
+enseñarle a `ponerMeta` a poner `robots` y **a restaurarlo al salir**: una limpieza a
+medias habría dejado el sitio entero sin indexar.
 
-### 14. Las páginas legales no ponen sus meta tags
+**Una honestidad que conviene dejar escrita:** en una SPA sobre Vercel esta página
+responde **HTTP 200**, no 404. Arreglarlo de verdad pide prerender o una función. El
+`noindex` evita lo que importa —que Google las coleccione—, pero el código de estado sigue
+mintiendo.
+
+### 14. ✅ Las páginas legales no ponen sus meta tags — resuelto
 
 Ninguna de las cuatro llama a `ponerMeta`, así que heredan título, descripción y
 **canónica de la portada** — aunque las cuatro están en el sitemap. Cuatro URLs
 declarándose como si fueran la home.
 
-**Arreglo:** una llamada a `ponerMeta` en cada una, con el `return` de limpieza que la
-función ya devuelve (`src/lib/meta.js:57-84`).
+**Hecho el 23 de agosto.** Las cuatro tienen título, descripción y canónica propias. Se
+resolvió con un componente `<Meta />` en vez de un efecto en cada una: las cuatro son
+funciones flecha que devuelven JSX directo, y meterles un efecto habría hecho un diff de
+puras llaves. La guía de tallas lleva descripción escrita para quien busca "cómo saber mi
+talla de anillo", que es la única de las cuatro que alguien busca.
 
 ---
 
@@ -411,10 +456,21 @@ cuidado del resto (`Catalog.jsx:252-297` implementa un focus trap completo a man
   24 h cuando llega a cero. Funciona como está escrito; decidir si la urgencia perpetua es
   lo que se quiere.
 
-### 23. Nada impide que entre código roto
+### 23. ✅ Nada impide que entre código roto — resuelto a medias, y a propósito
 
-No hay tests, y `npm run lint` no forma parte del build. **Arreglo mínimo:** añadir el
-lint al build o a un hook de pre-commit.
+El lint ya está dentro del build (`eslint . && … && tsc -b && vite build`) y el
+repositorio entero pasa en cero: 35 avisos heredados en `src/` más 29 fuera. De los 64,
+**54 eran arreglo real y 10 quedaron suprimidos con el motivo escrito** —cargadores al
+montar y suscripciones de Realtime, donde la regla del compilador de React es más
+estricta que el problema—. Comprobado en Vercel el 23 de agosto: el despliegue de `main`
+corre el lint y pasa.
+
+Los 29 de fuera de `src/` eran todos falsos: la configuración le aplicaba las reglas del
+navegador y de React a las edge functions de Deno y a las plantillas de correo. Ahora
+`eslint.config.js` tiene un bloque por contexto.
+
+**Lo que sigue faltando son los tests.** No hay ninguno, y montar el andamiaje es otro
+proyecto. El lint en el build es el escalón realista, no el destino.
 
 ### 24. `npm run build` no corre en esta máquina
 
@@ -430,15 +486,25 @@ chunks). Lo que falla es el **shim de shell** de `node_modules/.bin/tsc`, que ma
 deja ejecutar — probablemente un atributo extendido de cuarentena o los permisos del
 directorio (`node_modules` está como `drwxrwxrwx`).
 
-**Arreglo a probar, en orden:**
+**Diagnóstico confirmado el 23 de agosto.** Es la cuarentena, no los permisos. Tres
+comprobaciones:
+
+- `xattr node_modules/.bin/eslint` → `com.apple.quarantine` (y `com.apple.provenance`).
+- Un script `#!/bin/sh` recién creado por mí, con los mismos permisos, **sí corre**. Así
+  que no es el directorio ni el modo `drwxrwxrwx`.
+- Alcanza a **todos** los shims, no sólo a `tsc`: `vite` y `eslint` fallan igual.
+  Invocados por Node funcionan (`node node_modules/eslint/bin/eslint.js --version` →
+  v9.39.3).
+
+**Arreglo:**
 
 ```bash
-xattr -d com.apple.quarantine node_modules/.bin/tsc   # si tiene el atributo
-rm -rf node_modules package-lock.json && npm install  # lo más probable que lo resuelva
+xattr -dr com.apple.quarantine node_modules/.bin
 ```
 
-Mientras tanto el proyecto **sí compila**; sólo hay que invocar `tsc` por Node. Vale la
-pena resolverlo antes de que tumbe un despliegue.
+**No tumba ningún despliegue**, y eso ya está comprobado: Vercel construye en su propia
+máquina, y el build con el lint dentro pasó allá en 30 segundos. Es una molestia local —
+en esta máquina hay que invocar las herramientas por Node.
 
 ---
 
