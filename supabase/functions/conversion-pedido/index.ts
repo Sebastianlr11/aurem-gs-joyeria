@@ -57,34 +57,61 @@ Deno.serve(async (req: Request) => {
     { auth: { persistSession: false } },
   )
 
+  /* Qué se está avisando. Sin nada, la venta — que es lo que esta función
+     hizo siempre. 'cancelacion' es para cuando un pedido ya contado se cae. */
+  const esCancelacion = cuerpo.evento === 'cancelacion'
+
+  const CAMPOS =
+    'created_at, amount, customer_email, customer_phone, product_id, product_name, ttclid, ttp, fbc, fbp, client_ua, client_ip, ctwa_clid'
+
   /* El mismo candado que usa el webhook de Mercado Pago, y a propósito la
      misma columna: así un pedido no puede contarse dos veces aunque llegue
      por los dos caminos, ni aunque le des dos clics al botón. Marcar y leer
-     en el mismo UPDATE es lo que lo hace seguro. */
-  const { data: orden, error } = await admin
-    .from('orders')
-    .update({ conversion_enviada_en: new Date().toISOString() })
-    .eq('id', pedidoId)
-    .is('conversion_enviada_en', null)
-    .select('created_at, amount, customer_email, customer_phone, product_id, product_name, ttclid, ttp, fbc, fbp, client_ua, client_ip, ctwa_clid')
-    .maybeSingle()
+     en el mismo UPDATE es lo que lo hace seguro.
+
+     La cancelación tiene su propio candado, y además una condición: sólo se
+     avisa si la VENTA se avisó antes. Contarle a Meta que se cayó un pedido
+     del que nunca supo no informa de nada y le mete ruido al modelo. */
+  const marca = new Date().toISOString()
+
+  const { data: orden, error } = esCancelacion
+    ? await admin.from('orders')
+        .update({ cancelacion_enviada_en: marca })
+        .eq('id', pedidoId)
+        .is('cancelacion_enviada_en', null)
+        .not('conversion_enviada_en', 'is', null)
+        .select(CAMPOS)
+        .maybeSingle()
+    : await admin.from('orders')
+        .update({ conversion_enviada_en: marca })
+        .eq('id', pedidoId)
+        .is('conversion_enviada_en', null)
+        .select(CAMPOS)
+        .maybeSingle()
 
   if (error) {
     console.error('No se pudo marcar el pedido:', pedidoId, error.message)
     return json({ error: 'No se pudo registrar la conversión' }, 500)
   }
   if (!orden) {
-    // Ya se había avisado. No es un error: el candado hizo su trabajo.
+    /* Ya se había avisado y el candado hizo su trabajo — o, si es una
+       cancelación, el pedido nunca se contó como venta y no hay nada que
+       cancelar. Las dos son salidas normales, no errores. */
     return json({ ok: true, repetido: true })
   }
 
-  /* El momento es el de la COMPRA, no el de hoy. En contraentrega la
-     confirmación llega días después de que la persona vio el anuncio y pidió;
-     fechar el evento hoy le diría a la plataforma que el anuncio de hace una
-     semana no tuvo nada que ver. */
+  /* El momento.
+
+     Para la VENTA es el de la compra, no el de hoy: en contraentrega la
+     confirmación llega días después de que la persona vio el anuncio y pidió,
+     y fechar el evento hoy le diría a la plataforma que el anuncio de hace una
+     semana no tuvo nada que ver.
+
+     Para la CANCELACIÓN es ahora, y es lo correcto: el hecho que se está
+     contando —que el pedido se cayó— acaba de ocurrir. */
   const ahora = Math.floor(Date.now() / 1000)
   const pedido = Math.floor(new Date(orden.created_at).getTime() / 1000)
-  const momento = Math.max(pedido, ahora - MAX_ATRAS_S)
+  const momento = esCancelacion ? ahora : Math.max(pedido, ahora - MAX_ATRAS_S)
 
   await avisarVenta({
     pedidoId,
@@ -102,6 +129,7 @@ Deno.serve(async (req: Request) => {
     ctwaClid: orden.ctwa_clid,
     url: 'https://www.auremgsjoyeria.com/',
     momento,
+    ...(esCancelacion ? { evento: 'cancelacion' as const } : {}),
   })
 
   return json({ ok: true })
