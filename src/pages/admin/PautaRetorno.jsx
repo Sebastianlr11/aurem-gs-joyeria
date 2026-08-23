@@ -14,10 +14,18 @@
  * 2. Separa el retorno de caja del retorno de venta. Contra entrega, una venta
  *    no es plata hasta que el domiciliario la entrega, y en Colombia una parte
  *    se cae en la puerta. Un solo número no puede decir las dos cosas.
+ *
+ * 3. Fecha las dos puntas igual. El gasto siempre vino filtrado por fecha,
+ *    pero la plata salía del ESTADO de los pedidos creados en el periodo, que
+ *    no tiene fecha de cobro. Con fabricación de 5 a 8 días más el envío,
+ *    pedir y cobrar casi nunca caen en la misma ventana: el retorno dividía
+ *    peras entre manzanas. Ahora la caja sale del libro de movimientos
+ *    (src/lib/caja.js), fechada y neta de la comisión de Mercado Pago.
  */
 import React, { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
-import { recibidoDe, estaVivo, esContraentrega } from '../../lib/dinero';
+import { estaVivo, esContraentrega } from '../../lib/dinero';
+import { cajaEntre } from '../../lib/caja';
 
 const fmt = (n) => Math.round(n || 0).toLocaleString('es-CO');
 
@@ -31,8 +39,9 @@ const CANALES = [
 const hoyEnBogota = () =>
     new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bogota' }).format(new Date());
 
-export default function PautaRetorno({ orders, periodStart, periodDays }) {
+export default function PautaRetorno({ orders, periodStart, periodDays, verPruebas = false }) {
     const [gastos, setGastos] = useState([]);
+    const [caja, setCaja] = useState(null);
     const [sinConfirmar, setSinConfirmar] = useState([]);
     const [iva, setIva] = useState(0.19);
     const [cargando, setCargando] = useState(true);
@@ -59,6 +68,16 @@ export default function PautaRetorno({ orders, periodStart, periodDays }) {
     }, []);
 
     useEffect(() => { cargar(); }, [cargar]);
+
+    /* La caja del MISMO periodo que el gasto. Cuelga de periodStart y no de
+       cargar() porque es lo único que cambia cuando se mueve el selector de
+       fechas de Reportes. */
+    useEffect(() => {
+        let vigente = true;
+        cajaEntre(periodStart, null, { incluirPruebas: verPruebas })
+            .then(c => { if (vigente) setCaja(c); });
+        return () => { vigente = false; };
+    }, [periodStart, verPruebas]);
 
     async function guardar(e) {
         e.preventDefault();
@@ -95,7 +114,17 @@ export default function PautaRetorno({ orders, periodStart, periodDays }) {
     const gastoReal = gastoSinIva * (1 + iva);
 
     const vivos = orders.filter(estaVivo);
-    const recibido = orders.reduce((s, o) => s + recibidoDe(o), 0);
+
+    /* La plata que ENTRÓ dentro del periodo, del libro de caja y neta de la
+       comisión de Mercado Pago.
+
+       Antes esto era `orders.reduce((s, o) => s + recibidoDe(o), 0)`: la plata
+       de los pedidos CREADOS en el periodo, sin importar cuándo se cobró. El
+       gasto sí venía fechado, así que el retorno dividía peras entre manzanas
+       — y con fabricación de 5 a 8 días más el envío, pedir y cobrar casi
+       nunca caen en la misma ventana. */
+    const recibido = caja?.total ?? 0;
+
     const vendido = vivos.reduce((s, o) => s + Number(o.amount), 0);
 
     const roasCaja = gastoReal > 0 ? recibido / gastoReal : null;
@@ -200,7 +229,7 @@ export default function PautaRetorno({ orders, periodStart, periodDays }) {
                                 {roasCaja === null ? '—' : `${roasCaja.toFixed(2).replace('.', ',')}×`}
                             </span>
                             <span className="pauta-cifra-s">
-                                ${fmt(recibido)} entraron por ${fmt(gastoReal)} de pauta
+                                ${fmt(recibido)} entraron —neto de comisión— por ${fmt(gastoReal)} de pauta
                             </span>
                         </div>
                         <div className="pauta-cifra">
