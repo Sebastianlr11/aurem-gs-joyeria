@@ -154,14 +154,30 @@ frío, y rompe la calidez de todo lo demás.
 Seis pasos, y con seis basta. La escala de la landing no sirve aquí: sus tamaños
 arrancan donde los del panel terminan.
 
+**Diez pasos, y ni uno más.** Seis de texto y cuatro de titular:
+
 | Paso | Tamaño | Familia | Uso |
 |---|---|---|---|
 | Antetítulo | 0.68rem · 700 · tracking 0.24em · mayúsculas | Mulish | Rótulos de sección, cabeceras de tabla, etiquetas |
 | Dato | 0.75rem · 600 | Mulish | Metadatos, fechas, contadores, pies de tarjeta |
 | Cuerpo | 0.82rem · 400 · alto 1.5 | Mulish | Texto de tablas, formularios, listas |
 | Énfasis | 0.95rem · 700 | Mulish | Nombre de una pieza, de una clienta, de un pedido |
+| **Campo** | **1rem** | Mulish | **Los `input`. No bajar de aquí nunca** — ver abajo |
+| Subtítulo | 1.15rem | Mulish | Encabezado dentro de una tarjeta |
+| Título pequeño | 1.35rem | Mulish / Marcellus | Títulos de modal |
+| Título | 1.6rem | Marcellus | |
 | Título de sección | 1.85rem · 400 | **Marcellus** | El encabezado de cada pantalla |
 | Cifra | 2.5rem · 800 | Mulish | Dinero y conteos en las tarjetas del dashboard |
+
+Aparte quedan ocho `clamp()` para los titulares grandes, que son responsivos a propósito
+y no entran en la escalera, y las **versalitas** en unidades relativas (`0.62em`), que
+heredan del tamaño de su titular como manda `DESIGN.md`.
+
+> ⚠️ **El paso de 1rem existe por una razón que no es estética: por debajo de 16px,
+> Safari en iPhone hace zoom automático al enfocar un `input`.** Bajar `.admin-login-input`
+> o `.ep-confirmar input` a 0.95rem le mueve la pantalla a la clienta cada vez que toca un
+> campo. Si alguna vez parece que ese 1rem "rompe la escala", no lo toques: la escala se
+> hizo alrededor de él.
 
 **Marcellus sólo en los títulos de sección, y sólo en 400.** Es lo que ata el
 panel a la marca; usarla para datos la convertiría en decoración y haría el panel
@@ -303,7 +319,7 @@ mañana; la segunda, lo que queda después de la limpieza de esa tarde.
 | Grises fríos (`#888`, `#aaa`, `#666`…) | ~44 | **0** | → `--text-secondary` / `--text-muted` |
 | Rojos y ámbares de Tailwind | 30 | **0** | → `--error-ink` / `--oro` |
 | `--accent-red` | 3 | **0** | El token queda definido pero ya no lo usa nadie |
-| Tamaños de letra distintos | 16 | 16 | Entre 0,63 y 1rem. Deberían ser 6 |
+| Tamaños de letra distintos | **65** | **10** | Eran 65, no 16: la cifra vieja contaba sólo los más usados |
 
 **Y los tonos de error dejaron de ser hex sueltos:** `--error-ink` (`#8C2F1E`),
 `--error-fuerte` (`#5E2114`) y `--error-fondo` (`#FBEDE9`) son tokens en `:root`. Estaban
@@ -313,7 +329,12 @@ escritos a mano en 42 sitios.
 —`#888` sobre `#fafafa`— daban **3,40:1, por debajo de AA**. El gris cálido de la marca da
 **4,85:1** y pasa. El botón de borrar subió de 4,41 a 7,52.
 
-**Los 202 que quedan piden criterio, no un reemplazo en lote.** Son casi todos variantes de
+**Y la escalera tipográfica quedó hecha.** 247 declaraciones se acercaron a su paso más
+próximo. Verificado sobre **2.892 elementos en siete pantallas**: 1.120 cambiaron de
+tamaño —era el objetivo— y **cero desbordes nuevos**. Los saltos mayores fueron **hacia
+arriba**: había etiquetas a 9,6px y el suelo ahora es 10,88px.
+
+**Los 202 colores que quedan piden criterio, no un reemplazo en lote.** Son casi todos variantes de
 marfil y de línea de pelo (`#f0ede6`, `#faf9f6`, `#e0ddd6`, `#e8e5de`, `#f5f3ee`…): mapearlos
 al token **cambia el tono**, y hacerlo de golpe movería la temperatura de todo el panel. Se
 decide mirando. Aparte hay tres legítimos que no se tocan: el verde de WhatsApp

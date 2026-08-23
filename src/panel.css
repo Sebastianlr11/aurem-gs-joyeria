@@ -173,13 +173,13 @@
 
 .admin-login-stat-num {
   font-family: var(--font-display);
-  font-size: 1.5rem;
+  font-size: 1.6rem;
   color: var(--bg-color);
   margin-bottom: 6px;
 }
 
 .admin-login-stat-label {
-  font-size: 0.63rem;
+  font-size: 0.68rem;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: rgba(255, 255, 255, 0.5);
@@ -218,7 +218,7 @@
   background: linear-gradient(180deg, var(--bg-color) 0%, var(--bg-marfil) 100%);
   border: 1px solid var(--hairline);
   clip-path: polygon(6px 0, calc(100% - 6px) 0, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0 calc(100% - 6px), 0 6px);
-  font-size: 0.63rem;
+  font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -276,7 +276,7 @@
 }
 
 .admin-login-forgot {
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   color: var(--oro-ink);
   background: none;
   border: none;
@@ -346,7 +346,7 @@
 
 /* El error no grita: es una línea de oro al margen */
 .admin-login-error {
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   line-height: 1.55;
   color: var(--ink);
   border-left: 1px solid var(--oro);
@@ -413,7 +413,7 @@
 }
 
 .admin-login-divider span {
-  font-size: 0.63rem;
+  font-size: 0.68rem;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--text-muted);
@@ -442,7 +442,7 @@
   gap: 8px;
   align-self: flex-start;
   font-family: inherit;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   color: var(--oro-ink);
   background: none;
   border: none;
@@ -465,7 +465,7 @@
 }
 
 .admin-login-help p {
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   line-height: 1.6;
   color: var(--text-secondary);
 }
@@ -474,7 +474,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   color: var(--oro-ink);
   white-space: nowrap;
 }
@@ -484,7 +484,7 @@
 }
 
 .admin-login-footer {
-  font-size: 0.63rem;
+  font-size: 0.68rem;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--text-muted);
@@ -641,7 +641,7 @@
 }
 
 .admin-sidebar-email {
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   word-break: break-all;
   white-space: nowrap;
   overflow: hidden;
@@ -650,7 +650,7 @@
 }
 
 .admin-sidebar-role {
-  font-size: 0.65rem;
+  font-size: 0.68rem;
   font-weight: 700;
   text-transform: uppercase;
 }
@@ -661,7 +661,7 @@
   gap: 0.6rem;
   padding: 0.62rem 1rem;
   border-radius: 9px;
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   font-weight: 600;
   color: #6b7e96;
   background: none;
@@ -744,7 +744,7 @@
 .admin-topbar-avatar {
   width: 36px;
   height: 36px;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   font-weight: 800;
   display: flex;
   align-items: center;
@@ -770,7 +770,7 @@
 }
 
 .admin-section-title {
-  font-size: 1.65rem;
+  font-size: 1.6rem;
   font-weight: 800;
   letter-spacing: -0.035em;
   color: #0f172a;
@@ -778,7 +778,7 @@
 }
 
 .admin-section-sub {
-  font-size: 0.83rem;
+  font-size: 0.82rem;
   color: #64748b;
   margin-top: 0.2rem;
 }
@@ -824,7 +824,7 @@
 }
 
 .admin-card-title {
-  font-size: 0.88rem;
+  font-size: 0.82rem;
   font-weight: 700;
   color: #0f172a;
   letter-spacing: -0.01em;
@@ -839,7 +839,7 @@
   gap: 0.35rem;
   padding: 0.3rem 0.8rem;
   border-radius: 100px;
-  font-size: 0.67rem;
+  font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.03em;
   white-space: nowrap;
@@ -961,7 +961,7 @@
 .admin-action-btn {
   padding: 0.38rem 0.8rem;
   border-radius: 9px;
-  font-size: 0.74rem;
+  font-size: 0.75rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.16,1,0.3,1);
@@ -1079,11 +1079,11 @@
   align-items: center;
   gap: 1rem;
   color: #94a3b8;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
 }
 
 .admin-error {
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   color: var(--error-ink);
   background: rgba(140, 47, 30,0.06);
   padding: 0.75rem 1rem;
@@ -1100,7 +1100,7 @@
   border-radius: 12px;
   background: linear-gradient(135deg, var(--ink), var(--ink-soft));
   color: var(--bg-color);
-  font-size: 0.84rem;
+  font-size: 0.82rem;
   font-weight: 700;
   border: none;
   cursor: pointer;
@@ -1186,7 +1186,7 @@
   .admin-mobile-bar-btn--active { color: var(--bg-color); }
   .admin-mobile-bar-icon { display: flex; align-items: center; justify-content: center; }
   .admin-mobile-bar-icon svg { width: 20px; height: 20px; }
-  .admin-mobile-bar-label { font-size: 0.62rem; font-weight: 600; letter-spacing: 0.01em; }
+  .admin-mobile-bar-label { font-size: 0.68rem; font-weight: 600; letter-spacing: 0.01em; }
 
   /* ── Drawer overlay ── */
   .admin-mobile-drawer-overlay {
@@ -1265,7 +1265,7 @@
     gap: 0.75rem;
     padding: 0.75rem 1rem;
     border-radius: 12px;
-    font-size: 0.88rem;
+    font-size: 0.82rem;
     font-weight: 600;
     cursor: pointer;
     font-family: inherit;
@@ -1291,21 +1291,21 @@
     width: 32px; height: 32px; border-radius: 50%;
     background: rgba(255,255,255,0.12); color: var(--bg-color);
     display: flex; align-items: center; justify-content: center;
-    font-size: 0.78rem; font-weight: 700;
+    font-size: 0.75rem; font-weight: 700;
   }
-  .admin-mobile-drawer-footer .admin-sidebar-email { color: #cbd5e1; font-size: 0.78rem; }
+  .admin-mobile-drawer-footer .admin-sidebar-email { color: #cbd5e1; font-size: 0.75rem; }
   .admin-mobile-drawer-footer .admin-sidebar-role { color: #64748b; font-size: 0.68rem; }
   .admin-mobile-drawer-footer .admin-sidebar-logout {
     background: rgba(255,255,255,0.06);
     border: none; color: #f87171; cursor: pointer;
     padding: 0.5rem 0.85rem; border-radius: 10px;
-    font-size: 0.78rem; font-weight: 600; font-family: inherit;
+    font-size: 0.75rem; font-weight: 600; font-family: inherit;
     display: flex; align-items: center; gap: 0.4rem;
     transition: background 0.2s;
   }
   .admin-mobile-drawer-footer .admin-sidebar-logout:hover { background: rgba(255,255,255,0.1); }
   .admin-topbar { height: var(--barra-superior); padding: 0 1rem; }
-  .admin-topbar-title { font-size: 0.9rem; }
+  .admin-topbar-title { font-size: 0.95rem; }
 
   /* ── Spacing ── */
   .admin-section { padding: 1.25rem 0.75rem 5rem; }
@@ -1360,7 +1360,7 @@
 }
 
 .modal-title {
-  font-size: 1.2rem;
+  font-size: 1.15rem;
   font-weight: 800;
   letter-spacing: -0.02em;
   color: #0f172a;
@@ -1376,7 +1376,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   color: #64748b;
   transition: background 0.2s, color 0.2s;
 }
@@ -1405,7 +1405,7 @@
 }
 
 .modal-field label {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   font-weight: 700;
   color: var(--text-secondary);
   letter-spacing: 0.02em;
@@ -1418,7 +1418,7 @@
   padding: 0.8rem 1rem;
   border: 1px solid var(--border-color);
   border-radius: 10px;
-  font-size: 0.92rem;
+  font-size: 0.95rem;
   font-family: inherit;
   color: var(--text-primary);
   outline: none;
@@ -1486,7 +1486,7 @@
 }
 
 .confirm-modal-text {
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   color: var(--text-secondary);
   line-height: 1.6;
   margin: 0 0 1.75rem;
@@ -1502,7 +1502,7 @@
   padding: 0.75rem 1rem;
   border: none;
   border-radius: 12px;
-  font-size: 0.88rem;
+  font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
@@ -1608,7 +1608,7 @@
   padding: 11px 14px 11px 38px;
   border: 1px solid rgba(255,255,255,0.08);
   border-radius: 12px;
-  font-size: 0.84rem;
+  font-size: 0.82rem;
   outline: none;
   color: #e5e5e5;
   background: rgba(255,255,255,0.04) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='15' height='15' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E") 13px center no-repeat;
@@ -1686,7 +1686,7 @@
 }
 
 .chat-contact-name {
-  font-size: 0.87rem;
+  font-size: 0.82rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1700,7 +1700,7 @@
 }
 
 .chat-contact-preview {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   color: #777;
   white-space: nowrap;
   overflow: hidden;
@@ -1729,7 +1729,7 @@
   align-items: center;
   justify-content: center;
   gap: 20px;
-  font-size: 0.92rem;
+  font-size: 0.95rem;
   background: linear-gradient(180deg, #f8f7f4 0%, #f0ede6 100%);
 }
 .chat-empty-state svg {
@@ -1764,12 +1764,12 @@
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   flex-shrink: 0;
 }
 
 .chat-conv-header-name {
-  font-size: 0.93rem;
+  font-size: 0.95rem;
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -1778,7 +1778,7 @@
 }
 
 .chat-conv-header-phone {
-  font-size: 0.74rem;
+  font-size: 0.75rem;
   letter-spacing: 0.03em;
   font-variant-numeric: tabular-nums;
 }
@@ -1852,7 +1852,7 @@
 }
 
 .chat-bubble-content {
-  font-size: 0.86rem;
+  font-size: 0.82rem;
   line-height: 1.55;
   white-space: pre-wrap;
   word-break: break-word;
@@ -1875,7 +1875,7 @@
   justify-content: center;
   padding: 32px;
   color: var(--text-muted);
-  font-size: 0.86rem;
+  font-size: 0.82rem;
   animation: chatFadeIn 0.4s ease-out;
   letter-spacing: -0.01em;
 }
@@ -1890,7 +1890,7 @@
 
 .chat-input-field {
   flex: 1;
-  font-size: 0.86rem;
+  font-size: 0.82rem;
   outline: none;
   resize: none;
   max-height: 120px;
@@ -2048,7 +2048,7 @@
 .chat-msg--assistant { align-items: flex-end; }
 
 .chat-msg .chat-bubble-time {
-  font-size: 0.6rem;
+  font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.14em;
   color: var(--text-secondary, var(--text-secondary));
@@ -2087,7 +2087,7 @@
   padding: 0 5px;
   border-radius: 9px;
   color: var(--ink);
-  font-size: 0.63rem;
+  font-size: 0.68rem;
   font-weight: 800;
   margin-left: 8px;
   vertical-align: middle;
@@ -2111,7 +2111,7 @@
   background: none;
   border: none;
   color: #92400e;
-  font-size: 1.1rem;
+  font-size: 1.15rem;
   cursor: pointer;
   padding: 0 4px;
   line-height: 1;
@@ -2162,7 +2162,7 @@
   background: linear-gradient(135deg, #fffbeb, #fef3c7);
   border-bottom: 1px solid #fde68a;
   color: #92400e;
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   line-height: 1.4;
   animation: chatFadeIn 0.3s ease-out;
 }
@@ -2231,7 +2231,7 @@
   align-items: center;
   justify-content: center;
   gap: 5px;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: var(--text-secondary);
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
@@ -2263,7 +2263,7 @@
   gap: 4px;
   padding: 3px 10px;
   border-radius: 6px;
-  font-size: 0.6rem;
+  font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -2359,7 +2359,7 @@
   border-radius: 8px;
   border: 1px solid #eee;
   background: var(--bg-color);
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   white-space: nowrap;
@@ -2399,7 +2399,7 @@
 }
 .chat-image-picker-head h4 {
   margin: 0;
-  font-size: 0.88rem;
+  font-size: 0.82rem;
   font-weight: 700;
   color: var(--ink);
 }
@@ -2410,7 +2410,7 @@
   border: none;
   background: #f5f5f5;
   color: var(--text-muted);
-  font-size: 1.1rem;
+  font-size: 1.15rem;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -2514,7 +2514,7 @@
   text-overflow: ellipsis;
 }
 .chat-image-picker-price {
-  font-size: 0.76rem;
+  font-size: 0.75rem;
   font-weight: 700;
 }
 
@@ -2571,11 +2571,11 @@
   justify-content: space-between;
 }
 .chat-image-preview-info strong {
-  font-size: 0.88rem;
+  font-size: 0.82rem;
   color: var(--ink);
 }
 .chat-image-preview-info span {
-  font-size: 0.84rem;
+  font-size: 0.82rem;
   font-weight: 700;
   color: var(--oro-ink);
 }
@@ -2762,7 +2762,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   color: var(--text-secondary);
 }
 .chat-info-meta-row svg {
@@ -2807,7 +2807,7 @@
 }
 .chat-info-section h6 {
   margin: 0;
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--text-muted);
@@ -2833,7 +2833,7 @@
 
 /* ── Notes ── */
 .chat-info-notes {
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   color: var(--text-muted);
   cursor: pointer;
   padding: 10px 12px;
@@ -2857,7 +2857,7 @@
 .chat-info-notes-input {
   width: 100%;
   padding: 10px 12px;
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   resize: none;
   outline: none;
   line-height: 1.5;
@@ -2904,7 +2904,7 @@
   gap: 6px;
   padding: 20px;
   color: var(--hairline);
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   text-align: center;
 }
 .chat-info-empty span {
@@ -2935,14 +2935,14 @@
   justify-content: space-between;
 }
 .chat-info-order-name {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   min-width: 0;
 }
 .chat-info-order-amount {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   font-weight: 700;
 }
 .chat-info-order-status {
@@ -3027,7 +3027,7 @@
 }
 .chat-send-error button {
   color: var(--error-ink);
-  font-size: 1.1rem;
+  font-size: 1.15rem;
   line-height: 1;
   padding: 2px 6px;
   border-radius: 4px;
@@ -3091,7 +3091,7 @@
   padding: 8px 12px;
   border: 1px solid #e0ddd6;
   border-radius: 8px;
-  font-size: 0.84rem;
+  font-size: 0.82rem;
   outline: none;
   background: var(--bg-color);
   transition: border-color 0.2s;
@@ -3141,7 +3141,7 @@
   border-bottom: none;
 }
 .chat-msg-search-phone {
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: var(--text-muted);
 }
@@ -3181,11 +3181,11 @@
   transform: translateX(-4px);
 }
 .chat-toast strong {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   color: var(--oro-ink);
 }
 .chat-toast span {
-  font-size: 0.76rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
 }
 
@@ -3281,7 +3281,7 @@
   border: none;
   cursor: pointer;
   color: var(--tag-color);
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   line-height: 1;
   padding: 0;
   opacity: 0.7;
@@ -3307,7 +3307,7 @@
   align-items: center;
   padding: 3px 9px;
   border-radius: 20px;
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   font-weight: 600;
   border: 1px dashed color-mix(in srgb, var(--tag-color) 50%, transparent);
   background: none;
@@ -3329,7 +3329,7 @@
   height: 16px;
   border-radius: 50%;
   color: var(--bg-color);
-  font-size: 0.55rem;
+  font-size: 0.68rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3361,7 +3361,7 @@
   opacity: 0.7;
 }
 .chat-empty-state-sub {
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   color: #bbb;
   margin-top: -10px;
   text-align: center;
@@ -3395,7 +3395,7 @@
   margin: 0 0 10px;
 }
 .chat-confirm-modal p {
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   color: var(--text-secondary);
   margin: 0 0 20px;
   line-height: 1.5;
@@ -3407,7 +3407,7 @@
 }
 .chat-confirm-btn {
   padding: 9px 20px;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   border: none;
   cursor: pointer;
   transition: all 0.18s;
@@ -3424,7 +3424,7 @@
   margin-left: auto;
   background: var(--error-ink);
   color: var(--bg-color);
-  font-size: 0.65rem;
+  font-size: 0.68rem;
   font-weight: 700;
   padding: 2px 6px;
   border-radius: 20px;
@@ -3437,7 +3437,7 @@
   right: 8px;
   background: var(--error-ink);
   color: var(--bg-color);
-  font-size: 0.6rem;
+  font-size: 0.68rem;
   font-weight: 700;
   padding: 1px 4px;
   border-radius: 20px;
@@ -3483,14 +3483,14 @@
 
 .admin-sidebar-logo-text span:first-child {
   font-family: var(--font-display);
-  font-size: 1.02rem;
+  font-size: 1rem;
   font-weight: 400;
   letter-spacing: 0.08em;
   color: var(--bg-marfil);
 }
 
 .admin-sidebar-logo-sub {
-  font-size: 0.6rem;
+  font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -3508,7 +3508,7 @@
   gap: 0.8rem;
   padding: 0.68rem 0.9rem;
   border-radius: 100px;
-  font-size: 0.86rem;
+  font-size: 0.82rem;
   font-weight: 600;
   color: rgba(251, 247, 242, 0.6);
   background: transparent;
@@ -3571,7 +3571,7 @@
 }
 
 .admin-topbar-fecha {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   color: var(--text-secondary);
   white-space: nowrap;
 }
@@ -3583,7 +3583,7 @@
 }
 
 .admin-topbar-tienda {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -3746,7 +3746,7 @@
 }
 
 .jornada-tarea-t {
-  font-size: 0.98rem;
+  font-size: 1rem;
   font-weight: 700;
   color: var(--ink);
 }
@@ -3829,14 +3829,14 @@
 }
 
 .jornada-dinero-moneda {
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   font-weight: 700;
   letter-spacing: 0.14em;
   color: rgba(251, 247, 242, 0.45);
 }
 
 .jornada-dinero-sub {
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   color: rgba(251, 247, 242, 0.55);
 }
 
@@ -3854,7 +3854,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   color: rgba(251, 247, 242, 0.75);
 }
 
@@ -3922,7 +3922,7 @@
 .admin-topbar { gap: 1rem; }
 @media (min-width: 769px){
   .admin-topbar { height: 64px; padding: 0 clamp(1.25rem, 3vw, 3rem); }
-  .admin-topbar-title { font-size: 0.92rem; }}
+  .admin-topbar-title { font-size: 0.95rem; }}
 
 .admin-topbar-left {
   display: flex;
@@ -3962,7 +3962,7 @@
 }
 
 .prod-sub {
-  font-size: 0.83rem;
+  font-size: 0.82rem;
   color: var(--text-secondary);
   margin-top: 0.35rem;
 }
@@ -4020,7 +4020,7 @@
 .prod-btn-linea--sm {
   height: 34px;
   padding: 0 0.95rem;
-  font-size: 0.78rem;
+  font-size: 0.75rem;
 }
 
 /* Métricas */
@@ -4062,7 +4062,7 @@
 }
 
 .prod-metrica-l {
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -4129,7 +4129,7 @@
   border: 1px solid var(--hairline);
   border-radius: 100px;
   font-family: inherit;
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   font-weight: 600;
   color: var(--ink);
   cursor: pointer;
@@ -4210,7 +4210,7 @@
   align-items: center;
   justify-content: center;
   color: var(--oro);
-  font-size: 1.5rem;
+  font-size: 1.6rem;
 }
 
 .prod-card-tags {
@@ -4227,7 +4227,7 @@
   display: inline-block;
   padding: 0.3rem 0.6rem;
   border-radius: 100px;
-  font-size: 0.6rem;
+  font-size: 0.68rem;
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -4266,7 +4266,7 @@
 }
 
 .prod-card-cat {
-  font-size: 0.62rem;
+  font-size: 0.68rem;
   font-weight: 800;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -4274,7 +4274,7 @@
 }
 
 .prod-card-ref {
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   color: var(--text-muted);
@@ -4292,7 +4292,7 @@
 }
 
 .prod-card-detalle {
-  font-size: 0.76rem;
+  font-size: 0.75rem;
   color: var(--text-secondary);
   line-height: 1.5;
   display: -webkit-box;
@@ -4310,21 +4310,21 @@
 }
 
 .prod-card-precio-v {
-  font-size: 1.1rem;
+  font-size: 1.15rem;
   font-weight: 800;
   letter-spacing: -0.02em;
   color: var(--ink);
 }
 
 .prod-card-precio-m {
-  font-size: 0.64rem;
+  font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.1em;
   color: var(--text-secondary);
 }
 
 .prod-card-precio-antes {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
   text-decoration: line-through;
 }
@@ -4333,7 +4333,7 @@
   display: flex;
   align-items: center;
   gap: 0.45rem;
-  font-size: 0.74rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: var(--text-secondary);
 }
@@ -4367,7 +4367,7 @@
   border-radius: 100px;
   color: var(--bg-color);
   font-family: inherit;
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.3s var(--ease);
@@ -4439,12 +4439,12 @@
 }
 
 .prod-nueva-t {
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   font-weight: 700;
 }
 
 .prod-nueva-s {
-  font-size: 0.74rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
   max-width: 190px;
   line-height: 1.5;
@@ -4461,13 +4461,13 @@
   width: 100%;
   min-width: 720px;
   border-collapse: collapse;
-  font-size: 0.865rem;
+  font-size: 0.82rem;
 }
 
 .prod-tabla th {
   padding: 0.85rem 1rem;
   text-align: left;
-  font-size: 0.65rem;
+  font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -4520,12 +4520,12 @@
   display: block;
   font-weight: 700;
   color: var(--ink);
-  font-size: 0.86rem;
+  font-size: 0.82rem;
 }
 
 .prod-fila-meta {
   display: block;
-  font-size: 0.74rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
   margin-top: 2px;
 }
@@ -4546,7 +4546,7 @@
   display: inline-block;
   padding: 0.3rem 0.7rem;
   border-radius: 100px;
-  font-size: 0.63rem;
+  font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -4574,12 +4574,12 @@
 
 .prod-vacio-t {
   font-family: var(--font-display);
-  font-size: 1.3rem;
+  font-size: 1.35rem;
   color: var(--ink);
 }
 
 .prod-vacio-s {
-  font-size: 0.83rem;
+  font-size: 0.82rem;
   color: var(--text-secondary);
   max-width: 320px;
   line-height: 1.6;
@@ -4768,7 +4768,7 @@
 
 .chat-date-separator {
   color: var(--text-muted);
-  font-size: 0.66rem;
+  font-size: 0.68rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
 }
@@ -4812,7 +4812,7 @@
 
 .chat-bubble-time {
   color: var(--text-muted);
-  font-size: 0.69rem;
+  font-size: 0.68rem;
 }
 
 .chat-bubble--assistant .chat-bubble-time,
@@ -4839,7 +4839,7 @@
   color: var(--oro-ink);
   border: 1px solid var(--oro-hairline);
   border-radius: 100px;
-  font-size: 0.63rem;
+  font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -4941,7 +4941,7 @@
 
 .chat-info-panel-header span,
 .chat-info-section-head {
-  font-size: 0.66rem;
+  font-size: 0.68rem;
   letter-spacing: 0.24em;
   text-transform: uppercase;
   color: var(--oro-ink);
@@ -4974,7 +4974,7 @@
 }
 
 .chat-info-stat-label {
-  font-size: 0.63rem;
+  font-size: 0.68rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--text-muted);
@@ -5159,7 +5159,7 @@
   display: block; font-style: normal; font-size: 0.62em;
   letter-spacing: 0.06em; text-transform: uppercase; margin-top: 0.3em;
 }
-.inf-sub { font-size: 0.86rem; color: var(--text-secondary); }
+.inf-sub { font-size: 0.82rem; color: var(--text-secondary); }
 
 /* min-width: 0 no es decoración. Sin él, este bloque es un elemento flexible
    con el `min-width: auto` que trae flexbox de fábrica: se niega a encogerse
@@ -5191,8 +5191,8 @@
   font-size: clamp(2.3rem, 4.4vw, 3.4rem); font-weight: 800; letter-spacing: -0.03em;
   line-height: 1; color: var(--oro-luz); font-variant-numeric: tabular-nums;
 }
-.inf-neto-moneda { font-size: 0.8rem; font-weight: 700; letter-spacing: 0.14em; color: rgba(227, 201, 144, 0.6); }
-.inf-neto-sub { font-size: 0.86rem; color: rgba(255, 255, 255, 0.62); }
+.inf-neto-moneda { font-size: 0.82rem; font-weight: 700; letter-spacing: 0.14em; color: rgba(227, 201, 144, 0.6); }
+.inf-neto-sub { font-size: 0.82rem; color: rgba(255, 255, 255, 0.62); }
 
 .inf-neto-desglose { margin-top: auto; padding-top: 1.75rem; }
 
@@ -5203,16 +5203,16 @@
   display: flex; align-items: baseline; gap: 0.6rem; flex-wrap: wrap;
   margin: 1.125rem 0 0; padding-top: 1.125rem;
   border-top: 1px solid rgba(227, 201, 144, 0.22);
-  font-size: 0.88rem; color: rgba(255, 255, 255, 0.62);
+  font-size: 0.82rem; color: rgba(255, 255, 255, 0.62);
 }
 .inf-neto-pendiente strong {
-  font-size: 1.05rem; font-weight: 700; color: var(--oro-luz);
+  font-size: 1rem; font-weight: 700; color: var(--oro-luz);
   font-variant-numeric: tabular-nums;
 }
 .inf-neto-linea {
   display: flex; align-items: center; justify-content: space-between; gap: 1rem;
   padding: 0.8125rem 0; border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-  font-size: 0.88rem; color: rgba(255, 255, 255, 0.82);
+  font-size: 0.82rem; color: rgba(255, 255, 255, 0.82);
 }
 .inf-neto-linea > span:first-child { display: flex; align-items: center; gap: 0.75rem; min-width: 0; }
 .inf-neto-linea strong { font-size: 0.95rem; font-weight: 700; color: var(--bg-color); font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -5244,7 +5244,7 @@
   font-size: clamp(1.7rem, 2.6vw, 2.3rem); font-weight: 700; letter-spacing: -0.025em;
   line-height: 1; color: var(--ink); font-variant-numeric: tabular-nums;
 }
-.inf-kpi-s { font-size: 0.79rem; color: var(--text-secondary); }
+.inf-kpi-s { font-size: 0.82rem; color: var(--text-secondary); }
 
 /* Paneles */
 .inf-panel {
@@ -5255,13 +5255,13 @@
   display: flex; align-items: flex-end; justify-content: space-between; gap: 1.5rem;
   padding-bottom: 1.25rem; border-bottom: 1px solid var(--hairline);
 }
-.inf-panel-titulo { font-family: var(--font-display); font-weight: 400; font-size: 1.32rem; color: var(--ink); }
-.inf-panel-sub { font-size: 0.8rem; color: var(--text-secondary); }
+.inf-panel-titulo { font-family: var(--font-display); font-weight: 400; font-size: 1.35rem; color: var(--ink); }
+.inf-panel-sub { font-size: 0.82rem; color: var(--text-secondary); }
 .inf-panel-tag {
   font-size: 0.68rem; font-weight: 800; letter-spacing: 0.24em;
   text-transform: uppercase; color: var(--oro-ink); white-space: nowrap;
 }
-.inf-leyenda { display: flex; align-items: center; gap: 0.5rem; font-size: 0.72rem; color: var(--text-secondary); }
+.inf-leyenda { display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; color: var(--text-secondary); }
 .inf-leyenda-cuadro { width: 10px; height: 10px; background: var(--ink); }
 
 .inf-dos { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1.5rem; }
@@ -5276,7 +5276,7 @@
 .inf-grafica-barra:hover { background: var(--oro-ink); }
 .inf-grafica-barra--cero { background: var(--hairline); }
 .inf-grafica-pie {
-  display: flex; justify-content: space-between; margin-top: 0.875rem; font-size: 0.7rem; font-weight: 700;
+  display: flex; justify-content: space-between; margin-top: 0.875rem; font-size: 0.68rem; font-weight: 700;
   letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-muted);
 }
 
@@ -5299,11 +5299,11 @@
 }
 .inf-pieza-fila { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
 .inf-pieza-nombre, .inf-canal-l {
-  font-size: 0.9rem; color: var(--ink); min-width: 0;
+  font-size: 0.95rem; color: var(--ink); min-width: 0;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.inf-pieza-ingreso { font-size: 0.92rem; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.inf-pieza-meta, .inf-canal-meta { font-size: 0.76rem; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.inf-pieza-ingreso { font-size: 0.95rem; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.inf-pieza-meta, .inf-canal-meta { font-size: 0.75rem; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
 .inf-pista { height: 3px; background: var(--bg-arena); border-radius: 2px; overflow: hidden; }
 .inf-pista--alta { height: 6px; }
 .inf-pista-fill { height: 100%; background: var(--oro); border-radius: 2px; }
@@ -5318,9 +5318,9 @@
   border-bottom: 1px solid var(--hairline);
 }
 .inf-estado-punto { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; border: 1px solid var(--hairline); }
-.inf-estado-l { flex: 1; font-size: 0.88rem; color: var(--ink); }
-.inf-estado-n { font-size: 1.05rem; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
-.inf-estado-pct { font-size: 0.74rem; color: var(--text-muted); min-width: 38px; text-align: right; font-variant-numeric: tabular-nums; }
+.inf-estado-l { flex: 1; font-size: 0.82rem; color: var(--ink); }
+.inf-estado-n { font-size: 1rem; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
+.inf-estado-pct { font-size: 0.75rem; color: var(--text-muted); min-width: 38px; text-align: right; font-variant-numeric: tabular-nums; }
 
 .inf-aviso {
   display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-top: 1.25rem; background: var(--bg-marfil);
@@ -5328,7 +5328,7 @@
   border-radius: 2px;
 }
 
-.inf-vacio { padding: 2rem 0; font-size: 0.86rem; color: var(--text-secondary); }
+.inf-vacio { padding: 2rem 0; font-size: 0.82rem; color: var(--text-secondary); }
 @media (max-width: 1100px){
   .inf-fila-principal, .inf-dos { grid-template-columns: 1fr; }}
 @media (max-width: 700px){
@@ -5355,14 +5355,14 @@
 .inf-panel > .inf-canal:last-child,
 .inf-embudo > .inf-canal:last-child { border-bottom: 0; padding-bottom: 0.25rem; }
 
-.inf-neto-comp { display: flex; align-items: baseline; gap: 0.5rem; flex-wrap: wrap; font-size: 0.83rem; color: rgba(255, 255, 255, 0.5); }
-.inf-neto-comp strong { font-size: 0.9rem; font-weight: 800; letter-spacing: -0.01em; }
+.inf-neto-comp { display: flex; align-items: baseline; gap: 0.5rem; flex-wrap: wrap; font-size: 0.82rem; color: rgba(255, 255, 255, 0.5); }
+.inf-neto-comp strong { font-size: 0.95rem; font-weight: 800; letter-spacing: -0.01em; }
 .inf-alza { color: var(--oro-luz); }
 .inf-baja { color: #D9A79A; }
-.inf-kpi-comp { font-size: 0.74rem; font-weight: 700; color: var(--oro-ink); }
+.inf-kpi-comp { font-size: 0.75rem; font-weight: 700; color: var(--oro-ink); }
 .inf-aviso-link {
   border: 0; background: transparent; cursor: pointer; white-space: nowrap;
-  font-family: inherit; font-size: 0.78rem; font-weight: 800;
+  font-family: inherit; font-size: 0.75rem; font-weight: 800;
   letter-spacing: 0.06em; text-transform: uppercase; color: var(--oro-ink);
   transition: color 0.3s var(--ease);
 }
@@ -5420,7 +5420,7 @@
   justify-content: center;
   font-family: var(--font-display);
   font-weight: 400;
-  font-size: 1.9rem;
+  font-size: 1.85rem;
   flex-shrink: 0;
 }
 
@@ -5437,7 +5437,7 @@
   margin: 0;
   font-family: var(--font-display);
   font-weight: 400;
-  font-size: 1.1rem;
+  font-size: 1.15rem;
   color: var(--ink);
   white-space: nowrap;
   overflow: hidden;
@@ -5446,7 +5446,7 @@
 }
 
 .chat-info-profile .chat-info-phone {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   letter-spacing: 0.03em;
   color: var(--text-secondary);
 }
@@ -5459,7 +5459,7 @@
   border-radius: 100px;
   border: 1px solid var(--hairline);
   background: var(--bg-color);
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -5481,7 +5481,7 @@
   border-radius: 100px;
   border: 1px solid var(--hairline);
   background: var(--bg-color);
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   font-weight: 600;
   color: var(--text-secondary);
   white-space: nowrap;
@@ -5501,7 +5501,7 @@
 /* Quién respondió el último mensaje de la fila */
 .chat-contact-ia {
   align-self: flex-end;
-  font-size: 0.62rem;
+  font-size: 0.68rem;
   font-weight: 800;
   letter-spacing: 0.12em;
   color: var(--oro-ink);
@@ -5537,7 +5537,7 @@
   align-items: center;
   justify-content: center;
   color: var(--oro);
-  font-size: 0.9rem;
+  font-size: 0.95rem;
 }
 
 .chat-info-order-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -5546,13 +5546,13 @@
 .chat-info-order-top { background: transparent; border: 0; padding: 0; }
 .chat-info-order-bottom { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 0; }
 .chat-info-order-status { font-size: 0.68rem; font-weight: 700; color: var(--oro-ink); white-space: nowrap; }
-.chat-info-order-date { font-size: 0.7rem; color: var(--text-muted); }
+.chat-info-order-date { font-size: 0.68rem; color: var(--text-muted); }
 
 /* El acuse de entrega. Sólo el leído se distingue en oro; el resto se
    queda en el mismo tono discreto que la hora. */
 .chat-delivery-status {
   margin-left: 5px;
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   letter-spacing: -0.06em;
   cursor: default;
 }
@@ -5578,7 +5578,7 @@
   border: 1px solid var(--hairline);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
-  font-size: 0.66rem;
+  font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -5613,7 +5613,7 @@
   display: block; font-style: normal; font-size: 0.62em;
   letter-spacing: 0.06em; text-transform: uppercase; margin-top: 0.3em;
 }
-.ped-sub { font-size: 0.86rem; color: var(--text-secondary); }
+.ped-sub { font-size: 0.82rem; color: var(--text-secondary); }
 
 /* El pulso: una cifra por grupo, y además filtran.
    Las columnas salen de GRUPOS en Dashboard.jsx, no de un número escrito aquí.
@@ -5642,7 +5642,7 @@
   line-height: 1; color: var(--ink); font-variant-numeric: tabular-nums;
 }
 .ped-pulso-v--cero { color: var(--hairline); }
-.ped-pulso-s { font-size: 0.79rem; color: var(--text-secondary); }
+.ped-pulso-s { font-size: 0.82rem; color: var(--text-secondary); }
 
 .ped-panel {
   background: var(--bg-color); border: 1px solid var(--hairline); border-radius: 2px;
@@ -5664,7 +5664,7 @@
 .ped-buscar:focus-within { border-color: var(--oro); }
 .ped-buscar input {
   border: 0; outline: none; background: transparent; font-family: inherit;
-  font-size: 0.875rem; color: var(--ink); width: 170px;
+  font-size: 0.82rem; color: var(--ink); width: 170px;
 }
 .ped-buscar input::placeholder { color: var(--text-muted); }
 
@@ -5674,7 +5674,7 @@
 
 .ped-tabla thead th {
   padding: 0.875rem 1.5rem; text-align: left; white-space: nowrap;
-  font-size: 0.66rem; font-weight: 800; letter-spacing: 0.2em;
+  font-size: 0.68rem; font-weight: 800; letter-spacing: 0.2em;
   text-transform: uppercase; color: var(--oro-ink);
   border-bottom: 1px solid var(--hairline); background: var(--bg-marfil);
 }
@@ -5691,14 +5691,14 @@
 
 .ped-cliente {
   display: block; border: 0; background: transparent; padding: 0; cursor: pointer;
-  font-family: inherit; font-size: 0.92rem; font-weight: 700; color: var(--ink);
+  font-family: inherit; font-size: 0.95rem; font-weight: 700; color: var(--ink);
   text-align: left; transition: color 0.3s var(--ease);
 }
 .ped-cliente:hover { color: var(--oro-ink); }
-.ped-pieza { display: block; font-size: 0.88rem; color: var(--ink); }
+.ped-pieza { display: block; font-size: 0.82rem; color: var(--ink); }
 .ped-meta {
   display: flex; align-items: center; gap: 0.4rem; margin-top: 3px;
-  font-size: 0.74rem; color: var(--text-secondary);
+  font-size: 0.75rem; color: var(--text-secondary);
 }
 .ped-td-num { text-align: right; }
 .ped-td-num .ped-meta { justify-content: flex-end; }
@@ -5710,7 +5710,7 @@
 .ped-accion {
   padding: 0.5rem 1.05rem; min-height: 36px; border-radius: 100px;
   border: 1px solid var(--ink); background: var(--ink); color: var(--bg-marfil);
-  font-family: inherit; font-size: 0.78rem; font-weight: 700; white-space: nowrap;
+  font-family: inherit; font-size: 0.75rem; font-weight: 700; white-space: nowrap;
   cursor: pointer; transition: all 0.3s var(--ease);
 }
 .ped-accion:hover { background: var(--ink-soft); border-color: var(--ink-soft); }
@@ -5734,20 +5734,20 @@
 .ped-pagina {
   padding: 0.5rem 1.125rem; min-height: 36px; border-radius: 100px;
   border: 1px solid var(--hairline); background: var(--bg-color);
-  font-family: inherit; font-size: 0.8rem; font-weight: 600; color: var(--ink);
+  font-family: inherit; font-size: 0.82rem; font-weight: 600; color: var(--ink);
   cursor: pointer; transition: all 0.3s var(--ease);
 }
 .ped-pagina:hover:not(:disabled) { border-color: var(--oro-hairline); background: var(--bg-arena); }
 .ped-pagina:disabled { opacity: 0.35; cursor: default; }
-.ped-paginas-info { font-size: 0.78rem; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.ped-paginas-info { font-size: 0.75rem; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
 
-.ped-vacio { padding: 3rem 1.5rem; font-size: 0.86rem; color: var(--text-secondary); text-align: center; }
+.ped-vacio { padding: 3rem 1.5rem; font-size: 0.82rem; color: var(--text-secondary); text-align: center; }
 .ped-vacio-bloque {
   display: flex; flex-direction: column; align-items: center; gap: 1rem;
   padding: 4rem 1.5rem;
 }
 .ped-vacio-icono { font-size: 1.6rem; color: var(--oro); }
-.ped-vacio-t { font-family: var(--font-display); font-size: 1.2rem; color: var(--ink); }
+.ped-vacio-t { font-family: var(--font-display); font-size: 1.15rem; color: var(--ink); }
 @media (max-width: 900px){
   .ped-pulso { grid-template-columns: 1fr; }
   .ped-pulso-item { border-right: 0; border-bottom: 1px solid var(--hairline); }
@@ -5768,7 +5768,7 @@
   border: 1px solid var(--hairline);
   background: var(--bg-color);
   color: var(--ink);
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   font-weight: 600;
   letter-spacing: 0.01em;
   white-space: nowrap;
@@ -5803,7 +5803,7 @@
 /* El canal va en un tono más bajo: acompaña, no compite */
 .source-badge {
   padding: 0.2rem 0.6rem;
-  font-size: 0.66rem;
+  font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -5860,12 +5860,12 @@
 .od-hero-product {
   font-family: var(--font-display);
   font-weight: 400;
-  font-size: 1.1rem;
+  font-size: 1.15rem;
   color: var(--bg-color);
   margin-top: 0.5rem;
 }
 .od-hero-date {
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -5890,7 +5890,7 @@
   border-radius: 100px;
   border: 1px solid rgba(255, 255, 255, 0.16);
   background: rgba(255, 255, 255, 0.08);
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   font-weight: 600;
   color: var(--bg-color);
 }
@@ -5906,7 +5906,7 @@
   align-items: center;
   gap: 0.5rem;
   margin: 0 0 1rem;
-  font-size: 0.66rem;
+  font-size: 0.68rem;
   font-weight: 800;
   letter-spacing: 0.24em;
   text-transform: uppercase;
@@ -5915,13 +5915,13 @@
 .od-section-title svg { color: var(--oro); }
 
 .od-info-label {
-  font-size: 0.66rem;
+  font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--text-muted);
 }
-.od-info-value { font-size: 0.9rem; color: var(--ink); }
+.od-info-value { font-size: 0.95rem; color: var(--ink); }
 
 .od-notes-box {
   padding: 1rem 1.125rem;
@@ -5929,7 +5929,7 @@
   border: 1px solid var(--hairline);
   border-left: 2px solid var(--oro);
   border-radius: 2px;
-  font-size: 0.86rem;
+  font-size: 0.82rem;
   line-height: 1.65;
   color: var(--ink);
 }
@@ -5953,12 +5953,12 @@
 .od-action-btn--edit:hover { background: var(--ink-soft); border-color: var(--ink-soft); }
 
 /* Clientes reusa la pantalla de Pedidos; sólo añade lo suyo */
-.ped-cliente-nombre { display: block; font-size: 0.92rem; font-weight: 700; color: var(--ink); }
+.ped-cliente-nombre { display: block; font-size: 0.95rem; font-weight: 700; color: var(--ink); }
 .cli-vuelve {
   padding: 0.1rem 0.5rem;
   border-radius: 100px;
   background: var(--bg-arena);
-  font-size: 0.62rem;
+  font-size: 0.68rem;
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -6046,7 +6046,7 @@
 
 .origen-s {
   font-family: var(--font-ui);
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   color: var(--text-secondary);
   font-variant-numeric: tabular-nums;
 }
@@ -6077,7 +6077,7 @@
   border: 0;
   padding: 4px 0 0;
   font-family: var(--font-ui);
-  font-size: 0.6875rem;
+  font-size: 0.68rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text-secondary);
@@ -6086,7 +6086,7 @@
 .chat-foto-visto button:hover { color: var(--oro-ink); }
 .chat-foto-visto p {
   margin: 6px 0 0;
-  font-size: 0.8125rem;
+  font-size: 0.82rem;
   line-height: 1.5;
   color: var(--text-secondary);
 }
@@ -6102,7 +6102,7 @@
   padding: 5px 0;
   border-bottom: 1px solid var(--hairline);
   font-family: var(--font-ui);
-  font-size: 0.9375rem;
+  font-size: 0.95rem;
 }
 .od-piezas li:last-child { border-bottom: 0; }
 .od-pieza-nombre { color: var(--ink); }
@@ -6144,11 +6144,11 @@
 }
 .pauta-campo { display: flex; flex-direction: column; gap: 0.4rem; min-width: 0; }
 .pauta-campo > span {
-  font-size: 0.66rem; font-weight: 700; letter-spacing: 0.14em;
+  font-size: 0.68rem; font-weight: 700; letter-spacing: 0.14em;
   text-transform: uppercase; color: var(--text-secondary);
 }
 .pauta-campo input, .pauta-campo select {
-  padding: 0.6rem 0.75rem; font-family: var(--font-ui); font-size: 0.92rem;
+  padding: 0.6rem 0.75rem; font-family: var(--font-ui); font-size: 0.95rem;
   color: var(--ink); background: var(--bg-marfil);
   border: 1px solid var(--hairline); border-radius: 2px;
 }
@@ -6160,11 +6160,11 @@
   flex-basis: 100%; margin: 0.25rem 0 0;
   font-size: 0.82rem; line-height: 1.5; color: var(--text-secondary);
 }
-.pauta-error { flex-basis: 100%; margin: 0; font-size: 0.85rem; color: var(--error-ink); }
+.pauta-error { flex-basis: 100%; margin: 0; font-size: 0.82rem; color: var(--error-ink); }
 
 .pauta-vacio {
   margin: 1.5rem 0 0.25rem; max-width: 46ch;
-  font-size: 0.92rem; line-height: 1.6; color: var(--text-secondary);
+  font-size: 0.95rem; line-height: 1.6; color: var(--text-secondary);
 }
 
 .pauta-cifras {
@@ -6178,16 +6178,16 @@
 }
 .pauta-cifra--fuerte { background: var(--bg-marfil); }
 .pauta-cifra-l {
-  font-size: 0.66rem; font-weight: 700; letter-spacing: 0.14em;
+  font-size: 0.68rem; font-weight: 700; letter-spacing: 0.14em;
   text-transform: uppercase; color: var(--text-secondary);
 }
 .pauta-cifra-v {
-  font-size: 1.65rem; font-weight: 300; color: var(--ink);
+  font-size: 1.6rem; font-weight: 300; color: var(--ink);
   font-variant-numeric: tabular-nums; line-height: 1.1;
 }
 .pauta-bien { color: #2E6B4F; }
 .pauta-mal  { color: var(--error-ink); }
-.pauta-cifra-s { font-size: 0.8rem; line-height: 1.45; color: var(--text-secondary); }
+.pauta-cifra-s { font-size: 0.82rem; line-height: 1.45; color: var(--text-secondary); }
 
 .pauta-lectura {
   margin: 1.25rem 0 0; padding: 0.9rem 1.1rem;
@@ -6197,29 +6197,29 @@
 .pauta-lectura strong { font-weight: 700; font-variant-numeric: tabular-nums; }
 
 .pauta-canales { display: flex; flex-wrap: wrap; gap: 1.5rem; margin-top: 1.125rem; }
-.pauta-canal { display: flex; align-items: baseline; gap: 0.5rem; font-size: 0.85rem; color: var(--text-secondary); }
+.pauta-canal { display: flex; align-items: baseline; gap: 0.5rem; font-size: 0.82rem; color: var(--text-secondary); }
 .pauta-canal strong { color: var(--ink); font-variant-numeric: tabular-nums; }
 
 .pauta-detalle { margin-top: 1.25rem; }
 .pauta-detalle summary {
-  font-size: 0.72rem; font-weight: 700; letter-spacing: 0.12em;
+  font-size: 0.75rem; font-weight: 700; letter-spacing: 0.12em;
   text-transform: uppercase; color: var(--oro-ink); cursor: pointer;
 }
 .pauta-lista { list-style: none; margin: 0.875rem 0 0; padding: 0; }
 .pauta-lista li {
   display: flex; align-items: center; gap: 0.875rem;
   padding: 0.6rem 0; border-bottom: 1px solid var(--hairline);
-  font-size: 0.88rem; color: var(--ink);
+  font-size: 0.82rem; color: var(--ink);
 }
 .pauta-lista li > span:first-child { min-width: 5rem; color: var(--text-secondary); }
 .pauta-lista-canal {
-  font-size: 0.66rem; font-weight: 700; letter-spacing: 0.12em;
+  font-size: 0.68rem; font-weight: 700; letter-spacing: 0.12em;
   text-transform: uppercase; color: var(--text-secondary);
 }
 .pauta-lista strong { margin-left: auto; font-variant-numeric: tabular-nums; }
 .pauta-lista button {
   width: 1.6rem; height: 1.6rem; flex-shrink: 0;
-  font-size: 1.1rem; line-height: 1; color: var(--text-secondary);
+  font-size: 1.15rem; line-height: 1; color: var(--text-secondary);
   background: transparent; border: 1px solid var(--hairline); border-radius: 2px;
   cursor: pointer; transition: var(--transition-smooth);
 }
@@ -6237,7 +6237,7 @@
 .inf-aviso {
   margin: 1.125rem 0 0.25rem; padding: 0.8rem 1rem;
   background: var(--bg-marfil); border-left: 2px solid var(--oro);
-  font-size: 0.85rem; line-height: 1.55; color: var(--text-secondary);
+  font-size: 0.82rem; line-height: 1.55; color: var(--text-secondary);
 }
 .inf-pieza-meta strong { color: var(--ink); font-weight: 700; font-variant-numeric: tabular-nums; }
 
@@ -6247,7 +6247,7 @@
 .pauta-alerta {
   margin: 1.25rem 0 0; padding: 0.9rem 1.1rem;
   background: var(--error-fondo); border-left: 2px solid var(--error-ink);
-  font-size: 0.9rem; line-height: 1.55; color: var(--error-fuerte);
+  font-size: 0.95rem; line-height: 1.55; color: var(--error-fuerte);
 }
 .pauta-alerta strong { font-weight: 700; }
 
@@ -6280,14 +6280,14 @@
   color: var(--error-fuerte);
 }
 .jornada-averia-nota {
-  font-size: 0.7rem; font-weight: 700; letter-spacing: 0.12em;
+  font-size: 0.68rem; font-weight: 700; letter-spacing: 0.12em;
   text-transform: uppercase; color: rgba(94, 33, 20, 0.55);
 }
 .jornada-averia-fila {
   display: flex; flex-direction: column; gap: 0.2rem;
   padding: 0.6rem 0; border-top: 1px solid rgba(140, 47, 30, 0.14);
 }
-.jornada-averia-que { font-size: 0.9rem; font-weight: 700; color: var(--error-fuerte); }
+.jornada-averia-que { font-size: 0.95rem; font-weight: 700; color: var(--error-fuerte); }
 .jornada-averia-detalle {
   font-size: 0.82rem; line-height: 1.5; color: rgba(94, 33, 20, 0.8);
   word-break: break-word;
@@ -6347,7 +6347,7 @@
    primera dice CUÁL falta y el aviso dice que el pedido está frenado. */
 .jornada-taller-piezas em.jornada-taller-sinTalla { color: var(--error-ink); }
 .jornada-taller-aviso {
-  font-family: var(--font-ui); font-size: 0.66rem; font-weight: 700;
+  font-family: var(--font-ui); font-size: 0.68rem; font-weight: 700;
   letter-spacing: 0.1em; text-transform: uppercase;
   color: var(--error-ink);
   white-space: nowrap;
@@ -6358,9 +6358,9 @@
   white-space: nowrap;
 }
 .jornada-taller-dias {
-  font-size: 0.9rem; font-weight: 700; color: var(--ink);
+  font-size: 0.95rem; font-weight: 700; color: var(--ink);
 }
-.jornada-taller-desde { font-size: 0.72rem; color: var(--text-secondary); }
+.jornada-taller-desde { font-size: 0.75rem; color: var(--text-secondary); }
 .jornada-taller-plazo--justo .jornada-taller-dias { color: var(--oro-ink); }
 .jornada-taller-plazo--tarde .jornada-taller-dias { color: var(--error-ink); }
 @media (max-width: 768px){
@@ -6393,7 +6393,7 @@
 .jornada-pauta--mal  { color: #F0A79A; }
 .jornada-pauta-link {
   justify-self: start; align-self: end;
-  font-family: var(--font-ui); font-size: 0.72rem; font-weight: 700;
+  font-family: var(--font-ui); font-size: 0.75rem; font-weight: 700;
   letter-spacing: 0.12em; text-transform: uppercase;
   color: var(--oro-luz); background: none; border: 0; cursor: pointer;
   white-space: nowrap; padding: 0;
@@ -6410,7 +6410,7 @@
 
 .jornada-vacio {
   margin: 1.25rem 0 0.5rem; max-width: 52ch;
-  font-size: 0.92rem; line-height: 1.6; color: var(--text-secondary);
+  font-size: 0.95rem; line-height: 1.6; color: var(--text-secondary);
 }
 
 .jornada-hecho {
@@ -6434,19 +6434,19 @@
 .jornada-hecho-punto--chat   { background: #25D366; }
 
 .jornada-hecho-texto { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; flex: 1; }
-.jornada-hecho-q { font-size: 0.92rem; font-weight: 700; color: var(--ink); }
+.jornada-hecho-q { font-size: 0.95rem; font-weight: 700; color: var(--ink); }
 .jornada-hecho-d {
-  font-size: 0.84rem; color: var(--text-secondary);
+  font-size: 0.82rem; color: var(--text-secondary);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .jornada-hecho-estado {
-  font-size: 0.66rem; font-weight: 700; letter-spacing: 0.12em;
+  font-size: 0.68rem; font-weight: 700; letter-spacing: 0.12em;
   text-transform: uppercase; color: var(--text-secondary);
   padding: 0.22rem 0.5rem; background: var(--bg-arena); border-radius: 2px;
   white-space: nowrap; flex-shrink: 0;
 }
 .jornada-hecho-cuando {
-  font-size: 0.78rem; color: var(--text-secondary);
+  font-size: 0.75rem; color: var(--text-secondary);
   white-space: nowrap; flex-shrink: 0; min-width: 5.5rem; text-align: right;
 }
 @media (max-width: 768px){
@@ -6502,12 +6502,12 @@
 }
 .pm-riel-foto--vacia {
   display: flex; align-items: center; justify-content: center;
-  color: var(--oro); font-size: 1.1rem;
+  color: var(--oro); font-size: 1.15rem;
 }
 .pm-riel-datos { display: flex; flex-direction: column; gap: 0.45rem; min-width: 0; }
 .pm-riel-nombre {
   font-family: var(--font-display); font-weight: 400;
-  font-size: 0.98rem; line-height: 1.25; color: var(--ink);
+  font-size: 1rem; line-height: 1.25; color: var(--ink);
   overflow-wrap: anywhere;
 }
 
@@ -6516,7 +6516,7 @@
   text-align: left; background: transparent;
   border: 0; border-left: 2px solid transparent;
   padding: 0.7rem 1.25rem;
-  font-family: var(--font-ui); font-size: 0.85rem; font-weight: 500;
+  font-family: var(--font-ui); font-size: 0.82rem; font-weight: 500;
   color: var(--text-secondary); cursor: pointer;
   transition: var(--transition-smooth);
 }
@@ -6534,7 +6534,7 @@
   font-size: 0.68rem; font-weight: 700; letter-spacing: 0.16em;
   text-transform: uppercase; color: var(--oro-ink);
 }
-.pm-riel-estado-s { font-size: 0.8rem; line-height: 1.5; color: var(--text-secondary); }
+.pm-riel-estado-s { font-size: 0.82rem; line-height: 1.5; color: var(--text-secondary); }
 
 /* ── Columna principal ── */
 .pm-col { flex: 1; display: flex; flex-direction: column; min-width: 0; }
@@ -6551,7 +6551,7 @@
 }
 .pm-cabeza-titulo {
   margin: 0; font-family: var(--font-display); font-weight: 400;
-  font-size: 1.75rem; line-height: 1.1; color: var(--ink);
+  font-size: 1.85rem; line-height: 1.1; color: var(--ink);
 }
 .pm-cerrar {
   flex: 0 0 auto; width: 36px; height: 36px;
@@ -6567,7 +6567,7 @@
 .pm-error {
   margin: 0 0 1.25rem; padding: 0.8rem 1rem;
   background: var(--error-fondo); border-left: 2px solid var(--error-ink);
-  font-size: 0.88rem; line-height: 1.5; color: var(--error-fuerte);
+  font-size: 0.82rem; line-height: 1.5; color: var(--error-fuerte);
 }
 
 .pm-sec { display: flex; flex-direction: column; gap: 1.125rem; padding-bottom: 2.125rem; }
@@ -6589,7 +6589,7 @@
 
 .pm-campo { display: flex; flex-direction: column; min-width: 0; }
 .pm-label {
-  font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em;
+  font-size: 0.68rem; font-weight: 700; letter-spacing: 0.1em;
   text-transform: uppercase; color: var(--text-secondary);
   margin-bottom: 0.5rem;
 }
@@ -6648,7 +6648,7 @@
   font-variant-numeric: tabular-nums;
 }
 .pm-plata input::placeholder { font-weight: 400; color: var(--text-muted); }
-.pm-plata-signo { font-size: 0.9rem; font-weight: 600; color: var(--text-muted); margin-right: 0.375rem; }
+.pm-plata-signo { font-size: 0.95rem; font-weight: 600; color: var(--text-muted); margin-right: 0.375rem; }
 .pm-plata-cop {
   font-size: 0.68rem; font-weight: 700; letter-spacing: 0.1em;
   color: var(--text-muted); margin-left: 0.375rem;
@@ -6663,7 +6663,7 @@
   align-self: flex-start;
   border: 1px solid var(--hairline); border-radius: 2px;
   padding: 0.625rem 1rem;
-  font-size: 0.78rem; font-weight: 700; letter-spacing: 0.02em;
+  font-size: 0.75rem; font-weight: 700; letter-spacing: 0.02em;
 }
 .pm-stock--gris    { background: var(--bg-arena);  color: var(--text-secondary); }
 .pm-stock--ok      { background: var(--bg-marfil); color: var(--text-secondary); }
@@ -6692,7 +6692,7 @@
 .pm-foto-sello {
   position: absolute; left: 0; right: 0; bottom: 0;
   background: var(--ink); color: var(--oro-luz);
-  font-size: 0.58rem; font-weight: 700; letter-spacing: 0.16em;
+  font-size: 0.68rem; font-weight: 700; letter-spacing: 0.16em;
   text-transform: uppercase; text-align: center; padding: 0.3rem 0;
 }
 .pm-foto-mas {
@@ -6704,7 +6704,7 @@
 }
 .pm-foto-mas:hover { border-color: var(--oro); background: var(--bg-arena); }
 .pm-foto-mas span {
-  font-size: 0.6rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+  font-size: 0.68rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
 }
 .pm-url { display: flex; gap: 0.75rem; align-items: center; }
 
@@ -6718,7 +6718,7 @@
 }
 .pm-opcion:hover { border-color: rgba(168, 134, 63, 0.35); }
 .pm-opcion-txt { display: flex; flex-direction: column; gap: 0.25rem; min-width: 0; }
-.pm-opcion-t { font-size: 0.92rem; font-weight: 700; color: var(--ink); }
+.pm-opcion-t { font-size: 0.95rem; font-weight: 700; color: var(--ink); }
 .pm-opcion-s { font-size: 0.75rem; line-height: 1.5; color: var(--text-muted); }
 
 .pm-palanca {
@@ -6743,7 +6743,7 @@
 }
 .pm-pie-estado {
   display: flex; align-items: center; gap: 0.55rem;
-  font-size: 0.8rem; color: var(--text-secondary);
+  font-size: 0.82rem; color: var(--text-secondary);
 }
 .pm-punto { width: 7px; height: 7px; border-radius: 100px; background: var(--hairline); }
 .pm-punto--tocado { background: var(--oro-ink); }
@@ -6751,7 +6751,7 @@
 
 .pm-btn {
   padding: 0.75rem 1.6rem; border-radius: 100px;
-  font-family: var(--font-ui); font-size: 0.85rem; font-weight: 700;
+  font-family: var(--font-ui); font-size: 0.82rem; font-weight: 700;
   letter-spacing: 0.03em; cursor: pointer;
   transition: var(--transition-smooth); white-space: nowrap;
 }
@@ -6774,7 +6774,7 @@
   .pm-caja { height: 100dvh; max-height: none; border-radius: 0; }
   .pm-riel { display: none; }
   .pm-cabeza { padding: 1.25rem 1.25rem 1rem; }
-  .pm-cabeza-titulo { font-size: 1.5rem; }
+  .pm-cabeza-titulo { font-size: 1.6rem; }
   .pm-cuerpo { padding: 1.25rem 1.25rem 1.5rem; }
   .pm-pie { padding: 1rem 1.25rem; }
   .pm-pie-estado { flex-basis: 100%; }
@@ -6831,7 +6831,7 @@
 .ep-titulo {
   margin: 0;
   font-family: var(--font-display); font-weight: 400;
-  font-size: 1.875rem; line-height: 1.12; color: var(--bg-color);
+  font-size: 1.85rem; line-height: 1.12; color: var(--bg-color);
 }
 /* Las versalitas de la segunda línea: el mismo gesto que los titulares del
    sitio. La serif no tiene más de un peso y no se inclina, así que el énfasis
@@ -6852,12 +6852,12 @@
   display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;
   padding-bottom: 1.25rem; border-bottom: 1px solid var(--hairline);
 }
-.ep-detalle { font-size: 0.85rem; color: var(--text-secondary); }
+.ep-detalle { font-size: 0.82rem; color: var(--text-secondary); }
 
 .ep-alerta {
   margin: 1.25rem 0 0; padding: 0.85rem 1rem;
   background: var(--error-fondo); border-left: 2px solid var(--error-ink);
-  font-size: 0.88rem; line-height: 1.55; color: var(--error-fuerte);
+  font-size: 0.82rem; line-height: 1.55; color: var(--error-fuerte);
 }
 .ep-alerta strong { font-weight: 700; }
 
@@ -6880,7 +6880,7 @@
 /* Altura fija: sin esto la caja da un salto cuando el texto de ayuda cambia
    de una línea a otra mientras se escribe. */
 .ep-ayuda {
-  font-size: 0.8rem; line-height: 1.5; color: var(--text-secondary);
+  font-size: 0.82rem; line-height: 1.5; color: var(--text-secondary);
   min-height: 20px;
 }
 .ep-ayuda--ok { color: #2E6B4F; }
@@ -6888,7 +6888,7 @@
 .ep-error {
   margin: 1.125rem 0 0; padding: 0.8rem 1rem;
   background: var(--error-fondo); border-left: 2px solid var(--error-ink);
-  font-size: 0.85rem; line-height: 1.5; color: var(--error-fuerte);
+  font-size: 0.82rem; line-height: 1.5; color: var(--error-fuerte);
 }
 
 .ep-pie {
@@ -6899,7 +6899,7 @@
   gap: 0.625rem; flex-wrap: wrap; background: var(--bg-color);
 }
 .ep-btn {
-  font-family: var(--font-ui); font-size: 0.92rem; font-weight: 600;
+  font-family: var(--font-ui); font-size: 0.95rem; font-weight: 600;
   border-radius: 100px; cursor: pointer;
   transition: var(--transition-smooth); white-space: nowrap;
 }
@@ -6972,7 +6972,7 @@
    la cuenta. Éste mide lo que se pidió, y sin decirlo se lee como caja del
    día. Va más callado que el resto del bloque: es una salvedad, no un dato. */
 .jornada-tendencia-nota {
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   color: rgba(251, 247, 242, 0.38);
   margin-top: -0.35rem;
 }
@@ -7016,17 +7016,17 @@
 }
 .pd-cabeza-ante {
   display: block;
-  font-size: 0.63rem; font-weight: 700; letter-spacing: 0.24em;
+  font-size: 0.68rem; font-weight: 700; letter-spacing: 0.24em;
   text-transform: uppercase; color: var(--oro-ink);
   margin-bottom: 0.4rem;
 }
 .pd-cabeza-titulo {
   margin: 0; font-family: var(--font-display); font-weight: 400;
-  font-size: 1.75rem; line-height: 1.1; color: var(--ink);
+  font-size: 1.85rem; line-height: 1.1; color: var(--ink);
 }
 .pd-cabeza-sub {
   margin: 0.35rem 0 0; max-width: 46ch;
-  font-size: 0.83rem; line-height: 1.5; color: var(--text-secondary);
+  font-size: 0.82rem; line-height: 1.5; color: var(--text-secondary);
 }
 .pd-cerrar {
   flex: 0 0 auto; width: 36px; height: 36px;
@@ -7046,20 +7046,20 @@
 .pd-error {
   margin: 0; padding: 0.8rem 1rem;
   background: var(--error-fondo); border-left: 2px solid var(--error-ink);
-  font-size: 0.88rem; line-height: 1.5; color: var(--error-fuerte);
+  font-size: 0.82rem; line-height: 1.5; color: var(--error-fuerte);
 }
 
 .pd-sec { display: flex; flex-direction: column; gap: 1.1rem; }
 
 .pd-regla { display: flex; align-items: center; gap: 0.9rem; }
 .pd-regla-t {
-  font-size: 0.66rem; font-weight: 700; letter-spacing: 0.22em;
+  font-size: 0.68rem; font-weight: 700; letter-spacing: 0.22em;
   text-transform: uppercase; color: var(--ink); white-space: nowrap;
 }
 .pd-regla-linea { flex: 1; height: 1px; background: var(--hairline); }
 .pd-regla-extra {
   display: flex; align-items: center; gap: 0.4rem;
-  font-size: 0.72rem; font-weight: 700; color: var(--oro-ink); white-space: nowrap;
+  font-size: 0.75rem; font-weight: 700; color: var(--oro-ink); white-space: nowrap;
 }
 
 .pd-rejilla { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem 1.25rem; }
@@ -7068,14 +7068,14 @@
 
 .pd-campo { display: flex; flex-direction: column; gap: 0.45rem; min-width: 0; }
 .pd-campo-cabeza { display: flex; align-items: baseline; gap: 0.5rem; flex-wrap: wrap; }
-.pd-label { font-size: 0.78rem; font-weight: 700; color: var(--text-secondary); }
+.pd-label { font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); }
 .pd-requerido {
-  font-size: 0.6rem; font-weight: 700; letter-spacing: 0.14em;
+  font-size: 0.68rem; font-weight: 700; letter-spacing: 0.14em;
   text-transform: uppercase; color: var(--oro-ink);
 }
-.pd-apunte { font-size: 0.72rem; color: var(--text-muted); }
+.pd-apunte { font-size: 0.75rem; color: var(--text-muted); }
 .pd-cuenta {
-  margin-left: auto; font-size: 0.7rem; font-weight: 700;
+  margin-left: auto; font-size: 0.68rem; font-weight: 700;
   color: var(--text-muted); font-variant-numeric: tabular-nums;
 }
 .pd-cuenta--pasada { color: var(--oro-ink); }
@@ -7085,7 +7085,7 @@
 .pd-input {
   width: 100%; box-sizing: border-box;
   padding: 0.8rem 1rem;
-  font-family: var(--font-ui); font-size: 0.92rem;
+  font-family: var(--font-ui); font-size: 0.95rem;
   color: var(--ink); background: var(--bg-color);
   border: 1px solid var(--hairline); border-radius: 2px;
   outline: none;
@@ -7099,7 +7099,7 @@
 .pd-select select {
   width: 100%; box-sizing: border-box;
   padding: 0.8rem 2.5rem 0.8rem 1rem;
-  font-family: var(--font-ui); font-size: 0.92rem;
+  font-family: var(--font-ui); font-size: 0.95rem;
   color: var(--ink); background: var(--bg-color);
   border: 1px solid var(--hairline); border-radius: 2px;
   outline: none; appearance: none; cursor: pointer;
@@ -7122,7 +7122,7 @@
 .pd-plata input::placeholder { font-weight: 400; color: var(--text-muted); }
 .pd-plata-signo { font-size: 0.95rem; font-weight: 700; color: var(--text-muted); }
 .pd-plata-cop {
-  font-size: 0.66rem; font-weight: 700; letter-spacing: 0.14em; color: var(--text-muted);
+  font-size: 0.68rem; font-weight: 700; letter-spacing: 0.14em; color: var(--text-muted);
 }
 
 /* Fichas para estado y método de pago. Se ven todas las opciones a la vez —
@@ -7148,23 +7148,23 @@
 }
 .pd-pie-estado { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
 .pd-pie-rotulo {
-  font-size: 0.63rem; font-weight: 700; letter-spacing: 0.2em;
+  font-size: 0.68rem; font-weight: 700; letter-spacing: 0.2em;
   text-transform: uppercase; color: var(--text-muted);
 }
 .pd-pie-valor {
-  font-size: 1.05rem; font-weight: 700; color: var(--ink);
+  font-size: 1rem; font-weight: 700; color: var(--ink);
   font-variant-numeric: tabular-nums;
 }
 /* Lo que falta se nombra, no se grita: es una instrucción, no un error. */
 .pd-pie-valor--falta {
-  font-size: 0.92rem; font-weight: 600; color: var(--text-secondary);
+  font-size: 0.95rem; font-weight: 600; color: var(--text-secondary);
   font-variant-numeric: normal;
 }
 .pd-pie-botones { display: flex; align-items: center; gap: 0.75rem; margin-left: auto; }
 
 .pd-btn {
   padding: 0.8rem 1.6rem; border-radius: 100px;
-  font-family: var(--font-ui); font-size: 0.85rem; font-weight: 700;
+  font-family: var(--font-ui); font-size: 0.82rem; font-weight: 700;
   letter-spacing: 0.03em; cursor: pointer;
   transition: var(--transition-smooth); white-space: nowrap;
 }
@@ -7191,7 +7191,7 @@
   .pd-velo { padding: 0; }
   .pd-caja { max-width: none; height: 100dvh; max-height: none; border: 0; border-radius: 0; }
   .pd-cabeza { padding: 1.25rem 1.25rem 1rem; }
-  .pd-cabeza-titulo { font-size: 1.5rem; }
+  .pd-cabeza-titulo { font-size: 1.6rem; }
   .pd-cuerpo { padding: 1.25rem 1.25rem 1.5rem; gap: 1.75rem; }
   .pd-rejilla, .pd-rejilla--pieza { grid-template-columns: 1fr; }
   .pd-pie { padding: 1rem 1.25rem; }
@@ -7217,7 +7217,7 @@
   padding: 1.4rem 1.6rem 1.5rem; background: var(--bg-color);
 }
 .jornada-wa-v {
-  font-size: 1.75rem; font-weight: 300; color: var(--ink);
+  font-size: 1.85rem; font-weight: 300; color: var(--ink);
   font-variant-numeric: tabular-nums; line-height: 1.05;
 }
 /* Sólo se tiñe cuando hay algo que mirar: que una conversación necesitara a
@@ -7228,7 +7228,7 @@
   font-size: 0.68rem; font-weight: 700; letter-spacing: 0.12em;
   text-transform: uppercase; color: var(--text-secondary);
 }
-.jornada-wa-s { font-size: 0.8rem; line-height: 1.45; color: var(--text-muted); }
+.jornada-wa-s { font-size: 0.82rem; line-height: 1.45; color: var(--text-muted); }
 
 /* ─── Eliminar y archivar desde la lista de conversaciones ────────────────
    El borrado existía, pero vivía dentro del menú de exportar de la cabecera,
@@ -7340,7 +7340,7 @@
 
 .ec-descargar {
   margin: 1rem 0 0;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   color: var(--text-secondary);
 }
 
@@ -7372,7 +7372,7 @@
   padding: 0.85rem 1rem;
   background: var(--error-fondo);
   border-left: 2px solid var(--error-ink);
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   line-height: 1.5;
   color: var(--error-fuerte);
 }
@@ -7426,7 +7426,7 @@
   margin-top: 10px;
   padding-top: 10px;
   border-top: 1px solid var(--hairline);
-  font-size: 0.78rem;
+  font-size: 0.75rem;
 }
 
 .chat-seleccion-barra button {
@@ -7486,7 +7486,7 @@
 
 .chat-lote-barra > span {
   margin-right: auto;
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   font-weight: 700;
   color: var(--ink);
   font-variant-numeric: tabular-nums;
@@ -7498,7 +7498,7 @@
   border-radius: 100px;
   background: var(--bg-color);
   font-family: var(--font-ui);
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: var(--ink);
   white-space: nowrap;
@@ -7528,7 +7528,7 @@
   padding: 12px 18px;
   border-bottom: 1px solid var(--hairline);
   background: var(--bg-marfil);
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   line-height: 1.5;
   color: var(--text-secondary);
   text-wrap: pretty;
@@ -7543,7 +7543,7 @@
   padding: 10px 18px;
   border-top: 1px solid var(--error-ink);
   background: var(--error-fondo);
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   line-height: 1.45;
   color: var(--error-fuerte);
   cursor: pointer;
