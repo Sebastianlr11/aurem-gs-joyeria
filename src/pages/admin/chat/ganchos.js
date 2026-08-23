@@ -11,6 +11,8 @@
  * `react-refresh/only-export-components` no deja mezclar las dos cosas.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { supabase } from '../../../lib/supabase';
+import { normalizePhone } from './comunes';
 
 /* Tiene que cuadrar con la animación `.lb-closing` de panel.css. Si allí se
    cambia la duración, aquí también, o la foto se queda a medio desvanecer. */
@@ -92,4 +94,72 @@ export function useAvisos() {
     }, []);
 
     return { avisos, avisar, descartar, olvidar };
+}
+
+/**
+ * Los datos de la persona con la que estás hablando: su ficha, sus pedidos y
+ * las notas internas.
+ *
+ * El teléfono entra de tres formas según el canal —3143602930 desde el panel,
+ * +573143602930 desde el checkout, 573143602930 desde WhatsApp—, así que se
+ * busca por las tres. La base ya impide que la misma persona se guarde dos
+ * veces, pero los pedidos viejos siguen teniendo el formato con el que
+ * entraron y hay que encontrarlos igual.
+ *
+ * Se pide con `.then` y no con `await` a propósito: la ficha y los pedidos son
+ * dos viajes independientes y no hay motivo para que uno espere al otro.
+ */
+export function useFichaDelContacto(telefono) {
+    const [cliente, setCliente] = useState(null);
+    const [pedidos, setPedidos] = useState([]);
+    const [notas, setNotas] = useState('');
+    const [editandoNotas, setEditandoNotas] = useState(false);
+
+    useEffect(() => {
+        if (!telefono) return;
+        /* Al cambiar de conversación se descarta lo que llegue tarde de la
+           anterior. Sin esto, una respuesta lenta pinta la ficha de la clienta
+           que acabas de dejar sobre el chat de la que acabas de abrir. */
+        let vigente = true;
+        const largo = normalizePhone(telefono);
+        const corto = largo.startsWith('57') ? largo.slice(2) : largo;
+
+        supabase.from('customers').select('*')
+            .or(`phone.eq.${largo},phone.eq.${corto},phone.eq.${telefono}`)
+            .maybeSingle()
+            .then(({ data }) => {
+                if (!vigente) return;
+                setCliente(data);
+                setNotas(data?.notes || '');
+                setEditandoNotas(false);
+            });
+
+        supabase.from('orders').select('*')
+            .or(`customer_phone.eq.${largo},customer_phone.eq.${corto},customer_phone.eq.${telefono}`)
+            .order('created_at', { ascending: false }).limit(10)
+            .then(({ data }) => { if (vigente) setPedidos(data || []); });
+
+        return () => { vigente = false; };
+    }, [telefono]);
+
+    const guardarNotas = useCallback(async () => {
+        if (!cliente) return;
+        await supabase.from('customers').update({ notes: notas }).eq('id', cliente.id);
+        setCliente(prev => ({ ...prev, notes: notas }));
+        setEditandoNotas(false);
+    }, [cliente, notas]);
+
+    /* Cancelar devuelve lo que había guardado, no lo que quedó a medio
+       escribir. Antes salir del modo edición dejaba el borrador en el campo, y
+       al volver a entrar parecía guardado sin estarlo. */
+    const cancelarNotas = useCallback(() => {
+        setNotas(cliente?.notes || '');
+        setEditandoNotas(false);
+    }, [cliente]);
+
+    return {
+        cliente, pedidos, notas, setNotas,
+        editandoNotas, setEditandoNotas,
+        guardarNotas, cancelarNotas,
+    };
 }

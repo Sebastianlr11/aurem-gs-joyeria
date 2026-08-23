@@ -39,7 +39,7 @@ npm run dev          # Vite en http://localhost:5173
 npm run build        # eslint && vitest && sitemap.mjs && correos.mjs && tsc -b && vite build
 npm run preview      # Sirve /dist
 npm run lint         # ESLint (sí corre en el build)
-npm test             # Vitest, una pasada (70 pruebas)
+npm test             # Vitest, una pasada (76 pruebas)
 npm run test:mirar   # Vitest en marcha, repitiendo al guardar
 
 npm run sitemap      # Regenera public/sitemap.xml desde Supabase
@@ -61,9 +61,9 @@ Tres advertencias sobre el build:
 
 ### Las pruebas
 
-Hay **70**: `dinero.test.js` y `caja.test.js` cubren las cuentas de plata,
+Hay **76**: `dinero.test.js` y `caja.test.js` cubren las cuentas de plata,
 `fotosEnStorage.test.js` la deducción de qué archivos se borran, y
-`chat/ganchos.test.js` el visor de fotos y los avisos del chat. Se empezó por el dinero a
+`chat/ganchos.test.js` y `chat/ficha.test.js` los ganchos del chat. Se empezó por el dinero a
 propósito, porque es el único sitio donde un error **no se ve**.
 
 Los ganchos del chat se prueban por otra razón: **no hay forma de probarlos a mano**. Para
