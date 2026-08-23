@@ -7,7 +7,8 @@
  *
  * El daño concreto estaba en el retorno de la pauta. `PautaRetorno` filtraba
  * el gasto por fecha —correcto— y la plata por pedidos CREADOS en el periodo
- * —incorrecto—. Con fabricación de 5 a 8 días más el envío, las dos fechas
+ * —incorrecto—. Entre que se pide y se cobra pasan días: el taller se toma dos
+ * o tres en despachar y el envío otro tanto, así que las dos fechas
  * casi nunca caen en la misma ventana: una venta cobrada dentro del periodo
  * pero pedida antes no contaba, y una pedida dentro pero cobrada después
  * contaba entera. El retorno dividía peras entre manzanas.
