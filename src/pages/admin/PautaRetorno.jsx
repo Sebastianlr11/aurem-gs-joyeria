@@ -43,7 +43,6 @@ const hoyEnBogota = () =>
 export default function PautaRetorno({ orders, periodStart, periodDays, verPruebas = false }) {
     const [gastos, setGastos] = useState([]);
     const [caja, setCaja] = useState(null);
-    const [sinConfirmar, setSinConfirmar] = useState([]);
     const [iva, setIva] = useState(0.19);
     const [cargando, setCargando] = useState(true);
     const [abierto, setAbierto] = useState(false);
@@ -57,13 +56,14 @@ export default function PautaRetorno({ orders, periodStart, periodDays, verPrueb
            entrega: son todas constantes del negocio. Deliberadamente NO en
            ajustes_internos, que guarda el secreto del cron y por eso está
            cerrada a la API entera. */
-        const [{ data: g }, { data: t }, { data: p }] = await Promise.all([
+        /* Ya no se le pregunta al catálogo por costos: desde el 23 de agosto
+           de 2026 el costo vive en el pedido, anotado al despachar. Ver
+           supabase/migrations/20260823_costos_del_pedido.sql. */
+        const [{ data: g }, { data: t }] = await Promise.all([
             supabase.from('gasto_pauta').select('*').order('fecha', { ascending: false }),
             supabase.from('taller_precios').select('iva_pauta').limit(1).maybeSingle(),
-            supabase.from('products').select('name').eq('costo_provisional', true),
         ]);
         setGastos(g || []);
-        setSinConfirmar((p || []).map((x) => x.name));
         if (t?.iva_pauta != null) setIva(Number(t.iva_pauta));
         setCargando(false);
     }, []);
@@ -135,6 +135,22 @@ export default function PautaRetorno({ orders, periodStart, periodDays, verPrueb
     /* Cuánto cuesta cada pedido que se sostuvo. */
     const cac = gastoReal > 0 && vivos.length ? gastoReal / vivos.length : null;
 
+    /* Lo que costó producir y despachar lo que se vendió. Sale del pedido, no
+       del catálogo: se anota al despachar, cuando el oro del día ya se pagó y
+       el flete también. Sólo entran los pedidos que lo tienen anotado, y por
+       eso se dice sobre cuántos se calculó — un margen sobre uno de cinco no
+       es mentira, pero tampoco es el periodo. */
+    const conCosto = vivos.filter(o => o.costo_taller != null);
+    const costoVendido = conCosto.reduce(
+        (t, o) => t + Number(o.costo_taller) + Number(o.costo_envio || 0), 0);
+    const vendidoConCosto = conCosto.reduce((t, o) => t + Number(o.amount), 0);
+
+    /* La resta completa: lo que se vendió, menos lo que costó hacerlo, menos
+       lo que costó traer al cliente. Es la única cifra del panel que responde
+       "¿esto deja plata?" en vez de "¿esto vende?". */
+    const dejaBruto = conCosto.length ? vendidoConCosto - costoVendido : null;
+    const dejaNeto = dejaBruto === null ? null : dejaBruto - gastoReal;
+
     /* Contra entrega: de lo que salió, cuánto llegó a cobrarse. Es EL riesgo
        del modelo en Colombia —el paquete se devuelve en la puerta y el envío
        ya se pagó—, y hasta que haya entregas de verdad no se puede saber. */
@@ -168,18 +184,19 @@ export default function PautaRetorno({ orders, periodStart, periodDays, verPrueb
                 </button>
             </div>
 
-            {/* Sólo cuando ya hay gasto anotado. Antes de eso los costos de
-                relleno no hacen daño —el panel se está armando— y un aviso
+            {/* Sólo cuando ya hay gasto anotado. Antes de eso un pedido sin
+                costo no hace daño —el panel se está armando— y un aviso
                 permanente se vuelve parte del decorado y deja de leerse. El
-                día que entra el primer peso de pauta, sí importa. */}
-            {!sinGasto && sinConfirmar.length > 0 && (
+                día que entra el primer peso de pauta, sí importa: gastar en
+                anuncios sin saber qué deja cada venta es apostar. */}
+            {!sinGasto && conCosto.length < vivos.length && (
                 <p className="pauta-alerta">
-                    <strong>Hay pauta corriendo con costos sin confirmar.</strong>{' '}
-                    {sinConfirmar.length === 1
-                        ? `${sinConfirmar[0]} tiene un costo de relleno`
-                        : `${sinConfirmar.length} piezas tienen costos de relleno`}
-                    , así que lo que el panel diga del margen es inventado. Pídeselos al
-                    joyero antes de decidir cuánto gastar.
+                    <strong>Hay pauta corriendo y pedidos sin costo anotado.</strong>{' '}
+                    {vivos.length - conCosto.length === 1
+                        ? 'Un pedido de este periodo no dice qué costó'
+                        : `${vivos.length - conCosto.length} pedidos de este periodo no dicen qué costaron`}
+                    , así que la utilidad de abajo sale corta. Se anota al editar el
+                    pedido, en «Lo que costó».
                 </p>
             )}
 
@@ -241,6 +258,20 @@ export default function PautaRetorno({ orders, periodStart, periodDays, verPrueb
                             </span>
                             <span className="pauta-cifra-s">
                                 Si se entrega y se cobra todo lo que está en camino
+                            </span>
+                        </div>
+                        {/* El múltiplo dice si la pauta se paga; esta dice si
+                            el negocio gana. No son la misma pregunta: un ROAS
+                            de 3× con una pieza que deja el 20 % pierde plata. */}
+                        <div className="pauta-cifra">
+                            <span className="pauta-cifra-l">Queda después de todo</span>
+                            <span className={`pauta-cifra-v ${dejaNeto === null ? '' : dejaNeto >= 0 ? 'pauta-bien' : 'pauta-mal'}`}>
+                                {dejaNeto === null ? '—' : `$${fmt(dejaNeto)}`}
+                            </span>
+                            <span className="pauta-cifra-s">
+                                {dejaNeto === null
+                                    ? 'Anota lo que costó algún pedido para saberlo'
+                                    : <>Venta menos taller, flete y pauta{conCosto.length < vivos.length && `, sobre ${conCosto.length} de ${vivos.length} pedidos`}</>}
                             </span>
                         </div>
                         <div className="pauta-cifra">

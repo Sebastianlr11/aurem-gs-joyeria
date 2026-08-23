@@ -194,7 +194,8 @@ redesplegar). **La programación no está versionada**: para verla, `SELECT * FR
 `product_name`, `amount`, `status`, `payment_method`, `order_source`, `notes`, `carrier`,
 `tracking_number`, `mp_preference_id`, `mp_payment_id`, `mp_status`, `status_updated_at`,
 `created_at`, `es_prueba`, `shipping_address`, `shipping_city`, `shipping_department`,
-`abono_monto`, `abono_pagado_en`, `conversion_enviada_en`, y la atribución
+`abono_monto`, `abono_pagado_en`, `conversion_enviada_en`, `costo_taller`, `costo_envio`,
+`costo_anotado_en`, y la atribución
 (`ttclid`, `ttp`, `fbc`, `fbp`, `client_ua`, `client_ip`, `ctwa_clid`, `anuncio_id`,
 `utm_source`, `utm_campaign`).
 
@@ -207,7 +208,8 @@ redesplegar). **La programación no está versionada**: para verla, `SELECT * FR
 `created_at`.
 
 **`products`** — base + `images[]`, `stock`, `metal`, `piedra`, `engaste`, `talla_rango`,
-`compare_price`, `costo`, `costo_provisional`.
+`compare_price`. (`costo` y `costo_provisional` siguen en la tabla pero están **muertas**
+desde el 23-ago: el costo vive en el pedido.)
 
 ### RPC (ninguna versionada)
 

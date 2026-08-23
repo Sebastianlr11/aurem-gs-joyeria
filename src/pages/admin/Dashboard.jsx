@@ -2485,19 +2485,38 @@ const ReportsSection = ({ orders, products = [], verPruebas = false, onNavigate 
         .map(([nombre, ingreso]) => {
             const ficha = productoPorId[idPorNombre[nombre]] || productoPorNombre[nombre];
             const unidades = productCounts[nombre] || 0;
+
             /* Lo que factura una pieza y lo que deja son cosas distintas. Dos
                anillos de $550.000 se ven idénticos aquí aunque uno deje
                $350.000 y el otro $80.000 — y si nadie lo ve, la pauta termina
-               empujando el que menos deja. Sólo aparece cuando el costo está
-               cargado; inventarlo sería peor que no tenerlo. */
-            const costo = ficha?.costo != null ? Number(ficha.costo) : null;
+               empujando el que menos deja.
+
+               Este número salía del catálogo (`products.costo`), un costo fijo
+               por pieza. Con el oro moviéndose eso no se podía mantener y se
+               llenaba de estimaciones, así que el panel andaba avisando de que
+               sus propios márgenes eran de relleno. Ahora sale de lo que
+               costaron LOS PEDIDOS de esta pieza, anotado uno por uno al
+               despachar y congelado ahí. Un margen menos, pero verdadero.
+
+               Sólo cuentan los pedidos vivos: uno cancelado no dejó nada, y
+               meterlo hundiría el margen de una pieza que se vende bien. */
+            const conCosto = filtered.filter(o =>
+                o.product_name === nombre && estaVivo(o) && o.costo_taller != null);
+
+            const deja = conCosto.reduce((t, o) =>
+                t + (Number(o.amount) - Number(o.costo_taller) - Number(o.costo_envio || 0)), 0);
+            const facturado = conCosto.reduce((t, o) => t + Number(o.amount), 0);
+
             return {
                 nombre,
                 ingreso,
                 unidades,
-                deja: costo != null && ficha?.price ? (Number(ficha.price) - costo) * unidades : null,
-                margen: costo != null && ficha?.price ? Math.round((1 - costo / Number(ficha.price)) * 100) : null,
-                provisional: !!ficha?.costo_provisional,
+                deja: conCosto.length ? deja : null,
+                margen: facturado > 0 ? Math.round((deja / facturado) * 100) : null,
+                /* Sobre cuántas de las vendidas se sabe. Un margen calculado
+                   sobre una de cinco no es mentira, pero tampoco es la pieza:
+                   hay que decir sobre qué se calculó. */
+                sobre: conCosto.length,
                 imagen: ficha?.image_url || null,
             };
         });
@@ -2730,16 +2749,10 @@ const ReportsSection = ({ orders, products = [], verPruebas = false, onNavigate 
                     </div>
                     {topPiezas.length > 0 && topPiezas.every(p => p.deja == null) && (
                         <p className="inf-aviso">
-                            Ninguna de estas piezas tiene el costo cargado, así que el panel
-                            puede decir cuál vende más pero no cuál deja más. Se pone al editar
-                            la pieza, en «Lo que cuesta la pieza».
-                        </p>
-                    )}
-                    {topPiezas.some(p => p.provisional) && (
-                        <p className="inf-aviso inf-aviso--ojo">
-                            Los márgenes de abajo salen de costos de relleno, no de los que
-                            dio el joyero. Sirven para armar el panel; no para decidir cuánto
-                            gastar en pauta.
+                            Ningún pedido de estas piezas tiene el costo anotado, así que el
+                            panel puede decir cuál vende más pero no cuál deja más. Se anota
+                            al editar el pedido, en «Lo que costó», cuando el taller ya
+                            entregó y el flete ya se pagó.
                         </p>
                     )}
                     {topPiezas.length === 0 ? (
@@ -2760,9 +2773,9 @@ const ReportsSection = ({ orders, products = [], verPruebas = false, onNavigate 
                                 <span className="inf-pieza-meta">
                                     {p.unidades} unidad{p.unidades !== 1 ? 'es' : ''} vendida{p.unidades !== 1 ? 's' : ''}
                                     {p.deja != null && (
-                                        p.provisional
-                                            ? <> · dejaría <em>${fmt(p.deja)}</em> ({p.margen} %) con un costo de relleno</>
-                                            : <> · deja <strong>${fmt(p.deja)}</strong> ({p.margen} %)</>
+                                        <> · deja <strong>${fmt(p.deja)}</strong> ({p.margen} %)
+                                            {p.sobre < p.unidades && <em> · sobre {p.sobre} de {p.unidades}</em>}
+                                        </>
                                     )}
                                 </span>
                             </div>

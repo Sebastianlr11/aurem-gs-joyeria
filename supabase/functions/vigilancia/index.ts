@@ -218,15 +218,26 @@ Deno.serve(async (req: Request) => {
     .limit(1)
 
   if (gastoReciente?.length) {
-    const { data: relleno } = await db
-      .from('products')
-      .select('name')
-      .eq('costo_provisional', true)
+    /* Antes esto miraba `products.costo_provisional`: un costo de relleno en
+       el catálogo. Desde el 23 de agosto de 2026 el costo no vive en el
+       catálogo sino en el pedido —se anota al despachar, con el oro del día—,
+       así que la pregunta cambió: ya no es "¿hay costos inventados?" sino
+       "¿hay pedidos despachados de los que no sabemos qué costaron?".
 
-    if (relleno?.length) {
+       Sólo cuentan los despachados: pedirle el costo a un pedido que el
+       taller todavía no ha entregado sería pedir algo que nadie sabe. */
+    const { data: sinCosto } = await db
+      .from('orders')
+      .select('id')
+      .in('status', ['enviado', 'entregado'])
+      .is('costo_taller', null)
+      .eq('es_prueba', false)
+      .gte('created_at', new Date(ahora - 60 * 24 * 60 * 60_000).toISOString())
+
+    if (sinCosto?.length) {
       hallazgos.push({
-        que: `Hay pauta corriendo y ${plural(relleno.length, 'pieza', 'piezas')} con costo de relleno`,
-        detalle: `${relleno.map((p) => p.name).join(', ')}. El margen que enseña el panel es inventado; pedirle los costos reales al joyero antes de decidir presupuesto.`,
+        que: `Hay pauta corriendo y ${plural(sinCosto.length, 'pedido', 'pedidos')} sin costo anotado`,
+        detalle: `${sinCosto.length} ${sinCosto.length === 1 ? 'pedido despachado no dice' : 'pedidos despachados no dicen'} qué costaron, así que la utilidad que enseña el panel sale corta y el retorno de la pauta no se puede leer. Se anota al editar el pedido, en «Lo que costó».`,
         grave: true,
       })
     }

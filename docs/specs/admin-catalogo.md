@@ -27,8 +27,10 @@ sitios donde se usan**: la web y WhatsApp — que no aceptan el mismo formato.
 ### Tablas y Storage
 
 - **`products`** — `name`, `description`, `price`, `compare_price`, `category`, `metal`,
-  `piedra`, `engaste`, `talla_rango`, `images[]`, `image_url`, `stock`, `costo`,
-  `costo_provisional`, `is_new`, `is_featured`.
+  `piedra`, `engaste`, `talla_rango`, `images[]`, `image_url`, `stock`, `is_new`,
+  `is_featured`. **`costo` y `costo_provisional` ya no se usan**: desde el 23 de agosto de
+  2026 el costo se anota en el pedido (`orders.costo_taller`). Las columnas siguen ahí para
+  no perder lo anotado, pero nada las lee.
 - **Storage `product-images`** — bucket **público**.
 
 ### Variables de entorno
@@ -75,11 +77,19 @@ contienen esa pieza, excluyendo `es_prueba`** (`:50-62`), y avisa antes.
 como `"550000.00"` y el campo mostraba los decimales.
 
 **El modal tiene 6 secciones con riel de navegación**, no un formulario largo: incluye
-previsualización de precio y punzón, elección de portada y **tarjeta de margen** — el
-joyero decide el precio viendo el margen, no después.
+previsualización de precio y punzón y elección de portada. **La tarjeta de margen se
+retiró el 23 de agosto de 2026**: calculaba sobre un costo fijo del catálogo que, con el
+oro moviéndose, no se podía mantener. El margen real se ve ahora por pedido.
 
-**`costo_provisional`** existe para poder publicar sin saber el costo exacto todavía; el
-panel de pauta avisa de las piezas que lo tienen para no calcular retornos sobre supuestos.
+**El costo se fue del catálogo el 23 de agosto de 2026.** Vivía aquí como un número fijo
+por pieza, con una casilla —`costo_provisional`— para poder publicar sin saberlo todavía. La
+casilla existía porque el número casi nunca se sabía: el oro se mueve, los materiales se
+mueven y el flete depende de a dónde va. En la práctica el catálogo se llenó de
+estimaciones y el panel acabó avisando de que sus propios márgenes eran de relleno.
+
+Ahora el costo se anota **en el pedido**, al despachar, cuando ya se pagó de verdad, y
+queda congelado ahí — el mismo patrón con el que los precios se congelan en `order_items`.
+Ver [admin-pedidos](admin-pedidos.md) y `supabase/migrations/20260823_costos_del_pedido.sql`.
 
 ## Límites conocidos y pendientes
 
