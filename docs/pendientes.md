@@ -790,3 +790,53 @@ Comprobado antes de tocar producción —la URL y la cabecera nuevas resuelven e
 las viejas para los dos trabajos— y después: el vigía disparado con el comando nuevo
 responde **200 `{"ok":true,"hallazgos":0}`**. Los dos trabajos siguen activos, con el
 mismo `jobid` y el mismo horario, y ya ninguno lleva una llave pegada dentro.
+
+---
+
+## 27. ✅ Borrar una pieza dejaba sus fotos publicadas — resuelto
+
+El diálogo de eliminar decía, literalmente: *«Se borran la ficha, las tres fotos y las
+medidas»*. Borraba la fila y **dejaba los archivos en el bucket**, que es público. No era
+sólo espacio desperdiciado: era una promesa de la interfaz que no se cumplía, y en una
+tienda que vende joyas por foto, una foto que sigue viva en una URL pública después de
+que le dijiste al panel que la borrara no es un descuido, es un problema.
+
+Lo mismo al quitar una foto de una pieza que ya existe: desaparecía de la ficha y seguía
+en el bucket.
+
+**Resuelto el 23 de agosto** con `src/lib/fotosEnStorage.js`, enganchado en
+`EliminarPieza.jsx` y en `ProductModal.jsx`. La parte que no es obvia: **una foto son
+hasta cuatro archivos** y sólo uno está guardado en la base.
+
+```
+1755980000-abc-893x1600.webp   la que vive en products.images[]
+1755980000-abc-893x1600.jpeg   la gemela para WhatsApp, que no acepta WebP
+1755980000-abc-w400.webp       las copias chicas del srcset
+1755980000-abc-w800.webp
+```
+
+Los otros tres **se deducen del nombre**, igual que `fotoProducto.js` deduce el `srcset`
+para pintarlos. Borrar sólo el que está en la base dejaba tres huérfanos por foto. Ojo con
+la marca `-893x1600`: la llevan la grande y la gemela, y no la llevan las copias chicas,
+que cuelgan del nombre base pelado.
+
+**La deducción se comprobó contra el bucket real antes de confiar en ella:** 15 fotos en
+la base → 30 archivos deducidos → **los 30 existen**. Ni un falso positivo ni uno que se
+escape. Los 38 que hay menos esos 30 son exactamente los 8 huérfanos que había.
+
+Dos decisiones de orden, las dos por el mismo motivo —qué pasa si el paso falla a la
+mitad—:
+
+- **Las fotos se borran DESPUÉS de la fila**, no antes. Si el borrado de la fila falla
+  —RLS, una clave foránea—, la pieza sigue viva y necesita sus fotos. Al revés quedaría
+  una ficha sin imágenes.
+- **Quitar una foto en el modal no borra nada hasta guardar.** Quien la quita y después
+  cierra sin guardar espera encontrarla donde estaba; borrarla en el momento dejaría la
+  ficha apuntando a un archivo que ya no existe.
+
+Y si falla el borrado de los archivos no se avisa en pantalla: la pieza ya no existe, que
+es lo que se pidió, y lo que queda es basura en un bucket. Queda dicho en consola.
+
+**Lo que sigue dejando huérfanos**, y se deja escrito: subir fotos en el modal y cerrarlo
+sin guardar. Los archivos ya están en el bucket y no hay nada que los nombre. La consulta
+para encontrarlos está en [`admin-catalogo.md`](specs/admin-catalogo.md).

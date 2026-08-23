@@ -20,6 +20,7 @@
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '../../lib/supabase';
+import { borrarFotos } from '../../lib/fotosEnStorage';
 import { refDe } from '../../lib/referencia';
 
 /* En español los números pequeños se escriben con letra, y esta frase se lee
@@ -81,8 +82,23 @@ export default function EliminarPieza({ product, onClose, onDeleted }) {
            comprobar nada: si RLS o una clave foránea lo bloqueaban, la pieza
            seguía ahí y el panel decía que no. */
         const { error: err } = await supabase.from('products').delete().eq('id', product.id);
+        if (err) { setBorrando(false); setError(err.message); return; }
+
+        /* Y ahora las fotos, que es lo que este diálogo lleva prometiendo
+           desde que existe y no cumplía: borraba la fila y dejaba los
+           archivos en el bucket, públicos, para siempre. Van DESPUÉS de la
+           fila y no antes, por el orden del arrepentimiento: si el borrado de
+           la fila falla —RLS, una clave foránea— la pieza sigue viva y sus
+           fotos tienen que seguir ahí. Al revés se quedaría una ficha sin
+           imágenes.
+
+           Si falla el borrado de los archivos no se avisa: la pieza ya no
+           existe, que es lo que se pidió, y lo que queda es basura en un
+           bucket, no un problema de la persona que está mirando la pantalla.
+           Queda dicho en consola y lo recoge la limpieza. */
+        await borrarFotos([...(product.images || []), product.image_url]);
+
         setBorrando(false);
-        if (err) { setError(err.message); return; }
         onDeleted(product);
     };
 

@@ -98,7 +98,10 @@ Ver [admin-pedidos](admin-pedidos.md) y `supabase/migrations/20260823_costos_del
   en adelante; no hay migración posible, porque las copias se generan en el navegador de
   quien sube. **Se resuelve solo cuando se resuban**, que es lo previsto.
 - No hay reordenación por arrastre de las imágenes de una pieza.
-- El borrado de una pieza **no borra sus archivos del Storage**: quedan huérfanos.
+- ~~El borrado de una pieza no borra sus archivos del Storage~~ — resuelto el 23 de agosto
+  con `src/lib/fotosEnStorage.js`. Lo mismo al quitar una foto de una pieza que ya existe.
+  Lo que **sigue** dejando huérfanos: subir fotos en el modal y cerrarlo sin guardar. Los
+  archivos ya están en el bucket y nadie los nombra.
 - ~~`supabase-schema.sql` no refleja las columnas reales de `products`~~ — borrado el 23
   de agosto; lo reemplaza `20260228_esquema_base.sql`
   ([pendientes #7](../pendientes.md)).
@@ -112,6 +115,30 @@ Ver [admin-pedidos](admin-pedidos.md) y `supabase/migrations/20260823_costos_del
 3. **Archivo que no mejora:** sube un JPG ya muy comprimido. Debe conservarse el original,
    no una WebP más pesada.
 4. **Fricción de borrado:** intenta borrar escribiendo mal la referencia — no debe dejar.
-   Con la referencia correcta y un pedido vivo asociado, debe avisar antes.
+   Con la referencia correcta y un pedido vivo asociado, debe avisar antes. Después mira el
+   bucket: **no debe quedar ni la `.webp`, ni la `.jpeg`, ni las dos copias chicas**.
+7. **Huérfanos:** para encontrar los que haya, esta consulta deduce del nombre la familia
+   entera de cada foto —la grande, la gemela y las chicas— y lista lo que sobra. El 23 de
+   agosto de 2026 daba 8 archivos, todos de febrero y marzo:
+
+   ```sql
+   with ref as (
+     select distinct regexp_replace(u, '^.*/product-images/', '') as ruta
+     from (select unnest(images) as u from products
+           union select image_url from products where image_url is not null) t
+     where u like '%/product-images/%'
+   ), familia as (
+     select ruta from ref
+     union select regexp_replace(ruta, '\.[a-z]+$', '.jpeg') from ref
+     union select regexp_replace(ruta, '-\d+x\d+\.webp$', '-w400.webp') from ref
+       where ruta ~ '-\d+x\d+\.webp$'
+     union select regexp_replace(ruta, '-\d+x\d+\.webp$', '-w800.webp') from ref
+       where ruta ~ '-\d+x\d+\.webp$'
+   )
+   select name, round(((metadata->>'size')::numeric/1024)) as kb, created_at::date
+   from storage.objects
+   where bucket_id = 'product-images' and name not in (select ruta from familia)
+   order by created_at;
+   ```
 5. **Precio:** edita una pieza y comprueba que el campo dice `550000`, no `550000.00`.
 6. **CSV:** exporta el catálogo y ábrelo — las tildes deben verse bien.
