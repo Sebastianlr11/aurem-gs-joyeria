@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
-import { recibidoDe, porCobrarDe, estaVivo } from '../../lib/dinero';
+import { recibidoDe, porCobrarDe, estaVivo, netoDeMercadoPago } from '../../lib/dinero';
+import { cajaDeLosUltimos } from '../../lib/caja';
 import AdminSidebar from './AdminSidebar';
 import { NAV } from './adminNav.jsx';
 import PautaRetorno from './PautaRetorno';
@@ -485,26 +486,20 @@ const ConfirmModal = ({ title, text, onClose, onConfirm }) => {
 ═══════════════════════════════════════════════════════════════════ */
 
 /* ─── DashboardHome ──────────────────────────────────────────────── */
-const MP_FEE_PERCENT = 0.0329;  // 3.29%
-const MP_FEE_FIXED   = 800;    // $800 COP por transacción
-const MP_IVA         = 0.19;   // 19% IVA sobre la comisión
-const MP_RETE_FUENTE = 0.015;  // 1.5% retención en la fuente
-const MP_RETE_ICA    = 0.00414;// ~0.414% retención ICA
 
 /* Ingresos de un conjunto de pedidos. MercadoPago va neto de comisión y
    retenciones; el contraentrega cuenta lo que de verdad entró.
 
    Antes 'enviado' contaba como cobrado, y no lo es: el paquete va en camino
-   y el cliente no ha pagado nada más que el abono del envío. */
+   y el cliente no ha pagado nada más que el abono del envío.
+
+   La cuenta de la comisión de Mercado Pago estaba escrita aquí y otra vez en
+   calcMPNet(), unas mil setecientas líneas más abajo. Ahora las dos llaman a
+   netoDeMercadoPago() de src/lib/dinero.js: una sola fórmula, un solo sitio
+   donde cambiarla si Mercado Pago sube sus tarifas. */
 const ingresosDe = (pedidos) => {
     const mp = pedidos.filter(o => VENTAS_VIVAS.includes(o.status) && !isCOD(o));
-    const mpBruto = mp.reduce((s, o) => s + Number(o.amount), 0);
-    const mpCostos = mp.reduce((s, o) => {
-        const monto = Number(o.amount);
-        const comision = (monto * MP_FEE_PERCENT + MP_FEE_FIXED) * (1 + MP_IVA);
-        return s + Math.ceil(comision + monto * MP_RETE_FUENTE + monto * MP_RETE_ICA);
-    }, 0);
-    const mpNeto = mpBruto - mpCostos;
+    const mpNeto = mp.reduce((s, o) => s + netoDeMercadoPago(Number(o.amount)), 0);
 
     /* El abono del contraentrega también es plata que entró, aunque el
        pedido no esté cobrado del todo. Sin esto, los $20.000 de cada pedido
@@ -535,7 +530,7 @@ const JIcon = ({ name, size = 20 }) => {
     }
 };
 
-const DashboardHome = ({ products, orders, chatsPendientes, actualizadoEn, onRecargar, onNavigate }) => {
+const DashboardHome = ({ products, orders, chatsPendientes, actualizadoEn, verPruebas, onRecargar, onNavigate }) => {
     const hoy = new Date();
     const hace30 = new Date(hoy.getTime() - 30 * 86400000);
 
@@ -566,6 +561,21 @@ const DashboardHome = ({ products, orders, chatsPendientes, actualizadoEn, onRec
     const [gastoPauta, setGastoPauta] = useState(null);
     const [ultimosMensajes, setUltimosMensajes] = useState([]);
     const [valentina, setValentina] = useState(null);
+
+    /* La caja de verdad: lo que ENTRÓ en los últimos 30 días, con su fecha,
+       del libro de movimientos. Antes esta cifra salía del estado actual de
+       los pedidos creados en 30 días, que es otra pregunta — y la de abajo,
+       el retorno de la pauta, dividía esa cifra por un gasto que sí venía
+       fechado. Sigue el lente de pruebas, o el interruptor dejaría de valer
+       para este bloque. */
+    const [caja, setCaja] = useState(null);
+    useEffect(() => {
+        if (!actualizadoEn) return;
+        let vigente = true;
+        cajaDeLosUltimos(30, { incluirPruebas: verPruebas })
+            .then(c => { if (vigente) setCaja(c); });
+        return () => { vigente = false; };
+    }, [actualizadoEn, verPruebas]);
 
     /* Cuelga de actualizadoEn para que estas cuatro consultas se recarguen con
        el resto del panel y no queden congeladas desde el montaje. Se espera a
@@ -616,7 +626,10 @@ const DashboardHome = ({ products, orders, chatsPendientes, actualizadoEn, onRec
     }, [actualizadoEn]);
 
     const pedidos30 = orders.filter(o => new Date(o.created_at) >= hace30);
+    /* ingresos sigue respondiendo "qué falta cobrar", que es una pregunta del
+       estado de ahora y no tiene fecha. Lo que YA entró lo responde el libro. */
     const ingresos = ingresosDe(pedidos30);
+    const cobrado = caja?.total ?? 0;
 
     /* El trabajo del día mira todos los pedidos, no solo los últimos 30 días:
        uno de hace dos meses sin despachar sigue siendo trabajo de hoy. */
@@ -905,20 +918,20 @@ const DashboardHome = ({ products, orders, chatsPendientes, actualizadoEn, onRec
                 <div className="jornada-dinero-col">
                     <span className="jornada-dinero-label">Cobrado · últimos 30 días</span>
                     <div className="jornada-dinero-cifra">
-                        <span className="jornada-dinero-valor">${fmt(ingresos.total)}</span>
+                        <span className="jornada-dinero-valor">${fmt(cobrado)}</span>
                         <span className="jornada-dinero-moneda">COP</span>
                     </div>
                     <span className="jornada-dinero-sub">
-                        {ingresos.entregados} pedido{ingresos.entregados !== 1 ? 's' : ''} entregado{ingresos.entregados !== 1 ? 's' : ''} y pagado{ingresos.entregados !== 1 ? 's' : ''}
+                        Plata que entró en estos 30 días, con su fecha
                     </span>
                     <div className="jornada-dinero-detalle">
                         <div className="jornada-dinero-fila">
                             <span><span className="jornada-punto" />MercadoPago (neto)</span>
-                            <strong>${fmt(ingresos.mpNeto)}</strong>
+                            <strong>${fmt(caja?.mercadoPago ?? 0)}</strong>
                         </div>
                         <div className="jornada-dinero-fila">
-                            <span><span className="jornada-punto jornada-punto--cod" />Contra entrega cobrado</span>
-                            <strong>${fmt(ingresos.codCobrado)}</strong>
+                            <span><span className="jornada-punto jornada-punto--cod" />Efectivo y transferencias</span>
+                            <strong>${fmt(caja?.efectivo ?? 0)}</strong>
                         </div>
                     </div>
                 </div>
@@ -983,13 +996,13 @@ const DashboardHome = ({ products, orders, chatsPendientes, actualizadoEn, onRec
                     </div>
                     <div className="jornada-pauta-col">
                         <span className="jornada-dinero-label">Por cada peso gastado</span>
-                        <span className={`jornada-pauta-valor ${ingresos.total >= gastoPauta ? 'jornada-pauta--bien' : 'jornada-pauta--mal'}`}>
-                            ${fmt(ingresos.total / gastoPauta)}
+                        <span className={`jornada-pauta-valor ${cobrado >= gastoPauta ? 'jornada-pauta--bien' : 'jornada-pauta--mal'}`}>
+                            ${fmt(cobrado / gastoPauta)}
                         </span>
                         <span className="jornada-dinero-sub">
-                            {ingresos.total >= gastoPauta
-                                ? 'De lo cobrado, no de lo prometido'
-                                : `Faltan $${fmt(gastoPauta - ingresos.total)} para que se pague sola`}
+                            {cobrado >= gastoPauta
+                                ? 'De lo cobrado en estos 30 días, no de lo prometido'
+                                : `Faltan $${fmt(gastoPauta - cobrado)} para que se pague sola`}
                         </span>
                     </div>
                     <button className="jornada-pauta-link" onClick={() => onNavigate('reports')}>Ver el detalle →</button>
@@ -2131,12 +2144,11 @@ const CustomersSection = ({ customers, orders = [], loading, onRefresh }) => {
 };
 
 /* ─── ReportsSection ─────────────────────────────────────────────── */
-const calcMPNet = (amount) => {
-    const base = amount * MP_FEE_PERCENT + MP_FEE_FIXED;
-    return amount - Math.ceil(base * (1 + MP_IVA) + amount * MP_RETE_FUENTE + amount * MP_RETE_ICA);
-};
+/* Era una segunda copia de la fórmula de la comisión. Se queda el nombre para
+   no tocar cinco sitios, pero la cuenta ya vive en un solo lugar. */
+const calcMPNet = (amount) => netoDeMercadoPago(amount);
 
-const ReportsSection = ({ orders, products = [], onNavigate }) => {
+const ReportsSection = ({ orders, products = [], verPruebas = false, onNavigate }) => {
     const [period, setPeriod] = useState('30d');
     const [waAnalytics, setWaAnalytics] = useState(null);
     const [trendData, setTrendData] = useState(null);
@@ -2495,7 +2507,7 @@ const ReportsSection = ({ orders, products = [], onNavigate }) => {
                 </article>
             </section>
 
-            <PautaRetorno orders={paidFiltered} periodStart={periodStart} periodDays={periodDays} />
+            <PautaRetorno orders={paidFiltered} periodStart={periodStart} periodDays={periodDays} verPruebas={verPruebas} />
 
             <section className="inf-panel">
                 <div className="inf-panel-head">
@@ -3986,6 +3998,7 @@ const Dashboard = () => {
                             products={products} orders={ordersVisibles}
                             chatsPendientes={chatsPendientes}
                             actualizadoEn={actualizadoEn}
+                            verPruebas={verPruebas}
                             onRecargar={recargarTodo}
                             onNavigate={irA}
                         />
@@ -4000,7 +4013,7 @@ const Dashboard = () => {
                         <CustomersSection customers={customersVisibles} orders={ordersVisibles} loading={loadingC} onRefresh={fetchCustomers} />
                     )}
                     {section === 'reports' && (
-                        <ReportsSection orders={ordersVisibles} products={products} onNavigate={irA} />
+                        <ReportsSection orders={ordersVisibles} products={products} verPruebas={verPruebas} onNavigate={irA} />
                     )}
                     {section === 'notes' && (
                         <NotesSection />

@@ -78,3 +78,35 @@ export function resumenDe(pedidos = []) {
         vivos: pedidos.filter(estaVivo).length,
     };
 }
+
+/* ─── Lo que Mercado Pago deposita de verdad ──────────────────────────
+ *
+ * Un cobro de $500.000 por Mercado Pago no son $500.000 en la cuenta: la
+ * comisión, su IVA y las dos retenciones se descuentan antes de que llegue.
+ * Ronda el 5%, que en un negocio con márgenes de joyería no es ruido.
+ *
+ * Vive aquí porque la misma fórmula estaba escrita DOS veces dentro de
+ * Dashboard.jsx —una dentro de ingresosDe() y otra en calcMPNet()— y dos
+ * copias de una cuenta de plata son dos copias que un día dejan de coincidir.
+ * Es el mismo motivo por el que existe recibidoDe().
+ *
+ * Los números son los de Mercado Pago Colombia. Si cambian sus tarifas, se
+ * cambian aquí y en ningún otro sitio.
+ */
+export const MP_COMISION      = 0.0329;   // 3,29% sobre el monto
+export const MP_FIJO          = 800;      // $800 por transacción
+export const MP_IVA_COMISION  = 0.19;     // 19% de IVA sobre la comisión
+export const MP_RETE_FUENTE   = 0.015;    // 1,5% de retención en la fuente
+export const MP_RETE_ICA      = 0.00414;  // ~0,414% de retención de ICA
+
+/** Lo que Mercado Pago descuenta de un cobro. Siempre positivo. */
+export function costoDeMercadoPago(monto) {
+    const bruto = Number(monto) || 0;
+    if (bruto <= 0) return 0;
+    const comision = (bruto * MP_COMISION + MP_FIJO) * (1 + MP_IVA_COMISION);
+    return Math.ceil(comision + bruto * MP_RETE_FUENTE + bruto * MP_RETE_ICA);
+}
+
+/** Lo que queda en la cuenta después de que Mercado Pago se cobre lo suyo. */
+export const netoDeMercadoPago = (monto) =>
+    (Number(monto) || 0) - costoDeMercadoPago(monto);
