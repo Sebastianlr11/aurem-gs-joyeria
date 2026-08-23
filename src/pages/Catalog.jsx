@@ -15,7 +15,9 @@ const RANGOS = [
 ];
 
 const PROMESAS = [
-    { titulo: 'Envío a todo el país', valor: '24 a 48 h Bogotá · 2 a 3 días resto' },
+    /* El plazo completo desde que pide, no sólo el tramo de la transportadora
+       — ver la nota larga en TrustBar.jsx. */
+    { titulo: 'Entrega a todo el país', valor: '3 a 4 días Bogotá · 4 a 6 resto' },
     { titulo: 'Forma de pago', valor: 'Contraentrega en Bogotá hasta $500.000' },
     /* El certificado NO está incluido: cuesta $50.000 aparte. Esta franja es
        de lo que se cumple siempre. */

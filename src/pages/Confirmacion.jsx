@@ -132,7 +132,7 @@ const Confirmacion = () => {
           <p className="conf-lead">
             {aprobado && (esAbono
               ? `Recibimos tu abono. Al recibir la pieza pagas ${enPesos(saldo)} en efectivo. Te escribimos por WhatsApp con la guía de envío.`
-              : 'Te escribimos por WhatsApp con la guía de envío. Llega en 24 a 48 horas en Bogotá y de 2 a 3 días al resto del país.')}
+              : 'Tu pieza se hace por encargo: el taller se toma 2 a 3 días y te escribimos por WhatsApp con la guía. La tienes en 3 a 4 días en Bogotá y en 4 a 6 en el resto del país.')}
             {enProceso && 'El banco todavía está verificando el pago. En cuanto se confirme te escribimos por WhatsApp; no hace falta que pagues otra vez.'}
             {fallido && 'No se hizo ningún cargo a tu tarjeta. Tu pedido sigue guardado: puedes intentar de nuevo o escribirnos y lo resolvemos.'}
           </p>
@@ -204,7 +204,7 @@ const Confirmacion = () => {
                 <rect x="1" y="3" width="15" height="13" /><path d="M16 8h4l3 3v5h-7z" />
                 <circle cx="5.5" cy="18.5" r="2.5" /><circle cx="18.5" cy="18.5" r="2.5" />
               </svg>
-              <p><strong>24 a 48 horas en Bogotá.</strong> Al resto del país, de 2 a 3 días. Sale con número de guía.</p>
+              <p><strong>3 a 4 días en Bogotá.</strong> Al resto del país, de 4 a 6. Se hace por encargo y sale con número de guía.</p>
             </div>
           </section>
         )}

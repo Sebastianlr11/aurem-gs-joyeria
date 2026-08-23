@@ -61,7 +61,7 @@ function pagina({ titulo, descripcion, imagen, url, tipo }) {
 
 const GENERICA = {
   titulo: 'Anillos y joyas con esmeralda colombiana | Aurem Gs',
-  descripcion: 'Piezas en plata 925 y oro 18k con esmeralda colombiana natural. Estuche y garantía en el metal. Envío 24 a 48 h en Bogotá y 2 a 3 días al resto del país.',
+  descripcion: 'Piezas en plata 925 y oro 18k con esmeralda colombiana natural. Estuche y garantía en el metal. Entrega en 3 a 4 días en Bogotá y 4 a 6 al resto del país.',
   imagen: FOTO_POR_DEFECTO,
   url: RAIZ,
   tipo: 'website',
@@ -99,7 +99,7 @@ export default async function handler(req, res) {
     return res.status(200).send(pagina({
       titulo: `${p.name} — ${pesos(p.price)} | Aurem Gs Joyería`,
       descripcion: (p.description || '').trim().replace(/\s+/g, ' ').slice(0, 155)
-        || `${p.name} en ${ficha || 'plata 925'}. Estuche incluido y garantía de por vida en el metal. Envío 24 a 48 h en Bogotá.`,
+        || `${p.name} en ${ficha || 'plata 925'}. Estuche incluido y garantía de por vida en el metal. Entrega en 3 a 4 días en Bogotá.`,
       imagen: (Array.isArray(p.images) && p.images[0]) || p.image_url || FOTO_POR_DEFECTO,
       url: `${RAIZ}/catalogo/${p.id}`,
       tipo: 'product',

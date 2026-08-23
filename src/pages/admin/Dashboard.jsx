@@ -87,7 +87,7 @@ const getNextAction = (order) => (isCOD(order) ? NEXT_ACTION_COD : NEXT_ACTION_P
 const GRUPOS = [
     { id: 'confirmar', label: 'Por confirmar', nota: 'Esperan tu llamada o mensaje',
       test: o => o.status === 'pendiente' },
-    { id: 'despachar', label: 'Por despachar', nota: 'Confirmados que salen en 24 a 48 h',
+    { id: 'despachar', label: 'Por despachar', nota: 'Confirmados, se despachan en 2 a 3 días',
       test: o => o.status === 'procesando' || o.status === 'confirmado' || (o.status === 'pagado' && !isCOD(o)) },
     { id: 'camino',    label: 'En camino',     nota: 'Ya salieron, falta que lleguen',
       test: o => o.status === 'enviado' },
@@ -728,7 +728,7 @@ const DashboardHome = ({ products, orders, chatsPendientes, actualizadoEn, verPr
         {
             clave: 'despachar', icono: 'truck', n: porDespachar,
             titulo: 'Por despachar',
-            sub: 'Confirmados que salen en 24 a 48 horas hábiles',
+            sub: 'Confirmados que el taller despacha en 2 a 3 días',
             ir: () => onNavigate('orders'),
         },
         {
