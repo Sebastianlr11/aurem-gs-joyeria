@@ -414,9 +414,10 @@ Cosas que ya costaron un incidente. Léelas antes de tocar lo que describen.
   esto, es de plan Pro y en este proyecto responde 403.
 - **Gmail borra los `<style>` externos.** Por eso `emails/_marca.tsx` duplica los tokens
   en línea y usa Georgia en vez de Marcellus.
-- **`src/index.css` tiene 17.781 líneas y arrastra capas del diseño anterior que
+- **`src/index.css` tiene 17.850 líneas y arrastra capas del diseño anterior que
   deshacen los cambios nuevos.** Antes de dar por bueno un cambio de CSS, corre
-  `npm run css:pisadas`. Hoy reporta 25 bloques con declaraciones muertas.
+  `npm run css:pisadas`. Hoy reporta **84** bloques con declaraciones muertas — y lee la
+  primera línea de su salida, no cuentes los bloques impresos: sólo enseña los 25 peores.
 - **390px no basta para probar móvil.** El iframe es la única forma de medir de verdad
   el comportamiento en pantallas reales en esta sesión.
 - **Hay dos píxeles de Meta con el mismo nombre y sólo uno recibe eventos.** Verifica el

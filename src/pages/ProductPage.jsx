@@ -18,7 +18,17 @@ import { ponerMeta, ponerProductoJsonLd } from '../lib/meta'
 import { refDe } from '../lib/referencia'
 import { datosDeAtribucion } from '../lib/atribucion';
 
-/* ── Countdown hook: 24 h rolling, persiste en localStorage ─────── */
+/* ── Countdown hook: 24 h rolling, persiste en localStorage ───────
+   Se reinicia solo a otras 24 h cuando llega a cero, y eso es DELIBERADO
+   —confirmado el 23 de agosto de 2026—. Se revisó justamente porque parece
+   un descuido: un contador que nunca termina es una urgencia perpetua, y
+   quien vuelva a la ficha dos días después lo ve marcando lo mismo.
+
+   La decisión es dejarlo así. Lo que aquí se anuncia no es una promoción con
+   fecha —no hay campaña, no hay stock reservado, no hay nada que caduque—,
+   así que la alternativa honesta no es ponerle un fin de verdad sino quitar
+   el contador. Mientras esté, se reinicia. Si algún día hay una oferta real
+   con fecha, el plazo debe salir de la pieza y no de localStorage. */
 const pad = (n) => String(n).padStart(2, '0');
 
 const useCountdown = (storageKey) => {
