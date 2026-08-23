@@ -12713,7 +12713,16 @@ textarea:focus-visible {
 }
 .inf-sub { font-size: 0.86rem; color: var(--text-secondary); }
 
-.inf-head-acciones { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+/* min-width: 0 no es decoración. Sin él, este bloque es un elemento flexible
+   con el `min-width: auto` que trae flexbox de fábrica: se niega a encogerse
+   por debajo del ancho de su contenido, y el carril de periodos que lleva
+   dentro es más ancho que un teléfono.
+
+   El resultado medido en Reportes a 414 px: el contenido de .admin-main medía
+   436 y la página entera se corría 22 px en horizontal. El carril ya sabe
+   desplazarse solo —tiene overflow-x: auto—, pero nunca le tocaba el turno
+   porque su padre crecía en vez de dejarlo. */
+.inf-head-acciones { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; min-width: 0; }
 /* Ingreso neto */
 .inf-fila-principal {
   display: grid; grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr);
@@ -16516,15 +16525,39 @@ textarea:focus-visible {
    Con todo fabricándose por encargo, lo que apremia es qué falta hacer. */
 .jornada-taller { margin-bottom: 1.5rem; }
 
+/* La fila es un contenedor y no un botón: lleva dos acciones dentro —ir a
+   Pedidos y despachar— y un botón anidado en otro botón no es HTML válido. */
 .jornada-taller-fila {
-  display: flex; align-items: center; gap: 1rem;
+  display: flex; align-items: center; gap: 0.75rem;
   width: 100%;
-  padding: 1.05rem 1.6rem;
-  border: 0; border-top: 1px solid var(--hairline);
-  background: none; text-align: left; cursor: pointer;
+  padding-right: 1.6rem;
+  border-top: 1px solid var(--hairline);
   transition: var(--transition-smooth);
 }
 .jornada-taller-fila:hover { background: var(--bg-arena); }
+
+.jornada-taller-ir {
+  display: flex; align-items: center; gap: 1rem;
+  flex: 1; min-width: 0;
+  padding: 1.05rem 0 1.05rem 1.6rem;
+  border: 0; background: none; text-align: left; cursor: pointer;
+}
+
+/* Cierra el trabajo del taller sin salir del dashboard. Discreto: es una
+   acción frecuente, no la principal de la pantalla. */
+.jornada-taller-despachar {
+  flex: 0 0 auto;
+  font-family: var(--font-ui); font-size: 0.68rem; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 0.6rem 0.95rem;
+  border: 1px solid var(--hairline); border-radius: 2px;
+  background: var(--bg-color); color: var(--oro-ink);
+  cursor: pointer; white-space: nowrap;
+  transition: var(--transition-smooth);
+}
+.jornada-taller-despachar:hover {
+  background: var(--ink); color: var(--bg-color); border-color: var(--ink);
+}
 
 .jornada-taller-texto { display: flex; flex-direction: column; gap: 0.2rem; min-width: 0; flex: 1; }
 .jornada-taller-cliente {
@@ -16558,8 +16591,12 @@ textarea:focus-visible {
 .jornada-taller-plazo--tarde .jornada-taller-dias { color: var(--accent-red); }
 
 @media (max-width: 768px) {
-  .jornada-taller-fila { padding: 1rem 1.1rem; gap: 0.7rem; flex-wrap: wrap; }
+  .jornada-taller-fila { padding: 0 1.1rem 1rem; gap: 0.7rem; flex-wrap: wrap; }
+  .jornada-taller-ir { padding: 1rem 0 0; width: 100%; flex-wrap: wrap; }
   .jornada-taller-aviso { order: 3; width: 100%; }
+  /* De ancho completo: en el teléfono es EL botón de esta fila, y a media
+     pulgada del pulgar no se acierta a un rectángulo de cien píxeles. */
+  .jornada-taller-despachar { width: 100%; padding: 0.75rem; }
 }
 
 /* Pauta. Debajo de la banda de dinero y con el mismo cacao: entra y sale son
