@@ -142,6 +142,27 @@ pasaba de 3**. La función `chats_sin_responder()` usa `DISTINCT ON (phone_numbe
 - El ticket promedio de Reportes usa `amount` completo, no `recibidoDe` — es deliberado y
   está comentado (`:2085-2087`), pero conviene saberlo.
 
+## Un cliente es una persona, no un formato de teléfono
+
+El mismo número entra de tres formas según el canal —`3143602930` desde el panel,
+`+573143602930` desde el checkout, `573143602930` desde WhatsApp— y hasta el 23 de agosto
+de 2026 `sync_customer_from_order` resolvía el conflicto con `ON CONFLICT (phone)`, que
+compara la cadena cruda. **La misma persona aparecía tres veces.**
+
+Con clientas reales eso no es un detalle: infla el conteo de Clientes, parte su historial
+en pedazos y, sobre todo, **hace mentir a `clientes_nuevos_vs_recurrentes`** — quien compra
+por la web y luego por WhatsApp cuenta como dos clientas nuevas y nunca como una
+recurrente, que es justo la cifra que dice si el negocio retiene.
+
+Desde `20260823_un_cliente_por_persona.sql` la unicidad es sobre los **últimos diez
+dígitos**, igual que ya hacían `marcar_pedido_de_prueba`, `conversaciones_purgables` y el
+buscador del panel. **El valor guardado no se toca**: se sigue almacenando el teléfono tal
+como llegó, porque media docena de sitios lo leen; lo que cambió es con qué se compara.
+
+> Al añadir un cliente a mano, si el teléfono ya existe en otro formato el panel lo dice
+> con palabras («Ese teléfono ya está guardado, aunque lo escribas con otro formato») en
+> vez de escupir el error de Postgres.
+
 ## Cómo probarlo
 
 1. **La regla de oro:** crea un pedido contraentrega de $550.000 con abono de $20.000 y

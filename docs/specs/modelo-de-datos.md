@@ -114,6 +114,8 @@ Este documento es el mapa de la base. Y su hallazgo principal es incómodo:
 | `20260823_conocimiento_devoluciones.sql` | Devoluciones y garantía completa para Valentina |
 | `20260823_conocimiento_al_dia.sql` | El seed del conocimiento, volcado de producción |
 | `20260823_fuera_las_tablas_muertas.sql` | 🔒 Borra las 3 tablas de la era n8n y el cuarto respaldo de chats |
+| `20260823_las_rpc_estaban_abiertas.sql` | 🔒 Cierra a `anon` las RPC `SECURITY DEFINER` y borra 4 muertas |
+| `20260823_un_cliente_por_persona.sql` | La unicidad de `customers.phone` pasa a ser por los últimos 10 dígitos |
 
 ### Los fallos de acceso público, cerrados
 

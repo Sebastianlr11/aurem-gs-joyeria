@@ -85,7 +85,19 @@ export const CustomerModal = ({ customer, onClose, onSaved }) => {
         if (isEdit) ({ error: err } = await supabase.from('customers').update(payload).eq('id', customer.id));
         else ({ error: err } = await supabase.from('customers').insert([payload]));
         setSaving(false);
-        if (err) { setError(err.message); return; }
+        if (err) {
+            /* El teléfono es único por sus últimos diez dígitos, no por la
+               cadena: la misma persona guardada como 3143602930, +573143602930
+               y 573143602930 aparecía tres veces en Clientes, y desde el 23 de
+               agosto de 2026 la base lo impide. Sin esto, quien intente
+               guardarla otra vez lee «duplicate key value violates unique
+               constraint», que no le dice ni qué pasó ni qué hacer. */
+            const repetido = err.code === '23505' || /duplicate key|unique constraint/i.test(err.message || '');
+            setError(repetido
+                ? 'Ese teléfono ya está guardado, aunque lo escribas con otro formato. Búscalo en la lista y edítalo.'
+                : err.message);
+            return;
+        }
         onSaved();
     };
 
