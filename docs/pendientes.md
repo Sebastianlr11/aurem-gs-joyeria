@@ -462,26 +462,41 @@ Verificado en el navegador, antes y después: `font-weight` de 800 a 400, `font-
 apilados y sin desbordes. `css:pisadas` pasó de 84 bloques a 82 y `.hero-h1` ya no sale en
 la lista.
 
-### 16. `src/index.css` son 17.850 líneas
+### 16. 🟡 `src/index.css` — podado lo muerto, falta partirlo
 
-**82 bloques con declaraciones muertas** —eran 84 antes de cerrar el #15—. Ojo con esta cifra, porque este documento la
-tuvo mal: decía 25 *"venían de 84, la limpieza va avanzando"*, y la limpieza no había
-avanzado nada. `scripts/css-pisadas.mjs` **reporta 84 en su primera línea pero sólo imprime
-los 25 peores** (`.slice(0, 25)`), y alguien contó los impresos. Medido de nuevo el 23 de
-agosto: 84 antes del #15 y 82 después, y ninguno es completamente inerte.
+**14.939 líneas**, desde las 17.850 del 23 de agosto.
 
-Son casi todos del panel (`.admin-nav-item`, `.admin-topbar-avatar`, `.chat-contact-item`,
-`.chat-quick-replies`…), pisados por la capa de rediseño posterior.
+**Hecho el 23 de agosto: fuera 340 clases que no usa nadie.** Se cruzaron las 1.622 clases
+que define el CSS contra **todo** lo que puede emitir HTML en el repositorio —`src/`,
+`emails/`, `api/`, `supabase/functions/`, `index.html`, `scripts/`—: 83 archivos. Se
+quitaron 502 reglas y selectores, 2.910 líneas y 55 kB de fuente. **El bundle de CSS pasó
+de 300 kB a 255** (de 50,3 a 42,7 gzip), que son 7,5 kB menos en cada visita.
 
-Siguen conviviendo tres capas para la ficha de producto (`.ficha-*`, `.product-page-*` y
-una reescritura al final). CSS muerto confirmado: `.admin-table` (12 referencias en CSS, 0
-en JSX), `.dash-table` (11/0), `.ficha-tecnica-lista` (5/0), `.product-page-grid`,
-`.product-page-btn`.
+**La trampa que casi se lleva por delante el chat:** 46 clases parecían muertas y se
+construyen al vuelo — `chat-bubble--${msg.role}` genera `chat-bubble--user` y
+`chat-bubble--assistant`, que no aparecen literales en ninguna parte. Borrarlas habría
+dejado los mensajes sin estilo. El script descarta toda clase cuyo prefijo aparezca pegado
+a una interpolación; quien repita esto tiene que hacer lo mismo.
 
-**Arreglo propuesto, por orden de riesgo:** primero borrar lo que `css:pisadas` marca como
-muerto y no aparece en ningún JSX (riesgo cero, ganancia inmediata); después separar en
-`index.css` + `admin.css`; y sólo entonces plantear unificar las tres capas de la ficha.
-No hacerlo todo de una vez.
+**Verificado por huella de estilos, no a ojo.** Se capturaron las propiedades calculadas
+—22 por elemento— de **2.207 elementos en nueve páginas** (portada, catálogo, ficha, guía
+de tallas, privacidad, devoluciones, confirmación, login y recuperar contraseña), antes y
+después. **Cero diferencias.**
+
+**Lo que falta, y por qué no se hizo:**
+
+1. **Partir el archivo en `index.css` + `admin.css`.** Medido: **137 kB, el 36 %, es CSS
+   que sólo usa el panel**, y hoy lo descarga cada clienta que abre la portada. Es el
+   premio gordo que queda. **Pero mover reglas cambia el orden de la cascada**: una regla
+   del panel que hoy está en la línea 5.000 pierde contra una compartida de la 12.000, y
+   en un archivo aparte cargado después ganaría. `css:pisadas` reporta 82 bloques con
+   declaraciones pisadas, muchos del panel, así que el riesgo es concreto y no teórico.
+   **No se hizo porque no se puede verificar sin entrar al panel**, y eso pide una sesión.
+2. **Unificar las tres capas de la ficha** (`.ficha-*`, `.product-page-*` y una reescritura
+   al final). Después de lo anterior.
+
+Los 82 bloques pisados **no son lo mismo que las clases muertas**: son clases vivas cuyas
+declaraciones anula otra regla posterior. Se atacan con el punto 1, no borrando.
 
 ### 17. `Dashboard.jsx` son 4.380 líneas (y `ChatPanel.jsx` 2.115)
 
