@@ -1146,3 +1146,36 @@ puede probar en vez de sólo mirarse.
 **Lo que queda**, por orden: la ficha del contacto (5 estados), la selección en lote (4), la
 purga (6) y el selector de imágenes del catálogo (7). El núcleo —tiempo real, envío, control
 manual— es lo último y lo que menos conviene tocar.
+
+**Tercer tramo: 1.905 → 1.721 líneas.** Sale la ficha del contacto, el bloque más grande
+que quedaba: **168 líneas de JSX y cuatro estados**, a `chat/FichaDelContacto.jsx` con sus
+datos en `useFichaDelContacto`. En el panel grande sólo se queda `showContactInfo`, que es
+un interruptor y lo tocan tres sitios distintos —el botón de la cabecera, Escape y el ancho
+de pantalla—.
+
+Recibe once props, y es a propósito: la alternativa era un contexto, y un contexto para un
+solo consumidor esconde de dónde viene cada cosa sin ahorrar nada. Esa lista **es** la
+documentación de qué necesita la ficha.
+
+Otros dos hallazgos por el camino, del mismo tipo que los del tramo anterior —cosas que
+nadie podía ver porque no se pueden provocar a mano—:
+
+- **«Cancelar» en las notas dejaba el borrador en el campo.** Cerraba el editor pero no
+  devolvía lo guardado, así que al volver a entrar veías el texto que habías descartado con
+  toda la pinta de estar guardado; y si pulsabas Guardar, se guardaba. Ahora cancelar
+  restaura.
+- **La ficha no descartaba las respuestas que llegaran tarde.** Al cambiar de conversación,
+  una consulta lenta de la anterior podía pintar sus datos encima de la que acabas de abrir.
+  Nunca se vio con dos conversaciones de prueba; con veinte y una red lenta, se vería.
+
+Comprobado en el navegador pantalla contra pantalla —avatar, nombre, «cliente desde»,
+correo, ciudad, las cuatro cifras, las cinco etiquetas, los diez pedidos con miniatura y
+estado— y el ciclo entero de las notas: escribir, cancelar, reabrir vacío, escribir,
+guardar, verlo en la base, y dejarla como estaba. Lo que **no** se puede ver a mano —la
+carrera y el cancelar— queda en `chat/ficha.test.js`, 6 pruebas más, **76 en total**.
+Rotas a propósito: quitar la salvaguarda de carrera (1 fallo) y devolver el cancelar a como
+estaba (1 fallo).
+
+**En total, en el día: 2.123 → 1.721 líneas, un 19 % menos**, seis archivos nuevos y cuatro
+fallos latentes encontrados. Queda la selección en lote (4 estados), la purga (6) y el
+selector de imágenes del catálogo (7).
