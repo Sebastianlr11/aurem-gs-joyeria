@@ -1,4 +1,5 @@
 import React from 'react';
+import Meta from '../components/Meta';
 
 const Section = ({ title, children }) => (
   <div className="legal-section">
@@ -8,7 +9,13 @@ const Section = ({ title, children }) => (
 );
 
 const PrivacyPolicy = () => (
-  <main className="legal-page">
+  <>
+    <Meta
+      titulo="Política de privacidad | Aurem Gs Joyería"
+      descripcion="Qué datos pedimos, para qué los usamos y cómo pedir que los borremos. Joyería Aurem Gs, Bogotá."
+      ruta="/politica-de-privacidad"
+    />
+    <main className="legal-page">
     <div className="container">
       <div className="legal-header">
         <span className="section-label">Legal</span>
@@ -113,6 +120,7 @@ const PrivacyPolicy = () => (
       </div>
     </div>
   </main>
+  </>
 );
 
 export default PrivacyPolicy;

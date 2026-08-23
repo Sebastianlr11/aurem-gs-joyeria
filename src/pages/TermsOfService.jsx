@@ -1,4 +1,5 @@
 import React from 'react';
+import Meta from '../components/Meta';
 import { Link } from 'react-router-dom';
 
 const Section = ({ title, children }) => (
@@ -9,7 +10,13 @@ const Section = ({ title, children }) => (
 );
 
 const TermsOfService = () => (
-  <main className="legal-page">
+  <>
+    <Meta
+      titulo="Términos de servicio | Aurem Gs Joyería"
+      descripcion="Condiciones de compra, formas de pago, plazos de entrega y garantía de las piezas de Aurem Gs Joyería."
+      ruta="/terminos-de-servicio"
+    />
+    <main className="legal-page">
     <div className="container">
       <div className="legal-header">
         <span className="section-label">Legal</span>
@@ -94,6 +101,7 @@ const TermsOfService = () => (
       </div>
     </div>
   </main>
+  </>
 );
 
 export default TermsOfService;
