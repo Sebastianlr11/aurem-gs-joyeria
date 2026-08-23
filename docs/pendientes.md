@@ -840,3 +840,20 @@ es lo que se pidió, y lo que queda es basura en un bucket. Queda dicho en conso
 **Lo que sigue dejando huérfanos**, y se deja escrito: subir fotos en el modal y cerrarlo
 sin guardar. Los archivos ya están en el bucket y no hay nada que los nombre. La consulta
 para encontrarlos está en [`admin-catalogo.md`](specs/admin-catalogo.md).
+
+**Y los 8 que ya había se limpiaron el mismo día**, después de mirarlos uno por uno. Los 8
+archivos eran sólo 4 imágenes —tres estaban subidas dos y tres veces, mismo md5—, y de las
+cuatro:
+
+- **Tres eran renders de catálogo de OTRA joyería**, con su marca grabada en el aro y su
+  código de referencia en la esquina. Del 28 de febrero, el día que se creó la base. No
+  eran basura: eran fotos ajenas colgadas de un dominio de Aurem Gs y alcanzables por URL.
+- **La cuarta era el original sin procesar de una foto que ya está publicada**: la tercera
+  de «Anillo Trinidad». Se subieron con un milisegundo de diferencia (`…751997` la suelta,
+  `…751998` las de la ficha), así que salieron de la misma tanda; el sistema se quedó con
+  la versión reducida y el original crudo de 1,4 MB quedó suelto.
+
+El bucket bajó de 38 archivos a 30, y **de 30 huérfanos posibles a cero**. El borrado se
+hizo con la sesión del panel, contra la política `product_images_auth_delete`, no por
+detrás con la llave de servicio: si el camino que usa la aplicación no sirviera para
+borrar, había que saberlo.
