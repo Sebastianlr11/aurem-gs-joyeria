@@ -64,6 +64,48 @@ Deno.serve(async (req: Request) => {
   const CAMPOS =
     'created_at, amount, customer_email, customer_phone, product_id, product_name, ttclid, ttp, fbc, fbp, client_ua, client_ip, ctwa_clid'
 
+  /* MODO PRUEBA.
+
+     Con un código de prueba, el evento sale en la pestaña de eventos de
+     prueba de Meta o TikTok y NO cuenta como conversión. Sirve para
+     comprobar que una compra llega bien sin meter una venta falsa en los
+     informes.
+
+     Y por eso mismo NO se toca ningún candado: si una prueba consumiera
+     `conversion_enviada_en`, la venta de verdad de ese pedido no se avisaría
+     nunca — habríamos cambiado un informe sucio por una conversión perdida,
+     que es peor y además invisible. */
+  const codigoPrueba = String(cuerpo.testEventCode ?? '').trim() || null
+
+  if (codigoPrueba) {
+    const { data: ensayo } = await admin
+      .from('orders').select(CAMPOS).eq('id', pedidoId).maybeSingle()
+
+    if (!ensayo) return json({ error: 'No existe ese pedido' }, 404)
+
+    await avisarVenta({
+      pedidoId,
+      monto: Number(ensayo.amount),
+      correo: ensayo.customer_email,
+      telefono: ensayo.customer_phone,
+      piezaId: ensayo.product_id,
+      piezaNombre: ensayo.product_name,
+      ttclid: ensayo.ttclid,
+      ttp: ensayo.ttp,
+      fbc: ensayo.fbc,
+      fbp: ensayo.fbp,
+      ua: ensayo.client_ua,
+      ip: ensayo.client_ip,
+      ctwaClid: ensayo.ctwa_clid,
+      url: 'https://www.auremgsjoyeria.com/',
+      momento: Math.floor(Date.now() / 1000),
+      testEventCode: codigoPrueba,
+      ...(esCancelacion ? { evento: 'cancelacion' as const } : {}),
+    })
+
+    return json({ ok: true, prueba: true, candadoIntacto: true })
+  }
+
   /* El mismo candado que usa el webhook de Mercado Pago, y a propósito la
      misma columna: así un pedido no puede contarse dos veces aunque llegue
      por los dos caminos, ni aunque le des dos clics al botón. Marcar y leer
