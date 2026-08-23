@@ -905,3 +905,93 @@ Las tres se cazaron. El código quedó restaurado y las 43 vuelven a pasar.
 con las cuentas rotas no sale. Lo que queda sin cubrir es todo lo demás —componentes,
 edge functions, el bot— y eso sigue siendo otro proyecto; pero ahora hay dónde escribir
 la prueba siguiente en vez de dónde empezar.
+
+---
+
+## 29. ✅ Cualquiera podía registrarse y leerlo todo — resuelto
+
+El hallazgo más grave de todos, y estuvo a la vista desde el principio: lo decía el propio
+código, en `create-admin`.
+
+> «en este proyecto todo usuario de Supabase Auth es administrador»
+
+Era literal. **Las veinte políticas de las quince tablas del panel decían `to authenticated
+using (true)`.** Y esa frase sólo es segura si nadie más puede conseguir una sesión.
+
+**Podía. El registro público estaba abierto.** Comprobado el 23 de agosto sin crear ninguna
+cuenta: una petición a `/auth/v1/signup` con un correo mal formado contestaba *«Unable to
+validate email address»* —o sea, procesando altas— en lugar de `signup_disabled`. Con la
+llave pública, que va dentro del bundle y cualquiera lee del navegador, el camino completo
+era registrarse, confirmar en la propia bandeja y consultar PostgREST. Ni siquiera hacía
+falta entrar al panel.
+
+Lo que quedaba al alcance de cualquiera con un correo:
+
+| Tabla | Qué podía hacer |
+|---|---|
+| `orders` | leer, modificar y **borrar** todos los pedidos |
+| `whatsapp_conversaciones` | leer y **escribir** toda la correspondencia con las clientas |
+| `customers`, `pagos` | los datos de contacto y el libro de caja entero |
+| `taller_precios` | leer y cambiar el recargo, **que es el margen del negocio** |
+| Storage | **borrar las fotos del catálogo entero** y las que mandan las clientas |
+
+### Cómo se cerró
+
+Dos cosas, y la segunda es la que importa a largo plazo:
+
+1. **El registro, apagado** desde el panel de Supabase — con la bandera global, que cubre
+   también cualquier proveedor externo que se encienda mañana.
+2. **Las políticas dejaron de conformarse con «tiene sesión».** Ahora todas llaman a
+   `public.es_del_equipo()`, que exige `app_metadata.rol` ∈ (`dueño`, `equipo`).
+   `app_metadata` es el sitio correcto porque el usuario **no** puede escribirlo desde el
+   navegador, a diferencia de `user_metadata`; y es el mismo mecanismo que `create-admin`
+   ya usaba, así que no se inventó nada.
+
+Quedan exactamente dos políticas sin exigir equipo, y las dos deben ser públicas: leer el
+catálogo y ver las fotos de las piezas.
+
+### El orden, que es la parte delicada
+
+Un JWT lleva el `app_metadata` que existía cuando se emitió. Aplicar las políticas antes de
+sellar los roles deja **a todo el mundo fuera del panel** hasta que renueve el token. Así
+que: sellar los roles → comprobar en el navegador que la sesión abierta ya los lleva y que
+`refreshSession()` funciona → y sólo entonces aplicar. Está escrito en la migración para
+quien tenga que repetirlo.
+
+### Comprobado en las dos direcciones
+
+Simulando un JWT de cada clase contra la base:
+
+| | Desconocido con sesión | El equipo |
+|---|---|---|
+| `orders` | **0** | 18 |
+| `customers` | **0** | 5 |
+| `whatsapp_conversaciones` | **0** | 2 |
+| `pagos` | **0** | 2 |
+| `taller_precios` | **0** | 1 |
+| `products` | 5 | 5 |
+
+Los 5 productos del desconocido son el catálogo, que es público a propósito.
+
+Y después, con la sesión real en el navegador: las 15 tablas se leen, las **9 RPC
+responden** —incluida `buscar_conversaciones`, que usa `unaccent` y era la que más podía
+romperse al fijar el `search_path`—, se escribe en `taller_precios`, y se sube y se borra
+un archivo de prueba en Storage. La tienda pública también: catálogo, `envio_publico` y
+`pedido_publico` responden con la llave anónima, y `orders`, `customers`,
+`whatsapp_conversaciones`, `pagos` y `taller_precios` le devuelven `[]`.
+
+### De paso
+
+- **`search_path` fijado en las 8 funciones `SECURITY DEFINER` que no lo tenían.** Sin él,
+  los nombres se resuelven con el `search_path` de quien llama.
+- **Un susto por el camino, que vale la pena dejar escrito:** al cerrar el registro es muy
+  fácil apagar «Enable email provider» en vez de «Allow new users to sign up». Están en la
+  misma pantalla y el primero **apaga también la entrada**. No se nota enseguida, porque la
+  sesión abierta se sigue renovando sola con el token de refresco: se nota el día que
+  cierres sesión o entres desde otro aparato. Se detectó con una petición de entrada y una
+  clave incorrecta a propósito: `email_provider_disabled` en vez de `invalid_credentials`.
+- **«Prevent use of leaked passwords» es de plan Pro**, así que no está disponible. Lo que
+  sí: subir la longitud mínima de contraseña, que estaba en 6.
+- El aviso `ERROR` de Supabase sobre la vista `envio_publico` **es un falso positivo aquí**:
+  se comprobó su definición y expone dos columnas, `abono_envio` y `tope_contraentrega`.
+  Es exactamente para lo que existe.
