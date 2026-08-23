@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { fotoProducto } from '../lib/fotoProducto';
 import { waUrl } from '../lib/whatsapp';
 import { initMercadoPago } from '@mercadopago/sdk-react';
 
@@ -768,8 +769,16 @@ const Gallery = ({ images, badges, volver, referencia }) => {
                     onTouchEnd={alSoltar}
                     style={{ cursor: 'zoom-in' }}
                 >
+                    {/* Esta foto es el elemento más grande de la ficha y
+                        casi siempre el LCP: va con prioridad alta y NUNCA
+                        con loading="lazy", que la retrasaría justo aquí.
+                        `sizes` sigue a .ficha-hero: la mitad ancha del
+                        partido en escritorio, todo el ancho en el celular. */}
                     <img
-                        src={images[activeIdx]}
+                        {...fotoProducto(images[activeIdx])}
+                        sizes="(max-width: 900px) 100vw, 55vw"
+                        fetchPriority="high"
+                        decoding="async"
                         alt={`Imagen ${activeIdx + 1}`}
                         style={{ opacity: fading ? 0 : 1, transition: 'opacity 0.22s ease' }}
                     />
@@ -814,7 +823,20 @@ const Gallery = ({ images, badges, volver, referencia }) => {
                                     onClick={(e) => { e.stopPropagation(); goTo(i); }}
                                     aria-label={`Imagen ${i + 1}`}
                                 >
-                                    <img src={url} alt="" />
+                                    {/* 52px en pantalla: con el juego de
+                                        tamaños se baja la copia de 400 y no
+                                        la grande. Antes cada miniatura
+                                        descargaba la foto entera, así que
+                                        abrir una ficha de tres fotos las
+                                        bajaba las tres a tamaño completo
+                                        aunque no se mirara ninguna. */}
+                                    <img
+                                        {...fotoProducto(url)}
+                                        sizes="52px"
+                                        alt=""
+                                        loading="lazy"
+                                        decoding="async"
+                                    />
                                 </button>
                             ))}
                         </div>
@@ -831,9 +853,15 @@ const Gallery = ({ images, badges, volver, referencia }) => {
                         </svg>
                     </button>
 
+                    {/* Sin medidas: aquí el CSS limita por alto y por
+                        ancho a la vez (max-width 92vw / max-height 88vh), y
+                        con width y height puestos el navegador deja de
+                        ajustar el ancho — la foto queda chica y centrada
+                        dentro de una caja enorme. */}
                     <img
                         className="pg-lightbox-img"
-                        src={images[activeIdx]}
+                        {...fotoProducto(images[activeIdx], { conMedidas: false })}
+                        sizes="92vw"
                         alt={`Imagen ${activeIdx + 1}`}
                         onClick={(e) => e.stopPropagation()}
                         onTouchStart={alTocar}

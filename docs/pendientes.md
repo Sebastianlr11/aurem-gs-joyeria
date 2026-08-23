@@ -430,17 +430,49 @@ hace falta.
 **Arreglo:** el Dashboard ya consulta los no leídos para la tarjeta "Sin responder";
 pasarlos al sidebar.
 
-### 20. Las fotos de producto no están optimizadas en la entrega
+### 20. 🟡 Las fotos de producto no están optimizadas en la entrega — hecho el mecanismo, faltan las fotos
 
-`src/components/catalog/ProductCard.jsx:51` y la galería de `ProductPage.jsx:771` usan
+`src/components/catalog/ProductCard.jsx` y la galería de `ProductPage.jsx` usaban
 `<img src={product.image_url}>` crudo: **sin `srcset` y sin `width`/`height`**. La tarjeta
-del catálogo sí lleva `loading="lazy"`; la galería de la ficha no. El trabajo de `Foto.jsx`
-sólo cubre las imágenes estáticas del sitio.
+del catálogo sí llevaba `loading="lazy"`; la galería de la ficha no, y sus miniaturas de
+52px descargaban la foto entera — abrir una ficha de tres fotos bajaba las tres a tamaño
+completo aunque no se mirara ninguna.
 
-Consecuencia: reflow al cargar el catálogo y se descarga la imagen de 1600px en un móvil.
+**El transformador de imágenes de Supabase Storage no sirve aquí: es de plan Pro.**
+Comprobado el 23 de agosto contra el proyecto — `/storage/v1/render/image/public/...`
+responde `403 FeatureNotEnabled`. El arreglo propuesto originalmente (`?width=`) no era
+viable sin pagar.
 
-**Arreglo:** usar el transformador de imágenes de Supabase Storage (`?width=`) para generar
-un `srcset`, y fijar `width`/`height` para reservar el espacio.
+**Hecho el 23 de agosto.** Los tamaños se generan **al subir**, extendiendo lo que
+`optimizarFoto.js` ya hacía —lienzo, dos versiones, WebP— con copias de 400 y 800 px de
+ancho. Y como el catálogo no tiene columna donde anotar qué copias existen, **lo dice el
+nombre del archivo**: una foto con el tratamiento completo termina en `-<ancho>x<alto>.webp`
+y a su lado viven `-w400.webp` y `-w800.webp`. `src/lib/fotoProducto.js` lee esa marca y
+arma el `srcset`; si no está —foto vieja, o URL pegada a mano en el panel— devuelve la URL
+sola. Eso es deliberado: **un `srcset` inventado apuntaría a archivos que no existen y la
+clienta vería una foto rota**, que es peor que una foto pesada.
+
+También se puso `width`/`height` (donde no estorban), `decoding="async"`, `loading="lazy"`
+en las miniaturas y `fetchpriority="high"` en la foto grande de la ficha, que es el LCP de
+esa pantalla.
+
+Verificado en Chrome con DPR 2: la tarjeta pide la de **800**, la galería la **grande**, la
+miniatura la de **400**. Y comprobado renglón a renglón que el nombre que escribe la subida
+y el que lee el `srcset` coinciden en todos los casos —incluida una foto tan chica que no
+genera copias, y la gemela `.jpeg` de WhatsApp, que sigue saliendo del mismo nombre—.
+
+**Lo que falta, y no se arregla solo: las fotos que ya están subidas no tienen la marca,
+así que hoy siguen bajando en tamaño completo.** El mecanismo sólo entra a trabajar con
+fotos nuevas. Para que sirva en las cinco piezas publicadas hay que **volver a subir sus
+fotos desde el panel** — no hay migración posible desde aquí, porque las copias se generan
+en el navegador de quien sube.
+
+Dos detalles para quien toque esto después:
+
+- **Cambiar la lista de anchos (`ANCHOS` en `fotoProducto.js`) obliga a resubir.** Las
+  fotos que ya están en Storage se generaron con 400 y 800 y con ningún otro.
+- **Nadie borra los archivos de Storage** cuando se borra una pieza —ya pasaba antes con
+  la WebP y la gemela—, así que ahora quedan huérfanas dos copias más por foto.
 
 ### 21. El acordeón del FAQ no es accesible
 

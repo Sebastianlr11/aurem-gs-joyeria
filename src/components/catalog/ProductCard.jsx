@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { waUrl } from '../../lib/whatsapp';
+import { fotoProducto } from '../../lib/fotoProducto';
 
 const fmt = (price) => Number(price || 0).toLocaleString('es-CO');
 
@@ -48,7 +49,19 @@ const ProductCard = ({ product }) => {
         <article className={`pieza${agotada ? ' pieza--agotada' : ''}`}>
             <Link to={`/catalogo/${product.id}`} className="pieza-foto" aria-label={`Ver ${product.name}`}>
                 {product.image_url
-                    ? <img src={product.image_url} alt={product.name} loading="lazy" />
+                    /* `sizes` sigue a .catalogo-grid: una columna a lo ancho
+                       en el celular, dos o tres a media pantalla en la
+                       tableta, y ~300px cuando la rejilla ya está llena.
+                       Sin esto el navegador supone el ancho de la ventana y
+                       se baja el archivo más grande, que es justo lo que se
+                       quería evitar. */
+                    ? <img
+                        {...fotoProducto(product.image_url)}
+                        sizes="(max-width: 700px) 92vw, (max-width: 1100px) 45vw, 300px"
+                        alt={product.name}
+                        loading="lazy"
+                        decoding="async"
+                    />
                     : <span className="pieza-foto-vacia">✦</span>}
                 {/* El punzón abajo a la izquierda: arriba tapa la pieza, que en
                     estas fotos vive en el tercio alto. */}
