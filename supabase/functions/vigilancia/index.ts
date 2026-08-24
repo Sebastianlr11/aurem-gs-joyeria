@@ -312,9 +312,9 @@ Deno.serve(async (req: Request) => {
       grave: true,
     })
   } else if (descuadre?.length) {
-    for (const d of descuadre as Array<{ estado: string; forma_de_pago: string; dice: number; deberia_decir: number }>) {
+    for (const d of descuadre as Array<{ regla: string; caso: string; dice: string; deberia_decir: string }>) {
       hallazgos.push({
-        que: `La caja cuenta mal un pedido ${d.estado} por ${d.forma_de_pago}`,
+        que: `La regla «${d.regla}» de la base dejó de cuadrar en: ${d.caso}`,
         detalle: `dice ${d.dice} y debería decir ${d.deberia_decir}`,
         grave: true,
       })

@@ -6,10 +6,10 @@
  * secciones vive en `comunes.jsx`.
  */
 import React, { useMemo, useState } from 'react';
-import { recibidoDe } from '../../../lib/dinero';
+import { estaVivo, recibidoDe } from '../../../lib/dinero';
 import { supabase } from '../../../lib/supabase';
 import PedidoModal from '../PedidoModal';
-import { GRUPOS, ORDER_STATUSES, SOURCE_META, STATUS_META, VENTAS_VIVAS, coincideTelefono, despacharPedido, enGrupo, fireWebhook, fmt, fmtDate, isCOD, norm } from './comunes';
+import { GRUPOS, ORDER_STATUSES, SOURCE_META, STATUS_META, coincideTelefono, despacharPedido, enGrupo, fireWebhook, fmt, fmtDate, isCOD, norm } from './comunes';
 import { ConfirmModal, ShipModal, SourceBadge, StatusBadge, StatusConfirmModal } from './piezas';
 
 /* Contraentrega. Sólo hay un botón visible por pedido: el que toca ahora.
@@ -66,7 +66,7 @@ const PAGO_LABEL = {
 };
 
 const VentasPorOrigen = ({ orders }) => {
-    const vendidos = orders.filter(o => VENTAS_VIVAS.includes(o.status));
+    const vendidos = orders.filter(estaVivo);
 
     const porOrigen = ORIGENES.map(({ id, label, nota }) => {
         const suyos = vendidos.filter(o => origenDe(o) === id);

@@ -1642,3 +1642,50 @@ Los siete fallos tienen algo en común y es la lección del refactor: **ninguno 
 mirando la pantalla y ninguno se habría encontrado leyendo el archivo.** Aparecieron porque
 sacar una pieza obliga a preguntarse qué necesita de verdad, y porque cada tramo se cerró
 comprobando en el navegador en vez de dando por bueno el cambio.
+
+---
+
+## 35. ✅ «Ingresos por fuente» decía 331 veces más de lo que había entrado — resuelto
+
+Apareció ordenando el circuito del pedido, y es el número más engañoso que ha tenido el
+panel: **es con el que se decide dónde poner la pauta.**
+
+`revenue_por_fuente` sumaba `amount` de **todos** los pedidos, sin mirar el estado. Con los
+datos del 24 de agosto de 2026:
+
+| | Pedidos | «Ingresos» |
+|---|---|---|
+| Lo que decía Reportes | 18 | **$13.239.000** |
+| Lo que había entrado | 2 | **$40.000** |
+
+Contaba los cancelados —14 de los 18— y contaba los contraentrega a precio completo aunque
+sólo hubiera entrado el abono.
+
+**Y lo peor no es el número: es que la portada respondía la misma pregunta bien**, en
+JavaScript, con `recibidoDe`. Dos respuestas distintas a «de dónde vienen las ventas» en la
+misma aplicación, y la de Reportes era la mentirosa. Nadie las había puesto una al lado de
+la otra.
+
+### Tres copias más de la misma idea
+
+Al añadir `confirmado` y `devuelto` hubo que buscar quién más decide qué es una venta.
+Aparecieron tres, y a todas les faltaba lo mismo:
+
+- **`VENTAS_VIVAS`** en el panel — una lista de estados a mano, sin `confirmado`. Borrada:
+  quien la usaba pregunta ahora por `estaVivo`, de donde nunca debió salir. Sin esto, un
+  pedido con el abono pagado habría **desaparecido de los informes** — regresión que se
+  habría colado con el tramo 1.
+- **`embudo_whatsapp`** — su propia lista para contar convertidos, con el mismo hueco y
+  contando los devueltos el día que existieran.
+- **`revenue_por_fuente`** — sin filtro ninguno.
+
+### La forma de que no vuelva
+
+`venta_viva(status)` es el espejo en SQL de `estaVivo`, igual que `recibido_de` lo es de
+`recibidoDe`. Y `regla_del_dinero_cuadra()` compara **las dos** contra la tabla de
+CLAUDE.md §8, con el vigía consultándola cada hora.
+
+Comprobado rompiendo las dos a propósito: con `recibido_de` mal, caza las cuatro casillas
+—incluida un contraentrega enviado contando entero—; con `venta_viva` mal, caza que un
+devuelto vuelva a contar como venta. Y comprobado en pantalla: «Ingresos por fuente» pasó de
+$12.739.000 a **$40.000**, que es exactamente lo que dice la portada.

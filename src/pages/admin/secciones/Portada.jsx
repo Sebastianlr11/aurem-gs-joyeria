@@ -7,9 +7,9 @@
  */
 import React, { useEffect, useMemo, useState } from 'react';
 import { cajaDeLosUltimos } from '../../../lib/caja';
-import { netoDeMercadoPago, porCobrarDe, recibidoDe } from '../../../lib/dinero';
+import { estaVivo, netoDeMercadoPago, porCobrarDe, recibidoDe } from '../../../lib/dinero';
 import { supabase } from '../../../lib/supabase';
-import { STATUS_META, VENTAS_VIVAS, despacharPedido, enGrupo, fmt, isCOD } from './comunes';
+import { STATUS_META, despacharPedido, enGrupo, fmt, isCOD } from './comunes';
 import { ShipModal } from './piezas';
 
 const DIAS_PROMESA = 3;
@@ -42,7 +42,7 @@ const RE_TALLA = /talla[:\s]+(\d+(?:[.,]\d+)?)/i;
    donde cambiarla si Mercado Pago sube sus tarifas. */
 
 const ingresosDe = (pedidos) => {
-    const mp = pedidos.filter(o => VENTAS_VIVAS.includes(o.status) && !isCOD(o));
+    const mp = pedidos.filter(o => estaVivo(o) && !isCOD(o));
     const mpNeto = mp.reduce((s, o) => s + netoDeMercadoPago(Number(o.amount)), 0);
 
     /* El abono del contraentrega también es plata que entró, aunque el

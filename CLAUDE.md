@@ -310,6 +310,7 @@ desde el 23-ago: el costo vive en el pedido.)
 | `20260823_el_vigia_mira_el_candado.sql` | `politicas_flojas()`: el vigía avisa si una política deja de exigir `es_del_equipo()` |
 | `20260823_a_quien_se_le_puede_escribir.sql` | 🔒 `puede_recibir_plantillas()`: el «no me escriban» se comprobaba con la cadena cruda y fallaba en 10 de 18 pedidos |
 | `20260824_confirmado_y_devuelto.sql` | Dos estados nuevos en el circuito, y el guardián que compara la regla del dinero de la base con la tabla de §8 |
+| `20260824_los_informes_cuentan_lo_que_entro.sql` | `revenue_por_fuente` sumaba todos los pedidos: decía 331 veces más de lo que había entrado |
 
 `20260822_cerrar_conversaciones_a_anon.sql` arregló un fallo del mismo tipo que el que
 sigue abierto en `orders`: `whatsapp_conversaciones` y `chat_takeover` tenían políticas
@@ -389,6 +390,9 @@ La regla que más se ha equivocado históricamente:
 **`procesando` se lee «Fabricando» en pantalla.** El valor de la base no se renombró a
 propósito: tocaría la base, cuatro edge functions, las RPC y los disparadores, con riesgo
 real y ninguna ganancia. Cambia la palabra, no el dato.
+
+**Y «sigue viva» también vive en dos sitios**: `estaVivo` en el panel y `venta_viva(status)`
+en la base. El vigía compara las dos contra esta tabla cada hora.
 
 **Esta misma regla está escrita DOS veces**, y tiene que ser así: `recibidoDe` en
 `src/lib/dinero.js` calcula sobre filas que el panel ya tiene en el navegador, y
