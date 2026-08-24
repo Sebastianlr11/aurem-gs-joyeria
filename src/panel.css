@@ -7820,3 +7820,11 @@
   background: var(--bg-arena);
   font-size: 0.78rem; line-height: 1.5; color: var(--ink);
 }
+
+/* «desde 2 envíos» junto al nombre de Envía. Pequeño y al lado, no debajo:
+   es una condición de la opción, no una nota al pie. */
+.envio-opcion-nota {
+  margin-left: 0.4rem; font-size: 0.65rem; color: var(--text-secondary);
+  white-space: nowrap;
+}
+.envio-recogida p + p { margin-top: 0.4rem; }

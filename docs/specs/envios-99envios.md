@@ -273,10 +273,22 @@ fija el comportamiento.
 De los videos de 99envios, y todo esto **queda fuera del panel**: se hace entrando a su
 plataforma. Está aquí porque son los pasos que, si se olvidan, dejan el paquete quieto.
 
-**La recogida no se programa sola con todas.** Con Coordinadora y TCC sí, al generar la
-guía. Con **Interrapidísimo, Servientrega y Envía hay que pedirla** desde su plataforma, o
-el paquete se queda en el taller esperando a un mensajero que nadie llamó. El panel lo
-recuerda al emitir la guía, que es el único momento en que se puede hacer algo al respecto.
+**La recogida.** Tres reglas que no están en la API y que, si se ignoran, dejan el paquete
+en el taller con la guía pegada. Viven en `src/lib/recogida.js`, con pruebas, y el panel las
+dice al emitir la guía —el único momento en que se puede hacer algo:
+
+| | |
+|---|---|
+| **Automática** | Sólo **TCC y Coordinadora**, y sólo con «solicitud automática» encendida en su panel |
+| **A mano** | Interrapidísimo, Servientrega y Envía: hay que ir a pedirla |
+| **Las 11:30** | Antes, el camión pasa esa misma tarde. Después, esa tarde o al día siguiente |
+| **Envía** | **No recoge un envío suelto**: pide dos como mínimo |
+
+La de Envía es la más traicionera: cotiza parecido a Coordinadora y se elige sin pensar. Por
+eso se avisa **en la lista de cotización**, antes de elegirla, y no sólo después.
+
+La de las 11:30 no es un detalle logístico: decide si la pieza sale hoy o mañana, que es lo
+que se le prometió a la clienta.
 
 **El manifiesto.** Al entregar los paquetes hay que generarlo y hacerlo firmar por quien
 los recibe. Es el comprobante de que salieron.

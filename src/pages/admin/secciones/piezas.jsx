@@ -9,7 +9,8 @@
  */
 import React, { useState } from 'react';
 import { supabase } from '../../../lib/supabase';
-import { CARRIERS, CARRIER_DE_99ENVIOS, EMPTY_CUSTOMER, RECOGIDA_A_MANO, SOURCE_META, STATUS_META, fmt } from './comunes';
+import { CARRIERS, CARRIER_DE_99ENVIOS, EMPTY_CUSTOMER, SOURCE_META, STATUS_META, fmt } from './comunes';
+import { MINIMO_DOS, comoSeRecoge } from '../../../lib/recogida';
 import { loQuePasa } from '../../../lib/circuito';
 
 export const ConfirmModal = ({ title, text, onClose, onConfirm }) => {
@@ -258,6 +259,12 @@ export const ShipModal = ({ order, onClose, onConfirm }) => {
                                                     onClick={() => setCarrier(CARRIER_DE_99ENVIOS[o.transportadora] || '')}>
                                                 <span className="envio-opcion-nombre">
                                                     {CARRIER_DE_99ENVIOS[o.transportadora] || o.transportadora}
+                                                    {/* Envía cotiza parecido a Coordinadora y se elige sin
+                                                        pensar, pero no recoge un envío suelto. Mejor saberlo
+                                                        antes de elegirla que después de emitir la guía. */}
+                                                    {MINIMO_DOS.includes(CARRIER_DE_99ENVIOS[o.transportadora]) && (
+                                                        <span className="envio-opcion-nota">desde 2 envíos</span>
+                                                    )}
                                                 </span>
                                                 <span className="envio-opcion-precio">
                                                     ${fmt(o.total)}
@@ -313,14 +320,14 @@ export const ShipModal = ({ order, onClose, onConfirm }) => {
                     {guiaError && <p className="envio-cotiza-error">{guiaError}</p>}
                     {avisoGuia && <p className="envio-cotiza-error">{avisoGuia}</p>}
 
-                    {/* Con tres de las cinco la recogida no se programa sola. Se
-                        recuerda aquí, con la guía ya en la mano, que es el único
-                        momento en que se puede hacer algo al respecto. */}
-                    {trackingNumber && RECOGIDA_A_MANO.includes(carrier) && (
-                        <p className="envio-recogida">
-                            Con {carrier} la recogida <strong>no se programa sola</strong>: entra a 99envios
-                            y pídela, o el paquete se queda esperando a un mensajero que nadie llamó.
-                        </p>
+                    {/* Quién viene por el paquete y cuándo. Se dice con la guía ya
+                        en la mano, que es el único momento en que se puede hacer
+                        algo al respecto — y la hora importa: las 11:30 deciden si
+                        la pieza sale hoy o mañana. */}
+                    {trackingNumber && carrier && (
+                        <div className="envio-recogida">
+                            {comoSeRecoge(carrier).avisos.map((a, i) => <p key={i}>{a}</p>)}
+                        </div>
                     )}
                     <div className="modal-actions">
                         <button type="button" className="admin-btn admin-btn--outline" onClick={onClose}>Cancelar</button>
