@@ -1689,3 +1689,59 @@ Comprobado rompiendo las dos a propósito: con `recibido_de` mal, caza las cuatr
 —incluida un contraentrega enviado contando entero—; con `venta_viva` mal, caza que un
 devuelto vuelva a contar como venta. Y comprobado en pantalla: «Ingresos por fuente» pasó de
 $12.739.000 a **$40.000**, que es exactamente lo que dice la portada.
+
+---
+
+## 36. ✅ El panel no decía qué hacía cada botón — resuelto
+
+Un pedido tenía una etiqueta de estado y un botón. Nada explicaba qué pasaba al pulsarlo, y
+lo que pasa no es poco: **«Marcar entregado» en un contraentrega declara que el mensajero
+cobró medio millón de pesos**, hace que la venta cuente completa en los informes y le avisa
+a Meta y a TikTok que ese anuncio vendió. Quien llevara una semana en el panel no tenía
+forma de saberlo mirando la pantalla — y el 94 % de los pedidos son contraentrega.
+
+El diálogo de confirmar enseñaba dos insignias y el monto: el **antes** y el **después**,
+que es justo lo que ya se ve en la fila, y nada de las consecuencias.
+
+### Cómo se cerró
+
+Las frases viven en **un solo sitio**, `src/lib/circuito.js`, y se dicen tres veces:
+
+1. **En cada fila**, bajo la insignia — `queFalta(pedido)`. La insignia dice *dónde* está;
+   esta línea dice *qué falta*: «Va por Interrapidísimo · falta cobrar $530.000 en la
+   puerta».
+2. **En el diálogo de confirmar**, antes de pulsar — `loQuePasa(pedido, destino)`. Lo que
+   mueve plata o no se deshace va sobre arena con filete de oro; un trámite, no. Y el botón
+   dice la acción («Sí, marcar como entregada»), no el nombre de la casilla.
+3. **En Ajustes**, la guía completa de los dos caminos, que **no tiene texto propio**: lo
+   arma llamando a esas mismas dos funciones con un pedido de ejemplo. Una guía con su
+   propia copia de las frases es una guía que va a mentir.
+
+`src/lib/circuito.test.js` fija las que hablan de dinero. Comprobado con cuatro mutaciones
+—declarar el total en vez del saldo, quitarle la gravedad a `devuelto`, volver a decir lo
+mismo en los dos pendientes, callar la plata ya entrada al cancelar—: las cuatro caen.
+
+### De paso, tres cosas más
+
+**`devuelto` no se podía marcar.** El estado existía desde el tramo 1 y no había ningún
+camino en la interfaz hasta él. Ahora hay un «No la recibió» en la fila, sólo en pedidos
+`enviado`, aparte del botón principal porque es la excepción y no la rutina.
+
+**«Por confirmar» eran dos cosas.** Un contraentrega en `pendiente` es plata casi hecha que
+falta cerrar —llamar, confirmar dirección, cobrar el abono—; un pago en línea en `pendiente`
+es un carrito abandonado y nadie está esperando nada. Juntos, el contador de la portada no
+servía para decidir a quién llamar primero. Partidos en `GRUPOS`, y «Sin pagar» sólo se
+pinta en la portada si hay alguno: un cero permanente enseña a no mirar la fila.
+
+**Una frase que iba a mentir, cazada antes de publicarla.** El primer borrador prometía que
+al marcar `devuelto` «la pieza vuelve al inventario». No es verdad: **nadie mueve
+`products.stock` en todo el código**, y casi todas las piezas lo tienen en `null` porque el
+taller trabaja por encargo. Se cambió por «vuelve a tus manos: si le llevas inventario,
+ajústalo a mano», y queda dicho en la spec.
+
+### Y dos clases de CSS que no existían
+
+Al comprobar que cada clase escrita en el JSX exista en el CSS —la revisión que quedó fija
+desde el destrozo del renombrado— aparecieron `admin-login-btn-loading` y
+`admin-login-success-icon`, usadas en `ResetPassword.jsx` y en ninguno de los dos archivos
+de estilos: el spinner sin alinear y el visto del acierto pegado a la izquierda. Añadidas.

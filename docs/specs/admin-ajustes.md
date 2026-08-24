@@ -15,12 +15,21 @@ desplegar nada**. Precio del oro, políticas, cifras de contraentrega, administr
 
 | Bloque | Componente | Escribe en |
 |---|---|---|
+| Guía del circuito de un pedido | `GuiaDelCircuito` | — (sólo lee `src/lib/circuito.js`) |
 | Precio del oro, recargo, gramos mínimos | `PrecioOroCard` (`:2931`) | `taller_precios` |
 | Base de conocimiento de Valentina | `ConocimientoCard` (`:3132`) | `taller_conocimiento` |
 | Administradores | `:3287-3300` | `auth.users` vía `create-admin` |
 | Webhook propio + prueba | `:3266+` | `localStorage` |
 | Respuestas rápidas del chat | `:3266+` | `localStorage` |
 | Sonido de notificación | `:3266+` | `localStorage` |
+
+### La guía del circuito
+
+Va la primera de la pantalla y **no escribe nada**: explica qué botón se oprime en cada
+caso y qué pasa al oprimirlo, para quien entre al panel sin conocer el negocio. No tiene
+texto propio — arma los dos caminos llamando a `queFalta()` y `loQuePasa()` de
+`src/lib/circuito.js` con un pedido de ejemplo, que son las mismas frases que se ven en
+Pedidos y en el diálogo de confirmar. Ver [admin-pedidos.md](admin-pedidos.md).
 
 ### Tablas
 

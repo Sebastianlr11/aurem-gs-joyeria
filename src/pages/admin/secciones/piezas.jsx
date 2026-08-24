@@ -10,6 +10,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { CARRIERS, EMPTY_CUSTOMER, SOURCE_META, STATUS_META, fmt } from './comunes';
+import { loQuePasa } from '../../../lib/circuito';
 
 export const ConfirmModal = ({ title, text, onClose, onConfirm }) => {
     const [loading, setLoading] = useState(false);
@@ -160,9 +161,15 @@ export const ShipModal = ({ order, onClose, onConfirm }) => {
                     <button className="modal-close" onClick={onClose}>&#x2715;</button>
                 </div>
                 <form className="modal-form" onSubmit={handleSubmit}>
-                    <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-                        Pedido de <strong>{order.customer_name}</strong> — {order.product_name}
+                    <p className="ped-confirmar-quien">
+                        Pedido de <strong>{order.customer_name}</strong> · {order.product_name}
                     </p>
+                    {/* Al guardar esto le salen dos mensajes a la clienta —correo y
+                        WhatsApp— y en contraentrega queda dicho cuánto tiene que
+                        llevar el mensajero. Se avisa antes, no después. */}
+                    <ul className="ped-confirmar-lista">
+                        {loQuePasa(order, 'enviado').consecuencias.map((c, i) => <li key={i}>{c}</li>)}
+                    </ul>
                     <div className="modal-field">
                         <label>Transportadora *</label>
                         <select value={carrier} onChange={e => setCarrier(e.target.value)} required>
@@ -216,33 +223,56 @@ export const StatusBadge = ({ status }) => (
 
 /* ─── SourceBadge ────────────────────────────────────────────────── */
 
+/**
+ * El «¿seguro?» de un cambio de estado.
+ *
+ * Enseñaba dos insignias y el monto, o sea el ANTES y el DESPUÉS, y nada de lo
+ * que iba a pasar. Y lo que pasa no es poco: «Marcar entregado» en un
+ * contraentrega declara que el mensajero cobró medio millón de pesos, hace que
+ * la venta cuente completa y le dice a Meta y a TikTok que ese anuncio vendió.
+ * Alguien que llevara una semana en el panel no tenía forma de saberlo.
+ *
+ * Ahora lee las consecuencias de `loQuePasa`, que las escribe una sola vez para
+ * todo el panel, y las peligrosas se ven distintas de las de trámite.
+ */
 export const StatusConfirmModal = ({ order, nextStatus, onClose, onConfirm }) => {
     const [loading, setLoading] = useState(false);
     const meta = STATUS_META[nextStatus];
+    const pasa = loQuePasa(order, nextStatus);
     return (
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
             <div className="modal-box modal-box--sm">
                 <div className="modal-header">
-                    <h2 className="modal-title">Cambiar estado</h2>
+                    <h2 className="modal-title">{pasa.titulo}</h2>
                     <button className="modal-close" onClick={onClose}>&#x2715;</button>
                 </div>
-                <div style={{ padding: '1.25rem 1.75rem 0' }}>
-                    <p style={{ fontSize: '0.92rem', color: 'var(--ink)', lineHeight: 1.6 }}>
-                        Cambiar el pedido de <strong>{order.customer_name}</strong> a:
+                <div className="ped-confirmar">
+                    <p className="ped-confirmar-quien">
+                        <strong>{order.customer_name}</strong> · {order.product_name} · ${fmt(order.amount)} COP
                     </p>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginTop: '0.75rem' }}>
+                    <div className="ped-confirmar-salto">
                         <StatusBadge status={order.status} />
-                        <span style={{ color: 'var(--text-muted)' }}>&rarr;</span>
+                        <span aria-hidden="true">&rarr;</span>
                         <StatusBadge status={nextStatus} />
                     </div>
-                    <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '0.75rem' }}>
-                        Producto: {order.product_name} &middot; ${fmt(order.amount)} COP
-                    </p>
+
+                    {pasa.consecuencias.length > 0 && (
+                        <>
+                            <p className="ped-confirmar-ante">Qué va a pasar</p>
+                            <ul className={`ped-confirmar-lista${pasa.grave ? ' ped-confirmar-lista--pesa' : ''}`}>
+                                {pasa.consecuencias.map((c, i) => <li key={i}>{c}</li>)}
+                            </ul>
+                        </>
+                    )}
                 </div>
-                <div className="modal-actions" style={{ padding: '1.25rem 1.75rem 1.75rem' }}>
+                <div className="modal-actions modal-actions--pedido">
                     <button className="admin-btn admin-btn--outline" onClick={onClose}>Cancelar</button>
                     <button className="admin-btn" onClick={async () => { setLoading(true); await onConfirm(); setLoading(false); }} disabled={loading}>
-                        {loading ? 'Cambiando...' : meta?.label || 'Confirmar'}
+                        {/* El botón dice la acción, no el estado. Decía «Entregado», que
+                            es el nombre de la casilla y no lo que uno está haciendo; con
+                            un aviso encima que habla de medio millón de pesos, lo que se
+                            pulsa tiene que confirmar ese aviso. */}
+                        {loading ? 'Cambiando...' : (pasa.titulo === 'Cambiar el estado' ? `Marcar ${(meta?.label || '').toLowerCase()}` : `Sí, ${pasa.titulo.toLowerCase()}`)}
                     </button>
                 </div>
             </div>

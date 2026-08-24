@@ -73,8 +73,30 @@ CONTRAENTREGA  pendiente ──► confirmado ──► procesando ──► env
 | `procesando` | **Fabricando** | El taller **está haciendo la pieza** | Una persona, «Empezar a fabricar» | — |
 | `enviado` | Enviado | Va con la transportadora | Una persona, «Marcar enviado» + guía | Correo con rastreo · plantilla `pedido_en_camino` |
 | `entregado` | Entregado | Llegó. En contraentrega, **además cobraste** | Una persona, «Marcar entregado» | En contraentrega: anota el saldo y avisa a Meta y TikTok |
-| `devuelto` | Devuelto | Salió, no se recibió y volvió | Una persona | El abono se queda · la pieza vuelve al inventario · **no** se avisa a los anuncios |
+| `devuelto` | Devuelto | Salió, no se recibió y volvió | Una persona, «No la recibió» en la fila del pedido | El abono se queda · deja de haber saldo por cobrar · **no** se avisa a los anuncios |
 | `cancelado` | Cancelado | **Nunca salió** | Una persona | — |
+
+### Dónde lo lee quien trabaja
+
+Esta tabla es la fuente de verdad, pero está donde no la va a leer quien tiene el panel
+abierto y una clienta al teléfono. Así que el circuito se dice **tres veces, y las tres
+salen del mismo sitio** —`src/lib/circuito.js`—, para que no puedan separarse:
+
+1. **En cada fila de Pedidos**, bajo la insignia: `queFalta(pedido)`. La insignia dice
+   *dónde* está; esta línea dice *qué falta*.
+2. **En el diálogo de confirmar**, antes de pulsar: `loQuePasa(pedido, destino)`, con lo
+   que va a ocurrir. Lo que mueve plata se ve distinto de un trámite.
+3. **En Ajustes**, la guía completa (`GuiaDelCircuito.jsx`), que **no tiene texto propio**:
+   arma los dos caminos llamando a las mismas dos funciones con un pedido de ejemplo. Una
+   guía con su propia copia de las frases es una guía que va a mentir.
+
+Si cambia lo que dispara un estado, se corrige en `circuito.js` y las tres pantallas se
+enteran solas. Y `src/lib/circuito.test.js` fija las frases que hablan de dinero.
+
+**Un aviso de honestidad:** el panel **no** devuelve la pieza al inventario cuando marcas
+`devuelto`. Nadie mueve `products.stock` en todo el código y casi todas las piezas lo
+tienen en `null`, porque el taller trabaja por encargo. Por eso la frase dice «vuelve a tus
+manos: si le llevas inventario, ajústalo a mano».
 
 ### Tres cosas que no son obvias
 
@@ -142,6 +164,8 @@ herramientas externas sin tocar código.
 - La talla elegida en la ficha pública **no llega** al pedido; sólo la traen los pedidos con
   `items[]` (WhatsApp y manuales).
 - Los estados no se validan como transiciones: se puede saltar de `pendiente` a `entregado`.
+- Marcar `devuelto` no toca el inventario ni devuelve nada al cliente en pago en línea: las
+  dos cosas se dicen en el aviso, pero se hacen a mano.
 - `orders` **no está versionada** en migraciones más allá de las columnas añadidas
   ([pendientes #4](../pendientes.md)).
 
@@ -161,3 +185,7 @@ pueden quemar plantillas de WhatsApp.
    tallas, cada una con su pieza.
 6. **Validación de `PedidoModal`:** deja campos vacíos — el pie debe nombrarlos antes de que
    pulses guardar.
+7. **El aviso del diálogo:** en un contraentrega en `enviado`, «Marcar entregado» tiene que
+   decir cuántos pesos estás declarando cobrados, y verse sobre fondo de arena. En un
+   prepago en el mismo estado, no: ahí es un trámite.
+8. **La salida a `devuelto`:** «No la recibió» sólo aparece en pedidos `enviado`.

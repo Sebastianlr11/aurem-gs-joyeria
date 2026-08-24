@@ -9,6 +9,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { CLAVE_RESPUESTAS, RESPUESTAS_POR_DEFECTO, comoTexto } from '../../../lib/respuestasRapidas';
+import GuiaDelCircuito from './GuiaDelCircuito';
 import { fmtDate } from './comunes';
 
 const PrecioOroCard = () => {
@@ -514,6 +515,8 @@ const SettingsSection = () => {
                     <p className="admin-section-sub">Configuración del panel de administración</p>
                 </div>
             </div>
+
+            <GuiaDelCircuito />
 
             <PrecioOroCard />
 

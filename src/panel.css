@@ -431,6 +431,19 @@
   flex-shrink: 0;
 }
 
+/* Dos clases que ResetPassword usaba y que no existían en ninguno de los dos
+   archivos de CSS: el spinner quedaba pegado al texto sin alinear, y el visto
+   del acierto se iba a la izquierda de su recuadro. Se vieron al comprobar que
+   toda clase escrita en el JSX exista en el CSS. */
+.admin-login-btn-loading {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+}
+
+.admin-login-success-icon {
+  display: flex; align-items: center; justify-content: center;
+  color: var(--oro);
+}
+
 .admin-login-divider {
   display: flex;
   align-items: center;
@@ -5759,6 +5772,62 @@
 }
 .ped-accion:hover { background: var(--ink-soft); border-color: var(--ink-soft); }
 
+/* La línea de «qué falta», debajo de la insignia de estado. Es texto de
+   apoyo y tiene que leerse como tal: si compitiera con la insignia se
+   perdería el vistazo rápido a la columna, que es para lo que sirve. */
+.ped-falta {
+  display: block; margin-top: 5px; max-width: 30ch;
+  font-size: 0.72rem; line-height: 1.45; color: var(--text-secondary);
+}
+
+/* «No la recibió»: la salida a `devuelto`. Va bajo el botón principal y sin
+   fondo, porque es la excepción —el mensajero volvió con la pieza— y no debe
+   competir con lo que se pulsa todos los días. */
+.ped-accion-otra {
+  display: block; margin-top: 6px; padding: 0; border: 0; background: none;
+  font-family: inherit; font-size: 0.72rem; color: var(--text-secondary);
+  text-decoration: underline; text-underline-offset: 3px; cursor: pointer;
+  transition: color 0.3s var(--ease);
+}
+.ped-accion-otra:hover { color: var(--ink); }
+
+/* ── El diálogo de confirmar un cambio de estado ─────────────────────
+   Enseñaba dos insignias y el monto, o sea el antes y el después, y nada de
+   lo que iba a pasar. Y lo que pasa no es poco: «Marcar entregado» en un
+   contraentrega declara que entró medio millón de pesos, hace que la venta
+   cuente completa y le avisa a Meta y a TikTok. Las frases las escribe
+   `src/lib/circuito.js`, en un solo sitio para todo el panel. */
+.ped-confirmar { padding: 1.25rem 1.75rem 0; }
+.ped-confirmar-quien {
+  font-size: 0.85rem; line-height: 1.55; color: var(--text-secondary);
+}
+.ped-confirmar-quien strong { color: var(--ink); font-weight: 700; }
+.ped-confirmar-salto {
+  display: flex; align-items: center; gap: 0.6rem; margin-top: 0.75rem;
+  color: var(--text-muted);
+}
+.ped-confirmar-ante {
+  margin-top: 1.25rem;
+  font-size: 0.68rem; font-weight: 700; letter-spacing: 0.16em;
+  text-transform: uppercase; color: var(--oro-ink);
+}
+.ped-confirmar-lista {
+  margin-top: 0.5rem; padding-left: 1.1rem;
+  display: flex; flex-direction: column; gap: 0.4rem;
+  font-size: 0.85rem; line-height: 1.5; color: var(--ink);
+}
+.ped-confirmar-lista li::marker { color: var(--oro); }
+
+/* Lo que mueve plata o no se deshace desde el panel se ve distinto de un
+   trámite. Si los dos avisos se vieran igual, se aprendería a saltárselos. */
+.ped-confirmar-lista--pesa {
+  margin-left: -0.35rem; padding: 0.75rem 0.75rem 0.75rem 1.65rem;
+  border-left: 2px solid var(--oro);
+  background: var(--bg-arena); border-radius: 2px;
+}
+
+.modal-actions--pedido { padding: 1.25rem 1.75rem 1.75rem; }
+
 .ped-acciones { display: flex; align-items: center; justify-content: flex-end; gap: 4px; }
 .ped-icono {
   display: inline-flex; align-items: center; justify-content: center;
@@ -7589,3 +7658,84 @@
   color: var(--error-fuerte);
   cursor: pointer;
 }
+/* ═══════════════════════════════════════════════════════════════════
+   LA GUÍA DEL CIRCUITO · Ajustes
+   Qué botón oprimir y qué pasa al oprimirlo. Las frases salen de
+   src/lib/circuito.js, no de aquí: esto sólo las coloca.
+═══════════════════════════════════════════════════════════════════ */
+
+.guia-circuito { max-width: 960px; }
+
+.guia-intro {
+  font-size: 0.85rem; line-height: 1.6; color: var(--text-secondary);
+  max-width: 62ch; margin-bottom: 1.5rem;
+}
+
+/* Dos columnas donde caben, porque los dos caminos se leen comparándolos:
+   lo que cambia entre contraentrega y pago en línea es justo lo que hay que
+   entender. Uno debajo del otro se pierde esa lectura. */
+.guia-caminos {
+  display: grid;
+  /* min(300px, 100%) y no 300px a secas: en el móvil la columna disponible es
+     de 273px y las tarjetas se salían de la suya por 27px. */
+  grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
+  gap: 1.5rem;
+}
+
+.guia-camino {
+  padding: 1rem; border: 1px solid var(--hairline); border-radius: 2px;
+  background: var(--bg-marfil);
+}
+.guia-camino--salidas { margin-top: 1.5rem; background: none; }
+
+.guia-camino-titulo {
+  font-family: var(--font-display); font-weight: 400;
+  font-size: 1.1rem; color: var(--ink);
+}
+.guia-camino-nota {
+  margin-top: 0.25rem; font-size: 0.78rem; line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.guia-pasos {
+  list-style: none; margin: 1rem 0 0; padding: 0;
+  display: flex; flex-direction: column; gap: 0.85rem;
+}
+
+/* El filete a la izquierda es la línea del recorrido: los pasos son una
+   secuencia y se leen como tal. Aquí la numeración sí informa —hay un orden
+   real— pero la marca el hilo, que no obliga a contar. */
+.guia-paso {
+  padding-left: 0.85rem; border-left: 2px solid var(--hairline);
+}
+.guia-paso-cabeza { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.guia-paso-quien { font-size: 0.75rem; line-height: 1.4; color: var(--text-secondary); }
+.guia-paso-falta {
+  margin-top: 0.3rem; font-size: 0.78rem; line-height: 1.5; color: var(--ink);
+}
+
+.guia-paso-boton { margin-top: 0.55rem; }
+.guia-boton-nombre {
+  display: inline-block; padding: 0.28rem 0.7rem; border-radius: 100px;
+  border: 1px solid var(--hairline); background: var(--bg-color);
+  font-size: 0.7rem; font-weight: 700; color: var(--ink);
+}
+.guia-paso-boton .ped-confirmar-lista { margin-top: 0.45rem; font-size: 0.78rem; }
+
+.guia-salidas {
+  list-style: none; margin: 1rem 0 0; padding: 0;
+  display: flex; flex-direction: column; gap: 0.85rem;
+}
+.guia-salida { display: flex; align-items: flex-start; gap: 0.75rem; }
+.guia-salida-cuando { font-size: 0.8rem; line-height: 1.5; color: var(--ink); }
+.guia-salida-boton { margin-top: 0.2rem; font-size: 0.75rem; color: var(--text-secondary); }
+
+/* La regla que más se ha equivocado en este proyecto. Va sobre arena y con
+   filete de oro por eso: no es una nota al pie, es lo que hay que recordar. */
+.guia-regla {
+  margin-top: 1.5rem; padding: 0.9rem 1rem;
+  border-left: 2px solid var(--oro); border-radius: 2px;
+  background: var(--bg-arena);
+  font-size: 0.82rem; line-height: 1.6; color: var(--ink);
+}
+.guia-regla strong { font-weight: 700; }
