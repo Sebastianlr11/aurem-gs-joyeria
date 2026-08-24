@@ -1498,3 +1498,33 @@ Comprobado en el navegador: el contenedor con su desbordamiento y su relleno, la
 burbujas, los separadores «Ayer» y «Hoy», las horas, los acuses con su explicación al pasar
 el cursor y en el tono discreto, el lado de cada mensaje y el ancla del final. Y de paso se
 enderezó una sangría que había quedado torcida al sacar la ficha del contacto.
+
+**Undécimo tramo: 1.342 → 1.293 líneas.** Sale el compositor —el campo, el botón de enviar,
+las respuestas rápidas y el disparador del selector de fotos—, y sale **sólo la pintura**:
+el estado y `handleSend` se quedan en el panel a propósito. Es la única parte de esta
+pantalla que le manda un mensaje a una clienta de verdad, y un mensaje enviado no se
+recoge: mover catorce props es más barato que mover la función que aprieta el gatillo.
+
+Dos cosas que casi se pierden por el camino, y las dos del mismo tipo —comportamiento que
+no se ve en el JSX—:
+
+- **`.chat-input-actions` llevaba su `position: relative` en un `style` dentro del JSX**,
+  igual que el menú de los tres puntos. Es lo que ancla los dos paneles que cuelgan de esa
+  barra. Ahora está en `panel.css` con el motivo al lado.
+- **Elegir una respuesta rápida cerraba el panel**, y al mover el JSX se quedaba abierto. Se
+  recuperó pasando la elección entera al panel en vez de sólo el texto.
+
+### Y un envío real que no debía salir
+
+Al probarlo intenté interceptar `wa-send` para recorrer el camino sin tocar la red. **El
+interceptor no funcionó**: en desarrollo, importar `/src/lib/supabase.js` a mano devuelve
+otra instancia del módulo que la que usa la aplicación, así que el parche no llegó a
+ponerse y **salió una llamada de verdad**.
+
+La rechazó `wa-send` con un **409: la ventana de 24 horas de WhatsApp estaba cerrada** —el
+último mensaje de esa persona era de más de un día antes—, así que no se envió nada ni se
+guardó nada: siguen siendo dos mensajes en la base. El freno hizo exactamente su trabajo.
+
+Y acabó siendo mejor comprobación que la que buscaba: se recorrió el camino entero de
+verdad —botón, burbuja provisional al instante, llamada, error, burbuja marcada como
+fallida y banda de error— y lo único que impidió el envío fue la regla de la plataforma.

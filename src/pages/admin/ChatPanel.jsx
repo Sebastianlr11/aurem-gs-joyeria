@@ -17,6 +17,7 @@ import FilaDeContacto from './chat/FilaDeContacto';
 import CabeceraDeContactos from './chat/CabeceraDeContactos';
 import DialogoDeConfirmacion from './chat/DialogoDeConfirmacion';
 import HiloDeMensajes from './chat/HiloDeMensajes';
+import Compositor from './chat/Compositor';
 import BuscadorDeMensajes from './chat/BuscadorDeMensajes';
 
 
@@ -1202,84 +1203,34 @@ filteredContacts.map(c => (
                                     )}
                                 </div>
 
-                                {/* Send error banner */}
-                                {sendError && (
-                                    <div className="chat-send-error">
-                                        <span>{sendError}</span>
-                                        <button onClick={() => setSendError(null)}>&times;</button>
-                                    </div>
-                                )}
-
-                                {/* Input area */}
-                                <div className="chat-conv-input">
-                                    <div className="chat-input-actions" style={{ position: 'relative' }}>
-                                        <button
-                                            className="chat-quick-trigger"
-                                            onClick={() => { setShowQuickReplies(!showQuickReplies); setShowImagePicker(false); }}
-                                            title="Respuestas rapidas"
-                                        >
-                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-                                        </button>
-                                        <button
-                                            className="chat-image-trigger"
-                                            onClick={() => { setShowImagePicker(!showImagePicker); setShowQuickReplies(false); }}
-                                            title="Enviar imagen de producto"
-                                        >
-                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                                        </button>
-
-                                        {/* Quick replies panel */}
-                                        {showQuickReplies && (
-                                            <div className="chat-quick-replies" ref={quickRepliesRef}>
-                                                {quickReplies.map((qr, i) => (
-                                                    <button key={i} className="chat-quick-reply-btn" onClick={() => {
-                                                        const nombre = activeContactData?.customer_name || '';
-                                                        setNewMessage(qr.text.replace(/\{\{nombre\}\}/gi, nombre));
-                                                        setShowQuickReplies(false);
-                                                    }}>
-                                                        {qr.label}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        )}
-
-                                        {/* Image picker panel */}
-{showImagePicker && (
-                                            <SelectorDeImagen
-                                                piezas={products}
-                                                telefono={activeContact}
-                                                contenedor={imagePickerRef}
-                                                onCerrar={() => setShowImagePicker(false)}
-                                                onError={setSendError}
-                                            />
-                                        )}
-                                    </div>
-                                    <textarea
-                                        className="chat-input-field"
-                                        placeholder="Escribe un mensaje..."
-                                        value={newMessage}
-                                        onChange={e => setNewMessage(e.target.value)}
-                                        onKeyDown={handleKeyDown}
-                                        onFocus={() => setEscribiendo(true)}
-                                        onBlur={() => setEscribiendo(false)}
-                                        rows={1}
-                                    />
-                                    <button
-                                        className="chat-send-btn"
-                                        /* Sin esto el campo pierde el foco ANTES del clic: la barra
-                                           de navegación reaparece, el layout se mueve y el toque
-                                           puede caer en otro lado. */
-                                        onMouseDown={e => e.preventDefault()}
-                                        onClick={handleSend}
-                                        disabled={!newMessage.trim() || sending}
-                                    >
-                                        {sending ? (
-                                            <div className="chat-send-spinner" />
-                                        ) : (
-                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-                                        )}
-                                    </button>
-                                </div>
+<Compositor
+                                    mensaje={newMessage}
+                                    onCambiar={setNewMessage}
+                                    onTeclear={handleKeyDown}
+                                    onEscribiendo={setEscribiendo}
+                                    enviando={sending}
+                                    onEnviar={handleSend}
+                                    error={sendError}
+                                    onDescartarError={() => setSendError(null)}
+                                    respuestas={quickReplies}
+                                    onElegirRespuesta={texto => {
+                                        setNewMessage(texto.replace(/\{\{nombre\}\}/gi, activeContactData?.customer_name || ''));
+                                        setShowQuickReplies(false);
+                                    }}
+                                    verRespuestas={showQuickReplies}
+                                    onVerRespuestas={() => { setShowQuickReplies(!showQuickReplies); setShowImagePicker(false); }}
+                                    refRespuestas={quickRepliesRef}
+                                    onVerImagenes={() => { setShowImagePicker(!showImagePicker); setShowQuickReplies(false); }}
+                                    panelDeImagen={showImagePicker && (
+                                        <SelectorDeImagen
+                                            piezas={products}
+                                            telefono={activeContact}
+                                            contenedor={imagePickerRef}
+                                            onCerrar={() => setShowImagePicker(false)}
+                                            onError={setSendError}
+                                        />
+                                    )}
+                                />
                             </>
                         )}
                     </div>

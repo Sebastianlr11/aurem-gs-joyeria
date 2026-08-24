@@ -2307,6 +2307,11 @@
   display: flex;
   gap: 4px;
   align-items: center;
+  /* Ancla los dos paneles que cuelgan de aquí —las respuestas rápidas y el
+     selector de fotos—, que van en posición absoluta. Vivía en un `style`
+     dentro del JSX, igual que el del menú de los tres puntos: invisible para
+     el diagnóstico de CSS y para quien buscara la clase. */
+  position: relative;
 }
 
 .chat-quick-trigger,
