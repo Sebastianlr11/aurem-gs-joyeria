@@ -1903,7 +1903,7 @@ precio»— antes que esconder pedidos de verdad.**
 
 ---
 
-## 40. 🟠 El disparador que cancela duplicados compara el teléfono en crudo
+## 40. ✅ El disparador que cancela duplicados cancelaba de más y detectaba de menos — resuelto
 
 `cancel_duplicate_pending_orders` corre en cada `INSERT` sobre `orders` y cancela los
 pedidos `pendiente` del mismo cliente y la misma pieza. El cruce es
@@ -1914,9 +1914,29 @@ duplicado no se detecta** y quedan dos pedidos pendientes vivos por la misma pie
 mismo fallo que `20260823_un_cliente_por_persona.sql` cerró en `customers` y que apareció
 después en las RPC.
 
-**No se ha tocado a propósito.** Arreglarlo hace que el disparador cancele *más*, y cancelar
-es una escritura sobre pedidos reales: la decisión es de Sebastián, no mía. Y de paso hay
-una pregunta de negocio metida ahí dentro que conviene resolver antes: **el disparador
-también cancelaría un pedido legítimo repetido** —dos anillos iguales, uno para regalar—
-si el primero sigue en `pendiente`. Hoy eso ya pasa; ampliar el cruce sólo lo haría pasar
-más.
+Y el fallo iba en las dos direcciones a la vez, que es lo que lo hacía interesante:
+**también cancelaba de más.** No miraba CUÁNDO se había hecho el pedido viejo, así que un
+pedido legítimo repetido —dos anillos iguales, uno para regalar, pedidos con una semana de
+diferencia— se caía solo y en silencio.
+
+Arreglar sólo el teléfono habría empeorado eso, porque el cruce acertaría más veces. Por
+eso fueron juntos: **se amplía el cruce y se acota la ventana a una hora.** El caso que esto
+resuelve —la clienta llena el checkout, se va a Mercado Pago, se arrepiente y vuelve a
+empezar con contraentrega— ocurre en minutos. Un pedido pendiente de ayer no es un
+duplicado: es un pedido que merece que alguien decida.
+
+Medido sobre los pedidos que hay, antes de aplicarlo:
+
+| | Parejas |
+|---|---|
+| Duplicados de verdad que el cruce en crudo **no veía** | **45** |
+| Pedidos viejos que la regla **habría matado** fuera de la hora | **16** |
+
+Se mide contra `NEW.created_at` y no contra `now()` para que se comporte igual si algún día
+se recargan pedidos con su fecha original. De paso, la función pasó a tener `search_path`
+fijo, como el resto, y ahora escribe `status_updated_at` al cancelar —antes dejaba la fecha
+del estado anterior, y en la tabla de pedidos eso se lee como que lleva días sin moverse—.
+
+Decidido por Sebastián el 24 de agosto de 2026 entre tres opciones: arreglar sólo el
+teléfono, acotar por tiempo, o dejarlo. La ventana era la que ataca el caso real sin comerse
+los pedidos dobles legítimos.
