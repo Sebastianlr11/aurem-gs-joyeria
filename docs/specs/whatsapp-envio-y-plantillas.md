@@ -132,7 +132,7 @@ y sí quema el candado de `plantillas_enviadas`.
 | Nombre | Categoría | Cuándo sale | Variables |
 |---|---|---|---|
 | `pieza_en_fabricacion` | Utilidad | Pedido en `procesando` en las últimas 48 h | nombre · pieza |
-| `pedido_en_camino` | Utilidad | Pedido en `enviado` con guía y transportadora reconocida | nombre · pieza · transportadora · guía |
+| `pedido_en_camino` | Utilidad | **Apagada desde el 24-ago**: lo manda 99envios, gratis y en cada estado. Ver [envios-99envios.md](envios-99envios.md) | nombre · pieza · transportadora · guía |
 | `pago_pendiente` | Utilidad | `pendiente` con enlace de Mercado Pago generado hace 3 h a 2 días | nombre · pieza |
 | `cotizacion_sin_cerrar` | **Marketing** | Habló, se interesó en una pieza concreta y no volvió en 2 a 4 días | nombre · pieza |
 

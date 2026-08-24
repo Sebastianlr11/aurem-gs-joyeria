@@ -183,7 +183,7 @@ Cosas que hay que saber antes de tocar el enrutado:
 | `mp-webhook` | **ninguna** | Mercado Pago, Meta, TikTok, `/api/correo` | `MP_ACCESS_TOKEN`, `CORREO_SECRETO` |
 | `conversion-pedido` | JWT de admin | Meta CAPI, TikTok | `META_CAPI_TOKEN`, `TIKTOK_ACCESS_TOKEN` |
 | `correo-despacho` | JWT de admin | `/api/correo` → Resend | `CORREO_SECRETO`, `APP_URL` |
-| `plantillas-programadas` | `x-cron-secreto` desde BD | Meta Cloud API | `PLANTILLAS_ACTIVAS` |
+| `plantillas-programadas` | `x-cron-secreto` desde BD | Meta Cloud API | `PLANTILLAS_ACTIVAS`, `PLANTILLA_EN_CAMINO` |
 | `cotizar-envio` | JWT de admin | 99envios | `ENVIOS99_EMAIL`, `ENVIOS99_PASSWORD`, `ENVIOS99_URL` |
 | `crear-guia` | JWT de admin | 99envios | ídem, y `ENVIOS99_DICE_CONTENER` |
 | `vigilancia` | `x-cron-secreto` desde BD | HTTP checks, `/api/correo` | `CORREO_SECRETO`, `APP_URL` |
