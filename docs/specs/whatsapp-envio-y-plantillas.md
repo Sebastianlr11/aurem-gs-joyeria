@@ -1,7 +1,7 @@
 # WhatsApp — envío, ventana de 24 h y plantillas
 
 > **Estado:** en producción · **plantillas encendidas y mandando de verdad desde el 22 de agosto de 2026**
-> **Última revisión:** 2026-08-23
+> **Última revisión:** 2026-08-24
 > **Dónde vive:** `supabase/functions/_shared/wa.ts` (464 líneas), `wa-send`, `plantillas-programadas`
 
 ## Qué resuelve
@@ -36,7 +36,7 @@ impone Meta y que gobiernan todo el diseño:
 | `wa.ts` | `enviarTexto`, `enviarImagen`, `enviarPlantilla`, `ventanaAbierta`, `numeroPropioDe` |
 | `supabase/functions/wa-send/index.ts` | Envío manual desde el panel (JWT de admin) |
 | `supabase/functions/wa-webhook/index.ts:111-135` | Acuses de entrega |
-| `supabase/functions/plantillas-programadas/index.ts` | Avisos programados (504 líneas) |
+| `supabase/functions/plantillas-programadas/index.ts` | Avisos programados (528 líneas) |
 
 ### Tablas y columnas
 

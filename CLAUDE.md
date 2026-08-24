@@ -2,7 +2,7 @@
 
 Guía para Claude Code (claude.ai/code) al trabajar en este repositorio.
 
-> **Última conciliación con el código: 23 de agosto de 2026.**
+> **Última conciliación con el código: 24 de agosto de 2026.**
 > Si algo de este documento no cuadra con lo que ves en el código, gana el código —
 > y avísalo, porque significa que este archivo volvió a quedarse atrás.
 
@@ -39,7 +39,7 @@ npm run dev          # Vite en http://localhost:5173
 npm run build        # eslint && vitest && sitemap.mjs && correos.mjs && tsc -b && vite build
 npm run preview      # Sirve /dist
 npm run lint         # ESLint (sí corre en el build)
-npm test             # Vitest, una pasada (186 pruebas)
+npm test             # Vitest, una pasada (219 pruebas)
 npm run test:mirar   # Vitest en marcha, repitiendo al guardar
 
 npm run sitemap      # Regenera public/sitemap.xml desde Supabase
@@ -61,7 +61,7 @@ Tres advertencias sobre el build:
 
 ### Las pruebas
 
-Hay **186**, en doce archivos que viven al lado de lo que prueban:
+Hay **219**, en dieciséis archivos que viven al lado de lo que prueban:
 
 | Archivo | Qué fija |
 |---|---|
@@ -72,6 +72,10 @@ Hay **186**, en doce archivos que viven al lado de lo que prueban:
 | `src/pages/admin/chat/*.test.js(x)` | Los ganchos del chat, la ficha, la selección y el diálogo |
 | `supabase/functions/_shared/reglas.test.ts` | Las reglas de Valentina |
 | `supabase/functions/_shared/bucle.test.ts` | El bucle del agente, sin Deno y sin red |
+| `src/lib/envio.test.js` | La caja en la que viaja una pieza: `null` nunca viaja como cero |
+| `src/lib/nombre.test.js` | Partir un nombre para la guía, sin inventarse un apellido |
+| `src/lib/recogida.test.js` | Quién viene por el paquete y cuándo |
+| `src/lib/pixeles.test.js` | Que diferir los píxeles no pierda ni un evento |
 
 **Una de ellas no comprueba código, compara dos copias.** La talla de anillo está
 implementada dos veces —`src/lib/talla.js` para la guía del sitio y
@@ -108,8 +112,8 @@ se le pone jsdom a ese archivo.
 Este es el punto donde más se equivoca quien llega nuevo:
 
 > **El backend real NO está en `api/`.**
-> `api/` son 2 endpoints (221 líneas). La lógica de negocio son **9 Edge Functions de
-> Supabase en Deno + 8 módulos compartidos, ≈5.300 líneas**.
+> `api/` son 2 endpoints (221 líneas). La lógica de negocio son **11 Edge Functions de
+> Supabase en Deno + 8 módulos compartidos**.
 
 | Plano | Dónde | Runtime | Qué hace |
 |---|---|---|---|
@@ -185,7 +189,7 @@ Cosas que hay que saber antes de tocar el enrutado:
 | `correo-despacho` | JWT de admin | `/api/correo` → Resend | `CORREO_SECRETO`, `APP_URL` |
 | `plantillas-programadas` | `x-cron-secreto` desde BD | Meta Cloud API | `PLANTILLAS_ACTIVAS`, `PLANTILLA_EN_CAMINO` |
 | `cotizar-envio` | JWT de admin | 99envios | `ENVIOS99_EMAIL`, `ENVIOS99_PASSWORD`, `ENVIOS99_URL` |
-| `crear-guia` | JWT de admin | 99envios | ídem, y `ENVIOS99_DICE_CONTENER` |
+| `crear-guia` | JWT de admin | 99envios | ídem, más `ENVIOS99_SEGURO` y `ENVIOS99_DICE_CONTENER` |
 | `vigilancia` | `x-cron-secreto` desde BD | HTTP checks, `/api/correo` | `CORREO_SECRETO`, `APP_URL` |
 | `create-admin` | JWT con `app_metadata.rol = 'dueño'` | Supabase Auth Admin | `SUPABASE_SERVICE_ROLE_KEY` |
 
@@ -400,7 +404,8 @@ en local los píxeles quedan apagados y no ensucian la medición.
 `WA_VERIFY_TOKEN`, `MP_ACCESS_TOKEN`, `OPENROUTER_API_KEY`, `OPENROUTER_MODEL`,
 `OPENROUTER_VISION_MODEL`, `OPENROUTER_AUDIO_MODEL`, `META_PIXEL_ID`, `META_CAPI_TOKEN`,
 `TIKTOK_PIXEL_ID`, `TIKTOK_ACCESS_TOKEN`, `APP_URL`, `PLANTILLAS_ACTIVAS`, `CORREO_SECRETO`,
-`ENVIOS99_EMAIL`, `ENVIOS99_PASSWORD`, `ENVIOS99_URL`
+`ENVIOS99_EMAIL`, `ENVIOS99_PASSWORD`, `ENVIOS99_URL`, `ENVIOS99_SEGURO`,
+`ENVIOS99_DICE_CONTENER`, `PLANTILLA_EN_CAMINO`
 
 Todo lo que empieza por `VITE_` **acaba dentro del bundle público**. La anon key de
 Supabase es visible para cualquiera: la seguridad real depende enteramente de RLS.
@@ -596,7 +601,7 @@ Cosas que ya costaron un incidente. Léelas antes de tocar lo que describen.
 - **Gmail borra los `<style>` externos.** Por eso `emails/_marca.tsx` duplica los tokens
   en línea y usa Georgia en vez de Marcellus.
 - **El CSS son DOS archivos desde el 23-ago:** `src/index.css` (tienda y compartido,
-  6.854 líneas) y `src/panel.css` (el panel, 7.741), que importan `Dashboard.jsx` y
+  6.854 líneas) y `src/panel.css` (el panel, 7.862), que importan `Dashboard.jsx` y
   `ChatPanel.jsx`. **`panel.css` se carga después, así que ante igual especificidad gana.**
   Si mueves una regla de un archivo al otro, compruébalo: se hizo midiendo 24 propiedades
   calculadas de 3.691 elementos en once pantallas.
@@ -618,6 +623,17 @@ Cosas que ya costaron un incidente. Léelas antes de tocar lo que describen.
   escribir con plantillas aprobadas por Meta.
 - **El modo prueba puede quemar plantillas.** Un pedido `es_prueba` que dispara una
   plantilla real consume el candado de `plantillas_enviadas`.
+- **`vercel.json` es JSON estricto y con esquema cerrado.** No admite comentarios ni claves
+  inventadas: una clave `_comentario` hizo que Vercel **rechazara el despliegue entero antes
+  de compilar**, sin logs de build porque nunca hubo build. Lo que haya que explicar va en
+  la spec, no en el archivo.
+- **En 99envios, un flete en $0 no es un envío gratis.** Significa que el código de convenio
+  de esa transportadora todavía no está generado —tarda uno o dos días hábiles— y que con
+  ella no se pueden emitir guías. `cotizar-envio` lo trata como «no cotizó» por eso: si se
+  colara como opción se ordenaría la primera por barata y la emisión fallaría después.
+- **El elemento LCP de la portada es el texto del logo, no la foto.** Está escrito aquí
+  desde el principio y aun así se optimizó dos veces contra la imagen. Antes de tocar
+  rendimiento, mirar qué dice `largest-contentful-paint-element` en el informe.
 
 ---
 

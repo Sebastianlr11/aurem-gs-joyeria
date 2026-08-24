@@ -1,8 +1,8 @@
 # El vigía
 
 > **Estado:** en producción
-> **Última revisión:** 2026-08-23
-> **Dónde vive:** `supabase/functions/vigilancia/index.ts` (432 líneas)
+> **Última revisión:** 2026-08-24
+> **Dónde vive:** `supabase/functions/vigilancia/index.ts` (513 líneas)
 
 ## Qué resuelve
 

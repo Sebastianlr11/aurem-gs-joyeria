@@ -71,9 +71,9 @@ enviarTextoNatural()  → ver whatsapp-envio-y-plantillas.md
 | `bot.ts:484-489` | Tabla de tallas **en código**, fuera del prompt |
 | `bot.ts:637-640` | Se niega a cotizar si el precio del oro lleva >10 días sin tocar |
 | `bot.ts:861-991` | Escalada a humano |
-| `bot.ts:1005-1010` | Ventana de contexto |
-| `bot.ts:1030-1032` | Prefijo `[Lo escribió una persona del equipo]` |
-| `bot.ts:1048-1055` | El bucle de agente |
+| `bot.ts:14` | Ventana de contexto: los últimos 20 mensajes |
+| `bot.ts:952` | Prefijo `[Lo escribió una persona del equipo]` |
+| `bucle.ts` · `correrElBucle()` | El bucle de agente, con las dependencias inyectadas |
 | `supabase/functions/wa-webhook/index.ts` | Entrada (326 líneas) |
 | `supabase/functions/_shared/medios.ts` | Audio y visión (221 líneas) |
 
@@ -131,7 +131,7 @@ leería literalmente `[audio]` en el contexto y respondería a eso. Efecto secun
 en el panel: por eso `ChatPanel` necesita suscribirse a los `UPDATE` y no sólo a los
 `INSERT`.
 
-**Los mensajes escritos por una persona se le marcan** (`bot.ts:1030-1032`) con el prefijo
+**Los mensajes escritos por una persona se le marcan** (`bot.ts:952`) con el prefijo
 `[Lo escribió una persona del equipo]`. Sin la marca, Valentina veía una cotización hecha a
 mano en el historial, la tomaba por suya, e intentaba **recalcularla** con datos que no
 tenía.

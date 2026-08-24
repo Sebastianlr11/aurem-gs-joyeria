@@ -1,7 +1,7 @@
 # Panel — reportes y retorno de pauta
 
 > **Estado:** en producción
-> **Última revisión:** 2026-08-23
+> **Última revisión:** 2026-08-24
 > **Ruta:** `/admin?tab=reports`
 
 ## Qué resuelve
