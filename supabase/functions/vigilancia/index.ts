@@ -295,6 +295,32 @@ Deno.serve(async (req: Request) => {
      otra mira la configuración de Supabase, que no deja rastro en la base y se
      cambia con un clic desde el navegador. */
 
+  /* La regla del dinero vive en dos idiomas: `recibidoDe` en el panel y
+     `recibido_de` en la base, que es la que alimenta el libro de caja. Son dos
+     copias por obligación —el panel calcula sobre filas que ya tiene y el
+     disparador corre dentro de Postgres—, así que se comprueba que la de la
+     base siga diciendo lo que dice la tabla de CLAUDE.md §8.
+
+     No es paranoia: el mismo día que se escribió esto, una tabla de tallas
+     duplicada resultó discrepar en el 29 % de los casos sin que nadie lo
+     supiera. Aquello eran anillos; esto es la caja. */
+  const { data: descuadre, error: errDinero } = await db.rpc('regla_del_dinero_cuadra')
+  if (errDinero) {
+    hallazgos.push({
+      que: 'No se pudo revisar la regla del dinero',
+      detalle: errDinero.message,
+      grave: true,
+    })
+  } else if (descuadre?.length) {
+    for (const d of descuadre as Array<{ estado: string; forma_de_pago: string; dice: number; deberia_decir: number }>) {
+      hallazgos.push({
+        que: `La caja cuenta mal un pedido ${d.estado} por ${d.forma_de_pago}`,
+        detalle: `dice ${d.dice} y debería decir ${d.deberia_decir}`,
+        grave: true,
+      })
+    }
+  }
+
   const { data: flojas, error: errFlojas } = await db.rpc('politicas_flojas')
   if (errFlojas) {
     hallazgos.push({

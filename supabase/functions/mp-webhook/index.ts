@@ -213,7 +213,12 @@ Deno.serve(async (req: Request) => {
         /* En contraentrega el pedido queda confirmado y entra a producción,
            pero NO pagado: la plata grande llega en la puerta. Ahí es donde el
            flujo del panel lo retoma. */
-        status: esAbono ? 'procesando' : 'pagado',
+        /* El abono deja el pedido en `confirmado`, no en `procesando`.
+           `procesando` significa una sola cosa —el taller ya empezó— y cuando
+           entra el abono el joyero todavía no se ha enterado: el estado estaría
+           mintiendo desde el primer minuto. `confirmado` dice lo que de verdad
+           pasó: la clienta abonó el envío y hay compromiso. */
+        status: esAbono ? 'confirmado' : 'pagado',
         ...(esAbono ? { abono_pagado_en: new Date().toISOString() } : {}),
         mp_payment_id: String(payment.id),
         mp_status: payment.status,

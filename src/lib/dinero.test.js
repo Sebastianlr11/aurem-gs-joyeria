@@ -36,10 +36,12 @@ describe('recibidoDe — la tabla de CLAUDE.md §8', () => {
     /* [estado, lo que entró pagando en línea, lo que entró en contraentrega] */
     const TABLA = [
         ['pendiente',  0,       0],
+        ['confirmado', 0,       ABONO],
         ['pagado',     PRECIO,  PRECIO],
         ['procesando', PRECIO,  ABONO],
         ['enviado',    PRECIO,  ABONO],
         ['entregado',  PRECIO,  PRECIO],
+        ['devuelto',   0,       ABONO],
         ['cancelado',  0,       0],
     ];
 
@@ -80,15 +82,35 @@ describe('recibidoDe — los bordes', () => {
         expect(recibidoDe({ status: 'pagado', amount: 'ochocientos' })).toBe(0);
     });
 
-    /* `confirmado` es del diseño viejo. Ya no lo usa nadie —cero filas en la
-       base el 23 de agosto de 2026— pero la columna todavía lo acepta, así que
-       conviene tener escrito qué hace hoy: se cuenta como comprometido entero
-       y sin nada recibido, que es lo prudente. */
-    it('el estado legado "confirmado": nada recibido, todo por cobrar', () => {
-        const pedido = enLinea('confirmado');
-        expect(recibidoDe(pedido)).toBe(0);
-        expect(porCobrarDe(pedido)).toBe(PRECIO);
-        expect(estaVivo(pedido)).toBe(true);
+    /* `confirmado` dejó de ser un estado muerto el 23 de agosto de 2026: ahora
+       significa «abonó el envío, el taller no ha empezado». En contraentrega
+       eso son los $20.000 dentro; en pago en línea no significa nada —ese
+       camino no pasa por ahí— y se queda en cero, que es lo prudente. */
+    it('confirmado: el abono dentro en contraentrega, nada en pago en línea', () => {
+        expect(recibidoDe(contraentrega('confirmado'))).toBe(ABONO);
+        expect(porCobrarDe(contraentrega('confirmado'))).toBe(PRECIO - ABONO);
+
+        const linea = enLinea('confirmado');
+        expect(recibidoDe(linea)).toBe(0);
+        expect(porCobrarDe(linea)).toBe(PRECIO);
+        expect(estaVivo(linea)).toBe(true);
+    });
+
+    /* La parte que sorprende de `devuelto`: la pieza salió, no se recibió y
+       volvió — pero el abono SE QUEDA. Es exactamente para lo que existe:
+       cubrir el flete de una entrega que no se cerró. */
+    it('devuelto: el abono se queda, y no queda nada por cobrar', () => {
+        const pedido = contraentrega('devuelto');
+        expect(recibidoDe(pedido)).toBe(ABONO);
+        expect(porCobrarDe(pedido)).toBe(0);
+        expect(estaVivo(pedido)).toBe(false);
+    });
+
+    /* Devuelto NO es cancelado, y la diferencia es plata: cancelado es «nunca
+       pasó» y no deja nada; devuelto costó un flete y dejó el abono. */
+    it('devuelto y cancelado no son lo mismo', () => {
+        expect(recibidoDe(contraentrega('devuelto'))).toBe(ABONO);
+        expect(recibidoDe(contraentrega('cancelado'))).toBe(0);
     });
 });
 
@@ -113,11 +135,17 @@ describe('porCobrarDe', () => {
 });
 
 describe('estaVivo', () => {
-    it('vivo es todo lo que no está cancelado ni esperando confirmación', () => {
-        ['pagado', 'procesando', 'enviado', 'entregado'].forEach(s =>
-            expect(estaVivo(enLinea(s))).toBe(true));
-        expect(estaVivo(enLinea('cancelado'))).toBe(false);
-        expect(estaVivo(enLinea('pendiente'))).toBe(false);
+    it('vivo es lo que empezó y no ha terminado', () => {
+        ['confirmado', 'pagado', 'procesando', 'enviado', 'entregado'].forEach(s =>
+            expect(estaVivo(enLinea(s)), s).toBe(true));
+    });
+
+    /* Los tres finales y el principio. Un devuelto que siguiera vivo dejaría
+       el resto del importe contado como «por cobrar» para siempre, esperando
+       una plata que no va a llegar. */
+    it('no está vivo ni lo que no empezó ni lo que ya terminó', () => {
+        ['pendiente', 'cancelado', 'devuelto'].forEach(s =>
+            expect(estaVivo(enLinea(s)), s).toBe(false));
         expect(estaVivo(null)).toBe(false);
     });
 });
@@ -129,12 +157,13 @@ describe('resumenDe', () => {
             contraentrega('enviado'),      // 20.000 dentro, 530.000 fuera
             enLinea('cancelado'),          // nada
             enLinea('pendiente'),          // nada
+            contraentrega('devuelto'),     // 20.000 dentro, nada por cobrar
         ];
         expect(resumenDe(pedidos)).toEqual({
-            recibido: PRECIO + ABONO,
-            porCobrar: PRECIO - ABONO,
-            comprometido: PRECIO * 2,
-            vivos: 2,
+            recibido: PRECIO + ABONO + ABONO,     // el devuelto deja su abono
+            porCobrar: PRECIO - ABONO,            // pero no deja nada por cobrar
+            comprometido: PRECIO * 2 + ABONO,
+            vivos: 2,                             // el devuelto ya terminó
         });
     });
 
