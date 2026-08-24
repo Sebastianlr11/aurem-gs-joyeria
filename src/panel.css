@@ -3204,6 +3204,14 @@
 }
 
 /* ─── Export dropdown ──────────────────────────────────────────── */
+/* El envoltorio de los tres puntos. Era la única clase del chat sin regla en
+   ninguno de los dos archivos: llevaba su `position: relative` en un `style`
+   dentro del JSX, y ese relative es lo que ancla el menú de aquí abajo.
+   Escrito así no lo veía nadie —ni el diagnóstico de CSS, ni quien buscara la
+   clase—, y quitarlo del JSX por parecer decorativo habría soltado el menú a
+   la esquina de la pantalla. */
+.chat-export-dropdown { position: relative; }
+
 .chat-export-menu {
   position: absolute;
   top: 100%;
