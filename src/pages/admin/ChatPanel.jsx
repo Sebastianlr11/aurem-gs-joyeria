@@ -13,7 +13,7 @@ import {
     fmtTime, isSameDay, normalizePhone, sortMessages, truncate,
 } from './chat/comunes';
 import { AvisosDeChat, ChatErrorBoundary, ImagenDelChat, PieDeFoto, VisorDeFoto } from './chat/piezas';
-import { useAvisos, useFichaDelContacto, useVisorDeFotos } from './chat/ganchos';
+import { useAvisos, useFichaDelContacto, useSeleccion, useVisorDeFotos } from './chat/ganchos';
 import FichaDelContacto from './chat/FichaDelContacto';
 import SelectorDeImagen from './chat/SelectorDeImagen';
 import BuscadorDeMensajes from './chat/BuscadorDeMensajes';
@@ -71,6 +71,11 @@ const ChatPanel = () => {
     const [pendingPhones, setPendingPhones] = useState(new Set());
     const [showMsgSearch, setShowMsgSearch] = useState(false);
     const avisos = useAvisos();
+    const lote = useSeleccion();
+    /* Igual que con el visor: el efecto que reacciona al filtro necesita dos de
+       las funciones del lote, y `lote` es un objeto nuevo en cada render. Se
+       sacan sueltas —son estables— para que el efecto no se rearme sin motivo. */
+    const { entrar: entrarEnLote, salir: salirDelLote, setError: setErrorLote } = lote;
     const [showExportMenu, setShowExportMenu] = useState(false);
     const [statusMap, setStatusMap] = useState({});   // { [phone]: { is_resolved, is_archived } }
     const [tagsMap, setTagsMap] = useState({});        // { [phone]: [{ id, tag_name, color }] }
@@ -97,13 +102,10 @@ const ChatPanel = () => {
     /* La selección múltiple. `null` es el modo apagado; un Set, encendido.
        Se distingue del conjunto vacío a propósito: "modo activo sin nada
        marcado" y "modo apagado" pintan cosas distintas. */
-    const [seleccion, setSeleccion] = useState(null);
-    const [archivandoLote, setArchivandoLote] = useState(false);
     /* Los fallos de la lista tienen que verse en la lista. El aviso del
        compositor sólo existe con un chat abierto, así que archivar un lote sin
        abrir ninguno fallaba en silencio — justo lo que este trabajo vino a
        quitar del panel. */
-    const [errorLote, setErrorLote] = useState('');
     /* Las candidatas a purga las calcula la base, no el navegador: hace falta
        cruzar los hilos con los pedidos por los diez últimos dígitos, y eso aquí
        serían dos tablas enteras traídas para descartarlas casi todas. */
@@ -694,27 +696,16 @@ const ChatPanel = () => {
      * archivar es reversible y barato, así que no necesita el desfile de
      * progreso que sí lleva el borrado.
      */
-    const handleArchivarLote = async () => {
-        if (!seleccion?.size || archivandoLote) return;
-        setArchivandoLote(true); setErrorLote('');
-        const ahora = new Date().toISOString();
-        const filas = [...seleccion].map(phone => ({
-            phone_number: phone,
-            is_archived: true,
-            archived_at: ahora,
-            updated_at: ahora,
-        }));
-        const { error } = await supabase.from('chat_status').upsert(filas, { onConflict: 'phone_number' });
-        setArchivandoLote(false);
-        if (error) { setErrorLote(`No se pudieron archivar: ${error.message}`); return; }
-
+    /* Lo que pasa DESPUÉS de que la base confirme el archivado: refrescar el
+       lente y cerrar el chat abierto si estaba entre los archivados. Eso es de
+       aquí y no del gancho, que sólo sabe de la selección. */
+    const trasArchivarLote = (telefonos) => {
         setStatusMap(prev => {
             const n = { ...prev };
-            seleccion.forEach(p => { n[p] = { ...n[p], is_archived: true }; });
+            telefonos.forEach(p => { n[p] = { ...n[p], is_archived: true }; });
             return n;
         });
-        if (seleccion.has(activeContact)) { setActiveContact(null); setMobileShowChat(false); }
-        salirDeSeleccion();
+        if (telefonos.includes(activeContact)) { setActiveContact(null); setMobileShowChat(false); }
     };
 
     /* Sacar del archivo a mano. Volver a archivar lo ya archivado no hace
@@ -752,7 +743,7 @@ const ChatPanel = () => {
         setTagsMap(sinLosIdos);
         setTakeoverMap(sinLosIdos);
         avisos.olvidar(idos);
-        setSeleccion(prev => (prev ? new Set([...prev].filter(p => !idos.has(p))) : prev));
+        lote.olvidar(idos);
         setMenuFila(null);
 
         /* Si alguna falló, el diálogo se queda abierto con el parte de lo que
@@ -948,7 +939,7 @@ const ChatPanel = () => {
            dejaba el modo encendido sobre una lista distinta: el siguiente clic
            marcaba una conversación en vez de abrirla, y nadie entendía por qué.
            Lo marcado se refiere a una lista que acaba de cambiar debajo. */
-        setSeleccion(null);
+        salirDelLote();
 
         if (contactFilter !== 'purgar') { setPurgables(null); return; }
         let vigente = true;
@@ -959,25 +950,14 @@ const ChatPanel = () => {
                 setCargandoPurga(false);
                 if (error) { setPurgables([]); setErrorLote(`No se pudo calcular la purga: ${error.message}`); return; }
                 setPurgables(data || []);
-                setSeleccion(new Set((data || []).map(f => f.phone_number)));
+                entrarEnLote((data || []).map(f => f.phone_number));
             });
         return () => { vigente = false; };
-    }, [contactFilter]);
+    }, [contactFilter, entrarEnLote, salirDelLote, setErrorLote]);
 
     /* ─── Selección múltiple ──────────────────────────────────────── */
     /* Entrar y salir del modo. Al salir se olvida lo marcado a propósito: una
        selección que sobrevive escondida es una trampa para el siguiente clic. */
-    const entrarEnSeleccion = (marcadas) => setSeleccion(new Set(marcadas || []));
-    const salirDeSeleccion = () => setSeleccion(null);
-
-    const alternarMarca = (phone) => {
-        setSeleccion(prev => {
-            const n = new Set(prev || []);
-            if (n.has(phone)) n.delete(phone); else n.add(phone);
-            return n;
-        });
-    };
-
     /* ─── Select contact ──────────────────────────────────────────── */
     const selectContact = (phone) => {
         setActiveContact(phone);
@@ -1075,21 +1055,21 @@ const ChatPanel = () => {
                                 una línea que en reposo sólo ofrece entrar, y que
                                 al entrar se convierte en el mando del lote. */}
                             <div className="chat-seleccion-barra">
-                                {seleccion ? (
+                                {lote.marcadas ? (
                                     <>
                                         <span className="chat-seleccion-cuenta">
-                                            {seleccion.size === 0
+                                            {lote.marcadas.size === 0
                                                 ? 'Ninguna marcada'
-                                                : seleccion.size === 1
+                                                : lote.marcadas.size === 1
                                                     ? '1 marcada'
-                                                    : `${seleccion.size} marcadas`}
+                                                    : `${lote.marcadas.size} marcadas`}
                                         </span>
-                                        <button type="button" onClick={() => entrarEnSeleccion(filteredContacts.map(c => c.phone_number))}>Todas</button>
-                                        <button type="button" onClick={() => entrarEnSeleccion([])}>Ninguna</button>
-                                        <button type="button" className="chat-seleccion-salir" onClick={salirDeSeleccion}>Cancelar</button>
+                                        <button type="button" onClick={() => lote.entrar(filteredContacts.map(c => c.phone_number))}>Todas</button>
+                                        <button type="button" onClick={() => lote.entrar([])}>Ninguna</button>
+                                        <button type="button" className="chat-seleccion-salir" onClick={lote.salir}>Cancelar</button>
                                     </>
                                 ) : (
-                                    <button type="button" onClick={() => entrarEnSeleccion([])}>Seleccionar varias</button>
+                                    <button type="button" onClick={() => lote.entrar([])}>Seleccionar varias</button>
                                 )}
                             </div>
                         </div>
@@ -1115,12 +1095,12 @@ const ChatPanel = () => {
                                     const cTakeover = !!takeoverMap[c.phone_number];
                                     const cResolved = !!statusMap[c.phone_number]?.is_resolved;
                                     const cTags = tagsMap[c.phone_number] || [];
-                                    const marcada = !!seleccion?.has(c.phone_number);
+                                    const marcada = !!lote.marcadas?.has(c.phone_number);
                                     /* En modo selección la fila marca en vez de abrir:
                                        tener que apuntar a una casilla de 16 px para
                                        elegir siete conversaciones es puntería, no
                                        interfaz. */
-                                    const alPulsar = () => (seleccion ? alternarMarca(c.phone_number) : selectContact(c.phone_number));
+                                    const alPulsar = () => (lote.marcadas ? lote.alternar(c.phone_number) : selectContact(c.phone_number));
                                     return (
                                     /* Deja de ser un <button> porque ahora lleva
                                        otro botón dentro —el de los tres puntos— y un
@@ -1132,8 +1112,8 @@ const ChatPanel = () => {
                                         key={c.phone_number}
                                         role="button"
                                         tabIndex={0}
-                                        aria-pressed={seleccion ? marcada : undefined}
-                                        className={`chat-contact-item ${activeContact === c.phone_number && !seleccion ? 'chat-contact-item--active' : ''} ${cTakeover ? 'chat-contact-item--takeover' : ''} ${(c.unread || 0) > 0 ? 'chat-contact-item--unread' : ''} ${marcada ? 'chat-contact-item--marcada' : ''}`}
+                                        aria-pressed={lote.marcadas ? marcada : undefined}
+                                        className={`chat-contact-item ${activeContact === c.phone_number && !lote.marcadas ? 'chat-contact-item--active' : ''} ${cTakeover ? 'chat-contact-item--takeover' : ''} ${(c.unread || 0) > 0 ? 'chat-contact-item--unread' : ''} ${marcada ? 'chat-contact-item--marcada' : ''}`}
                                         onClick={alPulsar}
                                         onKeyDown={e => {
                                             if (e.key === 'Enter' || e.key === ' ') {
@@ -1142,14 +1122,14 @@ const ChatPanel = () => {
                                             }
                                         }}
                                     >
-                                        {seleccion && (
+                                        {lote.marcadas && (
                                             <input
                                                 type="checkbox"
                                                 className="chat-contact-casilla"
                                                 checked={marcada}
                                                 tabIndex={-1}
                                                 aria-hidden="true"
-                                                onChange={() => alternarMarca(c.phone_number)}
+                                                onChange={() => lote.alternar(c.phone_number)}
                                                 onClick={e => e.stopPropagation()}
                                             />
                                         )}
@@ -1193,7 +1173,7 @@ const ChatPanel = () => {
                                             Se calla mientras hay una selección abierta: dos
                                             formas de borrar la misma fila, una para esta y
                                             otra para el lote, es una invitación a equivocarse. */}
-                                        {!seleccion && (
+                                        {!lote.marcadas && (
                                         <div
                                             className="chat-contact-menu"
                                             ref={menuFila?.phone === c.phone_number ? menuFilaRef : null}
@@ -1252,23 +1232,23 @@ const ChatPanel = () => {
                             la lista es una columna con su propio scroll y una barra
                             pegada al borde del navegador quedaría suelta encima del
                             chat abierto, que no tiene nada que ver con lo marcado. */}
-                        {errorLote && (
-                            <p className="chat-lote-error" onClick={() => setErrorLote('')} title="Descartar">
-                                {errorLote}
+                        {lote.error && (
+                            <p className="chat-lote-error" onClick={() => lote.setError('')} title="Descartar">
+                                {lote.error}
                             </p>
                         )}
-                        {seleccion?.size > 0 && (
+                        {lote.marcadas?.size > 0 && (
                             <div className="chat-lote-barra">
                                 <span>
-                                    {seleccion.size === 1 ? '1 conversación' : `${seleccion.size} conversaciones`}
+                                    {lote.marcadas.size === 1 ? '1 conversación' : `${lote.marcadas.size} conversaciones`}
                                 </span>
-                                <button type="button" className="chat-lote-btn" onClick={handleArchivarLote} disabled={archivandoLote}>
-                                    {archivandoLote ? 'Archivando…' : 'Archivar'}
+                                <button type="button" className="chat-lote-btn" onClick={() => lote.archivar(trasArchivarLote)} disabled={lote.archivando}>
+                                    {lote.archivando ? 'Archivando…' : 'Archivar'}
                                 </button>
                                 <button
                                     type="button"
                                     className="chat-lote-btn chat-lote-btn--danger"
-                                    onClick={() => setABorrar([...seleccion].map(p => ({
+                                    onClick={() => setABorrar([...lote.marcadas].map(p => ({
                                         telefono: p,
                                         nombre: contacts.find(c => c.phone_number === p)?.customer_name,
                                     })))}
