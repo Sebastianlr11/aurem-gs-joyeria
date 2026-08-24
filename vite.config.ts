@@ -5,6 +5,14 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
 
+  /* El mismo target que ya declara `tsconfig.app.json`. Sin esto Vite
+     transpila para navegadores que esta tienda no recibe —22 KiB de
+     transformaciones heredadas en el bundle público— y quien paga ese peso es
+     una clienta mirando el catálogo en la calle con datos. */
+  build: {
+    target: 'es2022',
+  },
+
   /* Las pruebas viven al lado de lo que prueban (`src/lib/dinero.test.js`),
      no en una carpeta aparte: así se ven al abrir la carpeta y cuesta más
      olvidarlas cuando se cambia la función.

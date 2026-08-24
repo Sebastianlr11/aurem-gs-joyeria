@@ -15,13 +15,90 @@ const TIKTOK_ID = import.meta.env.VITE_TIKTOK_PIXEL_ID || null;
 
 let iniciado = false;
 
-/* Carga los píxeles. Se llama una vez, al arrancar la app. */
+/* ─── Por qué esto no arranca de inmediato ───────────────────────────
+ *
+ * Los dos píxeles son **284 KiB de JavaScript de terceros** —Meta 169, TikTok
+ * 115—, y hasta el 24 de agosto de 2026 se cargaban a nivel de módulo, o sea
+ * **antes de que se pintara nada**. En un celular con datos eso es la
+ * diferencia entre ver la primera joya a los 3 segundos o a los 5 y medio, y
+ * la clienta llega desde TikTok, en la calle, con media barra de señal.
+ *
+ * Ahora se cargan cuando el navegador ya no tiene nada urgente que hacer.
+ *
+ * ── Y por eso hay una cola ──────────────────────────────────────────────
+ *
+ * `meta()` y `tiktok()` comprueban `window.fbq` / `window.ttq` antes de
+ * disparar, así que un evento lanzado antes de que el píxel cargue **se
+ * perdía en silencio** — y el primero de todos es el `PageView` de la visita.
+ * Diferir sin cola habría sido cambiar velocidad por medición, y la medición
+ * es lo que dice si la pauta se paga sola.
+ *
+ * Con la cola no se cambia nada: lo que se lance antes se guarda y se
+ * reproduce en cuanto el píxel existe. El evento sale igual, un segundo más
+ * tarde. Es lo mismo que hace el fragmento oficial de Meta con `n.queue`,
+ * sólo que un escalón antes.
+ */
+const pendientes = [];
+
+/** Lanza el evento, o lo guarda si el píxel todavía no está. */
+function cuandoSePueda(cual, lanzar) {
+  const listo = cual === 'meta' ? window.fbq : window.ttq;
+
+  if (listo) {
+    /* Se vacía lo pendiente ANTES de lanzar lo de ahora, para que los eventos
+       salgan en el orden en que ocurrieron. Y se hace aquí y no sólo al
+       cargar los píxeles porque la cola no puede depender de un único camino:
+       si `fbq` apareciera por otro lado —una carga a destiempo, un cambio
+       futuro—, lo guardado se quedaría varado para siempre y nadie lo notaría.
+       Lo cazó su propia prueba. */
+    if (pendientes.length) vaciarCola();
+    lanzar();
+    return;
+  }
+
+  /* Un tope, por si los píxeles no llegan nunca —bloqueador, red caída—: sin
+     él la cola crecería sola en una pestaña abierta toda la tarde. */
+  if (pendientes.length < 50) pendientes.push({ cual, lanzar });
+}
+
+function vaciarCola() {
+  const copia = pendientes.splice(0, pendientes.length);
+  for (const { cual, lanzar } of copia) {
+    const listo = cual === 'meta' ? window.fbq : window.ttq;
+    if (listo) lanzar();
+  }
+}
+
+/**
+ * Carga los píxeles cuando el navegador esté libre.
+ *
+ * Se llama una vez, al arrancar la app, pero no carga nada todavía: espera al
+ * evento `load` y a que haya un hueco. `requestIdleCallback` no existe en
+ * Safari, así que hay respaldo por `setTimeout`.
+ */
 export function iniciarPixeles() {
   if (iniciado || typeof window === 'undefined') return;
   iniciado = true;
+  if (!META_ID && !TIKTOK_ID) return;
 
-  if (META_ID) cargarMeta();
-  if (TIKTOK_ID) cargarTikTok();
+  const cargar = () => {
+    if (META_ID) cargarMeta();
+    if (TIKTOK_ID) cargarTikTok();
+    /* Los fragmentos definen `fbq` y `ttq` de forma síncrona —con su propia
+       cola dentro—, así que aquí ya se puede vaciar la nuestra. */
+    vaciarCola();
+  };
+
+  const enCuantoSePueda = () => {
+    if (typeof window.requestIdleCallback === 'function') {
+      window.requestIdleCallback(cargar, { timeout: 3000 });
+    } else {
+      setTimeout(cargar, 1200);
+    }
+  };
+
+  if (document.readyState === 'complete') enCuantoSePueda();
+  else window.addEventListener('load', enCuantoSePueda, { once: true });
 }
 
 /* ─── Meta ──────────────────────────────────────────────────────────
@@ -102,16 +179,18 @@ function cargarTikTok() {
    pantalla. */
 
 const meta = (evento, datos, opciones) => {
-  if (META_ID && window.fbq) window.fbq('track', evento, datos, opciones);
+  if (!META_ID) return;
+  cuandoSePueda('meta', () => window.fbq('track', evento, datos, opciones));
 };
 const tiktok = (evento, datos) => {
-  if (TIKTOK_ID && window.ttq) window.ttq.track(evento, datos);
+  if (!TIKTOK_ID) return;
+  cuandoSePueda('tiktok', () => window.ttq.track(evento, datos));
 };
 
 /** Alguien abrió una página. Se dispara en cada cambio de ruta. */
 export function pixelPagina() {
   meta('PageView');
-  if (TIKTOK_ID && window.ttq) window.ttq.page();
+  if (TIKTOK_ID) cuandoSePueda('tiktok', () => window.ttq.page());
 }
 
 /** Alguien está mirando una pieza. */

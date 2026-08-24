@@ -33,10 +33,16 @@ const ScrollToTop = () => {
 // Componentes que siempre se cargan (layout)
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
-import ProtectedRoute from './components/ProtectedRoute'
 import WhatsAppButton from './components/WhatsAppButton'
 
 // Lazy-loaded pages
+/* ProtectedRoute va aquí abajo y no arriba con Navbar y Footer, aunque no sea
+   una página. Importa: **arrastra el cliente entero de Supabase** —auth,
+   realtime, storage, postgrest— y sólo lo usan las dos rutas de /admin.
+   Importado de forma normal, cada visitante de la portada se bajaba unos
+   120 KB para no usarlos, y la portada no consulta la base ni una vez. */
+const ProtectedRoute = lazy(() => import('./components/ProtectedRoute'))
+
 const Home          = lazy(() => import('./pages/Home'))
 const Catalog       = lazy(() => import('./pages/Catalog'))
 const ProductPage   = lazy(() => import('./pages/ProductPage'))
