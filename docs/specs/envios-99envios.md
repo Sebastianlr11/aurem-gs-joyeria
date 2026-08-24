@@ -145,32 +145,48 @@ recogido; el flete apenas se mueve.
 X?» sin que exista el pedido. Cuando el pedido existe el precio ya se fijó, que es tarde
 para esta decisión.
 
-### Los seguros antidevolución, y por qué van apagados
+### Los seguros antidevolución
 
 Sin ninguno, una entrega fallida cobra el flete **de ida y de vuelta**. Con el básico no se
 cobra flete, sólo el valor del seguro. Con el plus, nada.
 
-Con los números de su propio ejemplo —el básico sube $2.380 el envío— y un flete de $11.732
-a Bogotá, la cuenta sale así:
+**El costo del seguro NO viene dentro de `valor`**: llega en su propio campo, `seguro99`, y
+la primera versión lo tiraba. Un total al que le falta un costo es el error que este
+proyecto lleva toda la semana persiguiendo; ya entra en el total.
+
+Medido contra la API —Coordinadora, Bogotá, pieza de $200.000:
+
+| | Cuesta el envío | Cuesta una devolución |
+|---|---|---|
+| Sin seguro | $16.232 | **$32.464** (ida y vuelta) |
+| Básico | $18.829 *(+$2.597)* | $2.597 |
+| Plus | $20.290 *(+$4.058)* | $0 |
+
+De ahí salen los dos umbrales:
 
 ```
-Devolución sin seguro   ida + vuelta = $23.464
-Devolución con seguro   $0 de flete
-El seguro se paga solo   si se devuelve más del 20 % de los envíos
+El básico gana a no tener nada    desde el 8 % de devoluciones
+El plus gana al básico            desde el 36 %
 ```
 
-**Su panel dice que en Bogotá se entrega el 88 %**, o sea que se cae el 12 %. Por debajo del
-20 %, así que **de media el seguro no se paga solo** — y por eso viene apagado
-(`ENVIOS99_SEGURO`, `basico` o `plus`).
+**El plus prácticamente nunca conviene**: pide una tasa de devolución que ningún negocio
+sano tiene. **El básico sí**: Coordinadora entrega el 88 % en Bogotá, o sea un 12 % que no
+llega a la primera, por encima del umbral del 8 %.
 
-Pero un seguro no se compra por la media: se compra para acotar un caso concreto. Su
-plataforma deja elegirlo envío por envío, mirando el historial de devoluciones de ese
-teléfono. **Aquí el ajuste es global**, todo o nada, que es su límite: el día que haga falta
-por pedido, hay que subirlo a la interfaz.
+Y hay un argumento que la media no captura: **con poco volumen, lo que mata es la varianza.**
+Una devolución cuesta $32.464 —el doble que el envío—, así que una sola entre los primeros
+diez pedidos se lleva por delante el presupuesto de envíos del mes. El seguro cambia un
+costo grande e impredecible por uno pequeño y fijo.
 
-Y lo que sí quedó atado: **cotizar y emitir leen el mismo secreto**. Estaban separados —la
-cotización fija en «sin seguro» y la emisión leyendo el ajuste—, así que al encenderlo la
-pantalla habría dicho $33.332 y la guía habría costado ~$35.712.
+**Una corrección:** la primera versión de esta cuenta puso el umbral en el 20 % y concluyó
+que no compensaba. Estaba mal modelada — daba por hecho que con seguro se seguía pagando el
+flete de la ida, y su video dice lo contrario: con seguro **no se cobra flete ninguno**.
+
+Se enciende con `ENVIOS99_SEGURO` = `basico` o `plus`. Es global, todo o nada; su plataforma
+deja elegirlo envío por envío mirando el historial del destinatario, y ése es el límite de
+esta implementación. Como la recomendación es «básico siempre», global sirve.
+
+Y **cotizar y emitir leen el mismo ajuste**, para que lo cotizado sea lo cobrado.
 
 ### Interrapidísimo, y por qué un $0 no es un envío gratis
 

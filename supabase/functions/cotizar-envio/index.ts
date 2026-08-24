@@ -121,7 +121,7 @@ Deno.serve(async (req: Request) => {
   const { data: { user }, error: errorSesion } = await comoUsuario.auth.getUser()
   if (errorSesion || !user) return json({ error: 'Sesión inválida' }, 401)
 
-  let cuerpo: { pedidoId?: string; montoSimulado?: number }
+  let cuerpo: { pedidoId?: string; montoSimulado?: number; seguroSimulado?: string }
   try { cuerpo = await req.json() } catch { return json({ error: 'Cuerpo ilegible' }, 400) }
 
   /* «¿Y si la pieza costara X?». La comisión del contrapago escala con lo que
@@ -131,6 +131,14 @@ Deno.serve(async (req: Request) => {
      por pedido, que es tarde: cuando el pedido existe, el precio ya se fijó. */
   const simulado = Number(cuerpo.montoSimulado)
   const haySimulacion = Number.isFinite(simulado) && simulado > 0
+
+  /* Y con qué seguro. Los dos antidevolución cambian el precio del envío y
+     cambian lo que cuesta una devolución, así que compararlos exige poder
+     cotizar los tres escenarios sin tocar el ajuste de producción. */
+  const seguroPedido = ['ninguno', 'basico', 'plus'].includes(String(cuerpo.seguroSimulado))
+    ? String(cuerpo.seguroSimulado)
+    : null
+  const seguro = seguroPedido ?? SEGURO
 
   const pedidoId = String(cuerpo.pedidoId ?? '').trim()
   if (!pedidoId) return json({ error: 'Falta el pedido' }, 400)
@@ -224,8 +232,8 @@ Deno.serve(async (req: Request) => {
          que el día que se encendiera el seguro la cotización habría enseñado
          $33.332 y la guía habría costado ~$35.712. Una cotización que no
          cuesta lo que cuesta la guía no sirve para decidir nada. */
-      seguro99: SEGURO === 'basico',
-      seguro99plus: SEGURO === 'plus',
+      seguro99: seguro === 'basico',
+      seguro99plus: seguro === 'plus',
       AplicaContrapago: contrapago,
     })
 
@@ -287,6 +295,11 @@ Deno.serve(async (req: Request) => {
         /* Su panel enseña un porcentaje de entregas logradas por ciudad y es
            de lo más útil que dan. Se pasa tal cual si viene; si no, null. */
         efectividad: v.efectividad ?? v.porcentaje_efectividad ?? null,
+        /* Lo que cuesta el seguro antidevolución, que viene en su propio campo
+           y NO dentro de `valor`. Si se quedara fuera del total tendríamos otro
+           costo omitido, que es el error que este proyecto lleva persiguiendo
+           toda la semana. */
+        seguro: Number(v.seguro99) || 0,
         /* EL CONTRAPAGO ENTRA EN EL TOTAL.
         
            Se quedaba fuera, y no es calderilla: cobrarle $480.000 a la clienta
@@ -297,13 +310,14 @@ Deno.serve(async (req: Request) => {
         total: (Number(v.valor) || 0)
              + (Number(v.sobreflete) || 0)
              + (Number(v.comision_interna ?? v.valor_interna) || 0)
-             + (Number(v.valor_contrapago) || 0),
+             + (Number(v.valor_contrapago) || 0)
+             + (Number(v.seguro99) || 0),
       }))
       .sort((a, b) => a.total - b.total)
 
     return json({
       ok: true, ciudad: pedido.shipping_city, codigoDane: codigo, caja, opciones, noCotizaron,
-      contrapago, cobraElMensajero: contrapago ? porCobrar : 0, seguro: SEGURO,
+      contrapago, cobraElMensajero: contrapago ? porCobrar : 0, seguro,
       simulado: haySimulacion ? simulado : null,
     })
   } catch (e) {
