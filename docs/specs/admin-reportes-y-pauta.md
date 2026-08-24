@@ -71,6 +71,34 @@ duplicaría el gasto y hundiría el ROAS sin motivo.
 uno recibe eventos**. Antes de concluir que una campaña no convierte, verifica el ID — ver
 [atribucion-y-pixeles.md](atribucion-y-pixeles.md).
 
+## La regla de esta pantalla
+
+**Dentro de una tarjeta, el conteo y la plata describen el mismo conjunto de pedidos.**
+
+Está escrita porque se rompió: el 23 de agosto se arregló que el dinero pasara por
+`recibidoDe`, pero **los conteos de al lado siguieron contando todos los pedidos**,
+cancelados incluidos. La pantalla decía «Anillo Majestuosa · 12 unidades vendidas ·
+$20.000» sobre 12 pedidos de los que **1 estaba vivo y 10 cancelados**. Cada mitad de la
+frase era cierta por separado; juntas decían que la pieza se vende a $1.667.
+
+En el código: `filtered` es todo lo que entró en el periodo y sólo vale para lo que de
+verdad habla de todo —el desglose de estados, cuántos pedidos llegaron—. Para cualquier cosa
+que vaya al lado de un peso, `vivos`.
+
+Se corrigieron cinco tarjetas: piezas más vendidas, pedidos por canal, métodos de pago,
+actividad diaria y la tasa de pago.
+
+### La tasa de pago ya no lleva los cancelados
+
+Los tenía en el denominador, y eso mezclaba «todavía no ha pagado» con «esto ya no existe».
+Con 14 de 18 cancelados, la pantalla decía que se cobra el **11 %** — y con ese número se
+deciden presupuestos de pauta. Ahora dice **50 % · 2 de 4 en pie**, y los cancelados tienen
+su propia tarjeta: **«Se cayeron · 78 % · 14 de 18»**, que es un dato por sí solo y estaba
+escondido dentro de un porcentaje que decía otra cosa.
+
+`Pedidos` sigue contando todo a propósito —cuántos entraron— y por eso ahora dice en qué
+quedaron: «2 en pie, 14 cancelados».
+
 ## Los números que mentían
 
 Esta pantalla tuvo, en dos días, **cinco cifras infladas por la misma razón**: sumar
@@ -85,10 +113,16 @@ un número redondo, con signo de pesos y perfectamente creíble.
 | A dónde enviamos | $13.239.000 | $40.000 | `top_ciudades_envio` |
 | Métodos de pago | $12.700.000 | $40.000 | `Reportes.jsx`, en JavaScript |
 | Pedidos por canal | $1.050.000 | $40.000 | `Reportes.jsx`, en JavaScript |
+| Comisiones de Mercado Pago | sobre el precio de todo pedido vivo | sobre lo cobrado | `Reportes.jsx`, en JavaScript |
 
 Las tres primeras sumaban todos los pedidos, cancelados incluidos. «Métodos de pago» hacía
 lo mismo. «Pedidos por canal» sí filtraba los muertos con `estaVivo`, pero daba por cobrado
 el total de un contraentrega que va en camino —y de esos son 16 de cada 17—.
+
+La de Mercado Pago es la más silenciosa de todas y hoy no se veía, porque no hay ningún
+pedido vivo pagado en línea: `mpNet` calculaba la comisión sobre `amount`, así que un pedido
+en `confirmado` —vivo pero sin la plata dentro— habría contado como cobrado entero. Ahora va
+sobre `recibidoDe`.
 
 **Y una sexta que no era de dinero:** `clientes_nuevos_vs_recurrentes` contaba por
 `customer_phone` en crudo. El mismo número entra de tres formas según el canal, así que una

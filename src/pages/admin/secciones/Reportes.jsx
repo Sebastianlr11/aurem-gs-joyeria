@@ -60,8 +60,25 @@ const ReportsSection = ({ orders, products = [], verPruebas = false, onNavigate 
             .catch(() => {});
     }, [period]);
 
+    /* LA REGLA DE ESTA PANTALLA, y el motivo de que exista escrita:
+    
+       **dentro de una tarjeta, el conteo y la plata describen el mismo
+       conjunto de pedidos.**
+
+       El 23 de agosto de 2026 se arregló que el dinero pasara por `recibidoDe`,
+       pero los conteos que van a su lado seguían contando todos los pedidos,
+       cancelados incluidos. Resultado: «Anillo Majestuosa · 12 unidades
+       vendidas · $20.000», sobre 12 pedidos de los que **1 estaba vivo y 10
+       cancelados**. Cada mitad de la frase era cierta por separado y juntas
+       decían que la pieza se vende a $1.667.
+
+       `filtered` es todo lo que entró en el periodo, y sólo vale para lo que
+       de verdad habla de todo —el desglose de estados, cuántos pedidos
+       llegaron—. Para cualquier cosa que vaya al lado de un peso, `vivos`. */
     const filtered = orders.filter(o => new Date(o.created_at) >= periodStart);
     const paidFiltered = filtered.filter(estaVivo);
+    const vivos = paidFiltered;
+    const cancelados = filtered.filter(o => o.status === 'cancelado');
 
     /* Mismo tramo, inmediatamente anterior, para poder comparar */
     const periodDays = period === 'todo' ? null : parseInt(period);
@@ -79,13 +96,17 @@ const ReportsSection = ({ orders, products = [], verPruebas = false, onNavigate 
     const porCobrarTotal = paidFiltered.reduce((s, o) => s + porCobrarDe(o), 0);
     const mpOrders = paidFiltered.filter(o => !isCOD(o));
     const codOrders = paidFiltered.filter(o => isCOD(o));
-    const mpGross = mpOrders.reduce((s, o) => s + Number(o.amount), 0);
-    const mpNet = mpOrders.reduce((s, o) => s + calcMPNet(Number(o.amount)), 0);
+    /* Sobre lo que entró, no sobre el precio. Mercado Pago cobra su comisión
+       de lo que efectivamente cobró; un pedido vivo cuyo pago todavía no ha
+       entrado —`confirmado`— no ha dejado ni plata ni comisión, y calculando
+       sobre `amount` contaba como cobrado entero. */
+    const mpGross = mpOrders.reduce((s, o) => s + recibidoDe(o), 0);
+    const mpNet = mpOrders.reduce((s, o) => s + calcMPNet(recibidoDe(o)), 0);
     const mpFees = mpGross - mpNet;
     const codTotal = codOrders.reduce((s, o) => s + recibidoDe(o), 0);
     const netTotal = mpNet + codTotal;
 
-    const prevNetTotal = prevPaid.reduce((s, o) => s + (isCOD(o) ? recibidoDe(o) : calcMPNet(Number(o.amount))), 0);
+    const prevNetTotal = prevPaid.reduce((s, o) => s + (isCOD(o) ? recibidoDe(o) : calcMPNet(recibidoDe(o))), 0);
 
     /* El ticket promedio sí es el precio de lo que se vende, no lo que ya
        entró: mide qué tan caro compra la gente, no en qué punto va el cobro.
@@ -94,13 +115,37 @@ const ReportsSection = ({ orders, products = [], verPruebas = false, onNavigate 
     const avgOrder = paidFiltered.length ? Math.round(vendidoTotal / paidFiltered.length) : 0;
     const prevGross = prevPaid.reduce((s, o) => s + Number(o.amount), 0);
     const prevAvgOrder = prevPaid.length ? Math.round(prevGross / prevPaid.length) : 0;
-    const prevPayRate = prevFiltered.length ? Math.round((prevPaid.length / prevFiltered.length) * 100) : 0;
+    const prevEnPie = prevFiltered.length - prevFiltered.filter(o => o.status === 'cancelado').length;
+    const prevPayRate = prevEnPie ? Math.round((prevPaid.length / prevEnPie) * 100) : 0;
 
-    /* Conversion rate */
-    const conversionRate = filtered.length ? Math.round((paidFiltered.length / filtered.length) * 100) : 0;
+    /* La tasa de pago, SIN los cancelados.
 
-    /* Orders by day */
-    const numDays = period === 'todo' ? 30 : parseInt(period);
+       Estaban en el denominador, y eso mezclaba «todavía no ha pagado» con
+       «esto ya no existe»: con 14 de 18 cancelados la pantalla decía que se
+       cobra el 11 %, y con ese número se deciden presupuestos de pauta. Un
+       pedido cancelado no es alguien que no pagó, es un pedido que se fue.
+
+       Los cancelados no desaparecen: salen aparte, que es donde sirven —
+       «14 de 18 se cayeron» es un dato por sí solo, y estaba escondido dentro
+       de un porcentaje que decía otra cosa. */
+    const enPie = filtered.length - cancelados.length;
+    const conversionRate = enPie ? Math.round((paidFiltered.length / enPie) * 100) : 0;
+    const tasaCancelacion = filtered.length ? Math.round((cancelados.length / filtered.length) * 100) : 0;
+
+
+    /* Actividad diaria.
+
+       Con el periodo en «Todo», esto dibujaba 30 días y el rótulo de arriba
+       decía «todo el histórico»: dos afirmaciones distintas en la misma
+       pantalla. Ahora se estira hasta el primer pedido, con un tope de un año
+       para que la gráfica siga siendo legible el día que haya tres años de
+       datos. */
+    const DIAS_MAX = 365;
+    const numDays = period === 'todo'
+        ? Math.min(DIAS_MAX, Math.max(30, filtered.length
+            ? Math.ceil((today - new Date(filtered[filtered.length - 1].created_at)) / 86400000) + 1
+            : 30))
+        : parseInt(period);
     const daysArr = [];
     for (let i = numDays - 1; i >= 0; i--) {
         const d = new Date(today);
@@ -109,7 +154,7 @@ const ReportsSection = ({ orders, products = [], verPruebas = false, onNavigate 
     }
     const ordersByDay = daysArr.map(d => {
         const dayEnd = new Date(d); dayEnd.setDate(dayEnd.getDate() + 1);
-        const dayOrders = filtered.filter(o => { const oc = new Date(o.created_at); return oc >= d && oc < dayEnd; });
+        const dayOrders = vivos.filter(o => { const oc = new Date(o.created_at); return oc >= d && oc < dayEnd; });
         return {
             label: d.toLocaleDateString('es-CO', { day: '2-digit', month: 'short' }).replace('.', ''),
             count: dayOrders.length,
@@ -125,7 +170,7 @@ const ReportsSection = ({ orders, products = [], verPruebas = false, onNavigate 
     /* Top 5 products */
     const productCounts = {};
     const productRevenue = {};
-    filtered.forEach(o => {
+    vivos.forEach(o => {
         productCounts[o.product_name] = (productCounts[o.product_name] || 0) + 1;
         productRevenue[o.product_name] = (productRevenue[o.product_name] || 0) + recibidoDe(o);
     });
@@ -136,13 +181,13 @@ const ReportsSection = ({ orders, products = [], verPruebas = false, onNavigate 
 
     /* Orders by source */
     const sourceCounts = {};
-    filtered.forEach(o => { const src = o.order_source || 'web'; sourceCounts[src] = (sourceCounts[src] || 0) + 1; });
+    vivos.forEach(o => { const src = o.order_source || 'web'; sourceCounts[src] = (sourceCounts[src] || 0) + 1; });
     const sourceEntries = Object.entries(sourceCounts).sort((a, b) => b[1] - a[1]);
     const maxSourceCount = sourceEntries.length ? sourceEntries[0][1] : 1;
 
     /* Orders by payment method */
     const paymentCounts = {};
-    filtered.forEach(o => { const pm = o.payment_method || 'Sin especificar'; paymentCounts[pm] = (paymentCounts[pm] || 0) + 1; });
+    vivos.forEach(o => { const pm = o.payment_method || 'Sin especificar'; paymentCounts[pm] = (paymentCounts[pm] || 0) + 1; });
     const paymentEntries = Object.entries(paymentCounts).sort((a, b) => b[1] - a[1]);
     const maxPaymentCount = paymentEntries.length ? paymentEntries[0][1] : 1;
 
@@ -154,7 +199,7 @@ const ReportsSection = ({ orders, products = [], verPruebas = false, onNavigate 
        dejado $1.050.000 cuando habían entrado $40.000. `recibidoDe` es la misma
        regla de CLAUDE.md §8 que usa el resto del panel. */
     const sourceRevenue = {};
-    paidFiltered.forEach(o => {
+    vivos.forEach(o => {
         const src = o.order_source || 'web';
         sourceRevenue[src] = (sourceRevenue[src] || 0) + recibidoDe(o);
     });
@@ -189,8 +234,8 @@ const ReportsSection = ({ orders, products = [], verPruebas = false, onNavigate 
 
                Sólo cuentan los pedidos vivos: uno cancelado no dejó nada, y
                meterlo hundiría el margen de una pieza que se vende bien. */
-            const conCosto = filtered.filter(o =>
-                o.product_name === nombre && estaVivo(o) && o.costo_taller != null);
+            const conCosto = vivos.filter(o =>
+                o.product_name === nombre && o.costo_taller != null);
 
             const deja = conCosto.reduce((t, o) =>
                 t + (Number(o.amount) - Number(o.costo_taller) - Number(o.costo_envio || 0)), 0);
@@ -366,7 +411,11 @@ const ReportsSection = ({ orders, products = [], verPruebas = false, onNavigate 
                     <div className="inf-kpi">
                         <span className="inf-kpi-l">Pedidos</span>
                         <span className="inf-kpi-v">{filtered.length}</span>
-                        <span className="inf-kpi-s">{paidFiltered.length} cobrados, {codOrders.length} contra entrega</span>
+                        {/* El único conteo de la pantalla que cuenta TODO a
+                            propósito: cuántos entraron. Por eso dice en qué
+                            quedaron, para que el número grande no se lea como
+                            ventas. */}
+                        <span className="inf-kpi-s">{vivos.length} en pie, {cancelados.length} cancelado{cancelados.length !== 1 ? 's' : ''}</span>
                         {compNum(filtered.length, prevFiltered.length) && (
                             <span className="inf-kpi-comp">{compNum(filtered.length, prevFiltered.length)}</span>
                         )}
@@ -374,11 +423,21 @@ const ReportsSection = ({ orders, products = [], verPruebas = false, onNavigate 
                     <div className="inf-kpi">
                         <span className="inf-kpi-l">Tasa de pago</span>
                         <span className="inf-kpi-v">{conversionRate} %</span>
-                        <span className="inf-kpi-s">{paidFiltered.length} de {filtered.length} pedidos cobrados</span>
+                        {/* Sobre los que siguen en pie. Los cancelados salen en su
+                            propia línea: metidos aquí decían que se cobra el 11 %
+                            cuando lo que pasaba es que 14 pedidos se cayeron. */}
+                        <span className="inf-kpi-s">{paidFiltered.length} de {enPie} en pie</span>
                         {compPP(conversionRate, prevPayRate) && (
                             <span className="inf-kpi-comp">{compPP(conversionRate, prevPayRate)}</span>
                         )}
                     </div>
+                    {cancelados.length > 0 && (
+                        <div className="inf-kpi">
+                            <span className="inf-kpi-l">Se cayeron</span>
+                            <span className="inf-kpi-v">{tasaCancelacion} %</span>
+                            <span className="inf-kpi-s">{cancelados.length} de {filtered.length} cancelados</span>
+                        </div>
+                    )}
                     <div className="inf-kpi">
                         <span className="inf-kpi-l">Ticket promedio</span>
                         <span className="inf-kpi-v">${fmt(avgOrder)}</span>
@@ -402,7 +461,7 @@ const ReportsSection = ({ orders, products = [], verPruebas = false, onNavigate 
                     <div>
                         <h2 className="inf-panel-titulo">Actividad diaria</h2>
                         <p className="inf-panel-sub">
-                            Pedidos por día · promedio de {(filtered.length / ordersByDay.length).toFixed(1).replace('.', ',')} al día
+                            Pedidos que siguen en pie · promedio de {(vivos.length / ordersByDay.length).toFixed(1).replace('.', ',')} al día
                         </p>
                     </div>
                     <span className="inf-leyenda"><span className="inf-leyenda-cuadro" />Pedidos</span>
@@ -539,7 +598,7 @@ const ReportsSection = ({ orders, products = [], verPruebas = false, onNavigate 
                 <article className="inf-panel">
                     <div className="inf-panel-head">
                         <h2 className="inf-panel-titulo">Métodos de pago</h2>
-                        <span className="inf-panel-sub">{filtered.length} pedido{filtered.length !== 1 ? 's' : ''}</span>
+                        <span className="inf-panel-sub">{vivos.length} en pie</span>
                     </div>
                     {paymentEntries.length === 0 ? (
                         <p className="inf-vacio">Sin pedidos en este periodo.</p>
