@@ -1065,8 +1065,29 @@ cierra sesión).
   los logs. Cero hallazgos aquí significa que las dos comprobaciones corrieron bien, porque
   un fallo de cualquiera de las dos se reporta como hallazgo.
 
-Lo único que queda sin probar de punta a punta es que un hallazgo real acabe en un correo,
-porque comprobarlo manda una alerta de verdad al equipo.
+### Y el correo también se comprobó
+
+Se hizo el 23 de agosto por la noche, con permiso: se aflojó **una** política —la de
+`vigilancia_ultima`, la de menos consecuencia—, se disparó el vigía y se volvió a apretar.
+El ciclo entero, con marcas de tiempo:
+
+```
+vigía  → 200 · {"ok":true,"hallazgos":1}
+         «public.vigilancia_ultima quedó sin candado ·
+          la política no exige es_del_equipo()»
+correo → POST /api/correo 200
+         alerta-sistema → ge***@gmail.com, se***@gmail.com
+```
+
+El aviso va **a todas las cuentas del panel**, no sólo a quien lo provocó, que es lo que
+debe hacer una alerta de sistema.
+
+Después se apretó la política, se volvió a disparar el vigía —**200, cero hallazgos**— y el
+parte del panel quedó vacío, para que nadie se encuentre mañana una avería que ya no existe.
+
+Así que la cadena está comprobada de punta a punta: **una política que se afloja acaba en el
+correo de quien puede arreglarla.** Que era justamente lo que faltaba el 23 de agosto por la
+mañana, cuando el candado llevaba seis meses abierto y no lo dijo nadie.
 
 ---
 
