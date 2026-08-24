@@ -531,9 +531,18 @@ async function ejecutarHerramienta(
              `Dile que se la fabricamos a la medida y que le confirmas por interno.`
     }
 
+    /* El matiz importa: con la tolerancia de la guía, la talla elegida puede
+       quedar un pelo por debajo del dedo. Decir «se toma la mayor» en ese caso
+       sería mentir, y es justo el detalle que una clienta comprueba. */
+    const comoQuedo = t.justa
+      ? 'Cae justo en esa talla. '
+      : t.ajustada
+        ? 'Quedó a un pelo por encima de esa talla y se toma esa: la diferencia es menor que lo que un dedo cambia entre la mañana y la tarde. '
+        : 'Quedó entre dos tallas y se toma la mayor, porque un anillo holgado se acomoda y uno apretado no entra. '
+
     return `La talla es ${t.talla}. (${unDecimal(t.circunferencia)} mm de circunferencia, ` +
            `${unDecimal(t.diametro)} mm de diámetro interior.) ` +
-           (t.justa ? 'Cae justo en esa talla. ' : 'Quedó entre dos tallas y se toma la mayor, porque un anillo holgado se acomoda y uno apretado no entra. ') +
+           comoQuedo +
            `Díselo con naturalidad y sigue con el pedido. No le preguntes otra vez qué talla es: ya la sabes.`
   }
 

@@ -1290,3 +1290,53 @@ una pieza obliga a preguntarse qué necesita de verdad.
 Lo que queda dentro es el núcleo —tiempo real, envío, control manual— y las dos cosas que
 lo rodean: la cabecera de la lista con sus filtros, y el diálogo de borrar fotos. El núcleo
 es lo último que conviene tocar, y sólo con pruebas delante.
+
+---
+
+## 32. ✅ La guía de tallas y Valentina daban tallas distintas — resuelto
+
+Apareció al escribir las primeras pruebas del bot, y es el hallazgo más caro del día
+aunque no lo parezca.
+
+La guía del sitio y Valentina usaban **la misma tabla de tallas** pero la aplicaban con
+tolerancias distintas: la guía aceptaba 0,35 mm para bajar de talla y 0,6 mm de holgura
+antes de mandar a fabricar a medida; el bot no tenía ninguna de las dos. Sobre 531 medidas
+entre 43 y 69,5 mm, **discrepaban en el 29 %**.
+
+```
+55,9 mm de circunferencia  →  la guía dice 7.5  ·  Valentina decía 8
+43,7 mm                    →  la guía dice 3    ·  Valentina decía "a medida"
+69,0 mm                    →  la guía dice 12.5 ·  Valentina decía "a medida"
+```
+
+**Por qué importa aquí más que en otra tienda:** la clienta mide su dedo con un hilo, lo
+comprueba en la guía, y después le escribe a Valentina para pedir la pieza. Si le dan dos
+números, o desconfía —y ahí se cae la venta— o se fabrica un anillo **a medida** con la
+talla equivocada, que no tiene arreglo: esa pieza ya se hizo para ese dedo.
+
+**Decisión del dueño: Valentina se ajusta a la guía**, porque la guía es lo que la clienta
+ya vio publicado y puede volver a comprobar.
+
+### Y que no puedan volver a separarse
+
+Arreglarlo hoy no basta, que es la lección de todo el día. No pueden compartir archivo: el
+sitio corre en el navegador y el bot en Deno, y `supabase functions deploy` sólo empaqueta
+lo que hay dentro de su carpeta. Son dos copias **por obligación**.
+
+Así que la garantía es una prueba, `src/lib/talla.test.js`, que importa las dos y las barre
+milímetro a milímetro por todo el rango. Es la única prueba del repositorio cuyo trabajo es
+**comparar dos implementaciones** en vez de comprobar una. Si alguien toca la tabla o una
+tolerancia y no la otra, el build no pasa.
+
+Comprobado desincronizándolas a propósito: cambiar la tolerancia sólo en la guía da 58
+medidas discrepantes, y corregir la tabla sólo en el bot da 4. Las dos tumban el build.
+
+De paso, el mensaje de Valentina dejó de mentir: con tolerancia, la talla elegida puede
+quedar **por debajo** del dedo, y decir «se toma la mayor» en ese caso era falso. Ahora
+distingue los tres casos —cae justa, quedó a un pelo por encima, o se tomó la mayor—.
+
+### Y la primera prueba del bot ya había encontrado otro
+
+Antes que esto: **la misma medida daba distinta talla según la unidad.** `54,4 ÷ π` y
+después `× π` devuelve 54,400000000000006, que ya no cabía en la talla 7 y saltaba a la 7,5.
+Basura del último bit, no una decisión. Lo absorbió la tolerancia nueva.
