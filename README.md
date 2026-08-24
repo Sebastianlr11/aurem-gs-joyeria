@@ -144,7 +144,7 @@ npm run test:mirar   # Vitest en marcha, repitiendo al guardar
 | [**DESIGN-PANEL.md**](DESIGN-PANEL.md) | El del panel: hereda la identidad y cambia lo que la densidad obliga |
 
 > Antes de tocar producción, lee [`docs/pendientes.md`](docs/pendientes.md). A 23 de agosto
-> de 2026 los 38 hallazgos están cerrados —los de seguridad incluidos— y **la base entera se
+> de 2026 hay 40 hallazgos y 39 están cerrados —los de seguridad incluidos— y **la base entera se
 > reconstruye desde el repositorio**: las 16 tablas, las 8 RPC, las políticas y los dos
 > trabajos del cron.
 
