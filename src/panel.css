@@ -7799,3 +7799,14 @@
   font-size: 0.68rem; font-weight: 400; color: var(--text-secondary);
   white-space: nowrap;
 }
+
+/* Las transportadoras que no pudieron cotizar, con su motivo. En gris y
+   debajo: no son opciones, pero callarlas fue cómo se perdió de vista que
+   la más barata no estaba saliendo por un dato de la cuenta. */
+.envio-cotiza-fuera {
+  list-style: none; margin: 0.5rem 0 0; padding: 0.5rem 0.6rem;
+  border-left: 2px solid var(--hairline); border-radius: 2px;
+  display: flex; flex-direction: column; gap: 0.3rem;
+  font-size: 0.72rem; line-height: 1.45; color: var(--text-secondary);
+}
+.envio-cotiza-fuera strong { color: var(--ink); font-weight: 700; }

@@ -220,9 +220,26 @@ Deno.serve(async (req: Request) => {
     }
 
     /* La respuesta viene con una clave por transportadora. Se aplana a una
-       lista ordenada de barata a cara, que es como se mira. */
-    const opciones = Object.entries(datos as Record<string, any>)
-      .filter(([, v]) => v && typeof v === 'object' && v.exito !== false)
+       lista ordenada de barata a cara, que es como se mira.
+
+       LAS QUE NO COTIZAN SE DICEN, NO SE ESCONDEN. La primera versión las
+       filtraba en silencio, y el 24 de agosto de 2026 eso dejó fuera a
+       Interrapidísimo — que en el panel de 99envios aparecía **a $0 de costo
+       de envío** para ese mismo pedido. Una lista que se calla una opción
+       gratis no es una lista incompleta: es una lista que hace perder plata.
+       Si una transportadora no puede, se enseña con su motivo. */
+    const crudas = Object.entries(datos as Record<string, any>)
+      .filter(([, v]) => v && typeof v === 'object')
+
+    const noCotizaron = crudas
+      .filter(([, v]) => v.exito === false)
+      .map(([transportadora, v]) => ({
+        transportadora,
+        motivo: String(v.mensaje ?? v.error ?? 'no dijo por qué'),
+      }))
+
+    const opciones = crudas
+      .filter(([, v]) => v.exito !== false)
       .map(([transportadora, v]) => ({
         transportadora,
         flete: Number(v.valor) || 0,
@@ -233,6 +250,9 @@ Deno.serve(async (req: Request) => {
         comision: Number(v.comision_interna ?? v.valor_interna) || 0,
         dias: v.dias ?? null,
         entregaEstimada: v.fecha_entrega ?? null,
+        /* Su panel enseña un porcentaje de entregas logradas por ciudad y es
+           de lo más útil que dan. Se pasa tal cual si viene; si no, null. */
+        efectividad: v.efectividad ?? v.porcentaje_efectividad ?? null,
         /* EL CONTRAPAGO ENTRA EN EL TOTAL.
         
            Se quedaba fuera, y no es calderilla: cobrarle $480.000 a la clienta
@@ -248,7 +268,7 @@ Deno.serve(async (req: Request) => {
       .sort((a, b) => a.total - b.total)
 
     return json({
-      ok: true, ciudad: pedido.shipping_city, codigoDane: codigo, caja, opciones,
+      ok: true, ciudad: pedido.shipping_city, codigoDane: codigo, caja, opciones, noCotizaron,
       contrapago, cobraElMensajero: contrapago ? porCobrar : 0,
     })
   } catch (e) {
