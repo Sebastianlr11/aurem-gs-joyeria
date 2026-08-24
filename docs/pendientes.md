@@ -1340,3 +1340,65 @@ distingue los tres casos —cae justa, quedó a un pelo por encima, o se tomó l
 Antes que esto: **la misma medida daba distinta talla según la unidad.** `54,4 ÷ π` y
 después `× π` devuelve 54,400000000000006, que ya no cabía en la talla 7 y saltaba a la 7,5.
 Basura del último bit, no una decisión. Lo absorbió la tolerancia nueva.
+
+---
+
+## 33. ✅ El «no me escriban» no se consultaba para diez de dieciocho pedidos — resuelto
+
+Apareció mirando el candado anti-duplicado de las plantillas, y es el peor de los que han
+salido hoy, porque no rompe nada: **simplemente dice que sí.**
+
+`plantillas-programadas` comprobaba dos frenos antes de escribirle a alguien: que no
+hubiera pedido que no le escriban (`customers.no_escribir`) y que no hubiera una persona
+del equipo atendiendo ese chat (`chat_takeover`). Los dos con `.eq('phone', telefono)`,
+comparando **la cadena cruda**.
+
+Y el mismo número entra de tres formas según por dónde llegue la clienta. Está en la base,
+tal cual:
+
+| Dónde | Cómo se guarda |
+|---|---|
+| `customers.phone` | `573143602930` |
+| `orders.customer_phone` | `+573143602930` (7 pedidos) y **`3143602930` (10 pedidos)** |
+| `chat_takeover.phone_number` | `573143602930` |
+
+El aviso sale a partir del pedido, así que el teléfono que se comparaba era el de
+`orders`. Para diez de los dieciocho **la búsqueda no encontraba nada**, y no encontrar
+nada se leía como «no pidió que no le escriban» y «no hay nadie atendiendo». Los dos
+frenos, en silencio, abiertos.
+
+Comprobado contra la base, marcando el `no_escribir` un momento y preguntando con los tres
+formatos:
+
+| Formato | Lo veía el código viejo | Lo ve el nuevo |
+|---|---|---|
+| `3143602930` | **no** | sí |
+| `+573143602930` | **no** | sí |
+| `573143602930` | sí | sí |
+
+Lo más incómodo es que **el archivo ya sabía del problema**: tenía un ayudante `diezUltimos`
+con el comentario explicándolo… usado sólo en el flujo de reactivación. Alguien resolvió lo
+mismo a diez líneas de distancia y no volvió a mirar aquí.
+
+Ahora lo pregunta la base con `puede_recibir_plantillas()`, que compara por los últimos diez
+dígitos con la misma expresión del índice único de `customers`, y está reservada a la llave
+de servicio: quién pidió que no le escriban no es cosa de nadie más. **Y si la consulta
+falla, no se escribe** — callar es recuperable; escribirle a quien pidió que no, no lo es.
+
+### Dos más, del mismo rato
+
+- **El número de destino iba sin indicativo.** Esos mismos diez pedidos mandaban a
+  `3143602930`, y Meta no entrega a diez dígitos pelados. Ahora pasa por
+  `aNumeroDeWhatsApp`, que sólo antepone el 57 a lo que es inequívocamente un móvil
+  colombiano; a un fijo, a un número de otro país o a uno incompleto no se le inventa nada.
+- **El candado llevaba mal su propia contabilidad.** Tras enviar, actualizaba el `wamid` y
+  el `error` filtrando por teléfono y plantilla, no por la fila recién anotada. El candado
+  permite a propósito mandar la misma plantilla a la misma persona por **dos pedidos
+  distintos**, así que se pisaban las dos filas: el `wamid` viejo se sobrescribía y un envío
+  fallido de hoy marcaba como fallido el de la semana pasada. La tabla existe justamente
+  para poder mirar eso después.
+
+Ocho pruebas nuevas sobre los teléfonos —**125 en total**—, rotas a propósito dos veces:
+volver a comparar cadenas crudas (2 fallos) y ponerle el 57 a cualquier número de diez
+dígitos (1). Las tres funciones desplegadas responden 401 a una llamada sin credenciales,
+que es lo que prueba que cargan.

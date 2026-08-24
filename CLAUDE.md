@@ -39,7 +39,7 @@ npm run dev          # Vite en http://localhost:5173
 npm run build        # eslint && vitest && sitemap.mjs && correos.mjs && tsc -b && vite build
 npm run preview      # Sirve /dist
 npm run lint         # ESLint (sí corre en el build)
-npm test             # Vitest, una pasada (117 pruebas)
+npm test             # Vitest, una pasada (125 pruebas)
 npm run test:mirar   # Vitest en marcha, repitiendo al guardar
 
 npm run sitemap      # Regenera public/sitemap.xml desde Supabase
@@ -61,7 +61,7 @@ Tres advertencias sobre el build:
 
 ### Las pruebas
 
-Hay **117**: `dinero.test.js` y `caja.test.js` cubren las cuentas de plata,
+Hay **125**: `dinero.test.js` y `caja.test.js` cubren las cuentas de plata,
 `fotosEnStorage.test.js` la deducción de qué archivos se borran,
 `chat/ganchos.test.js`, `chat/ficha.test.js` y `chat/seleccion.test.js` los ganchos del
 chat, y `supabase/functions/_shared/reglas.test.ts` las reglas de Valentina.
@@ -303,6 +303,7 @@ desde el 23-ago: el costo vive en el pedido.)
 | `20260823_tener_sesion_no_es_ser_del_equipo.sql` | 🔒 Las 20 políticas del panel exigen `es_del_equipo()`, no sólo tener sesión |
 | `20260823_storage_tambien_pide_ser_del_equipo.sql` | 🔒 Lo mismo para las fotos: subir y borrar pide rol de equipo |
 | `20260823_el_vigia_mira_el_candado.sql` | `politicas_flojas()`: el vigía avisa si una política deja de exigir `es_del_equipo()` |
+| `20260823_a_quien_se_le_puede_escribir.sql` | 🔒 `puede_recibir_plantillas()`: el «no me escriban» se comprobaba con la cadena cruda y fallaba en 10 de 18 pedidos |
 
 `20260822_cerrar_conversaciones_a_anon.sql` arregló un fallo del mismo tipo que el que
 sigue abierto en `orders`: `whatsapp_conversaciones` y `chat_takeover` tenían políticas
