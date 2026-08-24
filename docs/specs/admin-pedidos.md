@@ -70,7 +70,7 @@ CONTRAENTREGA  pendiente ──► confirmado ──► procesando ──► env
 | `pendiente` | Pendiente | El pedido existe y **nadie ha pagado nada** | El checkout, o a mano en el panel | Plantilla `pago_pendiente` si se queda ahí |
 | `confirmado` | Confirmado | **Abonó el envío.** Hay compromiso; el taller no ha empezado | `mp-webhook`, solo, al entrar el abono | Anota el abono · plantilla `pedido_confirmado_abono` |
 | `pagado` | Pagado | Entró el importe completo | `mp-webhook`, solo | Anota la venta · avisa a Meta y TikTok |
-| `procesando` | **Fabricando** | El taller **está haciendo la pieza** | Una persona, «Empezar a fabricar» | — |
+| `procesando` | **Fabricando** | El taller **está haciendo la pieza** | Una persona, «Empezar a fabricar» | Plantilla `pieza_en_fabricacion`, en la siguiente corrida del cron |
 | `enviado` | Enviado | Va con la transportadora | Una persona, «Marcar enviado» + guía | Correo con rastreo · plantilla `pedido_en_camino` |
 | `entregado` | Entregado | Llegó. En contraentrega, **además cobraste** | Una persona, «Marcar entregado» | En contraentrega: anota el saldo y avisa a Meta y TikTok |
 | `devuelto` | Devuelto | Salió, no se recibió y volvió | Una persona, «No la recibió» en la fila del pedido | El abono se queda · deja de haber saldo por cobrar · **no** se avisa a los anuncios |

@@ -78,6 +78,14 @@ describe('los pasos que no mueven plata', () => {
         expect(r.grave).toBe(false);
     });
 
+    /* El aviso no sale al instante y quien pulsa el botón se queda mirando el
+       chat: si el diálogo no dice «en la próxima hora», parece que falló. */
+    it('empezar a fabricar avisa del WhatsApp y de que tarda', () => {
+        const r = loQuePasa(cod('confirmado'), 'procesando');
+        expect(dice(r, 'WhatsApp')).toBe(true);
+        expect(dice(r, 'próxima hora')).toBe(true);
+    });
+
     it('marcar enviado avisa de los dos mensajes que le van a llegar', () => {
         const r = loQuePasa(cod('procesando'), 'enviado');
         expect(dice(r, 'correo')).toBe(true);
