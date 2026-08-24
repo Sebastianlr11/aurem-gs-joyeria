@@ -7848,3 +7848,15 @@
   background: var(--bg-arena); border-radius: 2px;
   font-size: 0.76rem; line-height: 1.5; color: var(--ink);
 }
+
+/* «Dónde» va antes que «qué»: lo primero que necesita quien no ha hecho
+   esto nunca es saber en qué pantalla está. */
+.guia-despacho-donde {
+  margin-top: 0.2rem;
+  font-size: 0.72rem; line-height: 1.45; color: var(--oro-ink);
+}
+.guia-despacho-pasa {
+  margin-top: 0.3rem;
+  font-size: 0.78rem; line-height: 1.5; color: var(--text-secondary);
+}
+.guia-despacho-pasa strong { color: var(--ink); font-weight: 700; }
