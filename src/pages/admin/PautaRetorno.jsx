@@ -25,7 +25,7 @@
  */
 import React, { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
-import { estaVivo, esContraentrega } from '../../lib/dinero';
+import { costoDePasarelaDe, estaVivo, esContraentrega } from '../../lib/dinero';
 import { cajaEntre } from '../../lib/caja';
 
 const fmt = (n) => Math.round(n || 0).toLocaleString('es-CO');
@@ -141,8 +141,12 @@ export default function PautaRetorno({ orders, periodStart, periodDays, verPrueb
        eso se dice sobre cuántos se calculó — un margen sobre uno de cinco no
        es mentira, pero tampoco es el periodo. */
     const conCosto = vivos.filter(o => o.costo_taller != null);
+    /* La comisión de la pasarela entra como un costo más. Se estaba olvidando,
+       y esta es la única cifra del panel que responde «¿esto deja plata?»: un
+       margen inflado por la comisión, al restarle la pauta, puede decir que la
+       campaña se paga sola cuando no. */
     const costoVendido = conCosto.reduce(
-        (t, o) => t + Number(o.costo_taller) + Number(o.costo_envio || 0), 0);
+        (t, o) => t + Number(o.costo_taller) + Number(o.costo_envio || 0) + costoDePasarelaDe(o), 0);
     const vendidoConCosto = conCosto.reduce((t, o) => t + Number(o.amount), 0);
 
     /* La resta completa: lo que se vendió, menos lo que costó hacerlo, menos

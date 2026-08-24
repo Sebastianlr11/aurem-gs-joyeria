@@ -132,3 +132,56 @@ export function costoDeMercadoPago(monto) {
 /** Lo que queda en la cuenta después de que Mercado Pago se cobre lo suyo. */
 export const netoDeMercadoPago = (monto) =>
     (Number(monto) || 0) - costoDeMercadoPago(monto);
+
+/* ─── Lo que llegó a la cuenta, que no es lo que pagó la clienta ──────
+ *
+ * `recibidoDe` responde **cuánto entregó la clienta**. Estas dos responden
+ * **cuánto llegó a la cuenta**, que es otra cosa y la diferencia no es ruido.
+ *
+ * Existen porque el panel usaba la primera donde prometía la segunda. El 23 de
+ * agosto de 2026 la tarjeta de Reportes decía «$40.000 — plata que ya entró,
+ * con las comisiones descontadas» sobre dos abonos de $20.000 cobrados por
+ * Mercado Pago: **no había descontado nada**, y la línea de al lado remataba
+ * con «Comisiones Mercado Pago −$0». Lo que quedó de verdad fueron $35.764.
+ *
+ * Y la portada ya decía $35.764, porque tira del libro de caja, que sí lo
+ * descuenta. Dos pantallas, la misma pregunta, dos respuestas.
+ *
+ * ── La sutileza que importa ─────────────────────────────────────────────
+ *
+ * **En contraentrega sólo el abono pasa por Mercado Pago.** El resto lo cobra
+ * el mensajero en efectivo en la puerta, y de ese dinero la pasarela no ve un
+ * peso. Así que a un pedido entregado de $550.000 se le descuenta la comisión
+ * de los $20.000 del abono, **no la de los $550.000** — descontarla entera
+ * sería inventarse $26.000 de gasto que nunca ocurrió.
+ *
+ * Y sólo si el abono llegó a pagarse por ahí: `abono_pagado_en` es la prueba.
+ * Un pedido cargado a mano en el panel puede tener `abono_monto` sin haber
+ * pasado nunca por la pasarela.
+ */
+
+/** Lo que se llevó la pasarela de este pedido. Siempre positivo. */
+export function costoDePasarelaDe(pedido) {
+    const recibido = recibidoDe(pedido);
+    if (recibido <= 0) return 0;
+
+    if (!esContraentrega(pedido)) return costoDeMercadoPago(recibido);
+
+    /* Sin `abono_pagado_en` no hubo cobro por la pasarela: es un pedido que se
+       cargó a mano, o uno cuyo abono todavía no ha entrado. */
+    if (!pedido.abono_pagado_en) return 0;
+
+    const abono = Math.min(Number(pedido.abono_monto) || 0, recibido);
+    return costoDeMercadoPago(abono);
+}
+
+/**
+ * Lo que de verdad quedó de este pedido, después de la pasarela.
+ *
+ * Es la cifra que va debajo de cualquier rótulo que diga «entró», «neto» o
+ * «deja». Lo que se rotule «vendido» o «pedido» se queda en precio y usa
+ * `amount`; lo que diga «entregó la clienta», `recibidoDe`.
+ */
+export function netoRecibidoDe(pedido) {
+    return recibidoDe(pedido) - costoDePasarelaDe(pedido);
+}

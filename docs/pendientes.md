@@ -1819,3 +1819,55 @@ como parámetro a las seis RPC, y es una decisión, no un descuido.
 y `schema_migrations` guarda nombres propios que no coinciden con los de los archivos:
 ninguno de los 38 locales figura como aplicado. `supabase db push` intentaría aplicarlos
 todos de golpe sobre producción. Queda advertido en `CLAUDE.md`.
+
+---
+
+## 38. ✅ «Ingreso neto» no era neto — resuelto
+
+Lo encontró Sebastián mirando la pantalla: la tarjeta decía **$40.000** sobre dos abonos de
+$20.000, con el rótulo *«Plata que ya entró, con las comisiones descontadas»* y, justo
+debajo, *«Comisiones Mercado Pago −$0»*.
+
+**El abono se cobra por Mercado Pago.** Lo genera `create-preference` y lo confirma
+`mp-webhook`, así que la pasarela se lleva **$2.118 de cada $20.000**. De los $40.000
+quedaron **$35.764**.
+
+Y lo que lo vuelve un hallazgo y no una errata: **la portada ya decía $35.764**, porque tira
+del libro de caja, que sí lo descuenta. Dos pantallas del mismo panel respondiendo la misma
+pregunta con dos números distintos — el bug fundacional de este proyecto, otra vez, y esta
+vez nadie lo había puesto uno al lado del otro.
+
+### La raíz
+
+`recibidoDe` responde **cuánto entregó la clienta**. Media docena de sitios la usaban debajo
+de rótulos que prometen **cuánto llegó a la cuenta**. Ahora eso lo responde
+`netoRecibidoDe`, con `costoDePasarelaDe`, y la regla de rotulación queda escrita: lo que
+diga *entró*, *neto* o *deja* va después de comisiones; lo que diga *vendido* o *pedido* se
+queda en precio.
+
+### La sutileza que había que hacer bien
+
+De un contraentrega **entregado**, `recibidoDe` son los $550.000 completos — pero por la
+pasarela sólo pasaron los $20.000 del abono; **el resto lo cobró el mensajero en efectivo**.
+Descontar la comisión del total habría inventado $26.000 de gasto que nunca ocurrió. Y sólo
+se cobra comisión si el abono llegó a pagarse por ahí: `abono_pagado_en` es la prueba,
+porque un pedido cargado a mano en el panel nunca pasó por Mercado Pago.
+
+Ocho pruebas nuevas en `dinero.test.js` fijan justo eso, incluida la de que
+`costoDePasarelaDe` de un contraentrega entregado es **menor** que la comisión del total.
+
+### Dónde faltaba
+
+Ingreso neto y su línea de comisiones · «lo que deja» de cada pieza · «deja neto» del retorno
+de pauta —la única cifra del panel que responde «¿esto deja plata?», y un margen inflado al
+que luego se le resta la pauta puede decir que la campaña se paga sola cuando no— ·
+`revenue_por_fuente`, `top_ciudades_envio` y `tendencia_comparativa` · y `ingresosDe` de la
+portada, que calculaba la comisión sobre el precio y no sobre lo cobrado.
+
+### El espejo
+
+`public.neto_recibido_de(...)` y `public.costo_de_pasarela_de(...)`, en
+`20260824_lo_que_llega_a_la_cuenta.sql`. Comprobados **caso por caso contra el JavaScript**
+—los seis, incluido el del contraentrega entregado— antes de dar nada por bueno.
+
+De paso se borró `calcMPNet`, que era un alias de `netoDeMercadoPago` sin ningún uso vivo.

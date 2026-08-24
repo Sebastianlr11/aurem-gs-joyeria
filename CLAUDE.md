@@ -363,6 +363,7 @@ nombre es el identificador que la base ya tiene anotado.
 | `20260824_confirmado_y_devuelto.sql` | Dos estados nuevos en el circuito, y el guardián que compara la regla del dinero de la base con la tabla de §8 |
 | `20260824_los_informes_cuentan_lo_que_entro.sql` | `revenue_por_fuente` sumaba todos los pedidos: decía 331 veces más de lo que había entrado |
 | `20260824_las_cinco_que_faltaban.sql` | Las cinco RPC que sólo vivían en la base; tres de ellas mentían |
+| `20260824_lo_que_llega_a_la_cuenta.sql` | `neto_recibido_de`: el abono se cobra por Mercado Pago y los informes lo sumaban en bruto |
 
 `20260822_cerrar_conversaciones_a_anon.sql` cerró el fallo más grave de todos:
 `whatsapp_conversaciones` y `chat_takeover` tenían políticas
@@ -448,9 +449,10 @@ real y ninguna ganancia. Cambia la palabra, no el dato.
 **Y «sigue viva» también vive en dos sitios**: `estaVivo` en el panel y `venta_viva(status)`
 en la base. El vigía compara las dos contra esta tabla cada hora.
 
-**Esta misma regla está escrita DOS veces**, y tiene que ser así: `recibidoDe` en
-`src/lib/dinero.js` calcula sobre filas que el panel ya tiene en el navegador, y
-`public.recibido_de(...)` corre dentro de Postgres para el disparador que llena `pagos`.
+**Estas reglas están escritas DOS veces**, y tiene que ser así: las de `src/lib/dinero.js`
+calculan sobre filas que el panel ya tiene en el navegador, y sus espejos
+—`public.recibido_de(...)`, `public.neto_recibido_de(...)`, `public.venta_viva(...)`— corren
+dentro de Postgres para el disparador que llena `pagos` y para las RPC de informes.
 Ninguna puede llamar a la otra. **Si tocas una, toca la otra** — y el vigía comprueba cada
 hora que la de la base siga diciendo lo que dice esta tabla (`regla_del_dinero_cuadra()`).
 
@@ -459,6 +461,16 @@ hora que la de la base siga diciendo lo que dice esta tabla (`regla_del_dinero_c
 lo que va a pasar al confirmar. Las usan la tabla de Pedidos, el diálogo de confirmar y la
 guía de Ajustes, para que las tres no puedan decir cosas distintas. El circuito completo
 está en [`docs/specs/admin-pedidos.md`](docs/specs/admin-pedidos.md), que manda.
+
+**Y `recibidoDe` NO es lo que llegó a la cuenta.** Responde cuánto entregó la clienta; lo
+que quedó después de la pasarela es `netoRecibidoDe`, con su `costoDePasarelaDe`. La
+diferencia importa porque **el abono del contraentrega se cobra por Mercado Pago**, que se
+lleva $2.118 de cada $20.000. Con la sutileza que hace falta hacer bien: de un contraentrega
+**entregado** sólo el abono pasó por la pasarela —el resto lo cobró el mensajero en
+efectivo—, así que se descuenta la comisión de los $20.000 y no la de los $550.000.
+
+La regla de rotulación, para que no se vuelva a mezclar: lo que diga **«entró», «neto» o
+«deja» va después de comisiones**; lo que diga **«vendido» o «pedido» se queda en precio**.
 
 `porCobrarDe` = `amount − recibidoDe` en pedidos vivos. `estaVivo` = ni `cancelado` ni
 `pendiente`. **Cualquier cifra de dinero del panel debe pasar por estas funciones**: el
@@ -633,6 +645,6 @@ hoy, decisiones tomadas y por qué, límites conocidos, cómo probarlo.
 - [`vigilancia.md`](docs/specs/vigilancia.md) — el vigía
 - [`diseno-y-frontend.md`](docs/specs/diseno-y-frontend.md) — CSS, fuentes, animaciones
 
-**Y aparte:** [`docs/pendientes.md`](docs/pendientes.md) — los 37 hallazgos de la revisión,
+**Y aparte:** [`docs/pendientes.md`](docs/pendientes.md) — los 38 hallazgos de la revisión,
 **todos cerrados** a 23 de agosto de 2026. Se conserva porque cada uno lleva escrito qué
 pasaba y por qué se decidió lo que se decidió; los specs enlazan a sus números.
