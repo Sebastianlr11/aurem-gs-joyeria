@@ -1472,3 +1472,29 @@ el diagnóstico de CSS ni quien buscara la clase — y ese `relative` es lo que 
 de los tres puntos. Quitarlo por parecer decorativo habría soltado el menú a la esquina de
 la pantalla. Ahora está en `panel.css` con el motivo al lado, y comprobado en el navegador:
 el menú sigue a 16 px por debajo de su botón.
+
+**Décimo tramo: 1.402 → 1.342 líneas.** Sale el hilo de la conversación —las burbujas, los
+separadores de día y los acuses— a `HiloDeMensajes.jsx`, con cuatro props y ningún estado.
+Es puro pintar y aun así vivía en medio del archivo grande, entre la cabecera del chat y la
+ficha del contacto.
+
+Dos decisiones que se leen mal en el código y quedaron escritas: **el separador de día sale
+cuando cambia el día**, y **la hora sólo se pinta en el último mensaje de una tanda seguida**
+del mismo minuto y del mismo lado. Las dos miran a un vecino, y por eso el hilo se recorre
+con índice en vez de con un `map` inocente — una burbuja sola no sabe si le toca separador
+ni si le toca hora.
+
+Y salió a `comunes.js` la lógica del acuse, que estaba metida en una función anónima dentro
+del JSX. Se prueba porque **no se puede ver en pantalla sin mandar un mensaje de verdad**: un
+mensaje recién salido no tiene todavía `delivery_status` —vive como `temp-…` hasta que
+WhatsApp confirma— y sin el apaño se quedaría en «enviado» desde el primer fotograma,
+diciendo que llegó algo que aún no ha salido. En la conversación de pruebas los dos mensajes
+están confirmados, así que ese caso no aparece nunca mirando el panel.
+
+Seis pruebas más, **150 en total**, rotas a propósito dos veces: que un mensaje recién salido
+vuelva a decir «enviado» (1 fallo) y que «entregado» pierda su segundo visto (1).
+
+Comprobado en el navegador: el contenedor con su desbordamiento y su relleno, las dos
+burbujas, los separadores «Ayer» y «Hoy», las horas, los acuses con su explicación al pasar
+el cursor y en el tono discreto, el lado de cada mensaje y el ancla del final. Y de paso se
+enderezó una sangría que había quedado torcida al sacar la ficha del contacto.

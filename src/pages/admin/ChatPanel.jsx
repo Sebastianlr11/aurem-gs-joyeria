@@ -8,17 +8,15 @@ import { leerRespuestas } from '../../lib/respuestasRapidas';
 import { NAV } from './adminNav.jsx';
 import '../../panel.css';
 
-import {
-    ACUSE, MESES_PURGA, fmtSeparador, fmtTime,
-    isSameDay, normalizePhone, sortMessages, truncate,
-} from './chat/comunes';
-import { AvisosDeChat, ChatErrorBoundary, ImagenDelChat, PieDeFoto, VisorDeFoto } from './chat/piezas';
+import { MESES_PURGA, normalizePhone, sortMessages, truncate } from './chat/comunes';
+import { AvisosDeChat, ChatErrorBoundary, VisorDeFoto } from './chat/piezas';
 import { useAvisos, useFichaDelContacto, useResumenDelHilo, useSeleccion, useVisorDeFotos } from './chat/ganchos';
 import FichaDelContacto from './chat/FichaDelContacto';
 import SelectorDeImagen from './chat/SelectorDeImagen';
 import FilaDeContacto from './chat/FilaDeContacto';
 import CabeceraDeContactos from './chat/CabeceraDeContactos';
 import DialogoDeConfirmacion from './chat/DialogoDeConfirmacion';
+import HiloDeMensajes from './chat/HiloDeMensajes';
 import BuscadorDeMensajes from './chat/BuscadorDeMensajes';
 
 
@@ -1179,73 +1177,15 @@ filteredContacts.map(c => (
 
                                 <div className="chat-conv-body">
                                     {/* Messages */}
-                                    <div className="chat-conv-messages">
-                                        {loadingMsgs ? (
-                                            <div className="chat-loading">Cargando mensajes...</div>
-                                        ) : (
-                                            messages.map((msg, i) => {
-                                                const showDate = i === 0 || !isSameDay(messages[i - 1]?.created_at, msg.created_at);
-                                                /* La hora sólo en el último mensaje de una tanda seguida
-                                                   del mismo minuto: el hilo se lee mucho más limpio. */
-                                                const sig = messages[i + 1];
-                                                const showTime = !sig
-                                                    || (sig.role || 'user') !== (msg.role || 'user')
-                                                    || fmtTime(sig.created_at) !== fmtTime(msg.created_at);
-                                                return (
-                                                    <React.Fragment key={msg.id || `msg-${i}`}>
-                                                        {showDate ? (
-                                                            <div className="chat-date-separator">
-                                                                <span>{fmtSeparador(msg.created_at)}</span>
-                                                            </div>
-                                                        ) : null}
-                                                        <div className={`chat-msg chat-msg--${msg.role || 'user'}`}>
-                                                        <div className={`chat-bubble chat-bubble--${msg.role || 'user'}${msg.enviado_por === 'humano' ? ' chat-bubble--admin' : ''}${msg._failed ? ' chat-bubble--error' : ''}`}>
-                                                            {/* Una foto borrada sigue siendo un mensaje. Antes el
-                                                                pie dependía de que hubiera archivo, así que al
-                                                                soltar las fotos la burbuja pasaba a enseñar el
-                                                                contenido crudo —"📷 descripción…"— en vez de lo
-                                                                que la clienta escribió. Ahora manda el tipo de
-                                                                mensaje y el archivo sólo decide si hay imagen o
-                                                                sello. */}
-                                                            {msg.message_type === 'image' ? (
-                                                                msg.media_url
-                                                                    ? <ImagenDelChat ruta={msg.media_url} onAbrir={visor.abrir} />
-                                                                    : <div className="chat-foto-borrada">Foto borrada</div>
-                                                            ) : null}
-                                                            {msg.message_type === 'image' && msg.role === 'user'
-                                                                ? <PieDeFoto contenido={msg.content} />
-                                                                : msg.content ? <div className="chat-bubble-content"><span>{msg.content}</span></div> : null}
-                                                        </div>
-                                                            {(msg._failed || showTime) && (
-                                                            <div className="chat-bubble-time">
-                                                                {msg._failed ? <span style={{ color: 'var(--error-ink)' }}>Error al enviar</span> : (
-                                                                    <>
-                                                                        <span>{fmtTime(msg.created_at)}</span>
-                                                                        {msg.role === 'assistant' && (() => {
-                                                                            const acuse = msg.delivery_status || (String(msg.id).startsWith('temp-') ? 'sending' : 'sent');
-                                                                            return (
-                                                                                <span
-                                                                                    className={`chat-delivery-status chat-delivery-status--${acuse}`}
-                                                                                    title={ACUSE[acuse] || acuse}
-                                                                                >
-                                                                                    {acuse === 'sending' ? '·' : acuse === 'read' || acuse === 'delivered' ? '✓✓' : '✓'}
-                                                                                </span>
-                                                                            );
-                                                                        })()}
-                                                                    </>
-                                                                )}
-                                                            </div>
-                                                            )}
-                                                        </div>
-                                                    </React.Fragment>
-                                                );
-                                            })
-                                        )}
-                                        <div ref={messagesEndRef} />
-                                    </div>
+<HiloDeMensajes
+                                        mensajes={messages}
+                                        cargando={loadingMsgs}
+                                        finRef={messagesEndRef}
+                                        onAbrirFoto={visor.abrir}
+                                    />
 
                                     {/* Contact info panel */}
-{showContactInfo && (
+                                    {showContactInfo && (
                                         <FichaDelContacto
                                             telefono={activeContact}
                                             mensajes={messages}

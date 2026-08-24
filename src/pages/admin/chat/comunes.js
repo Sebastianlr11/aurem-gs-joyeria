@@ -95,3 +95,22 @@ export const PRESET_TAGS = [
     { label: 'VIP', color: '#A8863F' },
     { label: 'Mayorista', color: '#A8863F' },
 ];
+
+/**
+ * El acuse de un mensaje nuestro, y el visto que lo dibuja.
+ *
+ * Un mensaje que acaba de salir todavía no tiene `delivery_status`: vive como
+ * `temp-…` hasta que WhatsApp confirma. Sin este apaño se quedaría en «✓
+ * enviado» desde el primer fotograma, diciendo que llegó algo que aún no ha
+ * salido.
+ *
+ * Los tres glifos son los de WhatsApp a propósito: un punto mientras sale, un
+ * visto cuando salió, dos cuando llegó o se leyó. Quien atiende el chat ya sabe
+ * leerlos sin que nadie se lo explique — y el color no los distingue, sólo el
+ * oro del leído, que es la única diferencia que importa de un vistazo.
+ */
+export const acuseDe = (mensaje) =>
+    mensaje?.delivery_status || (String(mensaje?.id).startsWith('temp-') ? 'sending' : 'sent')
+
+export const glifoDeAcuse = (acuse) =>
+    acuse === 'sending' ? '·' : (acuse === 'read' || acuse === 'delivered') ? '✓✓' : '✓'
