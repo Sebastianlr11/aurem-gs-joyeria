@@ -1449,3 +1449,26 @@ Comprobado a mano en el navegador: el chip, el estilo de la cabecera, el buscado
 cambiando la lista y marcándose con `aria-pressed`, y el mando del lote entero: entrar,
 «Todas», «Ninguna» y «Cancelar», con la cuenta y las casillas siguiéndolo. Más la
 comprobación de clases: ninguna del JSX falta en el CSS.
+
+**Noveno tramo: sale UNO donde había DOS.** Archivar una conversación y borrar sus fotos
+tenían el mismo armazón escrito dos veces —las mismas cinco clases, la misma pareja de
+botones—, así que en vez de sacar dos diálogos sale `DialogoDeConfirmacion` usado dos
+veces. Baja poco en líneas (1.408 → 1.402) y ese no era el punto.
+
+**Y las dos copias ya no se parecían del todo:** la de las fotos bloqueaba el clic del
+fondo mientras trabajaba y la de archivar no. Al unificarlas se quedó el comportamiento
+bueno para las dos — darle a Cancelar cuando el borrado ya salió hacia el servidor no
+cancela nada, sólo hace creer que sí—. Eso es un cambio de comportamiento, así que va con
+ocho pruebas, rotas a propósito dos veces: devolver el cierre por el fondo mientras trabaja
+(1 fallo) y dejar de apagar el botón de cancelar (1).
+
+El `tono` tampoco es decoración y quedó escrito: `danger` es para lo que no vuelve —las
+fotos se borran del bucket— y `primary` para lo que se deshace solo, porque una
+conversación archivada reaparece en cuanto la clienta vuelva a escribir.
+
+**Y con esto, cero clases del JSX sin regla en el CSS.** `chat-export-dropdown` era la
+última: llevaba su `position: relative` en un `style` dentro del JSX, donde no lo veía ni
+el diagnóstico de CSS ni quien buscara la clase — y ese `relative` es lo que ancla el menú
+de los tres puntos. Quitarlo por parecer decorativo habría soltado el menú a la esquina de
+la pantalla. Ahora está en `panel.css` con el motivo al lado, y comprobado en el navegador:
+el menú sigue a 16 px por debajo de su botón.

@@ -18,6 +18,7 @@ import FichaDelContacto from './chat/FichaDelContacto';
 import SelectorDeImagen from './chat/SelectorDeImagen';
 import FilaDeContacto from './chat/FilaDeContacto';
 import CabeceraDeContactos from './chat/CabeceraDeContactos';
+import DialogoDeConfirmacion from './chat/DialogoDeConfirmacion';
 import BuscadorDeMensajes from './chat/BuscadorDeMensajes';
 
 
@@ -1127,7 +1128,7 @@ filteredContacts.map(c => (
                                                 <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> <span>Tomar control</span></>
                                             )}
                                         </button>
-                                        <div className="chat-export-dropdown" ref={exportMenuRef} style={{position:'relative'}}>
+                                        <div className="chat-export-dropdown" ref={exportMenuRef}>
                                             {/* Era un icono de descarga y dentro estaba el
                                                 único sitio del panel donde se podía borrar un
                                                 chat. Nadie busca "eliminar" detrás de una
@@ -1346,16 +1347,13 @@ filteredContacts.map(c => (
                         deshace solo en cuanto el cliente vuelva a escribir, y
                         eliminar no se deshace nunca. */}
                     {confirmArchive && (
-                        <div className="chat-confirm-overlay" onClick={() => setConfirmArchive(null)}>
-                            <div className="chat-confirm-modal" onClick={e => e.stopPropagation()}>
-                                <h4>¿Archivar conversación?</h4>
-                                <p>El contacto desaparecerá de la lista. Volverá automáticamente si envía un nuevo mensaje.</p>
-                                <div className="chat-confirm-actions">
-                                    <button className="chat-confirm-btn chat-confirm-btn--cancel" onClick={() => setConfirmArchive(null)}>Cancelar</button>
-                                    <button className="chat-confirm-btn chat-confirm-btn--primary" onClick={() => handleArchive(confirmArchive)}>Archivar</button>
-                                </div>
-                            </div>
-                        </div>
+                        <DialogoDeConfirmacion
+                            titulo="¿Archivar conversación?"
+                            texto="El contacto desaparecerá de la lista. Volverá automáticamente si envía un nuevo mensaje."
+                            accion="Archivar"
+                            onCancelar={() => setConfirmArchive(null)}
+                            onConfirmar={() => handleArchive(confirmArchive)}
+                        />
                     )}
 
                     {aBorrar && (
@@ -1369,22 +1367,18 @@ filteredContacts.map(c => (
                     {/* Sólo las fotos. Sin escribir nada: es permanente, pero no
                         se lleva la conversación. */}
                     {confirmFotos && (
-                        <div className="chat-confirm-overlay" onClick={() => !borrandoFotos && setConfirmFotos(false)}>
-                            <div className="chat-confirm-modal" onClick={e => e.stopPropagation()}>
-                                <h4>{hilo.fotos === 1 ? '¿Borrar la foto?' : `¿Borrar las ${hilo.fotos} fotos?`}</h4>
-                                <p>
-                                    Se van los archivos y el hilo se queda entero: sigues viendo el
-                                    pie que escribió y lo que Valentina entendió de cada imagen, con
-                                    un sello de que la foto ya no está. No se puede deshacer.
-                                </p>
-                                <div className="chat-confirm-actions">
-                                    <button className="chat-confirm-btn chat-confirm-btn--cancel" onClick={() => setConfirmFotos(false)} disabled={borrandoFotos}>Cancelar</button>
-                                    <button className="chat-confirm-btn chat-confirm-btn--danger" onClick={handleBorrarFotos} disabled={borrandoFotos}>
-                                        {borrandoFotos ? 'Borrando…' : 'Borrar las fotos'}
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
+                        <DialogoDeConfirmacion
+                            titulo={hilo.fotos === 1 ? '¿Borrar la foto?' : `¿Borrar las ${hilo.fotos} fotos?`}
+                            texto={'Se van los archivos y el hilo se queda entero: sigues viendo el ' +
+                                   'pie que escribió y lo que Valentina entendió de cada imagen, con ' +
+                                   'un sello de que la foto ya no está. No se puede deshacer.'}
+                            accion="Borrar las fotos"
+                            textoOcupado="Borrando…"
+                            tono="danger"
+                            ocupado={borrandoFotos}
+                            onCancelar={() => setConfirmFotos(false)}
+                            onConfirmar={handleBorrarFotos}
+                        />
                     )}
 
                     <AvisosDeChat

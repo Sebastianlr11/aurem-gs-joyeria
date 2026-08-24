@@ -39,7 +39,7 @@ npm run dev          # Vite en http://localhost:5173
 npm run build        # eslint && vitest && sitemap.mjs && correos.mjs && tsc -b && vite build
 npm run preview      # Sirve /dist
 npm run lint         # ESLint (sí corre en el build)
-npm test             # Vitest, una pasada (136 pruebas)
+npm test             # Vitest, una pasada (144 pruebas)
 npm run test:mirar   # Vitest en marcha, repitiendo al guardar
 
 npm run sitemap      # Regenera public/sitemap.xml desde Supabase
@@ -61,7 +61,7 @@ Tres advertencias sobre el build:
 
 ### Las pruebas
 
-Hay **136**: `dinero.test.js` y `caja.test.js` cubren las cuentas de plata,
+Hay **144**: `dinero.test.js` y `caja.test.js` cubren las cuentas de plata,
 `fotosEnStorage.test.js` la deducción de qué archivos se borran,
 `chat/ganchos.test.js`, `chat/ficha.test.js` y `chat/seleccion.test.js` los ganchos del
 chat, y `supabase/functions/_shared/reglas.test.ts` las reglas de Valentina.
