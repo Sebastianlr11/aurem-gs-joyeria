@@ -63,6 +63,33 @@ const PageLoader = () => (
   </div>
 )
 
+/* El armazón de las páginas públicas: navbar arriba, pie abajo, y la página
+   en medio.
+   
+   Existe por una medida concreta. El elemento LCP de la portada es el texto
+   del logo del navbar —no la foto—, y Lighthouse lo desglosaba así:
+   
+       TTFB 696 ms · descarga 0 ms · **espera a renderizar 4.771 ms**
+   
+   Casi cinco segundos esperando, sin nada que bajar. El motivo era que
+   `<Navbar />` vivía DENTRO del mismo `<Suspense>` que la página perezosa:
+   aunque el navbar estuviera listo desde el primer instante, React no pintaba
+   nada de ese bloque hasta que bajaba y se ejecutaba el chunk de la página.
+   
+   Con el Suspense aquí dentro, envolviendo sólo a la página, el armazón se
+   pinta en cuanto corre el bundle y el contenido llega después.
+   
+   El hueco del cargador reserva 60vh a propósito: sin esa altura el pie
+   nacería pegado al navbar y saltaría hacia abajo al llegar la página, y eso
+   es layout shift — la única métrica que ya estaba en cero perfecto. */
+const ConNavbar = ({ children }) => (
+  <>
+    <Navbar />
+    <Suspense fallback={<PageLoader />}>{children}</Suspense>
+    <Footer />
+  </>
+)
+
 /* Cuenta una vista por cada cambio de ruta. En una app de una sola página
    el píxel no se entera solo: sin esto, sólo contaría la primera. */
 function ContadorDePaginas() {
@@ -80,20 +107,8 @@ function App() {
       <Suspense fallback={<PageLoader />}>
         <Routes>
           {/* Rutas públicas con Navbar + Footer */}
-          <Route path="/" element={
-            <>
-              <Navbar />
-              <Home />
-              <Footer />
-            </>
-          } />
-          <Route path="/catalogo" element={
-            <>
-              <Navbar />
-              <Catalog />
-              <Footer />
-            </>
-          } />
+          <Route path="/" element={<ConNavbar><Home /></ConNavbar>} />
+          <Route path="/catalogo" element={<ConNavbar><Catalog /></ConNavbar>} />
 
           {/* La ficha va sin navbar: es la pantalla donde se decide la
               compra y la píldora de navegación le quitaba sitio a la pieza
@@ -106,19 +121,13 @@ function App() {
             </>
           } />
 
-          <Route path="/confirmacion" element={
-            <>
-              <Navbar />
-              <Confirmacion />
-              <Footer />
-            </>
-          } />
+          <Route path="/confirmacion" element={<ConNavbar><Confirmacion /></ConNavbar>} />
 
           {/* Páginas legales */}
-          <Route path="/politica-de-privacidad" element={<><Navbar /><PrivacyPolicy /><Footer /></>} />
-          <Route path="/terminos-de-servicio" element={<><Navbar /><TermsOfService /><Footer /></>} />
-          <Route path="/politica-de-devoluciones" element={<><Navbar /><ReturnsPolicy /><Footer /></>} />
-          <Route path="/guia-de-tallas" element={<><Navbar /><RingSizeGuide /><Footer /></>} />
+          <Route path="/politica-de-privacidad" element={<ConNavbar><PrivacyPolicy /></ConNavbar>} />
+          <Route path="/terminos-de-servicio" element={<ConNavbar><TermsOfService /></ConNavbar>} />
+          <Route path="/politica-de-devoluciones" element={<ConNavbar><ReturnsPolicy /></ConNavbar>} />
+          <Route path="/guia-de-tallas" element={<ConNavbar><RingSizeGuide /></ConNavbar>} />
 
           {/* Admin — sin Navbar pública */}
           <Route path="/admin/login" element={<Login />} />
@@ -138,13 +147,7 @@ function App() {
               quien cae aquí llegó por un enlace roto y lo que necesita es poder
               seguir navegando, no un callejón. Sin esta ruta, una URL inválida
               renderizaba la página en blanco. */}
-          <Route path="*" element={
-            <>
-              <Navbar />
-              <NoEncontrado />
-              <Footer />
-            </>
-          } />
+          <Route path="*" element={<ConNavbar><NoEncontrado /></ConNavbar>} />
         </Routes>
       </Suspense>
     </div>
