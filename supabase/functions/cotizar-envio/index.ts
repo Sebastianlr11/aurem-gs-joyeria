@@ -231,15 +231,31 @@ Deno.serve(async (req: Request) => {
     const crudas = Object.entries(datos as Record<string, any>)
       .filter(([, v]) => v && typeof v === 'object')
 
-    const noCotizaron = crudas
-      .filter(([, v]) => v.exito === false)
-      .map(([transportadora, v]) => ({
+    /* UN FLETE EN CERO NO ES UN ENVÍO GRATIS.
+    
+       Lo explica 99envios en uno de sus videos: cuando Interrapidísimo sale en
+       $0 quiere decir que el **código de convenio todavía no está generado**
+       —tarda uno o dos días hábiles desde que te inscribes— y que con ellos NO
+       se pueden emitir guías. No es una tarifa, es un trámite a medias.
+    
+       Si esto se colara como una opción, se ordenaría la primera por ser la más
+       barata, se elegiría, y la emisión fallaría después. Peor: enseñaría un
+       ahorro que no existe. Se trata como «no cotizó», con su explicación. */
+    const enCero = ([, v]: [string, any]) => v.exito !== false && !(Number(v.valor) > 0)
+
+    const noCotizaron = [
+      ...crudas.filter(([, v]) => v.exito === false).map(([transportadora, v]) => ({
         transportadora,
         motivo: String(v.mensaje ?? v.error ?? 'no dijo por qué'),
-      }))
+      })),
+      ...crudas.filter(enCero).map(([transportadora]) => ({
+        transportadora,
+        motivo: 'devolvió el flete en $0, que no es gratis: el código de convenio todavía no está listo (tarda 1 o 2 días hábiles desde que se abre la cuenta). Con ellos aún no se pueden emitir guías.',
+      })),
+    ]
 
     const opciones = crudas
-      .filter(([, v]) => v.exito !== false)
+      .filter(([, v]) => v.exito !== false && Number(v.valor) > 0)
       .map(([transportadora, v]) => ({
         transportadora,
         flete: Number(v.valor) || 0,

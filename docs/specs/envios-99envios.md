@@ -131,20 +131,32 @@ el valor del seguro. En un negocio de contraentrega la devolución es *el* riesg
 enciende desde los secretos sin desplegar (`ENVIOS99_SEGURO` = `basico` o `plus`), y viene
 **apagado** porque encenderlo cuesta plata en cada envío y es decisión del negocio.
 
-### Interrapidísimo no sale por la API, y es la más barata
+### Interrapidísimo, y por qué un $0 no es un envío gratis
 
-En el panel de 99envios, para este mismo pedido, **Interrapidísimo aparece con «Costo del
-envío: $0»**. Por la API no aparece en absoluto. El motivo, en sus propias palabras:
+Por la API, Interrapidísimo responde:
 
 > «no cuenta con un codigo inter asociado para realizar esta cotización»
 
-Es un dato que le falta a la cuenta para la API, no un problema del código. **Hay que
-pedírselo a soporte**: la diferencia entre $0 y $33.332 por envío no es un detalle.
+En el panel web de 99envios, la misma cuenta y el mismo destino la enseñan con **«Costo del
+envío: $0»**. Es tentador leer eso como gratis. **No lo es**, y lo explica 99envios en uno
+de sus propios videos: un $0 en Interrapidísimo significa que **el código de convenio
+todavía no está generado**. Interrapidísimo tarda uno o dos días hábiles desde que se abre
+la cuenta —es la única de las cinco que lo pide— y mientras tanto **no se pueden emitir
+guías con ellos**.
 
-Y se supo porque se dejó de esconder. La primera versión filtraba en silencio las que
-devolvían `exito: false`, así que la lista enseñaba cuatro transportadoras y **nadie podía
-sospechar que faltaba una, y que era la gratis**. Una lista que se calla una opción no está
-incompleta: hace perder plata. Ahora las que no cotizan salen con su motivo.
+O sea: el error de la API y el $0 del panel son **lo mismo**, dicho de dos formas. No hay
+nada que pedirle a soporte salvo que pasados dos días hábiles siga igual, que ya sería un
+error en los datos de la cuenta.
+
+**Y por eso un flete en cero se trata como «no cotizó».** Si se colara como opción se
+ordenaría la primera por ser la más barata, se elegiría, y la emisión fallaría después —
+enseñando de paso un ahorro que no existe. Esta lectura equivocada llegó a escribirse en
+esta misma spec antes de ver el video; queda como aviso de lo fácil que es.
+
+Todo esto se supo porque se dejó de esconder. La primera versión filtraba en silencio las
+que devolvían `exito: false`, así que la lista enseñaba cuatro transportadoras y **se veía
+completa**. Una lista que se calla una opción no está incompleta: engaña. Ahora las que no
+cotizan salen con su motivo.
 
 **`efectividad` no viene por la API.** Su panel enseña el porcentaje de entregas logradas
 por ciudad —88 %, 89 %, 81 %— y es de lo más útil que dan, pero la respuesta de la API no lo
