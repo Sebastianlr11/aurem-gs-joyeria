@@ -1429,3 +1429,23 @@ Lo que sigue sin probar del bot es el bucle del agente y las herramientas que ha
 base. El bucle está bien guardado —tres pasos como máximo, presupuesto de 25 segundos, y el
 último paso va sin herramientas para forzar una respuesta de texto—, pero comprobarlo pide
 simular al modelo, que es otro proyecto.
+
+**Octavo tramo: 1.459 → 1.408 líneas.** Sale la cabecera de la lista —el pulso de
+Valentina, el buscador, los nueve filtros y el mando de la selección múltiple— a
+`chat/CabeceraDeContactos.jsx`. Nueve props y ningún estado propio: todo lo que hace se
+gobierna desde el panel.
+
+Es la pieza que menos riesgo tenía de todas, y a propósito: abre el último tramo, el del
+núcleo. **Todo lo que hace se ve**, así que un error aquí se nota al abrir la pantalla —
+justo lo contrario de los cinco fallos que aparecieron partiendo el resto del archivo.
+
+Una cosa que quedó escrita al mudarla: **el chip de arriba dice tres cosas y el orden
+importa.** Primero cuántas conversaciones lleva una persona, después cuántas esperan
+respuesta, y sólo si no hay ninguna de las dos, que Valentina está trabajando. Lo que
+necesita atención va antes que lo que va bien.
+
+Comprobado a mano en el navegador: el chip, el estilo de la cabecera, el buscador filtrando
+—«sebastian» deja una, «zzzz» deja cero y sale «No hay conversaciones»—, los nueve filtros
+cambiando la lista y marcándose con `aria-pressed`, y el mando del lote entero: entrar,
+«Todas», «Ninguna» y «Cancelar», con la cuenta y las casillas siguiéndolo. Más la
+comprobación de clases: ninguna del JSX falta en el CSS.

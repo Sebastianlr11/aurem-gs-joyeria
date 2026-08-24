@@ -17,6 +17,7 @@ import { useAvisos, useFichaDelContacto, useResumenDelHilo, useSeleccion, useVis
 import FichaDelContacto from './chat/FichaDelContacto';
 import SelectorDeImagen from './chat/SelectorDeImagen';
 import FilaDeContacto from './chat/FilaDeContacto';
+import CabeceraDeContactos from './chat/CabeceraDeContactos';
 import BuscadorDeMensajes from './chat/BuscadorDeMensajes';
 
 
@@ -977,69 +978,17 @@ const ChatPanel = () => {
                 <div className="chat-panel">
                     {/* Contact list */}
                     <div className={`chat-contacts ${mobileShowChat ? 'chat-contacts--hidden-mobile' : ''}`}>
-                        <div className="chat-contacts-header">
-                            <div className="chat-contacts-titulo">
-                                <h2>Chats</h2>
-                                <span className={`chat-agente ${enManual > 0 ? 'chat-agente--manual' : ''}`}>
-                                    <span className="chat-agente-punto" />
-                                    {enManual > 0
-                                        ? `${enManual} en manual`
-                                        : esperanRespuesta > 0
-                                            ? `${esperanRespuesta} espera${esperanRespuesta !== 1 ? 'n' : ''}`
-                                            : 'Valentina activa'}
-                                </span>
-                            </div>
-                            <input
-                                ref={searchInputRef}
-                                type="text"
-                                className="chat-search"
-                                placeholder="Buscar conversacion... (Ctrl+K)"
-                                value={searchQuery}
-                                onChange={e => setSearchQuery(e.target.value)}
-                            />
-                            <div className="riel" role="group" aria-label="Filtrar conversaciones">
-                                {[
-                                    ['todos', 'Todos'],
-                                    ['hoy', 'Hoy'],
-                                    ['no_leidos', 'No leídos'],
-                                    ['sin_responder', '+24h'],
-                                    ['takeover', 'Manual'],
-                                    ['pendiente', 'Pedido'],
-                                    ['resuelto', 'Resuelto'],
-                                    ['archivado', 'Archivados'],
-                                    ['purgar', 'Para purgar'],
-                                ].map(([f, label]) => (
-                                    <button key={f} type="button"
-                                            className={`riel-btn${contactFilter === f ? ' riel-btn--on' : ''}`}
-                                            aria-pressed={contactFilter === f}
-                                            onClick={() => setContactFilter(f)}>
-                                        <span>{label}</span>
-                                    </button>
-                                ))}
-                            </div>
-
-                            {/* Ni oculta tras un gesto ni ocupando sitio de más:
-                                una línea que en reposo sólo ofrece entrar, y que
-                                al entrar se convierte en el mando del lote. */}
-                            <div className="chat-seleccion-barra">
-                                {lote.marcadas ? (
-                                    <>
-                                        <span className="chat-seleccion-cuenta">
-                                            {lote.marcadas.size === 0
-                                                ? 'Ninguna marcada'
-                                                : lote.marcadas.size === 1
-                                                    ? '1 marcada'
-                                                    : `${lote.marcadas.size} marcadas`}
-                                        </span>
-                                        <button type="button" onClick={() => lote.entrar(filteredContacts.map(c => c.phone_number))}>Todas</button>
-                                        <button type="button" onClick={() => lote.entrar([])}>Ninguna</button>
-                                        <button type="button" className="chat-seleccion-salir" onClick={lote.salir}>Cancelar</button>
-                                    </>
-                                ) : (
-                                    <button type="button" onClick={() => lote.entrar([])}>Seleccionar varias</button>
-                                )}
-                            </div>
-                        </div>
+<CabeceraDeContactos
+                            enManual={enManual}
+                            esperanRespuesta={esperanRespuesta}
+                            busqueda={searchQuery}
+                            onBuscar={setSearchQuery}
+                            campoRef={searchInputRef}
+                            filtro={contactFilter}
+                            onFiltrar={setContactFilter}
+                            lote={lote}
+                            onMarcarTodas={() => lote.entrar(filteredContacts.map(c => c.phone_number))}
+                        />
                         {contactFilter === 'purgar' && (
                             <p className="chat-purga-aviso">
                                 Sin ningún pedido y sin escribir desde hace más de {MESES_PURGA} meses.
