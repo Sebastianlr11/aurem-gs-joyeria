@@ -121,8 +121,16 @@ Deno.serve(async (req: Request) => {
   const { data: { user }, error: errorSesion } = await comoUsuario.auth.getUser()
   if (errorSesion || !user) return json({ error: 'Sesión inválida' }, 401)
 
-  let cuerpo: { pedidoId?: string }
+  let cuerpo: { pedidoId?: string; montoSimulado?: number }
   try { cuerpo = await req.json() } catch { return json({ error: 'Cuerpo ilegible' }, 400) }
+
+  /* «¿Y si la pieza costara X?». La comisión del contrapago escala con lo que
+     recoge el mensajero, así que el costo de mandar un anillo de $200.000 no
+     tiene nada que ver con el de uno de $500.000 — y esa diferencia es la que
+     decide si el abono del envío alcanza. Sin esto sólo se puede saber pedido
+     por pedido, que es tarde: cuando el pedido existe, el precio ya se fijó. */
+  const simulado = Number(cuerpo.montoSimulado)
+  const haySimulacion = Number.isFinite(simulado) && simulado > 0
 
   const pedidoId = String(cuerpo.pedidoId ?? '').trim()
   if (!pedidoId) return json({ error: 'Falta el pedido' }, 400)
@@ -183,7 +191,7 @@ Deno.serve(async (req: Request) => {
      `valorDeclarado` es lo que el mensajero va a cobrar, que en un
      contraentrega es el saldo y no el precio de la pieza. */
   const esContraentrega = pedido.payment_method === 'contraentrega'
-  const total = Number(pedido.amount) || 0
+  const total = haySimulacion ? simulado : (Number(pedido.amount) || 0)
   const abono = Number(pedido.abono_monto) || 0
   const yaEntro = esContraentrega
     ? (['entregado', 'pagado'].includes(pedido.status) ? total : abono)
@@ -296,6 +304,7 @@ Deno.serve(async (req: Request) => {
     return json({
       ok: true, ciudad: pedido.shipping_city, codigoDane: codigo, caja, opciones, noCotizaron,
       contrapago, cobraElMensajero: contrapago ? porCobrar : 0, seguro: SEGURO,
+      simulado: haySimulacion ? simulado : null,
     })
   } catch (e) {
     console.error('Cotizando con 99envios:', e instanceof Error ? e.message : e)
