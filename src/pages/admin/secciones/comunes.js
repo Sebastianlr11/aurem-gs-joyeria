@@ -81,9 +81,6 @@ export const STATUS_META = {
     cancelado:  { label: 'Cancelado',   cls: 'badge--nulo'   },
 };
 
-/* Flujo pago anticipado: pendiente → pagado → procesando → enviado → entregado */
-
-export const VENTAS_VIVAS = ['pagado', 'procesando', 'enviado', 'entregado'];
 
 /* Texto comparable: en minúscula y sin tildes. Buscar "bogota" tiene que
    encontrar "Bogotá" y "martinez" a "Martínez" —nadie escribe tildes en un

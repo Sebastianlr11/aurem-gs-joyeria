@@ -9,7 +9,7 @@ import React, { useEffect, useState } from 'react';
 import { estaVivo, porCobrarDe, recibidoDe } from '../../../lib/dinero';
 import { supabase } from '../../../lib/supabase';
 import PautaRetorno from '../PautaRetorno';
-import { ORDER_STATUSES, SOURCE_META, STATUS_META, VENTAS_VIVAS, calcMPNet, enGrupo, fmt, fmtDate, isCOD } from './comunes';
+import { ORDER_STATUSES, SOURCE_META, STATUS_META, calcMPNet, enGrupo, fmt, fmtDate, isCOD } from './comunes';
 
 const ReportsSection = ({ orders, products = [], verPruebas = false, onNavigate }) => {
     const [period, setPeriod] = useState('30d');
@@ -61,7 +61,7 @@ const ReportsSection = ({ orders, products = [], verPruebas = false, onNavigate 
     }, [period]);
 
     const filtered = orders.filter(o => new Date(o.created_at) >= periodStart);
-    const paidFiltered = filtered.filter(o => VENTAS_VIVAS.includes(o.status));
+    const paidFiltered = filtered.filter(estaVivo);
 
     /* Mismo tramo, inmediatamente anterior, para poder comparar */
     const periodDays = period === 'todo' ? null : parseInt(period);
@@ -69,7 +69,7 @@ const ReportsSection = ({ orders, products = [], verPruebas = false, onNavigate 
     const prevFiltered = periodDays
         ? orders.filter(o => { const d = new Date(o.created_at); return d >= prevStart && d < periodStart; })
         : [];
-    const prevPaid = prevFiltered.filter(o => VENTAS_VIVAS.includes(o.status));
+    const prevPaid = prevFiltered.filter(estaVivo);
     const hayComparacion = periodDays && prevFiltered.length > 0;
 
     /* Revenue breakdown */
