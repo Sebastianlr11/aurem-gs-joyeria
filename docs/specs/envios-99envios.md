@@ -80,19 +80,63 @@ de un tercero.
   decisión de negocio sin tomar, y cambiaría cómo entra el dinero: cobran entre $2.500 y
   $3.500 por hacerlo.
 
-## Lo primero que dijo, y que conviene mirar
+## Quién cobra, y cuánto cuesta que cobren
 
-Cotización real a Bogotá, pieza de $500.000, caja de 1 kg:
+Su plataforma avisa de algo que no está en la especificación y que cambia el diseño entero:
 
-| | Total |
-|---|---|
-| Coordinadora | $11.972 |
-| Servientrega | $14.050 |
-| Envía | $14.251 |
-| TCC | $28.959 |
+> «Si decides realizar la guía **sin contra pago**, se generará un **cobro directo a tu
+> saldo**. La anulación y devolución puede tomar entre **7 y 15 días hábiles**.»
 
-**El abono de $20.000 cubre el envío en Bogotá con tres de las cinco, y con TCC se queda
-corto.** Y Bogotá es el destino barato. Es exactamente el número que no se tenía.
+La primera versión salió con `AplicaContrapago: false` —el ajuste caro— porque se leyó el
+contrapago como una decisión de negocio pendiente. No lo es: **es el modelo que ya hay**. En
+un contraentrega el mensajero ya cobra el saldo en la puerta; encenderlo no cambia nada
+salvo quién emite la guía.
+
+Con contrapago encendido no hay cobro por adelantado: la transportadora cobra en la puerta y
+gira lo recogido **menos** el flete y su comisión.
+
+### `valorDeclarado` hace dos cosas a la vez
+
+Es el valor asegurado **y**, con contrapago encendido, lo que el mensajero va a cobrar. Para
+un contraentrega eso **no es el precio de la pieza**: la clienta ya pagó el abono en línea,
+así que se manda el **saldo**. Poner el total le cobraría el envío dos veces.
+
+Un pedido pagado en línea va sin contrapago —no hay nada que cobrar— y ahí el flete sí sale
+del saldo, que es correcto: no hay quien lo pague en la puerta.
+
+### Lo que cuesta de verdad
+
+Cotización real a Bogotá, pieza de $500.000, mensajero cobrando $480.000:
+
+| | Total | Flete | Cobrar en la puerta |
+|---|---|---|---|
+| Coordinadora | **$33.332** | $11.732 | $21.600 |
+| Servientrega | $33.970 | $13.810 | $20.160 |
+| Envía | $34.171 | $14.011 | $20.160 |
+| TCC | $49.111 | $28.471 | $20.640 |
+
+**La comisión por cobrar en la puerta es casi el doble que el flete.** Y el `total` la
+omitía: se sumaban flete, sobreflete y comisión interna, pero no `valor_contrapago`. Un
+total al que le falta un costo es exactamente el fallo que se estuvo persiguiendo tres días
+en los informes — un número redondo, creíble y corto. Corregido, y la pantalla enseña el
+desglose.
+
+**Para el negocio:** despachar un contraentrega de $500.000 a Bogotá cuesta unos $33.000,
+casi un 7 % de la venta, y el abono de $20.000 no lo cubre.
+
+### Los seguros antidevolución
+
+Sin ninguno, una entrega fallida cobra el flete **de ida y de vuelta**; con el básico, sólo
+el valor del seguro. En un negocio de contraentrega la devolución es *el* riesgo, así que se
+enciende desde los secretos sin desplegar (`ENVIOS99_SEGURO` = `basico` o `plus`), y viene
+**apagado** porque encenderlo cuesta plata en cada envío y es decisión del negocio.
+
+### Un mínimo de Interrapidísimo
+
+**Sin contrapago, Interrapidísimo exige un valor declarado de $60.000 o más.** Con las
+piezas de hoy —la más barata son $500.000— no muerde, pero la cotización ya lo aguanta sin
+romperse: una transportadora que no puede cotizar viene con `exito: false` y simplemente no
+aparece en la lista.
 
 ## Fase 2: pedir la guía
 

@@ -164,9 +164,13 @@ export const ShipModal = ({ order, onClose, onConfirm }) => {
     const pedirGuia = async () => {
         const nombre = Object.entries(CARRIER_DE_99ENVIOS).find(([, v]) => v === carrier)?.[0];
         if (!nombre) { setGuiaError('Esa transportadora no la emite 99envios.'); return; }
+        const cobra = cotizacion?.contrapago ? cotizacion.cobraElMensajero : 0;
         if (!window.confirm(
             `Se va a pedir la guía a ${carrier} para el pedido de ${order.customer_name}.\n\n` +
-            'Esto crea un envío de verdad y se factura. ¿Seguimos?'
+            (cobra
+                ? `El mensajero cobrará $${fmt(cobra)} en la puerta y 99envios te girará eso menos el flete.`
+                : 'Nadie cobra en la puerta, así que el flete sale de tu saldo en 99envios al emitir la guía, y anularla tarda de 7 a 15 días hábiles.') +
+            '\n\nEsto crea un envío de verdad. ¿Seguimos?'
         )) return;
 
         setPidiendo(true); setGuiaError(null); setAvisoGuia(null);
@@ -252,14 +256,28 @@ export const ShipModal = ({ order, onClose, onConfirm }) => {
                                                 <span className="envio-opcion-nombre">
                                                     {CARRIER_DE_99ENVIOS[o.transportadora] || o.transportadora}
                                                 </span>
-                                                <span className="envio-opcion-precio">${fmt(o.total)}</span>
+                                                <span className="envio-opcion-precio">
+                                                    ${fmt(o.total)}
+                                                    {/* Desglosado cuando hay contrapago: la comisión por
+                                                        cobrar en la puerta suele ser mayor que el flete, y
+                                                        verla junta esconde de dónde sale el número. */}
+                                                    {o.contrapago > 0 && (
+                                                        <span className="envio-opcion-desglose">
+                                                            flete ${fmt(o.total - o.contrapago)} + cobro ${fmt(o.contrapago)}
+                                                        </span>
+                                                    )}
+                                                </span>
                                             </button>
                                         </li>
                                     ))}
                                 </ul>
                                 <p className="envio-cotiza-pie">
-                                    Precios de 99envios, con el sobreflete incluido. Elegir uno sólo rellena
-                                    la transportadora de arriba: la guía se sigue pidiendo por fuera.
+                                    {cotizacion.contrapago
+                                        ? <>El mensajero cobra <strong>${fmt(cotizacion.cobraElMensajero)}</strong> en la
+                                          puerta y 99envios te gira eso menos el flete. <strong>No te cobran nada por
+                                          adelantado.</strong></>
+                                        : <>Nadie cobra en la puerta, así que el flete <strong>sale de tu saldo en
+                                          99envios</strong> al emitir la guía. Anularla tarda de 7 a 15 días hábiles.</>}
                                 </p>
                             </>
                         )}

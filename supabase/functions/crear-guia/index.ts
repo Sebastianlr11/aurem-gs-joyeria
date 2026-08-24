@@ -131,7 +131,7 @@ Deno.serve(async (req: Request) => {
 
   const { data: pedido } = await admin
     .from('orders')
-    .select('id, amount, customer_name, customer_phone, customer_email, shipping_address, shipping_city, shipping_department, product_id, tracking_number, carrier, es_prueba')
+    .select('id, amount, abono_monto, status, payment_method, customer_name, customer_phone, customer_email, shipping_address, shipping_city, shipping_department, product_id, tracking_number, carrier, es_prueba')
     .eq('id', pedidoId)
     .maybeSingle()
 
@@ -177,6 +177,37 @@ Deno.serve(async (req: Request) => {
     ancho: positivo(pieza?.envio_ancho_cm, positivo(precios?.envio_ancho_cm, 12)),
   }
 
+  /* ── QUIÉN COBRA, Y CUÁNTO ─────────────────────────────────────────────────
+  
+     Su propia plataforma avisa: **una guía SIN contrapago genera un cobro
+     directo a tu saldo**, y anularla y que te devuelvan la plata tarda entre 7
+     y 15 días hábiles. Esto salió con el contrapago apagado, que es justo el
+     ajuste caro, y se corrigió el 24 de agosto de 2026 antes de emitir ninguna.
+  
+     Con contrapago encendido no hay cobro por adelantado: la transportadora le
+     cobra a la clienta en la puerta y te gira lo recogido menos el flete. Que
+     es, exactamente, lo que ya pasa hoy en cada contraentrega — no es un modelo
+     nuevo, es el que hay.
+  
+     Y `valorDeclarado` hace dos cosas a la vez, que es donde es fácil
+     equivocarse: es el valor asegurado Y, con contrapago encendido, **lo que el
+     mensajero va a cobrar**. Para un contraentrega eso NO es el precio de la
+     pieza: la clienta ya pagó el abono en línea, así que lo que falta cobrar es
+     el saldo. Poner el total le cobraría dos veces el envío. */
+  const esContraentrega = pedido.payment_method === 'contraentrega'
+  const total = Number(pedido.amount) || 0
+  const abono = Number(pedido.abono_monto) || 0
+
+  /* La misma regla de CLAUDE.md §8, en el único punto donde hace falta aquí:
+     de un contraentrega en camino ya entró el abono y falta el resto. */
+  const yaEntro = esContraentrega
+    ? (['entregado', 'pagado'].includes(pedido.status) ? total : abono)
+    : total
+  const porCobrar = Math.max(0, total - yaEntro)
+
+  const contrapago = esContraentrega && porCobrar > 0
+  const valorDeclarado = contrapago ? porCobrar : total
+
   try {
     let res: Response | null = null
     let datos: any = {}
@@ -191,15 +222,21 @@ Deno.serve(async (req: Request) => {
           IdServicio: 1,             // estándar, ídem
           /* Apagado: que la transportadora cobre por nosotros cambiaría cómo
              entra el dinero, y esa decisión no está tomada. */
-          AplicaContrapago: false,
+          AplicaContrapago: contrapago,
           peso: caja.peso,
           largo: caja.largo,
           ancho: caja.ancho,
           alto: caja.alto,
           diceContener: DICE_CONTENER,
-          valorDeclarado: Number(pedido.amount) || 0,
-          seguro99: false,
-          seguro99plus: false,
+          valorDeclarado,
+          /* Los dos seguros son antidevolución: sin ninguno, una entrega
+             fallida te cobra el flete de ida Y el de vuelta; con el básico
+             sólo el valor del seguro. En un negocio de contraentrega la
+             devolución es EL riesgo, así que esto se enciende desde los
+             secretos sin desplegar — pero apagado por defecto, porque
+             encenderlo cuesta plata en cada envío y es decisión del negocio. */
+          seguro99: Deno.env.get('ENVIOS99_SEGURO') === 'basico',
+          seguro99plus: Deno.env.get('ENVIOS99_SEGURO') === 'plus',
           Destinatario: {
             tipoDocumento: 'CC',
             nombre: quien.nombre,
@@ -248,7 +285,10 @@ Deno.serve(async (req: Request) => {
       return json({ ok: true, guia, flete, aviso: `La guía ${guia} se emitió pero no se pudo guardar en el pedido. Anótala a mano.` })
     }
 
-    return json({ ok: true, guia, flete: Number.isFinite(flete) ? flete : null, transportadora })
+    return json({
+      ok: true, guia, flete: Number.isFinite(flete) ? flete : null, transportadora,
+      contrapago, cobraElMensajero: contrapago ? porCobrar : 0,
+    })
   } catch (e) {
     console.error('Emitiendo la guía:', e instanceof Error ? e.message : e)
     return json({ error: 'no_se_pudo', detalle: e instanceof Error ? e.message : 'Error desconocido' }, 502)
