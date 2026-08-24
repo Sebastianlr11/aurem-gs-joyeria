@@ -1070,7 +1070,7 @@ porque comprobarlo manda una alerta de verdad al equipo.
 
 ---
 
-## 31. 🟡 `ChatPanel.jsx` era un solo componente de 1.926 líneas — empezado
+## 31. ✅ `ChatPanel.jsx` era un solo componente de 1.926 líneas — partido
 
 `Dashboard.jsx` se pudo partir en una tarde porque eran **siete pantallas metidas en un
 archivo** y ya eran independientes. Este no se parece en nada: de sus 2.123 líneas, 1.926
@@ -1603,3 +1603,21 @@ No se notaba porque el leído era azul de otra paleta. **Al unificar los acuses 
 discreto le quité la única distinción que tenía** — y lo escribí en el commit al revés,
 diciendo que el azul «ni se veía». Sí se veía. Arreglado con un selector que sí encaja y en
 `--oro-ink`, que es el oro para fondo claro: **5,64:1 de contraste**, comprobado en pantalla.
+
+
+---
+
+### Dónde quedó el panel de chat, y por qué se para aquí
+
+**2.123 → 1.289 líneas, un 39 % menos**, en doce tramos, con doce archivos nuevos bajo
+`chat/` y **siete fallos latentes** encontrados por el camino.
+
+Lo que sigue dentro es el **núcleo de coordinación**: la sesión, la lista de contactos y su
+carga, los mensajes, quién está seleccionado, los mapas de estado, etiquetas y control
+manual. No se parte porque no es una pieza con bordes: es lo que ata todas las demás, y
+cualquier corte ahí no reduce complejidad, la reparte y añade props.
+
+Los siete fallos tienen algo en común y es la lección del refactor: **ninguno se veía
+mirando la pantalla y ninguno se habría encontrado leyendo el archivo.** Aparecieron porque
+sacar una pieza obliga a preguntarse qué necesita de verdad, y porque cada tramo se cerró
+comprobando en el navegador en vez de dando por bueno el cambio.
