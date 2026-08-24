@@ -1251,3 +1251,42 @@ se marca como activa, el menú de tres puntos ofrece las tres opciones de siempr
 selección aparece la casilla, el menú se calla, pulsar marca en vez de abrir, `aria-pressed`
 responde y Cancelar lo devuelve todo. Más la comprobación nueva: **ninguna clase del JSX
 falta en el CSS.**
+
+**Séptimo tramo: 1.493 → 1.459 líneas.** Sale el resumen del hilo abierto —cuántos mensajes
+tiene y desde cuándo, contados **en la base** y no en pantalla— a `useResumenDelHilo`.
+
+Ese cálculo existe por una contradicción que el panel enseñaba solo: la ficha decía
+`messages.length`, que son los mensajes **cargados** —los últimos 200—, así que un hilo de
+252 figuraba como «200 mensajes» y el «Desde» era la fecha del mensaje 53, no la del
+primero. Mientras tanto el diálogo de eliminar decía la cifra de verdad. Dos números
+distintos para lo mismo, en la misma pantalla.
+
+Al mudarlo se cambió una cosa: **sin hilo abierto el resumen se deduce en vez de borrarse**
+con un `setState` dentro del efecto. Además de ahorrar un repintado en cascada, quita el
+fotograma en que el valor viejo asomaba antes de limpiarse.
+
+Y la purga resultó no ser un grupo sino tres cosas distintas que compartían nombre: el
+resumen del hilo (ya fuera), la lista de conversaciones purgables —que está atada al filtro
+y a la selección, y sale el día que salga la cabecera de la lista— y el diálogo de borrar
+las fotos, que son veinte líneas y no compensan un archivo propio todavía.
+
+---
+
+### Dónde quedó el panel de chat
+
+**2.123 → 1.459 líneas: un 31 % menos**, en siete tramos, con siete archivos nuevos y
+**cinco fallos latentes** encontrados por el camino. Ninguno era visible mirando la
+pantalla y ninguno se habría encontrado leyendo el archivo entero: aparecieron porque sacar
+una pieza obliga a preguntarse qué necesita de verdad.
+
+| Lo que se encontró | Qué pasaba |
+|---|---|
+| El reloj del visor de fotos | Abrir una foto mientras otra se cerraba cerraba la recién abierta |
+| El identificador de los avisos | Dos mensajes en el mismo milisegundo se llevaban por delante |
+| «Cancelar» en las notas | Dejaba el borrador puesto como si estuviera guardado |
+| La ficha del contacto | Una respuesta lenta pintaba los datos de la conversación anterior |
+| Los relojes al salir | Seguían vivos tocando componentes desmontados |
+
+Lo que queda dentro es el núcleo —tiempo real, envío, control manual— y las dos cosas que
+lo rodean: la cabecera de la lista con sus filtros, y el diálogo de borrar fotos. El núcleo
+es lo último que conviene tocar, y sólo con pruebas delante.

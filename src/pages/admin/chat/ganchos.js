@@ -229,3 +229,62 @@ export function useSeleccion() {
 
     return { marcadas, archivando, error, setError, entrar, salir, alternar, olvidar, archivar };
 }
+
+/**
+ * Cuántos mensajes tiene el hilo abierto y desde cuándo, **contados en la
+ * base** y no en pantalla.
+ *
+ * Existe por una contradicción que el panel enseñaba solo: la ficha decía
+ * `messages.length`, que son los mensajes CARGADOS —los últimos 200—, así que
+ * un hilo de 252 figuraba como «200 mensajes» y el «Desde» era la fecha del
+ * mensaje 53, no la del primero. Mientras tanto el diálogo de eliminar decía la
+ * cifra de verdad. Dos números distintos para lo mismo, en la misma pantalla.
+ *
+ * Las fotos se cuentan aparte porque se pueden borrar solas, dejando el hilo
+ * entero: el pie que escribió la clienta y lo que Valentina entendió de la
+ * imagen siguen ahí. Son lo que pesa —una foto es un megabyte y una
+ * conversación de texto un par de kilobytes—, así que borrarlas es casi todo el
+ * ahorro sin perder casi nada.
+ */
+export function useResumenDelHilo(telefono) {
+    const [resumen, setResumen] = useState(null);
+    const [fotos, setFotos] = useState(0);
+
+    useEffect(() => {
+        if (!telefono) return;
+        let vigente = true;
+
+        supabase.from('whatsapp_conversaciones')
+            .select('id', { count: 'exact', head: true })
+            .eq('phone_number', telefono)
+            .eq('message_type', 'image')
+            .not('media_url', 'is', null)
+            .then(({ count }) => { if (vigente) setFotos(count ?? 0); });
+
+        Promise.all([
+            supabase.from('whatsapp_conversaciones')
+                .select('id', { count: 'exact', head: true }).eq('phone_number', telefono),
+            supabase.from('whatsapp_conversaciones')
+                .select('created_at').eq('phone_number', telefono)
+                .order('created_at', { ascending: true }).limit(1).maybeSingle(),
+        ]).then(([todos, primero]) => {
+            if (!vigente) return;
+            setResumen({ mensajes: todos.count ?? 0, desde: primero.data?.created_at ?? null });
+        }).catch(() => { if (vigente) setResumen(null); });
+
+        return () => { vigente = false; };
+    }, [telefono]);
+
+    /* Después de borrar las fotos del hilo. Se pone a cero en vez de volver a
+       preguntar: acabamos de borrarlas nosotros, ya sabemos cuántas quedan. */
+    const olvidarFotos = useCallback(() => setFotos(0), []);
+
+    /* Sin hilo abierto no hay resumen, y eso se DEDUCE en vez de borrarse con
+       un `setState` dentro del efecto —que dispara un repintado en cascada y
+       deja el valor viejo asomando un fotograma. */
+    return {
+        resumen: telefono ? resumen : null,
+        fotos: telefono ? fotos : 0,
+        olvidarFotos,
+    };
+}
