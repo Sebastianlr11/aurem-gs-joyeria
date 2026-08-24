@@ -348,6 +348,60 @@ Deno.serve(async (req: Request) => {
     }
   }
 
+  /* ── QUE EL PÍXEL DEL NAVEGADOR Y EL DEL SERVIDOR SEAN EL MISMO ──────────
+  
+     La medición de Meta va por dos caminos: el navegador manda `PageView` y
+     `Purchase` con `VITE_META_PIXEL_ID`, y el servidor manda la venta por la
+     API de Conversiones con `META_PIXEL_ID`. **Si los dos no son el mismo
+     número, la deduplicación no ocurre**: los eventos se parten en dos
+     píxeles y ninguno de los dos cuenta bien. Se verían el doble de compras,
+     o ninguna, según dónde se mire.
+  
+     Y esto no es hipotético en esta cuenta: hay **dos píxeles de Meta con el
+     mismo nombre**, y sólo uno recibe eventos. Es la trampa que más tiempo ha
+     costado en este proyecto.
+  
+     No se puede comparar leyendo los dos secretos —Supabase no devuelve el
+     valor de uno—, así que se compara contra la verdad: **el bundle que el
+     sitio está sirviendo ahora mismo**. Si el identificador del servidor no
+     aparece ahí, es que el navegador está usando otro.
+  
+     El identificador de un píxel no es un secreto —viaja en el JavaScript
+     público de cualquier tienda que lo use—, pero aun así aquí sólo se dice
+     si coinciden o no, nunca cuál es. */
+  const pixelServidor = Deno.env.get('META_PIXEL_ID')
+  if (pixelServidor) {
+    try {
+      const portada = await fetch(sitio, { redirect: 'follow' })
+      const html = await portada.text()
+      const bundle = html.match(/\/assets\/index-[A-Za-z0-9_-]+\.js/)?.[0]
+
+      if (!bundle) {
+        hallazgos.push({
+          que: 'No se pudo encontrar el JavaScript del sitio para revisar el píxel',
+          detalle: 'La portada no traía una ruta /assets/index-*.js. ¿Cambió el empaquetado?',
+          grave: false,
+        })
+      } else {
+        const js = await (await fetch(new URL(bundle, sitio).toString())).text()
+        if (!js.includes(pixelServidor)) {
+          hallazgos.push({
+            que: 'El píxel de Meta del navegador NO es el mismo que el del servidor',
+            detalle: 'Los eventos se están partiendo en dos píxeles y la deduplicación no ocurre. ' +
+                     'Revisa que VITE_META_PIXEL_ID en Vercel y META_PIXEL_ID en Supabase sean el mismo número.',
+            grave: true,
+          })
+        }
+      }
+    } catch (e) {
+      hallazgos.push({
+        que: 'No se pudo comprobar que los dos píxeles de Meta coincidan',
+        detalle: e instanceof Error ? e.message : String(e),
+        grave: false,
+      })
+    }
+  }
+
   const { data: flojas, error: errFlojas } = await db.rpc('politicas_flojas')
   if (errFlojas) {
     hallazgos.push({

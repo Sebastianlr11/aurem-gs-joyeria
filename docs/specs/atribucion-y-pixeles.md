@@ -135,6 +135,12 @@ pedidos de prueba, que es exactamente para lo que existe.
 
 - ⚠️ **Hay tres compras de prueba ya contadas** (20, 21 y 23 de agosto de 2026). No se
   pueden retirar desde aquí: si molestan, se borran desde el Events Manager de Meta.
+- ~~**Nadie comprobaba que el píxel del navegador y el del servidor fueran el mismo**~~ — lo
+  hace el vigía cada hora desde el 24 de agosto de 2026. Busca el `META_PIXEL_ID` del
+  servidor dentro del bundle que el sitio está sirviendo: si no aparece, es que el navegador
+  usa otro y **la deduplicación no está ocurriendo**. No se puede comparar leyendo los dos
+  secretos, porque Supabase no devuelve el valor de uno. Comprobado el 24 de agosto:
+  coinciden.
 - ⚠️ **Hay dos píxeles de Meta con el mismo nombre y sólo uno recibe eventos.** Antes de
   concluir que una campaña no convierte, **verifica el ID**. Es la trampa que más tiempo ha
   costado en este proyecto.
