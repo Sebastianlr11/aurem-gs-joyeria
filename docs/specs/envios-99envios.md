@@ -211,6 +211,47 @@ son los apellidos— y pega las partículas al apellido que acompañan, para que
 y dentro de `crear-guia`, que corre en Deno— por el motivo de siempre, y `src/lib/nombre.test.js`
 fija el comportamiento.
 
+## Lo que la API no hace y la plataforma sí
+
+De los videos de 99envios, y todo esto **queda fuera del panel**: se hace entrando a su
+plataforma. Está aquí porque son los pasos que, si se olvidan, dejan el paquete quieto.
+
+**La recogida no se programa sola con todas.** Con Coordinadora y TCC sí, al generar la
+guía. Con **Interrapidísimo, Servientrega y Envía hay que pedirla** desde su plataforma, o
+el paquete se queda en el taller esperando a un mensajero que nadie llamó. El panel lo
+recuerda al emitir la guía, que es el único momento en que se puede hacer algo al respecto.
+
+**El manifiesto.** Al entregar los paquetes hay que generarlo y hacerlo firmar por quien
+los recibe. Es el comprobante de que salieron.
+
+**El cierre logístico.** Si un paquete se entregó y la transportadora no actualizó el
+estado, se fuerza desde su plataforma — y **si es contrapago, eso es lo que dispara que te
+carguen el dinero**.
+
+**El historial del teléfono.** Su panel enseña cuántos envíos ha recibido y cuántos ha
+devuelto ese número, sobre su base entera. Es el dato para decidir si un pedido concreto
+merece seguro antidevolución. No viene por la API.
+
+**La plata no llega al banco sola.** Lo que la transportadora cobra en la puerta entra a una
+cartera dentro de 99envios, y de ahí se retira a la cuenta bancaria. El panel dice «cobrado»
+cuando el pedido se marca entregado; entre eso y el banco hay un paso más que el panel no
+ve.
+
+**«Sumar costo del envío».** Su plataforma permite cargarle el flete a la clienta, subiendo
+lo que cobra el mensajero. El panel no lo usa: aquí el envío se cubre con el abono. Es una
+palanca disponible el día que se decida repercutirlo.
+
+## Y el choque de los WhatsApp
+
+**99envios manda sus propios mensajes de WhatsApp** en cada cambio de estado del envío,
+gratis, si el interruptor de su plataforma está encendido. Nosotros mandamos
+`pedido_en_camino` al despachar.
+
+Con las dos cosas activas, a la clienta le llegan **dos mensajes por lo mismo, desde dos
+números distintos**. Hay que apagar unas o las otras — y la decisión no es obvia: los de
+ellos dan la trazabilidad completa y son gratis; el nuestro sale del número de la tienda,
+que es el que ella reconoce.
+
 ## Límites conocidos y pendientes
 
 - **Sólo cotiza.** La guía se sigue pidiendo por fuera; el botón sólo rellena la

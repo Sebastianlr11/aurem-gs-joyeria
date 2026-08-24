@@ -19,6 +19,17 @@ import { supabase } from '../../../lib/supabase';
    se manda —su texto promete un sitio donde seguir el envío—. */
 export const CARRIERS = ['Interrapidisimo', 'Coordinadora', 'Servientrega', 'TCC', 'Envia', 'Otro'];
 
+/* CON CUÁLES HAY QUE PEDIR LA RECOGIDA A MANO.
+   
+   Lo dice 99envios en su video de la plataforma: con Coordinadora y TCC la
+   recogida se programa sola al generar la guía. Con Interrapidísimo,
+   Servientrega y Envía **hay que programarla** desde su plataforma, o el
+   paquete se queda en el taller esperando a un mensajero que nadie llamó.
+   
+   Es el tipo de detalle que no falla el día que se aprende, sino tres semanas
+   después, cuando ya se te olvidó. */
+export const RECOGIDA_A_MANO = ['Interrapidisimo', 'Servientrega', 'Envia'];
+
 /* Cómo se llama cada una en la respuesta de 99envios. Ellos usan minúsculas y
    sin tildes; el panel las escribe como se leen. */
 export const CARRIER_DE_99ENVIOS = {

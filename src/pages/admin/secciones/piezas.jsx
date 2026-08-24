@@ -9,7 +9,7 @@
  */
 import React, { useState } from 'react';
 import { supabase } from '../../../lib/supabase';
-import { CARRIERS, CARRIER_DE_99ENVIOS, EMPTY_CUSTOMER, SOURCE_META, STATUS_META, fmt } from './comunes';
+import { CARRIERS, CARRIER_DE_99ENVIOS, EMPTY_CUSTOMER, RECOGIDA_A_MANO, SOURCE_META, STATUS_META, fmt } from './comunes';
 import { loQuePasa } from '../../../lib/circuito';
 
 export const ConfirmModal = ({ title, text, onClose, onConfirm }) => {
@@ -309,6 +309,16 @@ export const ShipModal = ({ order, onClose, onConfirm }) => {
                     )}
                     {guiaError && <p className="envio-cotiza-error">{guiaError}</p>}
                     {avisoGuia && <p className="envio-cotiza-error">{avisoGuia}</p>}
+
+                    {/* Con tres de las cinco la recogida no se programa sola. Se
+                        recuerda aquí, con la guía ya en la mano, que es el único
+                        momento en que se puede hacer algo al respecto. */}
+                    {trackingNumber && RECOGIDA_A_MANO.includes(carrier) && (
+                        <p className="envio-recogida">
+                            Con {carrier} la recogida <strong>no se programa sola</strong>: entra a 99envios
+                            y pídela, o el paquete se queda esperando a un mensajero que nadie llamó.
+                        </p>
+                    )}
                     <div className="modal-actions">
                         <button type="button" className="admin-btn admin-btn--outline" onClick={onClose}>Cancelar</button>
                         <button type="submit" className="admin-btn" disabled={saving}>{saving ? 'Guardando...' : 'Marcar como enviado'}</button>
