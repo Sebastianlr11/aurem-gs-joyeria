@@ -13,7 +13,7 @@ import {
     isSameDay, normalizePhone, sortMessages, truncate,
 } from './chat/comunes';
 import { AvisosDeChat, ChatErrorBoundary, ImagenDelChat, PieDeFoto, VisorDeFoto } from './chat/piezas';
-import { useAvisos, useFichaDelContacto, useSeleccion, useVisorDeFotos } from './chat/ganchos';
+import { useAvisos, useFichaDelContacto, useResumenDelHilo, useSeleccion, useVisorDeFotos } from './chat/ganchos';
 import FichaDelContacto from './chat/FichaDelContacto';
 import SelectorDeImagen from './chat/SelectorDeImagen';
 import FilaDeContacto from './chat/FilaDeContacto';
@@ -73,6 +73,7 @@ const ChatPanel = () => {
     const [showMsgSearch, setShowMsgSearch] = useState(false);
     const avisos = useAvisos();
     const lote = useSeleccion();
+    const hilo = useResumenDelHilo(activeContact);
     /* Igual que con el visor: el efecto que reacciona al filtro necesita dos de
        las funciones del lote, y `lote` es un objeto nuevo en cada render. Se
        sacan sueltas —son estables— para que el efecto no se rearme sin motivo. */
@@ -98,8 +99,6 @@ const ChatPanel = () => {
     /* Cuántas fotos guarda el hilo abierto. No se cuenta sobre `messages`
        porque eso son los 200 últimos: un hilo viejo tiene fotos más atrás y el
        menú prometería borrar tres cuando hay veinte. */
-    const [fotosDelHilo, setFotosDelHilo] = useState(0);
-    const [resumenHilo, setResumenHilo] = useState(null);   // { mensajes, desde }
     /* La selección múltiple. `null` es el modo apagado; un Set, encendido.
        Se distingue del conjunto vacío a propósito: "modo activo sin nada
        marcado" y "modo apagado" pintan cosas distintas. */
@@ -328,39 +327,6 @@ const ChatPanel = () => {
         };
         load();
         return () => { cancelled = true; };
-    }, [activeContact]);
-
-    /**
-     * Los números del hilo abierto, contados en la base.
-     *
-     * Antes la ficha decía `messages.length`, que son los mensajes cargados en
-     * pantalla: un hilo de 252 figuraba como "200 mensajes" y la fecha de
-     * "Desde" era la del mensaje 53, no la del primero. Con el diálogo de
-     * eliminar diciendo la cifra de verdad, el panel se contradecía solo.
-     */
-    useEffect(() => {
-        if (!activeContact) { setFotosDelHilo(0); setResumenHilo(null); return; }
-        let vigente = true;
-
-        supabase.from('whatsapp_conversaciones')
-            .select('id', { count: 'exact', head: true })
-            .eq('phone_number', activeContact)
-            .eq('message_type', 'image')
-            .not('media_url', 'is', null)
-            .then(({ count }) => { if (vigente) setFotosDelHilo(count ?? 0); });
-
-        Promise.all([
-            supabase.from('whatsapp_conversaciones')
-                .select('id', { count: 'exact', head: true }).eq('phone_number', activeContact),
-            supabase.from('whatsapp_conversaciones')
-                .select('created_at').eq('phone_number', activeContact)
-                .order('created_at', { ascending: true }).limit(1).maybeSingle(),
-        ]).then(([todos, primero]) => {
-            if (!vigente) return;
-            setResumenHilo({ mensajes: todos.count ?? 0, desde: primero.data?.created_at ?? null });
-        }).catch(() => { if (vigente) setResumenHilo(null); });
-
-        return () => { vigente = false; };
     }, [activeContact]);
 
     /* ─── Scroll to bottom on new messages ────────────────────────── */
@@ -769,7 +735,7 @@ const ChatPanel = () => {
         setConfirmFotos(false);
         if (error) { setSendError(`No se pudieron borrar las fotos: ${error}`); return; }
         setMessages(prev => prev.map(m => (m.message_type === 'image' ? { ...m, media_url: null } : m)));
-        setFotosDelHilo(0);
+        hilo.olvidarFotos();
     };
 
     /* ─── Add tag ────────────────────────────────────────────────── */
@@ -1225,9 +1191,9 @@ filteredContacts.map(c => (
                                                 <div className="chat-export-menu">
                                                     <button onClick={() => { handleExport('txt'); setShowExportMenu(false); }}>Exportar TXT</button>
                                                     <button onClick={() => { handleExport('csv'); setShowExportMenu(false); }}>Exportar CSV</button>
-                                                    {fotosDelHilo > 0 && (
+                                                    {hilo.fotos > 0 && (
                                                         <button onClick={() => { setConfirmFotos(true); setShowExportMenu(false); }}>
-                                                            Borrar sólo las fotos ({fotosDelHilo})
+                                                            Borrar sólo las fotos ({hilo.fotos})
                                                         </button>
                                                     )}
                                                     <button className="chat-export-menu-danger" onClick={() => { setABorrar([{ telefono: activeContact, nombre: activeContactData?.customer_name }]); setShowExportMenu(false); }}>Eliminar conversación</button>
@@ -1335,7 +1301,7 @@ filteredContacts.map(c => (
                                             mensajes={messages}
                                             enManual={isTakeover}
                                             etiquetas={tagsMap[activeContact] || []}
-                                            resumen={resumenHilo}
+                                            resumen={hilo.resumen}
                                             porcentajeIA={respondidoPorIA}
                                             fotoDelPedido={imagenDePedido}
                                             ficha={ficha}
@@ -1456,7 +1422,7 @@ filteredContacts.map(c => (
                     {confirmFotos && (
                         <div className="chat-confirm-overlay" onClick={() => !borrandoFotos && setConfirmFotos(false)}>
                             <div className="chat-confirm-modal" onClick={e => e.stopPropagation()}>
-                                <h4>{fotosDelHilo === 1 ? '¿Borrar la foto?' : `¿Borrar las ${fotosDelHilo} fotos?`}</h4>
+                                <h4>{hilo.fotos === 1 ? '¿Borrar la foto?' : `¿Borrar las ${hilo.fotos} fotos?`}</h4>
                                 <p>
                                     Se van los archivos y el hilo se queda entero: sigues viendo el
                                     pie que escribió y lo que Valentina entendió de cada imagen, con
