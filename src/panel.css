@@ -7789,3 +7789,13 @@
   margin-top: 0.5rem;
   font-size: 0.72rem; line-height: 1.5; color: var(--text-secondary);
 }
+
+/* El desglose del contrapago. Va debajo del total y en pequeño: el número
+   que se compara entre transportadoras es el total, pero de dónde sale
+   tiene que poder verse — la comisión por cobrar en la puerta suele ser
+   mayor que el flete mismo. */
+.envio-opcion-precio { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
+.envio-opcion-desglose {
+  font-size: 0.68rem; font-weight: 400; color: var(--text-secondary);
+  white-space: nowrap;
+}

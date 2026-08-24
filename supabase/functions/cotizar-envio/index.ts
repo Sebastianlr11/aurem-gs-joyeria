@@ -131,7 +131,7 @@ Deno.serve(async (req: Request) => {
 
   const { data: pedido } = await admin
     .from('orders')
-    .select('id, amount, shipping_city, shipping_department, product_id, payment_method')
+    .select('id, amount, abono_monto, status, shipping_city, shipping_department, product_id, payment_method')
     .eq('id', pedidoId)
     .maybeSingle()
 
@@ -174,6 +174,20 @@ Deno.serve(async (req: Request) => {
     ancho: positivo(pieza?.envio_ancho_cm, positivo(precios?.envio_ancho_cm, 12)),
   }
 
+  /* Igual que en `crear-guia`: con contrapago no hay cobro por adelantado —la
+     transportadora cobra en la puerta y gira lo recogido menos el flete— y
+     `valorDeclarado` es lo que el mensajero va a cobrar, que en un
+     contraentrega es el saldo y no el precio de la pieza. */
+  const esContraentrega = pedido.payment_method === 'contraentrega'
+  const total = Number(pedido.amount) || 0
+  const abono = Number(pedido.abono_monto) || 0
+  const yaEntro = esContraentrega
+    ? (['entregado', 'pagado'].includes(pedido.status) ? total : abono)
+    : total
+  const porCobrar = Math.max(0, total - yaEntro)
+  const contrapago = esContraentrega && porCobrar > 0
+  const valorDeclarado = contrapago ? porCobrar : total
+
   const hoy = new Date()
   const fecha = `${String(hoy.getDate()).padStart(2, '0')}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${hoy.getFullYear()}`
 
@@ -183,7 +197,10 @@ Deno.serve(async (req: Request) => {
       origen: { codigo: '', nombre: '' },   // lo sabe la cuenta, por el token
       IdTipoEntrega: 1,
       IdServicio: 1,
-      valorDeclarado: Number(pedido.amount) || 0,
+      /* Lo mismo que se va a emitir, o la cotización no sirve para decidir:
+         con contrapago, `valorDeclarado` es lo que el mensajero cobra, y de un
+         contraentrega eso es el saldo, no el precio de la pieza. */
+      valorDeclarado,
       peso: caja.peso,
       alto: caja.alto,
       largo: caja.largo,
@@ -191,10 +208,7 @@ Deno.serve(async (req: Request) => {
       fecha,
       seguro99: false,
       seguro99plus: false,
-      /* Contrapago apagado: hoy el mensajero entrega la plata y punto. Que la
-         transportadora cobre por nosotros es una decisión de negocio sin
-         tomar, y cambiaría cómo entra el dinero. */
-      AplicaContrapago: false,
+      AplicaContrapago: contrapago,
     })
 
     if (status === 429) {
@@ -219,11 +233,24 @@ Deno.serve(async (req: Request) => {
         comision: Number(v.comision_interna ?? v.valor_interna) || 0,
         dias: v.dias ?? null,
         entregaEstimada: v.fecha_entrega ?? null,
-        total: (Number(v.valor) || 0) + (Number(v.sobreflete) || 0) + (Number(v.comision_interna ?? v.valor_interna) || 0),
+        /* EL CONTRAPAGO ENTRA EN EL TOTAL.
+        
+           Se quedaba fuera, y no es calderilla: cobrarle $480.000 a la clienta
+           en la puerta cuesta $21.600 de comisión, casi el doble que el flete.
+           Un «total» que omite un costo es exactamente el fallo que llevamos
+           tres días persiguiendo en los informes — un número redondo, creíble
+           y corto. */
+        total: (Number(v.valor) || 0)
+             + (Number(v.sobreflete) || 0)
+             + (Number(v.comision_interna ?? v.valor_interna) || 0)
+             + (Number(v.valor_contrapago) || 0),
       }))
       .sort((a, b) => a.total - b.total)
 
-    return json({ ok: true, ciudad: pedido.shipping_city, codigoDane: codigo, caja, opciones })
+    return json({
+      ok: true, ciudad: pedido.shipping_city, codigoDane: codigo, caja, opciones,
+      contrapago, cobraElMensajero: contrapago ? porCobrar : 0,
+    })
   } catch (e) {
     console.error('Cotizando con 99envios:', e instanceof Error ? e.message : e)
     return json({ error: 'no_se_pudo', detalle: e instanceof Error ? e.message : 'Error desconocido' }, 502)
