@@ -6,6 +6,7 @@
  * secciones vive en `comunes.jsx`.
  */
 import React, { useMemo, useState } from 'react';
+import { queFalta } from '../../../lib/circuito';
 import { estaVivo, recibidoDe } from '../../../lib/dinero';
 import { supabase } from '../../../lib/supabase';
 import PedidoModal from '../PedidoModal';
@@ -435,7 +436,12 @@ const OrdersSection = ({ orders, products, loading, onRefresh }) => {
                                                     {o.payment_method ? nombrePago(o.payment_method) : 'Sin registrar'}
                                                 </span>
                                             </td>
-                                            <td><StatusBadge status={o.status} /></td>
+                                            <td>
+                                                <StatusBadge status={o.status} />
+                                                {/* La insignia dice DÓNDE está; esto dice QUÉ FALTA, que es lo
+                                                    que hace falta para saber si hay que hacer algo hoy. */}
+                                                <span className="ped-falta">{queFalta(o)}</span>
+                                            </td>
                                             <td>
                                                 {action ? (
                                                     <button className="ped-accion" onClick={() => handleQuickAction(o)}>
@@ -443,6 +449,16 @@ const OrdersSection = ({ orders, products, loading, onRefresh }) => {
                                                     </button>
                                                 ) : (
                                                     <span className="ped-meta">Cerrado</span>
+                                                )}
+                                                {/* Único camino a «devuelto». Va aparte del botón principal
+                                                    porque es la excepción: el mensajero volvió con la pieza. */}
+                                                {o.status === 'enviado' && (
+                                                    <button
+                                                        className="ped-accion-otra"
+                                                        onClick={() => setModal({ type: 'confirm_status', order: o, nextStatus: 'devuelto' })}
+                                                    >
+                                                        No la recibió
+                                                    </button>
                                                 )}
                                             </td>
                                             <td>

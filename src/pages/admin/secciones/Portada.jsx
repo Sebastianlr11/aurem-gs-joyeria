@@ -187,6 +187,7 @@ const DashboardHome = ({ products, orders, chatsPendientes, actualizadoEn, verPr
     /* El trabajo del día mira todos los pedidos, no solo los últimos 30 días:
        uno de hace dos meses sin despachar sigue siendo trabajo de hoy. */
     const porConfirmar = orders.filter(o => enGrupo(o, 'confirmar')).length;
+    const sinPagar     = orders.filter(o => enGrupo(o, 'sinpagar')).length;
     const porDespachar = orders.filter(o => enGrupo(o, 'despachar')).length;
     const sinResponder = chatsPendientes.length;
 
@@ -260,15 +261,24 @@ const DashboardHome = ({ products, orders, chatsPendientes, actualizadoEn, verPr
         ? Math.round((ahora - new Date(revision.corrida_en).getTime()) / 60000)
         : null;
 
-    const pendiente = porConfirmar + porDespachar + sinResponder;
+    const pendiente = porConfirmar + sinPagar + porDespachar + sinResponder;
 
     const tareas = [
         {
             clave: 'confirmar', icono: 'bag', n: porConfirmar,
             titulo: 'Por confirmar',
-            sub: 'Pedidos nuevos que esperan tu llamada o mensaje',
+            sub: 'Contraentrega nuevos: llámalos, confirma dirección y cobra el abono',
             ir: () => onNavigate('orders'),
         },
+        /* Sólo aparece si hay alguno: un cero permanente enseña a no mirar la
+           fila. Los otros tres son tareas de todos los días; este es una
+           anomalía, y como anomalía debe llamar la atención cuando ocurre. */
+        ...(sinPagar > 0 ? [{
+            clave: 'sinpagar', icono: 'bag', n: sinPagar,
+            titulo: 'Sin pagar',
+            sub: 'Llenaron el checkout y no pagaron. Escríbeles por si se cayó el pago',
+            ir: () => onNavigate('orders'),
+        }] : []),
         {
             clave: 'despachar', icono: 'truck', n: porDespachar,
             titulo: 'Por despachar',

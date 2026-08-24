@@ -35,8 +35,22 @@ export const EMPTY_CUSTOMER = { name:'', phone:'', email:'', notes:'' };
  */
 
 export const GRUPOS = [
-    { id: 'confirmar', label: 'Por confirmar', nota: 'Esperan tu llamada o mensaje',
-      test: o => o.status === 'pendiente' },
+    /* «Por confirmar» eran dos cosas en un mismo montón, y son dos trabajos
+       distintos con dos urgencias distintas.
+
+       Un contraentrega en `pendiente` es un pedido que existe y que **falta
+       cerrar**: la clienta lo pidió, hay que llamarla, confirmar la dirección
+       y cobrarle el abono del envío. Un pago en línea en `pendiente` es lo
+       contrario: llenó el checkout y **no pagó**. Nadie está esperando nada,
+       y lo que toca es escribirle por si se le cayó el pago.
+
+       Juntos, el contador de la portada mezclaba plata casi hecha con
+       carritos abandonados, y el número no servía para decidir a quién
+       llamar primero. */
+    { id: 'confirmar', label: 'Por confirmar', nota: 'Esperan tu llamada para cerrar el pedido',
+      test: o => o.status === 'pendiente' && isCOD(o) },
+    { id: 'sinpagar',  label: 'Sin pagar',     nota: 'Llenaron el checkout y no pagaron',
+      test: o => o.status === 'pendiente' && !isCOD(o) },
     { id: 'despachar', label: 'Por despachar', nota: 'Confirmados, se despachan en 2 a 3 días',
       test: o => o.status === 'procesando' || o.status === 'confirmado' || (o.status === 'pagado' && !isCOD(o)) },
     { id: 'camino',    label: 'En camino',     nota: 'Ya salieron, falta que lleguen',

@@ -400,6 +400,12 @@ en la base. El vigía compara las dos contra esta tabla cada hora.
 Ninguna puede llamar a la otra. **Si tocas una, toca la otra** — y el vigía comprueba cada
 hora que la de la base siga diciendo lo que dice esta tabla (`regla_del_dinero_cuadra()`).
 
+**Y lo que hace cada botón se escribe en `src/lib/circuito.js`**, no en las pantallas.
+`queFalta(pedido)` da la línea de «qué falta» de cada fila; `loQuePasa(pedido, destino)` da
+lo que va a pasar al confirmar. Las usan la tabla de Pedidos, el diálogo de confirmar y la
+guía de Ajustes, para que las tres no puedan decir cosas distintas. El circuito completo
+está en [`docs/specs/admin-pedidos.md`](docs/specs/admin-pedidos.md), que manda.
+
 `porCobrarDe` = `amount − recibidoDe` en pedidos vivos. `estaVivo` = ni `cancelado` ni
 `pendiente`. **Cualquier cifra de dinero del panel debe pasar por estas funciones**: el
 bug original era que la ficha del chat y el dashboard contaban distinto y el mismo

@@ -64,11 +64,18 @@ cuántos pedidos son. Ver `src/lib/dinero.js`.
 
 | Concepto | Criterio |
 |---|---|
-| Por confirmar | `status === 'pendiente'` |
-| Por despachar | `status ∈ {pagado, procesando}` |
+| Por confirmar | `pendiente` **y contraentrega** — falta cerrarlos: llamar, confirmar dirección y cobrar el abono |
+| Sin pagar | `pendiente` **y pago en línea** — llenaron el checkout y no pagaron. **Sólo se pinta si hay alguno** |
+| Por despachar | `confirmado`, `procesando`, o `pagado` en línea |
 | Sin responder | `rpc('chats_sin_responder').length` |
 
-El titular *"Hoy tienes N cosas por atender"* es la suma de los tres (`:579`, `:726`).
+El titular *"Hoy tienes N cosas por atender"* es la suma de los cuatro.
+
+Los dos primeros eran uno solo, «Por confirmar», y mezclaba dos trabajos distintos: un
+contraentrega en `pendiente` es plata casi hecha que falta cerrar; un pago en línea en
+`pendiente` es un carrito abandonado y nadie está esperando nada. Juntos, el número no
+servía para decidir a quién llamar primero. Los criterios viven en `GRUPOS`
+(`secciones/comunes.js`) y los comparten la portada y la pantalla de Pedidos.
 
 **Averías** (`:517-519`, `:741-759`) — fila `vigilancia_ultima` (id=1): `hallazgos[]` y
 "Revisado hace X" desde `corrida_en`. Ver [vigilancia.md](vigilancia.md).
