@@ -246,6 +246,9 @@ export const ShipModal = ({ order, onClose, onConfirm }) => {
                                 <p className="envio-cotiza-titulo">
                                     A {cotizacion.ciudad} · caja de {cotizacion.caja.peso} kg,
                                     {' '}{cotizacion.caja.largo}×{cotizacion.caja.ancho}×{cotizacion.caja.alto} cm
+                                    {cotizacion.seguro && cotizacion.seguro !== 'ninguno'
+                                        ? ` · con seguro ${cotizacion.seguro}`
+                                        : ' · sin seguro'}
                                 </p>
                                 <ul className="envio-cotiza-lista">
                                     {cotizacion.opciones.map(o => (

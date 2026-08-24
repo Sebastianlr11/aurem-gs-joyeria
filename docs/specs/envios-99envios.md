@@ -124,12 +124,32 @@ desglose.
 **Para el negocio:** despachar un contraentrega de $500.000 a Bogotá cuesta unos $33.000,
 casi un 7 % de la venta, y el abono de $20.000 no lo cubre.
 
-### Los seguros antidevolución
+### Los seguros antidevolución, y por qué van apagados
 
-Sin ninguno, una entrega fallida cobra el flete **de ida y de vuelta**; con el básico, sólo
-el valor del seguro. En un negocio de contraentrega la devolución es *el* riesgo, así que se
-enciende desde los secretos sin desplegar (`ENVIOS99_SEGURO` = `basico` o `plus`), y viene
-**apagado** porque encenderlo cuesta plata en cada envío y es decisión del negocio.
+Sin ninguno, una entrega fallida cobra el flete **de ida y de vuelta**. Con el básico no se
+cobra flete, sólo el valor del seguro. Con el plus, nada.
+
+Con los números de su propio ejemplo —el básico sube $2.380 el envío— y un flete de $11.732
+a Bogotá, la cuenta sale así:
+
+```
+Devolución sin seguro   ida + vuelta = $23.464
+Devolución con seguro   $0 de flete
+El seguro se paga solo   si se devuelve más del 20 % de los envíos
+```
+
+**Su panel dice que en Bogotá se entrega el 88 %**, o sea que se cae el 12 %. Por debajo del
+20 %, así que **de media el seguro no se paga solo** — y por eso viene apagado
+(`ENVIOS99_SEGURO`, `basico` o `plus`).
+
+Pero un seguro no se compra por la media: se compra para acotar un caso concreto. Su
+plataforma deja elegirlo envío por envío, mirando el historial de devoluciones de ese
+teléfono. **Aquí el ajuste es global**, todo o nada, que es su límite: el día que haga falta
+por pedido, hay que subirlo a la interfaz.
+
+Y lo que sí quedó atado: **cotizar y emitir leen el mismo secreto**. Estaban separados —la
+cotización fija en «sin seguro» y la emisión leyendo el ajuste—, así que al encenderlo la
+pantalla habría dicho $33.332 y la guía habría costado ~$35.712.
 
 ### Interrapidísimo, y por qué un $0 no es un envío gratis
 
