@@ -92,6 +92,21 @@ estados puede dejarlo desfasado.
 guardián lo cazó, y se deshizo. Vacío es que cuadra, y así está hoy: 18 pedidos, cero
 descuadres.
 
+### Que los dos píxeles de Meta sean el mismo
+
+La medición va por dos caminos: el navegador manda `PageView` y `Purchase` con
+`VITE_META_PIXEL_ID`, y el servidor manda la venta por la API de Conversiones con
+`META_PIXEL_ID`. **Si no son el mismo número la deduplicación no ocurre** — los eventos se
+parten en dos píxeles y ninguno cuenta bien. Y en esta cuenta hay **dos píxeles con el mismo
+nombre**, que es la trampa que más tiempo ha costado en este proyecto.
+
+No se pueden comparar leyendo los dos secretos: Supabase no devuelve el valor de uno. Así
+que se compara contra la verdad — **el bundle que el sitio está sirviendo ahora mismo**. Si
+el identificador del servidor no aparece ahí, el navegador está usando otro.
+
+El identificador de un píxel no es secreto —viaja en el JavaScript público de cualquier
+tienda— pero el vigía sólo dice si coinciden, nunca cuál es.
+
 ### El candado del panel
 
 Las dos últimas comprobaciones son de otra clase que el resto: no vigilan que algo esté
