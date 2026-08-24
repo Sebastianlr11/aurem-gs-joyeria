@@ -57,6 +57,7 @@ incidente que las motivó.
 | [atribucion-y-pixeles.md](atribucion-y-pixeles.md) | Saber qué anuncio trajo cada venta | En producción |
 | [seo-y-compartir.md](seo-y-compartir.md) | Que Google indexe y que WhatsApp muestre la foto al compartir | En producción |
 | [vigilancia.md](vigilancia.md) | Enterarse de que algo se rompió sin mirar el panel | En producción |
+| [envios-99envios.md](envios-99envios.md) | Cuánto cuesta mandar un pedido, según las cinco transportadoras | Fase 1 · sólo cotiza |
 | [diseno-y-frontend.md](diseno-y-frontend.md) | CSS, fuentes, animaciones y la relación con DESIGN.md | En producción · de 143 bloques pisados a 4 |
 
 ---

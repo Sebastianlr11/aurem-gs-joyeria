@@ -9,7 +9,7 @@
  */
 import React, { useState } from 'react';
 import { supabase } from '../../../lib/supabase';
-import { CARRIERS, EMPTY_CUSTOMER, SOURCE_META, STATUS_META, fmt } from './comunes';
+import { CARRIERS, CARRIER_DE_99ENVIOS, EMPTY_CUSTOMER, SOURCE_META, STATUS_META, fmt } from './comunes';
 import { loQuePasa } from '../../../lib/circuito';
 
 export const ConfirmModal = ({ title, text, onClose, onConfirm }) => {
@@ -146,6 +146,27 @@ export const ShipModal = ({ order, onClose, onConfirm }) => {
     const [trackingNumber, setTrackingNumber] = useState(order.tracking_number || '');
     const [saving, setSaving] = useState(false);
 
+    /* Cuánto cuesta mandarlo de verdad, preguntándoselo a las cinco
+       transportadoras. Se pide a mano y no al abrir: son 300 cotizaciones por
+       hora para toda la cuenta, y gastarlas abriendo diálogos sería quedarse
+       sin cupo el día que haga falta. */
+    const [cotizando, setCotizando] = useState(false);
+    const [cotizacion, setCotizacion] = useState(null);
+    const [errorCotiza, setErrorCotiza] = useState(null);
+
+    const cotizar = async () => {
+        setCotizando(true); setErrorCotiza(null);
+        const { data, error } = await supabase.functions.invoke('cotizar-envio', {
+            body: { pedidoId: order.id },
+        });
+        setCotizando(false);
+        if (error || !data?.ok) {
+            setErrorCotiza(data?.detalle || error?.message || 'No se pudo cotizar');
+            return;
+        }
+        setCotizacion(data);
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setSaving(true);
@@ -176,6 +197,44 @@ export const ShipModal = ({ order, onClose, onConfirm }) => {
                             <option value="">— Seleccionar —</option>
                             {CARRIERS.map(c => <option key={c} value={c}>{c}</option>)}
                         </select>
+                    </div>
+
+                    {/* Lo que cuesta mandarlo. No se guarda todavía: esto sólo
+                        informa la decisión de con quién despachar. */}
+                    <div className="envio-cotiza">
+                        {!cotizacion && (
+                            <button type="button" className="admin-btn admin-btn--outline envio-cotiza-btn"
+                                    onClick={cotizar} disabled={cotizando}>
+                                {cotizando ? 'Preguntando…' : 'Cuánto cuesta mandarlo'}
+                            </button>
+                        )}
+                        {errorCotiza && <p className="envio-cotiza-error">{errorCotiza}</p>}
+                        {cotizacion && (
+                            <>
+                                <p className="envio-cotiza-titulo">
+                                    A {cotizacion.ciudad} · caja de {cotizacion.caja.peso} kg,
+                                    {' '}{cotizacion.caja.largo}×{cotizacion.caja.ancho}×{cotizacion.caja.alto} cm
+                                </p>
+                                <ul className="envio-cotiza-lista">
+                                    {cotizacion.opciones.map(o => (
+                                        <li key={o.transportadora}>
+                                            <button type="button"
+                                                    className={`envio-opcion${CARRIER_DE_99ENVIOS[o.transportadora] === carrier ? ' envio-opcion--puesta' : ''}`}
+                                                    onClick={() => setCarrier(CARRIER_DE_99ENVIOS[o.transportadora] || '')}>
+                                                <span className="envio-opcion-nombre">
+                                                    {CARRIER_DE_99ENVIOS[o.transportadora] || o.transportadora}
+                                                </span>
+                                                <span className="envio-opcion-precio">${fmt(o.total)}</span>
+                                            </button>
+                                        </li>
+                                    ))}
+                                </ul>
+                                <p className="envio-cotiza-pie">
+                                    Precios de 99envios, con el sobreflete incluido. Elegir uno sólo rellena
+                                    la transportadora de arriba: la guía se sigue pidiendo por fuera.
+                                </p>
+                            </>
+                        )}
                     </div>
                     <div className="modal-field">
                         <label>Numero de guia</label>

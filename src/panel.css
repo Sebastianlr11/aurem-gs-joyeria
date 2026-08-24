@@ -7739,3 +7739,53 @@
   font-size: 0.82rem; line-height: 1.6; color: var(--ink);
 }
 .guia-regla strong { font-weight: 700; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   CUÁNTO CUESTA MANDARLO · el diálogo de despacho
+   Las cinco transportadoras de 99envios, de barata a cara. Se pide a
+   mano: son 300 cotizaciones por hora para toda la cuenta.
+═══════════════════════════════════════════════════════════════════ */
+
+.envio-cotiza {
+  margin-top: 0.75rem; padding-top: 0.75rem;
+  border-top: 1px solid var(--hairline);
+}
+.envio-cotiza-btn { width: 100%; }
+
+.envio-cotiza-error {
+  font-size: 0.78rem; line-height: 1.5; color: var(--error-ink);
+}
+
+.envio-cotiza-titulo {
+  font-size: 0.7rem; font-weight: 700; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--oro-ink);
+}
+
+.envio-cotiza-lista {
+  list-style: none; margin: 0.5rem 0 0; padding: 0;
+  display: flex; flex-direction: column; gap: 2px;
+}
+
+/* Toda la fila se pulsa: elegir transportadora mirando el precio es el
+   gesto entero de esta tarjeta, y obligar a apuntar a un radio pequeño
+   sería poner una puerta estrecha delante de lo único que se hace aquí. */
+.envio-opcion {
+  display: flex; align-items: baseline; justify-content: space-between;
+  width: 100%; gap: 1rem; padding: 0.5rem 0.6rem;
+  border: 1px solid transparent; border-radius: 2px;
+  background: none; font-family: inherit; text-align: left; cursor: pointer;
+  transition: background 0.2s var(--ease), border-color 0.2s var(--ease);
+}
+.envio-opcion:hover { background: var(--bg-marfil); }
+.envio-opcion--puesta { border-color: var(--oro); background: var(--bg-arena); }
+
+.envio-opcion-nombre { font-size: 0.82rem; color: var(--ink); }
+.envio-opcion-precio {
+  font-size: 0.85rem; font-weight: 700; color: var(--ink);
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+
+.envio-cotiza-pie {
+  margin-top: 0.5rem;
+  font-size: 0.72rem; line-height: 1.5; color: var(--text-secondary);
+}
