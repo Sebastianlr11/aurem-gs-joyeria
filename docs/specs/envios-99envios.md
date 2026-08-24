@@ -121,8 +121,29 @@ total al que le falta un costo es exactamente el fallo que se estuvo persiguiend
 en los informes — un número redondo, creíble y corto. Corregido, y la pantalla enseña el
 desglose.
 
-**Para el negocio:** despachar un contraentrega de $500.000 a Bogotá cuesta unos $33.000,
-casi un 7 % de la venta, y el abono de $20.000 no lo cubre.
+**El costo escala con lo que recoge el mensajero**, así que no hay un «cuesta $33.000»: hay
+una curva. Medida contra la API, a Bogotá, con Coordinadora:
+
+| Pieza | El mensajero cobra | Costo | Flete | Cobro |
+|---|---|---|---|---|
+| $120.000 | $100.000 | $11.672 | $7.172 | $4.500 |
+| $150.000 | $130.000 | $13.382 | $7.532 | $5.850 |
+| $200.000 | $180.000 | $16.232 | $8.132 | $8.100 |
+| $250.000 | $230.000 | $19.082 | $8.732 | $10.350 |
+| $300.000 | $280.000 | $21.932 | $9.332 | $12.600 |
+| $500.000 | $480.000 | $33.332 | $11.732 | $21.600 |
+
+**El abono de $20.000 alcanza hasta una pieza de unos $266.000.** Por encima se queda corto,
+y en una de $500.000 falta la mitad.
+
+Este dato costó una corrección: la primera lectura tomó el caso de $500.000 —$33.332— como
+si fuera el precio del envío, y de ahí salió un «te faltan $13.332 por pedido» que no era
+cierto para el grueso del catálogo. La comisión del contrapago es un porcentaje de lo
+recogido; el flete apenas se mueve.
+
+**Por eso `cotizar-envio` acepta `montoSimulado`**: permite preguntar «¿y si la pieza costara
+X?» sin que exista el pedido. Cuando el pedido existe el precio ya se fijó, que es tarde
+para esta decisión.
 
 ### Los seguros antidevolución, y por qué van apagados
 
