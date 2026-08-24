@@ -146,11 +146,17 @@ const ReportsSection = ({ orders, products = [], verPruebas = false, onNavigate 
     const paymentEntries = Object.entries(paymentCounts).sort((a, b) => b[1] - a[1]);
     const maxPaymentCount = paymentEntries.length ? paymentEntries[0][1] : 1;
 
-    /* Ingresos por canal, para acompañar el conteo */
+    /* Ingresos por canal, para acompañar el conteo.
+
+       Sumaba `amount` a pelo. Filtraba bien los muertos —`paidFiltered` ya pasa
+       por `estaVivo`— pero daba por cobrado el total de un contraentrega que va
+       en camino, y de esos son 16 de cada 17 pedidos: decía que la web había
+       dejado $1.050.000 cuando habían entrado $40.000. `recibidoDe` es la misma
+       regla de CLAUDE.md §8 que usa el resto del panel. */
     const sourceRevenue = {};
     paidFiltered.forEach(o => {
         const src = o.order_source || 'web';
-        sourceRevenue[src] = (sourceRevenue[src] || 0) + Number(o.amount);
+        sourceRevenue[src] = (sourceRevenue[src] || 0) + recibidoDe(o);
     });
 
     /* Piezas más vendidas, ordenadas por ingreso real cobrado.
@@ -538,9 +544,14 @@ const ReportsSection = ({ orders, products = [], verPruebas = false, onNavigate 
                     {paymentEntries.length === 0 ? (
                         <p className="inf-vacio">Sin pedidos en este periodo.</p>
                     ) : paymentEntries.map(([pm, n]) => {
+                        /* Lo mismo, y peor: esta sumaba sobre `filtered`, que
+                           incluye los cancelados. Decía que contraentrega había
+                           dejado $12.700.000 sobre 17 pedidos de los que 14
+                           estaban cancelados y el resto sigue en la calle. Lo
+                           que entró de verdad son $20.000. */
                         const monto = filtered
                             .filter(o => (o.payment_method || 'Sin especificar') === pm)
-                            .reduce((s, o) => s + Number(o.amount), 0);
+                            .reduce((s, o) => s + recibidoDe(o), 0);
                         return (
                             <div key={pm} className="inf-canal">
                                 <div className="inf-pieza-fila">
