@@ -124,12 +124,44 @@ Que en Bogotá (UTC-5) es **de 8 de la mañana a 8 de la noche, cada hora en pun
 de esa franja no se manda nada: una plantilla a las tres de la madrugada no ayuda a nadie
 y sí quema el candado de `plantillas_enviadas`.
 
-**El aviso de despacho ya está hecho y desplegado**; sólo espera a que Meta apruebe la
-plantilla `pedido_en_camino`.
+### Las cuatro plantillas
+
+| Nombre | Categoría | Cuándo sale | Variables |
+|---|---|---|---|
+| `pieza_en_fabricacion` | Utilidad | Pedido en `procesando` en las últimas 48 h | nombre · pieza |
+| `pedido_en_camino` | Utilidad | Pedido en `enviado` con guía y transportadora reconocida | nombre · pieza · transportadora · guía |
+| `pago_pendiente` | Utilidad | `pendiente` con enlace de Mercado Pago generado hace 3 h a 2 días | nombre · pieza |
+| `cotizacion_sin_cerrar` | **Marketing** | Habló, se interesó en una pieza concreta y no volvió en 2 a 4 días | nombre · pieza |
+
+Las tres primeras se despertaron el 22 de agosto de 2026, cuando Meta las aprobó y se puso
+`PLANTILLAS_ACTIVAS=true`. La cuarta —**`pieza_en_fabricacion`, del 24 de agosto**— tapa el
+hueco de silencio del recorrido: la clienta abona el envío y lo siguiente que sabe es que el
+paquete ya salió, con tres o cuatro días sin noticias en medio, que es justo cuando alguien
+que le pagó por WhatsApp a una tienda que no conoce se pone nerviosa. Sale al marcar
+«Empezar a fabricar», con hasta una hora de retraso.
+
+### Un fallo cancelaba el aviso para siempre
+
+`mandar()` anota la fila **antes** de enviar, porque el índice único es lo que garantiza que
+un aviso no salga dos veces si dos corridas se solapan. Pero cuando el envío fallaba, la
+fila se quedaba ahí con el error escrito — y el candado no distingue «ya salió» de «se
+intentó y no salió». **Cualquier tropiezo, o una plantilla todavía sin aprobar, cancelaba
+definitivamente el aviso de ese pedido**: el cliente no se enteraba nunca y en la tabla sólo
+quedaba una fila con un error que nadie mira.
+
+Desde el 24 de agosto de 2026, **si Meta contesta que no, se suelta el candado** y la
+siguiente corrida lo reintenta. La ventana de búsqueda de cada aviso —48 horas— acota el
+reintento. Si en cambio la petición ni siquiera obtiene respuesta —red, Meta caída—, el
+candado **no** se suelta: no se sabe si el mensaje salió, y un duplicado es peor que un
+aviso que no llega.
+
+Esto es lo que permite desplegar una plantilla antes de que Meta la apruebe sin quemar nada:
+mientras la rechace, cada intento falla y se reintenta; el día que la aprueben, sale.
 
 ## Límites conocidos y pendientes
 
-- El aviso `pedido_en_camino` está bloqueado por la aprobación de Meta.
+- `pieza_en_fabricacion` **está desplegada pero Meta aún no la ha aprobado**: hasta entonces
+  cada intento se rechaza y se reintenta, sin gastar el candado.
 - No hay panel de plantillas: para saber qué se mandó hay que consultar
   `plantillas_enviadas` a mano.
 - WhatsApp **no acepta WebP**: falla con un 200 engañoso. Toda imagen que se mande debe ser

@@ -3,11 +3,12 @@
  *
  * Pasadas 24 horas del último mensaje del cliente, Meta no deja escribir texto
  * libre: sólo plantillas aprobadas. Esta función recorre la base buscando las
- * tres situaciones donde hace falta un aviso y no hay nadie mirando —un pedido
- * despachado sin avisar, un cobro generado sin pagar, una conversación que se
- * enfrió— y manda la plantilla que corresponde.
+ * cuatro situaciones donde hace falta un aviso y no hay nadie mirando —una
+ * pieza que entró al taller, un pedido despachado sin avisar, un cobro
+ * generado sin pagar, una conversación que se enfrió— y manda la plantilla
+ * que corresponde.
  *
- * Le escribe a clientes reales y una de las tres cuesta plata por mensaje. Los
+ * Le escribe a clientes reales y una de las cuatro cuesta plata por mensaje. Los
  * frenos, entonces, no son opcionales:
  *
  *   · APAGADA por defecto. Sin PLANTILLAS_ACTIVAS='true' hace todo el recorrido
@@ -106,7 +107,40 @@ async function mandar(e: Envio): Promise<'enviada' | 'repetida' | 'apagada' | st
     return 'apagada'
   }
 
-  const res = await enviarPlantilla(e.telefono, e.plantilla, e.variables)
+  /* Si el fetch revienta —red, Meta caída— NO se suelta el candado: no
+     sabemos si el mensaje salió, y un duplicado es peor que un aviso tarde.
+     La fila se queda anotada y ese aviso no vuelve a intentarse, que es lo
+     conservador. */
+  let res: { ok: boolean; wamid?: string; error?: string }
+  try {
+    res = await enviarPlantilla(e.telefono, e.plantilla, e.variables)
+  } catch (err) {
+    const motivo = err instanceof Error ? err.message : String(err)
+    console.error('No se pudo hablar con Meta, el aviso queda anotado y no se reintenta:', e.plantilla, motivo)
+    await db.from('plantillas_enviadas').update({ error: `sin respuesta: ${motivo}` }).eq('id', anotada.id)
+    return `sin respuesta: ${motivo}`
+  }
+
+  /* Meta contestó que no: el mensaje NO salió, así que se suelta el candado y
+     la próxima corrida lo reintenta.
+
+     Antes se quedaba anotado con el error, y el índice único convertía
+     cualquier fallo en definitivo: **una plantilla todavía sin aprobar, o un
+     tropiezo de un minuto, cancelaba para siempre el aviso de ese pedido**.
+     El cliente nunca se enteraba y en la tabla sólo quedaba una fila con un
+     error que nadie mira. La ventana de búsqueda de cada aviso —48 horas— es
+     lo que acota el reintento: pasada, deja de encontrarse solo.
+
+     Del intento fallido queda rastro igual: `enviarPlantilla` anota el
+     mensaje en el hilo con delivery_status 'failed' y lo escribe en el log. */
+  if (!res.ok) {
+    const { error: noSeSolto } = await db.from('plantillas_enviadas').delete().eq('id', anotada.id)
+    if (noSeSolto) {
+      console.error('Meta rechazó el aviso y además no se pudo soltar el candado:', e.plantilla, noSeSolto.message)
+      return `${res.error ?? 'falló'} (y quedó anotada)`
+    }
+    return res.error ?? 'falló'
+  }
 
   /* Por el `id` de la fila que se acaba de anotar, no por teléfono y
      plantilla. La misma persona puede recibir la misma plantilla por dos
@@ -115,10 +149,10 @@ async function mandar(e: Envio): Promise<'enviada' | 'repetida' | 'apagada' | st
      envío fallido de hoy marcaba como fallido el de la semana pasada. La tabla
      existe justamente para poder mirar eso después. */
   await db.from('plantillas_enviadas')
-    .update({ wamid: res.wamid ?? null, error: res.ok ? null : (res.error ?? 'falló') })
+    .update({ wamid: res.wamid ?? null, error: null })
     .eq('id', anotada.id)
 
-  return res.ok ? 'enviada' : (res.error ?? 'falló')
+  return 'enviada'
 }
 
 /**
@@ -150,7 +184,37 @@ async function sePuede(telefono: string): Promise<boolean> {
   return data === true
 }
 
-/* ─── 1. Pedido despachado ──────────────────────────────────────────
+/* ─── 1. La pieza entró al taller ───────────────────────────────────
+   El hueco de silencio del recorrido. La clienta abona el envío y lo
+   siguiente que sabe es que el paquete ya salió: entre las dos cosas hay
+   tres o cuatro días sin noticias, que es justo cuando alguien que pagó por
+   WhatsApp a una tienda que no conoce se pone nerviosa.
+
+   Se dispara al marcar «Empezar a fabricar» en el panel, con hasta una hora
+   de retraso —lo que tarde la siguiente corrida— y sólo entre las 8 y las 20.
+   El retraso es una red de seguridad de paso: si el estado se puso por error
+   y se corrige antes de la hora, el aviso no llega a salir. */
+async function enFabricacion(): Promise<Envio[]> {
+  const { data } = await admin()
+    .from('orders')
+    .select('id, customer_name, customer_phone, product_name')
+    .eq('status', 'procesando')
+    .eq('es_prueba', false)
+    .not('customer_phone', 'is', null)
+    /* 48 horas como los demás: que una primera corrida no despierte pedidos
+       que llevan una semana en el taller. */
+    .gte('status_updated_at', new Date(Date.now() - 48 * HORA).toISOString())
+
+  return (data ?? []).map((o) => ({
+    plantilla: 'pieza_en_fabricacion',
+    telefono: aNumeroDeWhatsApp(o.customer_phone),
+    pedidoId: o.id,
+    // {{1}} nombre · {{2}} pieza
+    variables: [primerNombre(o.customer_name), o.product_name],
+  }))
+}
+
+/* ─── 2. Pedido despachado ──────────────────────────────────────────
    El mensaje que más tranquiliza: el cliente pagó por algo que todavía no
    vio. Se busca hacia atrás dos días y no más, para que una primera corrida
    no despierte pedidos viejos. */
@@ -212,7 +276,7 @@ async function despachados(): Promise<Envio[]> {
   return envios
 }
 
-/* ─── 2. Pago pendiente ─────────────────────────────────────────────
+/* ─── 3. Pago pendiente ─────────────────────────────────────────────
    Se generó el enlace de Mercado Pago y no entró la plata. Se espera tres
    horas —mucha gente paga en un rato, y escribirle a los diez minutos es
    apurar— y se deja de insistir a los dos días. */
@@ -237,7 +301,7 @@ async function sinPagar(): Promise<Envio[]> {
   }))
 }
 
-/* ─── 3. Cotización sin cerrar ──────────────────────────────────────
+/* ─── 4. Cotización sin cerrar ──────────────────────────────────────
    La única de marketing, la única que cuesta. Se busca a quien habló, se
    interesó en una pieza concreta y no volvió.
 
@@ -397,11 +461,13 @@ Deno.serve(async (req: Request) => {
   const detalle = resultado.detalle as unknown[]
 
   try {
-    const [aDespachar, aCobrar, aRetomar] = await Promise.all([despachados(), sinPagar(), enfriadas()])
+    const [aFabricar, aDespachar, aCobrar, aRetomar] = await Promise.all([
+      enFabricacion(), despachados(), sinPagar(), enfriadas(),
+    ])
 
     let cupoMarketing = Math.max(0, TOPE_MARKETING_DIARIO - (await marketingDeHoy()))
 
-    for (const envio of [...aDespachar, ...aCobrar, ...aRetomar]) {
+    for (const envio of [...aFabricar, ...aDespachar, ...aCobrar, ...aRetomar]) {
       const esMarketing = envio.plantilla === 'cotizacion_sin_cerrar'
 
       if (esMarketing && cupoMarketing <= 0) {

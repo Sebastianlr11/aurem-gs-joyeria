@@ -44,6 +44,10 @@ export function loQuePasa(pedido, destino) {
                 titulo: 'Empezar a fabricar',
                 consecuencias: [
                     'El pedido pasa a la cola del taller',
+                    /* No sale al instante: lo manda `plantillas-programadas`, que
+                       corre cada hora entre las 8 y las 20. Se dice el plazo
+                       porque quien pulsa el botón mira el chat esperando verlo. */
+                    'En la próxima hora le llega un WhatsApp diciendo que ya está en el taller',
                     'No cambia nada de la plata',
                 ],
                 grave: false,
