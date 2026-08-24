@@ -171,6 +171,13 @@ export const ShipModal = ({ order, onClose, onConfirm }) => {
             (cobra
                 ? `El mensajero cobrará $${fmt(cobra)} en la puerta y 99envios te girará eso menos el flete.`
                 : 'Nadie cobra en la puerta, así que el flete sale de tu saldo en 99envios al emitir la guía, y anularla tarda de 7 a 15 días hábiles.') +
+            /* 99envios manda su primer WhatsApp al CREAR la guía, no al
+               despachar. O sea que desde este clic la clienta ya sabe que su
+               pieza va en camino — y si el paquete se queda dos días en el
+               taller, ella lleva dos días esperándolo. Pedir la guía cuando ya
+               se va a despachar, no antes. */
+            '\n\nDesde este momento 99envios le avisa a la clienta de que su envío ya existe, ' +
+            'así que pídela cuando la pieza esté lista para salir.' +
             '\n\nEsto crea un envío de verdad. ¿Seguimos?'
         )) return;
 

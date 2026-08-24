@@ -122,7 +122,7 @@ const DESPACHO = [
     {
         paso: '2. Pide la guía',
         que: '«Pedir la guía a X» la genera en 99envios y la anota en el pedido, con el costo del envío.',
-        ojo: 'Esto crea un envío de verdad. Con contraentrega no te cobran por adelantado: la transportadora cobra en la puerta y te gira lo recogido menos lo suyo.',
+        ojo: 'Desde este clic 99envios ya le avisa a la clienta por WhatsApp de que su envío existe. Pídela cuando la pieza esté lista para salir, no antes. Con contraentrega no te cobran por adelantado: la transportadora cobra en la puerta y te gira lo recogido menos lo suyo.',
     },
     {
         paso: '3. Imprime el rótulo y pégalo',
@@ -139,7 +139,7 @@ const DESPACHO = [
     },
     {
         paso: '6. Marca el pedido como enviado',
-        que: 'Con la guía puesta. Eso dispara el correo con el rastreo, y 99envios empieza a avisarle por WhatsApp en cada paso.',
+        que: 'Con la guía puesta. Eso es lo que dispara TU correo con el enlace de rastreo — los WhatsApp de 99envios ya venían saliendo desde que pediste la guía.',
     },
 ];
 
