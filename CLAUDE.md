@@ -264,6 +264,7 @@ Todas se crean en `20260228_esquema_base.sql` salvo donde se diga.
 | `vigilancia_ultima` | Fila id=1 con el último informe del vigía |
 | `envio_publico` | **Es una vista.** Expone sólo `abono_envio` y `tope_contraentrega` |
 | `pagos` | El libro de movimientos que lee `src/lib/caja.js`, llenado por el trigger `registrar_pago` (`20260822_libro_de_caja.sql`) |
+| `ciudades_envio` | Los 1.273 municipios con su código DANE, para 99envios (`20260824_las_ciudades_de_colombia.sql`) |
 
 **Ya no existen** `message_history`, `whatsapp_dedup`, `conversaciones` ni
 `whatsapp_conversaciones_respaldo`: borradas el 23-ago
@@ -366,6 +367,9 @@ nombre es el identificador que la base ya tiene anotado.
 | `20260824_lo_que_llega_a_la_cuenta.sql` | `neto_recibido_de`: el abono se cobra por Mercado Pago y los informes lo sumaban en bruto |
 | `20260824_el_embudo_se_ensanchaba.sql` | El embudo dibujaba 0 → 1 → 0: sus peldaños no eran subconjuntos |
 | `20260824_cancelar_el_duplicado_no_el_pedido_de_ayer.sql` | El disparador de duplicados no veía el mismo teléfono en otro formato, y mataba pedidos legítimos de días atrás |
+| `20260824_el_vigia_cuadra_la_caja.sql` | `caja_cuadra_con_la_regla()`: que el libro de pagos le haga caso a `recibido_de` |
+| `20260824_las_ciudades_de_colombia.sql` | Los 1.273 municipios con su código DANE, que es lo que pide 99envios |
+| `20260824_de_lo_que_escribe_la_clienta_al_codigo_dane.sql` | `codigo_dane()`: traduce la ciudad escrita a mano, y calla si es ambigua |
 
 `20260822_cerrar_conversaciones_a_anon.sql` cerró el fallo más grave de todos:
 `whatsapp_conversaciones` y `chat_takeover` tenían políticas
