@@ -9,13 +9,14 @@ import { NAV } from './adminNav.jsx';
 import '../../panel.css';
 
 import {
-    ACUSE, MESES_PURGA, fmtDate, fmtDateFull, fmtSeparador,
-    fmtTime, isSameDay, normalizePhone, sortMessages, truncate,
+    ACUSE, MESES_PURGA, fmtSeparador, fmtTime,
+    isSameDay, normalizePhone, sortMessages, truncate,
 } from './chat/comunes';
 import { AvisosDeChat, ChatErrorBoundary, ImagenDelChat, PieDeFoto, VisorDeFoto } from './chat/piezas';
 import { useAvisos, useFichaDelContacto, useSeleccion, useVisorDeFotos } from './chat/ganchos';
 import FichaDelContacto from './chat/FichaDelContacto';
 import SelectorDeImagen from './chat/SelectorDeImagen';
+import FilaDeContacto from './chat/FilaDeContacto';
 import BuscadorDeMensajes from './chat/BuscadorDeMensajes';
 
 
@@ -1091,140 +1092,29 @@ const ChatPanel = () => {
                                         : 'No hay conversaciones'}
                                 </div>
                             ) : (
-                                filteredContacts.map(c => {
-                                    const cTakeover = !!takeoverMap[c.phone_number];
-                                    const cResolved = !!statusMap[c.phone_number]?.is_resolved;
-                                    const cTags = tagsMap[c.phone_number] || [];
-                                    const marcada = !!lote.marcadas?.has(c.phone_number);
-                                    /* En modo selección la fila marca en vez de abrir:
-                                       tener que apuntar a una casilla de 16 px para
-                                       elegir siete conversaciones es puntería, no
-                                       interfaz. */
-                                    const alPulsar = () => (lote.marcadas ? lote.alternar(c.phone_number) : selectContact(c.phone_number));
-                                    return (
-                                    /* Deja de ser un <button> porque ahora lleva
-                                       otro botón dentro —el de los tres puntos— y un
-                                       botón dentro de otro no es HTML válido: el
-                                       navegador desarma la fila entera. Con role y
-                                       tabIndex sigue enfocándose y respondiendo a
-                                       Enter y a la barra espaciadora igual que antes. */
-                                    <div
+filteredContacts.map(c => (
+                                    <FilaDeContacto
                                         key={c.phone_number}
-                                        role="button"
-                                        tabIndex={0}
-                                        aria-pressed={lote.marcadas ? marcada : undefined}
-                                        className={`chat-contact-item ${activeContact === c.phone_number && !lote.marcadas ? 'chat-contact-item--active' : ''} ${cTakeover ? 'chat-contact-item--takeover' : ''} ${(c.unread || 0) > 0 ? 'chat-contact-item--unread' : ''} ${marcada ? 'chat-contact-item--marcada' : ''}`}
-                                        onClick={alPulsar}
-                                        onKeyDown={e => {
-                                            if (e.key === 'Enter' || e.key === ' ') {
-                                                e.preventDefault();
-                                                alPulsar();
-                                            }
-                                        }}
-                                    >
-                                        {lote.marcadas && (
-                                            <input
-                                                type="checkbox"
-                                                className="chat-contact-casilla"
-                                                checked={marcada}
-                                                tabIndex={-1}
-                                                aria-hidden="true"
-                                                onChange={() => lote.alternar(c.phone_number)}
-                                                onClick={e => e.stopPropagation()}
-                                            />
-                                        )}
-                                        <div className="chat-contact-avatar">
-                                            {c.customer_name ? c.customer_name[0].toUpperCase() : (
-                                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                                            )}
-                                            {cTakeover && <span className="chat-contact-takeover-dot" />}
-                                            {cResolved && !cTakeover && <span className="chat-contact-resolved-dot" title="Resuelto">✓</span>}
-                                        </div>
-                                        <div className="chat-contact-info">
-                                            <div className="chat-contact-top">
-                                                <span className={`chat-contact-name ${(c.unread || 0) > 0 ? 'chat-contact-name--unread' : ''}`}>
-                                                    {c.customer_name || c.phone_number}
-                                                </span>
-                                                {cTakeover && <span className="chat-takeover-badge">MANUAL</span>}
-                                                <span className="chat-contact-time">
-                                                    {contactFilter === 'purgar' ? fmtDateFull(c.last_time) : fmtDate(c.last_time)}
-                                                </span>
-                                            </div>
-                                            <div className="chat-contact-preview">
-                                                <span>{truncate(c.last_message, 45)}</span>
-                                            </div>
-                                            {cTags.length > 0 && (
-                                                <div className="chat-contact-tags">
-                                                    {cTags.slice(0, 3).map(t => (
-                                                        <span key={t.id} className="chat-tag-pill" style={{ '--tag-color': t.color }}>{t.tag_name}</span>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
-                                        {(c.unread || 0) > 0
-                                            ? <span className="chat-unread-badge">{c.unread}</span>
-                                            : c.last_role === 'assistant' && !cTakeover && <span className="chat-contact-ia">IA</span>}
-
-                                        {/* Archivar y eliminar, en la fila. Antes había que
-                                            abrir el chat y entrar al menú de exportar para
-                                            encontrar el borrado; aquí está donde se mira la
-                                            lista, que es donde se decide de qué sobra.
-
-                                            Se calla mientras hay una selección abierta: dos
-                                            formas de borrar la misma fila, una para esta y
-                                            otra para el lote, es una invitación a equivocarse. */}
-                                        {!lote.marcadas && (
-                                        <div
-                                            className="chat-contact-menu"
-                                            ref={menuFila?.phone === c.phone_number ? menuFilaRef : null}
-                                            onClick={e => e.stopPropagation()}
-                                        >
-                                            <button
-                                                type="button"
-                                                className={`chat-contact-menu-btn ${menuFila?.phone === c.phone_number ? 'chat-contact-menu-btn--abierto' : ''}`}
-                                                aria-label={`Opciones de ${c.customer_name || c.phone_number}`}
-                                                aria-expanded={menuFila?.phone === c.phone_number}
-                                                onClick={e => {
-                                                    if (menuFila?.phone === c.phone_number) { setMenuFila(null); return; }
-                                                    /* La lista tiene su propio scroll, así que un menú
-                                                       que se abre hacia abajo en la última fila queda
-                                                       cortado. Si no cabe, se abre hacia arriba. */
-                                                    const lista = e.currentTarget.closest('.chat-contacts-list');
-                                                    const fondo = e.currentTarget.getBoundingClientRect().bottom;
-                                                    const cabe = !lista || fondo + 150 < lista.getBoundingClientRect().bottom;
-                                                    setMenuFila({ phone: c.phone_number, arriba: !cabe });
-                                                }}
-                                            >
-                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/></svg>
-                                            </button>
-                                            {menuFila?.phone === c.phone_number && (
-                                                <div className={`chat-fila-menu ${menuFila.arriba ? 'chat-fila-menu--arriba' : ''}`}>
-                                                    {statusMap[c.phone_number]?.is_archived ? (
-                                                        <button type="button" onClick={() => { setMenuFila(null); handleUnarchive(c.phone_number); }}>
-                                                            Sacar del archivo
-                                                        </button>
-                                                    ) : (
-                                                        <button type="button" onClick={() => { setMenuFila(null); setConfirmArchive(c.phone_number); }}>
-                                                            Archivar
-                                                        </button>
-                                                    )}
-                                                    <button type="button" onClick={() => { setMenuFila(null); handleToggleResolved(c.phone_number); }}>
-                                                        {cResolved ? 'Marcar sin resolver' : 'Marcar resuelta'}
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        className="chat-fila-menu-danger"
-                                                        onClick={() => { setMenuFila(null); setABorrar([{ telefono: c.phone_number, nombre: c.customer_name }]); }}
-                                                    >
-                                                        Eliminar conversación
-                                                    </button>
-                                                </div>
-                                            )}
-                                        </div>
-                                        )}
-                                    </div>
-                                    );
-                                })
+                                        contacto={c}
+                                        activa={activeContact === c.phone_number}
+                                        marcada={!!lote.marcadas?.has(c.phone_number)}
+                                        enSeleccion={!!lote.marcadas}
+                                        enManual={!!takeoverMap[c.phone_number]}
+                                        resuelta={!!statusMap[c.phone_number]?.is_resolved}
+                                        estado={statusMap[c.phone_number]}
+                                        etiquetas={tagsMap[c.phone_number] || []}
+                                        filtro={contactFilter}
+                                        menu={menuFila}
+                                        menuRef={menuFilaRef}
+                                        setMenu={setMenuFila}
+                                        onAbrir={selectContact}
+                                        onAlternar={lote.alternar}
+                                        onAlternarResuelta={handleToggleResolved}
+                                        onDesarchivar={handleUnarchive}
+                                        onPedirArchivado={setConfirmArchive}
+                                        onPedirBorrado={setABorrar}
+                                    />
+                                ))
                             )}
                         </div>
 

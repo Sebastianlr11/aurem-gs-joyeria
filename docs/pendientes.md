@@ -1225,3 +1225,29 @@ cambió **dentro de los nombres de clase CSS** —`chat-seleccion-barra` quedó 
 lo ven: son cadenas. Apareció al comprobar en el navegador que la barra seguía teniendo
 estilo. Desde entonces, cada tramo se cierra comprobando que **toda clase del JSX existe en
 el CSS**.
+
+**Sexto tramo: 1.603 → 1.493 líneas.** Sale la fila de la lista de conversaciones, 122
+líneas que vivían **dentro de un `.map()`** — que es el peor sitio posible para algo así:
+para leer la lista había que leer entera una fila, y para leer la fila había que llevar en
+la cabeza el estado de todo el panel.
+
+Recibe dieciocho props, y aquí sí es un aviso y no una defensa: es el componente con más
+props de los seis, y la mitad son devoluciones de llamada del menú de la fila —archivar,
+desarchivar, resolver, borrar—. Si algún día ese menú crece, lo suyo es que salga aparte
+antes que seguir alargando la lista.
+
+Dos cosas quedaron escritas en el componente para que nadie las «arregle»:
+
+- **No es un `<button>` aunque se comporte como uno.** Lleva otro botón dentro —el de los
+  tres puntos— y un botón dentro de otro no es HTML válido: el navegador desarma la fila
+  entera. Con `role` y `tabIndex` sigue enfocándose y respondiendo a Enter y a la barra
+  espaciadora.
+- **En modo selección la fila marca en vez de abrir.** Tener que apuntar a una casilla de
+  16 px para elegir siete conversaciones es puntería, no interfaz.
+
+Comprobado en el navegador con la fila real: conserva sus estilos —`flex`, 14×18 de
+relleno, 75 px de alto—, `role="button"` y `tabIndex`, Enter abre la conversación, la fila
+se marca como activa, el menú de tres puntos ofrece las tres opciones de siempre; y en modo
+selección aparece la casilla, el menú se calla, pulsar marca en vez de abrir, `aria-pressed`
+responde y Cancelar lo devuelve todo. Más la comprobación nueva: **ninguna clase del JSX
+falta en el CSS.**
