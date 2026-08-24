@@ -271,6 +271,20 @@ export const ShipModal = ({ order, onClose, onConfirm }) => {
                                         </li>
                                     ))}
                                 </ul>
+                                {/* Las que no pudieron cotizar, con su motivo. No se
+                                    esconden: la primera versión las filtraba en silencio
+                                    y así se perdió de vista que Interrapidísimo —la más
+                                    barata— no estaba saliendo por un dato de la cuenta. */}
+                                {cotizacion.noCotizaron?.length > 0 && (
+                                    <ul className="envio-cotiza-fuera">
+                                        {cotizacion.noCotizaron.map(n => (
+                                            <li key={n.transportadora}>
+                                                <strong>{CARRIER_DE_99ENVIOS[n.transportadora] || n.transportadora}</strong>
+                                                {' '}no cotizó: {n.motivo}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
                                 <p className="envio-cotiza-pie">
                                     {cotizacion.contrapago
                                         ? <>El mensajero cobra <strong>${fmt(cotizacion.cobraElMensajero)}</strong> en la
