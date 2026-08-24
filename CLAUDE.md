@@ -365,6 +365,7 @@ nombre es el identificador que la base ya tiene anotado.
 | `20260824_las_cinco_que_faltaban.sql` | Las cinco RPC que sólo vivían en la base; tres de ellas mentían |
 | `20260824_lo_que_llega_a_la_cuenta.sql` | `neto_recibido_de`: el abono se cobra por Mercado Pago y los informes lo sumaban en bruto |
 | `20260824_el_embudo_se_ensanchaba.sql` | El embudo dibujaba 0 → 1 → 0: sus peldaños no eran subconjuntos |
+| `20260824_cancelar_el_duplicado_no_el_pedido_de_ayer.sql` | El disparador de duplicados no veía el mismo teléfono en otro formato, y mataba pedidos legítimos de días atrás |
 
 `20260822_cerrar_conversaciones_a_anon.sql` cerró el fallo más grave de todos:
 `whatsapp_conversaciones` y `chat_takeover` tenían políticas
@@ -647,5 +648,5 @@ hoy, decisiones tomadas y por qué, límites conocidos, cómo probarlo.
 - [`diseno-y-frontend.md`](docs/specs/diseno-y-frontend.md) — CSS, fuentes, animaciones
 
 **Y aparte:** [`docs/pendientes.md`](docs/pendientes.md) — los 40 hallazgos de la revisión,
-**39 cerrados** a 23 de agosto de 2026 —el que queda, el #40, espera una decisión de negocio—. Se conserva porque cada uno lleva escrito qué
+**todos cerrados** a 24 de agosto de 2026. Se conserva porque cada uno lleva escrito qué
 pasaba y por qué se decidió lo que se decidió; los specs enlazan a sus números.
