@@ -257,7 +257,12 @@ const OrdersSection = ({ orders, products, loading, onRefresh }) => {
            condicionado a que esté en null, y si ya se mandó responde
            {ok:true, repetido:true} sin tocar Meta ni TikTok. */
         const entraLaPlata = newStatus === 'pagado' || (isCOD(order) && newStatus === 'entregado');
-        if (entraLaPlata) await avisarConversion(order.id);
+        /* Nunca desde un pedido de prueba. El candado de verdad está en
+           `conversion-pedido`, que lo comprueba contra la base; esto sólo
+           evita el viaje. Se le habían contado tres ventas inventadas a Meta
+           y a TikTok, y con un píxel sin más historia eso era todo lo que la
+           plataforma sabía del negocio. */
+        if (entraLaPlata && !order.es_prueba) await avisarConversion(order.id);
         await fireWebhook(order, newStatus, extraFields);
         onRefresh();
     };
