@@ -179,7 +179,7 @@ Cosas que hay que saber antes de tocar el enrutado:
 |---|---|---|---|
 | `wa-webhook` | HMAC SHA-256 de Meta | Meta Cloud API, OpenRouter | `WA_APP_SECRET`, `WA_VERIFY_TOKEN`, `WA_TOKEN` |
 | `wa-send` | JWT de admin | Meta Cloud API | `WA_TOKEN` |
-| `create-preference` | ninguna (pública, CORS `*`) | Mercado Pago, Meta CAPI, TikTok | `MP_ACCESS_TOKEN`, `APP_URL` |
+| `create-preference` | ninguna (pública, CORS `*`) — **por eso el precio sale del catálogo, no del cuerpo** | Mercado Pago, Meta CAPI, TikTok | `MP_ACCESS_TOKEN`, `APP_URL` |
 | `mp-webhook` | **ninguna** | Mercado Pago, Meta, TikTok, `/api/correo` | `MP_ACCESS_TOKEN`, `CORREO_SECRETO` |
 | `conversion-pedido` | JWT de admin | Meta CAPI, TikTok | `META_CAPI_TOKEN`, `TIKTOK_ACCESS_TOKEN` |
 | `correo-despacho` | JWT de admin | `/api/correo` → Resend | `CORREO_SECRETO`, `APP_URL` |
@@ -647,6 +647,6 @@ hoy, decisiones tomadas y por qué, límites conocidos, cómo probarlo.
 - [`vigilancia.md`](docs/specs/vigilancia.md) — el vigía
 - [`diseno-y-frontend.md`](docs/specs/diseno-y-frontend.md) — CSS, fuentes, animaciones
 
-**Y aparte:** [`docs/pendientes.md`](docs/pendientes.md) — los 40 hallazgos de la revisión,
+**Y aparte:** [`docs/pendientes.md`](docs/pendientes.md) — los 41 hallazgos de la revisión,
 **todos cerrados** a 24 de agosto de 2026. Se conserva porque cada uno lleva escrito qué
 pasaba y por qué se decidió lo que se decidió; los specs enlazan a sus números.

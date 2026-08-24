@@ -67,6 +67,80 @@ Deno.serve(async (req: Request) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const supabase = createClient(supabaseUrl, supabaseKey)
 
+    /* ── EL PRECIO SALE DEL CATÁLOGO, NO DEL QUE PIDE ────────────────────
+    
+       Esta función es pública: CORS `*`, sin JWT, sin secreto. Y hasta el 24
+       de agosto de 2026 **el precio venía en el cuerpo de la petición y se
+       cobraba tal cual**. Cualquiera con el id de una pieza podía pedir un
+       anillo de $4.500.000 por $1.000 y recibir un enlace de Mercado Pago
+       legítimo por esa cantidad: el pedido entraba a `orders` con `amount`
+       falso, `mp-webhook` lo marcaba pagado, y en el panel se veía como una
+       venta normal. También servía para saltarse el tope de contraentrega,
+       que se compara contra ese mismo total.
+    
+       Nadie lo explotó —no hay pedidos reales todavía—, pero se encontró
+       justo antes de prender pauta, que es cuando el enlace del catálogo
+       empieza a circular.
+    
+       Valentina ya lo hacía bien: `crear_pedido` en `bot.ts` saca el precio
+       de la pieza del catálogo con el comentario «es la diferencia entre
+       cobrar lo que vale y cobrar lo que el modelo recordó». Era el checkout
+       del sitio el que mandaba el precio, y el servidor el que se fiaba.
+    
+       Ahora se consulta `products` y se decide aquí. El nombre también: iba
+       en el cuerpo y acaba en la plantilla de WhatsApp y en el correo. */
+    const { data: delCatalogo, error: errorCatalogo } = await supabase
+      .from('products')
+      .select('id, name, price')
+      .in('id', productItems.map((i) => i.id))
+
+    if (errorCatalogo) {
+      console.error('No se pudo consultar el catálogo:', errorCatalogo.message)
+      return new Response(
+        JSON.stringify({ error: 'No se pudo confirmar el precio' }),
+        { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    const catalogo = new Map((delCatalogo ?? []).map((p) => [String(p.id), p]))
+
+    /* El único descuento que existe: 2% por pagar en línea. La otra copia está
+       en `MP_DISCOUNT`, en `src/pages/ProductPage.jsx`, que es quien lo
+       anuncia. Si las dos se separan, aquí gana el catálogo y el cliente paga
+       el precio lleno — que es el fallo correcto: cobrar de más se reclama,
+       cobrar de menos se pierde y no se entera nadie. */
+    const DESCUENTO_EN_LINEA = 0.02
+
+    const desconocidas: string[] = []
+
+    for (const item of productItems) {
+      const pieza = catalogo.get(item.id)
+      if (!pieza) { desconocidas.push(item.name); continue }
+
+      const oficial = Number(pieza.price)
+      const minimo = Math.round(oficial * (1 - DESCUENTO_EN_LINEA))
+
+      if (!(item.price >= minimo && item.price <= oficial)) {
+        console.error(
+          `Precio fuera de rango para ${pieza.name}: pidieron $${item.price}, ` +
+          `el catálogo dice $${oficial}. Se cobra el del catálogo.`,
+        )
+        item.price = oficial
+      }
+
+      item.name = String(pieza.name)
+    }
+
+    /* Una pieza que no está en el catálogo no se cobra. Valentina nunca manda
+       una —`crear_pedido` se niega si no la encuentra— y el sitio tampoco. */
+    if (desconocidas.length) {
+      console.error('Piezas que no están en el catálogo:', desconocidas.join(', '))
+      return new Response(
+        JSON.stringify({ error: 'Alguna pieza ya no está disponible' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     // Calcular totales combinados
     const totalAmount = productItems.reduce((sum, i) => sum + i.price * i.quantity, 0)
 

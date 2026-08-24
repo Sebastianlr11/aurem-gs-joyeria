@@ -148,6 +148,24 @@ y darle el de la base sólo invitaría a usarlo.
 (`:94-102`): una lista cerrada de municipios de Colombia sería enorme y siempre
 incompleta.
 
+## El precio lo pone el catálogo
+
+`create-preference` es pública —CORS `*`, sin JWT, sin secreto— y hasta el 24 de agosto de
+2026 **cobraba el precio que viniera en el cuerpo de la petición**. Con el id de una pieza,
+que está en la URL del catálogo, se podía pedir un anillo de $4.500.000 por $1.000 y recibir
+un enlace de Mercado Pago legítimo por esa cantidad. Ver
+[pendientes #41](../pendientes.md).
+
+Ahora consulta `products` y decide ella: acepta el precio del catálogo o hasta un 2% menos
+—el único descuento que existe, el de pagar en línea— y fuera de ese rango cobra el del
+catálogo. **Falla hacia cobrar de más**, que se reclama, y no hacia cobrar de menos, que se
+pierde en silencio. El nombre de la pieza también sale del catálogo, porque acaba en la
+plantilla de WhatsApp y en el correo.
+
+El 2% vive en dos sitios: `MP_DISCOUNT` en `src/pages/ProductPage.jsx`, que es quien lo
+anuncia, y `DESCUENTO_EN_LINEA` en `create-preference`, que es quien lo consiente. Si se
+separan, gana el catálogo.
+
 ## Límites conocidos y pendientes
 
 - ~~**`mp-webhook` no valida la firma de Mercado Pago.**~~ Resuelto el 23 de agosto:

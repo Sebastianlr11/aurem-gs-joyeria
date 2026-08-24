@@ -1940,3 +1940,51 @@ del estado anterior, y en la tabla de pedidos eso se lee como que lleva días si
 Decidido por Sebastián el 24 de agosto de 2026 entre tres opciones: arreglar sólo el
 teléfono, acotar por tiempo, o dejarlo. La ventana era la que ataca el caso real sin comerse
 los pedidos dobles legítimos.
+
+---
+
+## 41. 🔴 ✅ Cualquiera podía comprar un anillo de $4.500.000 por $1.000 — resuelto
+
+`create-preference` es **pública**: CORS `*`, sin JWT, sin secreto. Y hasta el 24 de agosto
+de 2026 **el precio venía en el cuerpo de la petición y se cobraba tal cual**. No consultaba
+`products` ni una vez.
+
+Bastaba una petición con el id de una pieza —que está en la URL del catálogo, a la vista— y
+el precio que uno quisiera:
+
+```
+POST /functions/v1/create-preference
+{"product":{"id":"<uuid del catálogo>","name":"Anillo Esencia Imperial","price":1000}, ...}
+```
+
+Y devolvía un enlace de Mercado Pago **legítimo** por $1.000. El pedido entraba en `orders`
+con ese `amount`, `mp-webhook` lo marcaba pagado al cobrarse, y en el panel se veía como una
+venta normal. La misma puerta servía para **saltarse el tope de contraentrega**, que se
+compara contra ese mismo total, y para meter texto arbitrario en `product_name`, que acaba
+en la plantilla de WhatsApp y en el correo al cliente.
+
+**Valentina ya lo hacía bien.** `crear_pedido` en `bot.ts` saca el precio del catálogo, con
+el comentario «es la diferencia entre cobrar lo que vale y cobrar lo que el modelo
+recordó». Era el checkout del sitio el que mandaba el precio —porque aplica el 2% de
+descuento por pagar en línea— y el servidor el que se fiaba.
+
+### El arreglo
+
+`create-preference` consulta `products` por los ids que le pasen y decide ella:
+
+- El precio aceptable es el del catálogo, o hasta un 2% menos —el único descuento que
+  existe—. Fuera de ese rango, **se cobra el del catálogo** y queda en el log.
+- Falla hacia cobrar de más, no de menos: cobrar de más se reclama; cobrar de menos se
+  pierde y no se entera nadie.
+- El **nombre** también sale del catálogo.
+- Una pieza que no está en el catálogo no se cobra: se rechaza la petición entera.
+
+### Comprobado explotándolo
+
+Después de desplegar, se pidió el anillo de $4.500.000 por $1.000 contra producción, con un
+teléfono del equipo para que quedara marcado `es_prueba`. El pedido se creó por
+**$4.500.000**. El pedido de prueba quedó cancelado y anotado.
+
+No hubo daño: no hay clientes reales todavía y el catálogo lleva poco circulando. Se
+encontró revisando el panel antes de prender pauta, que es exactamente cuando el enlace del
+catálogo empieza a circular de verdad.
