@@ -240,3 +240,64 @@ export function aNumeroDeWhatsApp(telefono: unknown): string {
   if (digitos.length === 10 && digitos.startsWith('3')) return `57${digitos}`
   return digitos
 }
+
+/* ── Lo que el modelo pide al tomar un pedido ─────────────────────────── */
+
+export type PiezaPedida = { producto: string; talla: string | null; cantidad: number }
+
+/**
+ * Cuántas unidades se piden de una pieza.
+ *
+ * Se acota entre 1 y 20 porque lo que llega son argumentos de un modelo de
+ * lenguaje: un `cantidad: 1000` por alucinación crearía un pedido de cientos
+ * de millones que alguien tendría que cancelar a mano. Veinte es más de lo que
+ * este taller ha hecho nunca de una pieza y sigue siendo un número creíble
+ * para un mayorista.
+ *
+ * Cualquier cosa que no sea un número usable se lee como una: pedir una es lo
+ * que quiere decir alguien que no dijo cuántas.
+ */
+export function cantidadPedida(v: unknown): number {
+  const n = Number(v)
+  return Number.isFinite(n) && n > 0 ? Math.min(Math.floor(n), 20) : 1
+}
+
+/**
+ * La lista de piezas, venga como venga.
+ *
+ * Se acepta la lista y también el formato viejo de una pieza suelta, porque el
+ * modelo tiene el historial de la conversación delante y a veces repite la
+ * forma que vio antes. Rechazar un pedido bien tomado por la forma de los
+ * argumentos sería perder una venta por una tecnicidad.
+ */
+export function piezasDelPedido(args: any): PiezaPedida[] {
+  const crudas: any[] = Array.isArray(args?.piezas) && args.piezas.length
+    ? args.piezas
+    : args?.producto
+    ? [{ producto: args.producto, talla: args.talla, cantidad: args.cantidad }]
+    : []
+
+  return crudas
+    .filter((p) => String(p?.producto ?? '').trim())
+    .map((p) => ({
+      producto: String(p.producto).trim(),
+      talla: p?.talla ? String(p.talla).trim() : null,
+      cantidad: cantidadPedida(p?.cantidad),
+    }))
+}
+
+/**
+ * ¿Este pedido es contraentrega?
+ *
+ * La herramienta sólo admite «Mercado Pago» o «Contra entrega», pero un modelo
+ * no siempre respeta un enum, así que la regla está sesgada **a propósito**
+ * hacia el lado barato: hace falta la palabra «entrega» para que sea
+ * contraentrega, y cualquier otra cosa cae en pago en línea.
+ *
+ * Los dos errores no cuestan igual. Registrar como pago en línea algo que era
+ * contraentrega manda un enlace de más: molesto y recuperable en la misma
+ * conversación. Al revés se despacha una pieza sin haberla cobrado.
+ */
+export function esContraentrega(metodoPago: unknown): boolean {
+  return String(metodoPago ?? '').toLowerCase().includes('entrega')
+}
