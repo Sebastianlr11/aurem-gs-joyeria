@@ -282,16 +282,23 @@ ve.
 lo que cobra el mensajero. El panel no lo usa: aquí el envío se cubre con el abono. Es una
 palanca disponible el día que se decida repercutirlo.
 
-## Y el choque de los WhatsApp
+## El WhatsApp de despacho lo manda 99envios, no nosotros
 
-**99envios manda sus propios mensajes de WhatsApp** en cada cambio de estado del envío,
-gratis, si el interruptor de su plataforma está encendido. Nosotros mandamos
-`pedido_en_camino` al despachar.
+**Decidido el 24 de agosto de 2026.** Ellos mandan un mensaje en cada estado del envío
+—recogido, en reparto, entregado— y gratis. Nuestro `pedido_en_camino` decía una sola de
+esas cosas, al despachar, y cada envío gastaba una plantilla de Meta. Con los dos encendidos
+la clienta recibía **dos mensajes por lo mismo desde dos números distintos**.
 
-Con las dos cosas activas, a la clienta le llegan **dos mensajes por lo mismo, desde dos
-números distintos**. Hay que apagar unas o las otras — y la decisión no es obvia: los de
-ellos dan la trazabilidad completa y son gratis; el nuestro sale del número de la tienda,
-que es el que ella reconoce.
+Se apagó el nuestro: `PLANTILLA_EN_CAMINO`, que por defecto está en `false`. Es un
+interruptor, no un borrado — ponerlo en `true` lo revive.
+
+**La marca no desaparece.** Sigue saliendo el correo de despacho con el rastreo, y
+`pieza_en_fabricacion` desde el número de la tienda cuando el taller empieza, que es algo
+que 99envios no puede decir porque no lo sabe. Cada canal cuenta lo suyo: **la tienda lo del
+taller, ellos lo de la calle.**
+
+Las otras tres plantillas —`pieza_en_fabricacion`, `pago_pendiente`, `cotizacion_sin_cerrar`—
+no chocan con nada suyo y siguen igual.
 
 ## Límites conocidos y pendientes
 

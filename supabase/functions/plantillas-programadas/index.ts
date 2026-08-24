@@ -3,10 +3,12 @@
  *
  * Pasadas 24 horas del último mensaje del cliente, Meta no deja escribir texto
  * libre: sólo plantillas aprobadas. Esta función recorre la base buscando las
- * cuatro situaciones donde hace falta un aviso y no hay nadie mirando —una
- * pieza que entró al taller, un pedido despachado sin avisar, un cobro
- * generado sin pagar, una conversación que se enfrió— y manda la plantilla
- * que corresponde.
+ * situaciones donde hace falta un aviso y no hay nadie mirando —una pieza que
+ * entró al taller, un cobro generado sin pagar, una conversación que se
+ * enfrió— y manda la plantilla que corresponde.
+ *
+ * El aviso de despacho existe y está APAGADO: lo manda 99envios, gratis y en
+ * cada estado del envío. Ver `AVISO_EN_CAMINO` más abajo.
  *
  * Le escribe a clientes reales y una de las cuatro cuesta plata por mensaje. Los
  * frenos, entonces, no son opcionales:
@@ -26,6 +28,26 @@ import { aNumeroDeWhatsApp } from '../_shared/reglas.ts'
 import { rastreoDe } from '../_shared/envios.ts'
 
 const ACTIVAS = Deno.env.get('PLANTILLAS_ACTIVAS') === 'true'
+
+/* El aviso de «va en camino», apagado desde el 24 de agosto de 2026.
+   
+   No es que sobre: es que lo dice otro. 99envios manda sus propios WhatsApp en
+   cada estado del envío —recogido, en reparto, entregado— y gratis. El nuestro
+   decía una sola de esas cosas, al despachar, y cada envío gastaba una
+   plantilla de Meta. Con los dos encendidos la clienta recibía **dos mensajes
+   por lo mismo desde dos números distintos**.
+   
+   Se apaga el nuestro y se quedan los suyos porque cubren más y no cuestan. La
+   marca no desaparece: sigue saliendo el correo de despacho con el rastreo, y
+   `pieza_en_fabricacion` desde el número de la tienda cuando el taller empieza
+   —que es algo que ellos no pueden decir porque no lo saben—.
+   
+   Así cada canal cuenta lo suyo: la tienda lo del taller, ellos lo de la calle.
+   
+   Es un interruptor, no un borrado: `PLANTILLA_EN_CAMINO=true` la revive el día
+   que se decida al revés. Las otras tres plantillas no chocan con nada suyo y
+   siguen igual. */
+const AVISO_EN_CAMINO = Deno.env.get('PLANTILLA_EN_CAMINO') === 'true'
 
 /* Cuántas de reactivación como máximo por día. Es la única que se cobra
    siempre, y sin tope un error de consulta se convierte en una factura. */
@@ -219,6 +241,8 @@ async function enFabricacion(): Promise<Envio[]> {
    vio. Se busca hacia atrás dos días y no más, para que una primera corrida
    no despierte pedidos viejos. */
 async function despachados(): Promise<Envio[]> {
+  if (!AVISO_EN_CAMINO) return []
+
   const { data } = await admin()
     .from('orders')
     .select('id, customer_name, customer_phone, product_name, tracking_number, carrier, status_updated_at')
