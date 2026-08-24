@@ -5594,10 +5594,17 @@
   cursor: default;
 }
 
-.chat-bubble--assistant .chat-delivery-status--read,
-.chat-bubble--admin .chat-delivery-status--read {
-  color: var(--oro-luz);
-}
+/* El leído es el único acuse que se distingue, y hasta el 23 de agosto de 2026
+   no se distinguía: el selector pedía que el acuse fuera hija de la burbuja y
+   vive en `.chat-bubble-time`, que es HERMANA. Nunca aplicó.
+
+   No se veía porque el leído era azul de otra paleta, y al unificar los acuses
+   en el tono discreto se quedó igual que los demás — o sea que el arreglo de
+   los colores destapó un selector que llevaba roto desde que se escribió.
+
+   Va en `--oro-ink` y no en `--oro-luz`: el acuse se pinta sobre el fondo claro
+   del hilo, y el oro claro es para sobre cacao. */
+.chat-delivery-status--read { color: var(--oro-ink); }
 
 .chat-delivery-status--sending { opacity: 0.5; }
 
