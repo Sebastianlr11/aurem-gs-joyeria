@@ -165,6 +165,21 @@ conflicto, pero rompe el "todos los tokens en un sitio".
   logotipo.
 - **Voz**: español de Colombia, botones que nombran la acción, sólo lo verificable.
 
+## La caché de los assets
+
+`vercel.json` sirve `/assets/*` con `max-age=31536000, immutable` — un año. Se puede porque
+esos archivos llevan **el hash del contenido en el nombre**: si el contenido cambia, cambia
+la URL, así que no hay forma de servir algo viejo. `index.html` se queda sin caché, para que
+un despliegue se vea al instante.
+
+Antes de eso, Vercel servía **todo** con `max-age=0, must-revalidate`, incluidos el bundle y
+las fuentes. Cada visita revalidaba 160 KiB que ya estaban en el disco del visitante.
+
+**`vercel.json` no admite comentarios ni claves inventadas.** El primer intento llevaba una
+clave `_comentario` con la explicación de arriba, y Vercel **rechazó el despliegue entero
+antes de compilar** — sin logs de build, porque nunca llegó a haber build. Es JSON estricto
+con un esquema cerrado: lo que haya que explicar, se explica aquí.
+
 ## Límites conocidos y pendientes
 
 - ~~**El titular de la portada sale en negrita sintética**~~ — corregido el 23 de agosto de

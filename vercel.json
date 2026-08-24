@@ -1,25 +1,21 @@
 {
-  "_comentario": [
-    "Las cabeceras de caché. Sin ellas Vercel servía TODO con",
-    "'max-age=0, must-revalidate' — incluidos los archivos que llevan el hash",
-    "del contenido en el nombre y que, por construcción, no pueden cambiar.",
-    "Cada visita revalidaba 160 KiB que ya estaban en el disco del visitante.",
-    "",
-    "Un año e immutable para /assets/: si el contenido cambia, cambia la URL,",
-    "así que no hay forma de servir algo viejo. index.html se queda sin caché",
-    "a propósito, para que un despliegue se vea al instante."
-  ],
   "headers": [
     {
       "source": "/assets/(.*)",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
       ]
     },
     {
-      "source": "/(.*).(svg|png|jpg|jpeg|webp|ico)",
+      "source": "/(.*)\\.(svg|png|jpg|jpeg|webp|ico|woff2)",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=604800" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=604800"
+        }
       ]
     }
   ],
