@@ -31,10 +31,18 @@ desplegar nada**. Precio del oro, políticas, cifras de contraentrega, administr
 ### La guía del circuito
 
 Va la primera de la pantalla y **no escribe nada**: explica qué botón se oprime en cada
-caso y qué pasa al oprimirlo, para quien entre al panel sin conocer el negocio. No tiene
-texto propio — arma los dos caminos llamando a `queFalta()` y `loQuePasa()` de
+caso y qué pasa al oprimirlo, para quien entre al panel sin conocer el negocio. Los dos
+caminos no tienen texto propio — se arman llamando a `queFalta()` y `loQuePasa()` de
 `src/lib/circuito.js` con un pedido de ejemplo, que son las mismas frases que se ven en
 Pedidos y en el diálogo de confirmar. Ver [admin-pedidos.md](admin-pedidos.md).
+
+**Y trae el despacho paso a paso**, que es lo único de la guía con texto propio y tiene
+motivo: es el tramo con más manos fuera del panel —la transportadora, la plataforma de
+99envios, el camión— y el que más veces deja un paquete quieto por algo que no está escrito
+en ninguna pantalla. Los seis pasos incluyen los que ocurren **fuera** del panel: imprimir
+el rótulo, conseguir que lo recojan y firmar el manifiesto. Están aquí porque quien despacha
+tiene el panel abierto, no el repositorio. Ver
+[envios-99envios.md](envios-99envios.md).
 
 ### Tablas
 

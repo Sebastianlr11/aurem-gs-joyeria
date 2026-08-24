@@ -110,6 +110,39 @@ const SALIDAS = [
     },
 ];
 
+/* Los pasos del despacho, incluidos los que ocurren fuera del panel. Están
+   aquí y no sólo en la spec porque quien despacha tiene el panel abierto, no
+   el repositorio. */
+const DESPACHO = [
+    {
+        paso: '1. Mira cuánto cuesta',
+        que: 'El botón «Cuánto cuesta mandarlo» pregunta a las cinco transportadoras y las ordena de barata a cara. Elegir una rellena la transportadora.',
+        ojo: 'Envía no recoge un envío suelto: pide dos o más. Sale avisado en la lista.',
+    },
+    {
+        paso: '2. Pide la guía',
+        que: '«Pedir la guía a X» la genera en 99envios y la anota en el pedido, con el costo del envío.',
+        ojo: 'Esto crea un envío de verdad. Con contraentrega no te cobran por adelantado: la transportadora cobra en la puerta y te gira lo recogido menos lo suyo.',
+    },
+    {
+        paso: '3. Imprime el rótulo y pégalo',
+        que: 'El PDF de la guía se descarga desde 99envios, en «Envíos completos» → «Solicitar PDF».',
+    },
+    {
+        paso: '4. Consigue que la recojan',
+        que: 'Con Coordinadora y TCC se pide sola, si tienes «solicitud automática» encendida en 99envios. Con Interrapidísimo, Servientrega y Envía entras a 99envios → Recolección, marcas las guías y pides el camión.',
+        ojo: 'Antes de las 11:30 de la mañana el camión pasa esa misma tarde. Después, puede pasar esa tarde o al día siguiente. También puedes llevar los paquetes a un punto de la transportadora.',
+    },
+    {
+        paso: '5. Genera el manifiesto',
+        que: 'En 99envios. Es la lista de lo que entregas, y el mensajero te la firma: es tu prueba de que los paquetes salieron.',
+    },
+    {
+        paso: '6. Marca el pedido como enviado',
+        que: 'Con la guía puesta. Eso dispara el correo con el rastreo, y 99envios empieza a avisarle por WhatsApp en cada paso.',
+    },
+];
+
 const Paso = ({ paso, ejemplo }) => {
     const pasa = paso.boton ? loQuePasa({ ...ejemplo, status: paso.desde }, paso.estado) : null;
     return (
@@ -158,6 +191,26 @@ const GuiaDelCircuito = () => (
                 </section>
             ))}
         </div>
+
+        {/* El despacho en detalle. Es el paso con más manos fuera del panel
+            —la transportadora, su plataforma, el camión— y el que más veces
+            deja un paquete quieto por algo que nadie escribió en ningún sitio. */}
+        <section className="guia-camino guia-camino--despacho">
+            <h4 className="guia-camino-titulo">Despachar, paso a paso</h4>
+            <p className="guia-camino-nota">
+                Todo esto pasa dentro del botón «Marcar enviado», salvo lo que diga
+                que se hace en 99envios.
+            </p>
+            <ol className="guia-despacho">
+                {DESPACHO.map(p => (
+                    <li key={p.paso}>
+                        <span className="guia-despacho-paso">{p.paso}</span>
+                        <p className="guia-despacho-que">{p.que}</p>
+                        {p.ojo && <p className="guia-despacho-ojo">{p.ojo}</p>}
+                    </li>
+                ))}
+            </ol>
+        </section>
 
         <section className="guia-camino guia-camino--salidas">
             <h4 className="guia-camino-titulo">Cuando no sale bien</h4>
