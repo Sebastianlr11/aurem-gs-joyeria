@@ -28,6 +28,18 @@ const RASTREO: Record<string, { url: string; corto: string }> = {
     url: 'https://coordinadora.com/rastreo/',
     corto: 'coordinadora.com',
   },
+  /* Las dos que trae 99envios y el panel no conocía. Comprobadas con curl el
+     24 de agosto de 2026, por lo de siempre: la primera vez que puse estas
+     direcciones de memoria, dos de tres daban 404 — y ese enlace lo pulsa una
+     clienta que ya pagó. `envia.co` responde, `www.envia.co` no. */
+  tcc: {
+    url: 'https://www.tcc.com.co/rastrear-envio/',
+    corto: 'tcc.com.co',
+  },
+  envia: {
+    url: 'https://envia.co/rastreo',
+    corto: 'envia.co',
+  },
 }
 
 const sinTildes = (s: string) =>

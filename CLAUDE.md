@@ -184,6 +184,7 @@ Cosas que hay que saber antes de tocar el enrutado:
 | `conversion-pedido` | JWT de admin | Meta CAPI, TikTok | `META_CAPI_TOKEN`, `TIKTOK_ACCESS_TOKEN` |
 | `correo-despacho` | JWT de admin | `/api/correo` → Resend | `CORREO_SECRETO`, `APP_URL` |
 | `plantillas-programadas` | `x-cron-secreto` desde BD | Meta Cloud API | `PLANTILLAS_ACTIVAS` |
+| `cotizar-envio` | JWT de admin | 99envios | `ENVIOS99_EMAIL`, `ENVIOS99_PASSWORD`, `ENVIOS99_URL` |
 | `vigilancia` | `x-cron-secreto` desde BD | HTTP checks, `/api/correo` | `CORREO_SECRETO`, `APP_URL` |
 | `create-admin` | JWT con `app_metadata.rol = 'dueño'` | Supabase Auth Admin | `SUPABASE_SERVICE_ROLE_KEY` |
 
@@ -397,7 +398,8 @@ en local los píxeles quedan apagados y no ensucian la medición.
 `SUPABASE_SERVICE_ROLE_KEY`, `WA_TOKEN`, `WA_PHONE_NUMBER_ID`, `WA_APP_SECRET`,
 `WA_VERIFY_TOKEN`, `MP_ACCESS_TOKEN`, `OPENROUTER_API_KEY`, `OPENROUTER_MODEL`,
 `OPENROUTER_VISION_MODEL`, `OPENROUTER_AUDIO_MODEL`, `META_PIXEL_ID`, `META_CAPI_TOKEN`,
-`TIKTOK_PIXEL_ID`, `TIKTOK_ACCESS_TOKEN`, `APP_URL`, `PLANTILLAS_ACTIVAS`, `CORREO_SECRETO`
+`TIKTOK_PIXEL_ID`, `TIKTOK_ACCESS_TOKEN`, `APP_URL`, `PLANTILLAS_ACTIVAS`, `CORREO_SECRETO`,
+`ENVIOS99_EMAIL`, `ENVIOS99_PASSWORD`, `ENVIOS99_URL`
 
 Todo lo que empieza por `VITE_` **acaba dentro del bundle público**. La anon key de
 Supabase es visible para cualquiera: la seguridad real depende enteramente de RLS.
@@ -649,6 +651,7 @@ hoy, decisiones tomadas y por qué, límites conocidos, cómo probarlo.
 - [`atribucion-y-pixeles.md`](docs/specs/atribucion-y-pixeles.md) — medición Meta y TikTok
 - [`seo-y-compartir.md`](docs/specs/seo-y-compartir.md) — meta tags, JSON-LD, prerender
 - [`vigilancia.md`](docs/specs/vigilancia.md) — el vigía
+- [`envios-99envios.md`](docs/specs/envios-99envios.md) — cotizar el envío con las cinco transportadoras
 - [`diseno-y-frontend.md`](docs/specs/diseno-y-frontend.md) — CSS, fuentes, animaciones
 
 **Y aparte:** [`docs/pendientes.md`](docs/pendientes.md) — los 41 hallazgos de la revisión,

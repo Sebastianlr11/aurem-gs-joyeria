@@ -13,7 +13,21 @@
  */
 import { supabase } from '../../../lib/supabase';
 
-export const CARRIERS = ['Servientrega', 'Interrapidisimo', 'Coordinadora', 'Otro'];
+/* Las cinco que trae 99envios, más «Otro» para lo que se despache por fuera.
+   TCC y Envía se añadieron el 24 de agosto de 2026: sin ellas, despachar por
+   ahí obligaba a poner «Otro», y con «Otro» el WhatsApp de «va en camino» NO
+   se manda —su texto promete un sitio donde seguir el envío—. */
+export const CARRIERS = ['Interrapidisimo', 'Coordinadora', 'Servientrega', 'TCC', 'Envia', 'Otro'];
+
+/* Cómo se llama cada una en la respuesta de 99envios. Ellos usan minúsculas y
+   sin tildes; el panel las escribe como se leen. */
+export const CARRIER_DE_99ENVIOS = {
+    interrapidisimo: 'Interrapidisimo',
+    coordinadora: 'Coordinadora',
+    servientrega: 'Servientrega',
+    tcc: 'TCC',
+    envia: 'Envia',
+};
 
 /* Pedidos que cuentan como venta hecha: el cliente se comprometió y el
    pedido avanza. OJO: esto NO es plata recibida. En contraentrega un pedido
