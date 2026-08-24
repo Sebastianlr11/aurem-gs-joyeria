@@ -58,8 +58,13 @@ export function loQuePasa(pedido, destino) {
                 titulo: 'Marcar como enviado',
                 consecuencias: [
                     'Se le manda el correo con el enlace de rastreo',
-                    'Le llega un WhatsApp diciendo que va en camino',
+                    /* El aviso por WhatsApp del despacho lo manda 99envios desde
+                       el 24 de agosto de 2026, no nosotros: cubre cada paso del
+                       envío y no cuesta. Ver `docs/specs/envios-99envios.md`. */
+                    '99envios le avisa por WhatsApp en cada paso: recogido, en camino, entregado',
                     ...(cod ? [`Sigue faltando cobrar ${pesos(falta)} en la puerta`] : []),
+                    /* Lo que más se olvida, y deja el paquete quieto. */
+                    'Falta que la transportadora lo recoja: mira el aviso del diálogo de despacho',
                 ],
                 grave: false,
             };
