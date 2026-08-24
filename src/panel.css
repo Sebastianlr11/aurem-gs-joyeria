@@ -7810,3 +7810,13 @@
   font-size: 0.72rem; line-height: 1.45; color: var(--text-secondary);
 }
 .envio-cotiza-fuera strong { color: var(--ink); font-weight: 700; }
+
+/* El recordatorio de pedir la recogida. Sobre arena y con filete de oro
+   porque no es información: es algo que hay que ir a hacer, y si no se
+   hace el paquete no se mueve. */
+.envio-recogida {
+  margin-top: 0.6rem; padding: 0.6rem 0.7rem;
+  border-left: 2px solid var(--oro); border-radius: 2px;
+  background: var(--bg-arena);
+  font-size: 0.78rem; line-height: 1.5; color: var(--ink);
+}
