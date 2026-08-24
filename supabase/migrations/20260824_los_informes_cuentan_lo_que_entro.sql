@@ -1,7 +1,7 @@
 -- ============================================================================
 -- LOS INFORMES CUENTAN LO QUE ENTRÓ
 -- ============================================================================
--- 24 de agosto de 2026. Tramo 2 de ordenar el circuito del pedido.
+-- 23 de agosto de 2026 (el nombre del archivo va en UTC). Tramo 2 de ordenar el circuito del pedido.
 --
 -- Al añadir `confirmado` y `devuelto` había que revisar quién más decide qué
 -- es una venta. Aparecieron TRES copias más de la misma idea, y una mentía.

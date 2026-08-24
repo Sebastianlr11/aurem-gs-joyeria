@@ -1,7 +1,7 @@
 # Páginas de contenido — legales y guía de tallas
 
-> **Estado:** en producción · **con una contradicción legal sin resolver**
-> **Última revisión:** 2026-08-22
+> **Estado:** en producción
+> **Última revisión:** 2026-08-23
 
 ## Qué resuelve
 
@@ -64,15 +64,17 @@ lo correcto: el sistema efectivamente guarda todo eso, y Valentina procesa audio
 
 ## Límites conocidos y pendientes
 
-- 🔴 **Contradicción legal viva.** `src/components/Faq.jsx:21` promete **30 días** para
-  devolver; `src/pages/ReturnsPolicy.jsx:21` dice **5 días hábiles** (retracto de la Ley
-  1480), y `:36` los usa como causal de rechazo. El FAQ probablemente confunde el
-  **retracto** con la **garantía contra defectos** (`:60`, 30 días), que son cosas
-  distintas — [pendientes #8](../pendientes.md).
-- **La política de devoluciones está fechada en febrero de 2025**, mientras privacidad y
-  términos dicen agosto de 2026.
-- **Ninguna de las cuatro llama a `ponerMeta`**: heredan título, descripción y canónica de
-  la portada, aunque las cuatro están en el sitemap — [pendientes #14](../pendientes.md).
+- ~~**Contradicción legal viva**~~ — cerrada el 23 de agosto de 2026. El FAQ prometía 30
+  días para devolver y la política decía 5 días hábiles; obligaba el más generoso, así que
+  el sitio se comprometía a 30 sin quererlo. Se decidió el plazo legal —**5 días hábiles de
+  retracto**— y quedaron separados del todo el retracto y la garantía contra defectos, que
+  el FAQ mezclaba. Ver [pendientes #8](../pendientes.md).
+- ~~**La política fechada en febrero de 2025**~~ — al día, como las otras dos.
+- ~~**Ninguna llama a `ponerMeta`**~~ — las cuatro montan `<Meta>` (`src/components/Meta.jsx`),
+  con su propio título, descripción y canónica. Ver [pendientes #14](../pendientes.md).
+- Valentina responde de devoluciones desde `taller_conocimiento`, no desde estos archivos:
+  si cambia el plazo aquí, hay que cambiarlo también allá
+  (`20260823_conocimiento_devoluciones.sql`).
 
 ## Cómo probarlo
 

@@ -1,7 +1,7 @@
 # Panel — pedidos
 
 > **Estado:** en producción
-> **Última revisión:** 2026-08-22
+> **Última revisión:** 2026-08-23
 > **Ruta:** `/admin?tab=orders`
 
 ## Qué resuelve
@@ -15,7 +15,7 @@ en cada paso cuál es la siguiente acción** — que no es la misma según cómo
 
 `status` ∈ `pendiente | pagado | procesando | enviado | entregado | cancelado`
 
-La acción sugerida depende del método de pago (`Dashboard.jsx:26-40`):
+La acción sugerida depende del método de pago (`secciones/Pedidos.jsx`):
 
 | Constante | Para |
 |---|---|
@@ -28,13 +28,13 @@ En contraentrega, `enviado` **no** significa cobrado (ver [checkout-y-pagos.md](
 
 | Ruta | Qué |
 |---|---|
-| `src/pages/admin/Dashboard.jsx:1373` | `OrdersSection` |
-| `src/pages/admin/Dashboard.jsx:26-40` | Las dos tablas de acción sugerida |
-| `src/pages/admin/Dashboard.jsx:57` | `WA_MESSAGES` — mensaje de WhatsApp por estado |
-| `src/pages/admin/Dashboard.jsx:130` | `fireWebhook` — webhook propio configurable |
-| `src/pages/admin/Dashboard.jsx:244` | `ShipModal` — transportadora + número de guía |
-| `src/pages/admin/Dashboard.jsx:1778` | Borrar pedido |
-| `src/pages/admin/PedidoModal.jsx` | Registrar un pedido a mano (443 líneas) |
+| `src/pages/admin/secciones/Pedidos.jsx` | La pantalla entera |
+| `src/pages/admin/secciones/Pedidos.jsx` | `NEXT_ACTION_COD` y `NEXT_ACTION_PREPAID`, las dos tablas de acción sugerida |
+| `src/pages/admin/secciones/Pedidos.jsx` | `WA_MESSAGES` — mensaje de WhatsApp por estado |
+| `src/pages/admin/secciones/comunes.js` | `fireWebhook` — webhook propio configurable, y `despacharPedido` |
+| `src/pages/admin/secciones/piezas.jsx` | `ShipModal` y `StatusConfirmModal` |
+| `src/pages/admin/secciones/Pedidos.jsx` | Borrar pedido |
+| `src/pages/admin/PedidoModal.jsx` | Registrar un pedido a mano (527 líneas) |
 | `src/pages/admin/PedidoModal.jsx:32-58` | `PAGOS` — qué implica cada método |
 | `src/pages/admin/PedidoModal.jsx:189-203` | Inserta en `orders` y dispara `conversion-pedido` |
 | `supabase/functions/correo-despacho/index.ts` | Correo de "va en camino" |
@@ -146,7 +146,7 @@ de rechazar al pulsar. Y **explica qué implica cada método de pago** (`PAGOS`,
 la misma pantalla donde se elige: quien registra el pedido no tiene por qué recordar que
 contraentrega arrastra abono y tope.
 
-**Un pedido manual también dispara conversiones** (`:203` → `conversion-pedido`). Si no, las
+**Un pedido manual también dispara conversiones** (`secciones/comunes.js` → `conversion-pedido`). Si no, las
 ventas por WhatsApp —que son la mayoría— serían invisibles para Meta y TikTok, y el
 algoritmo optimizaría contra una fracción de la realidad.
 
@@ -166,8 +166,8 @@ herramientas externas sin tocar código.
 - Los estados no se validan como transiciones: se puede saltar de `pendiente` a `entregado`.
 - Marcar `devuelto` no toca el inventario ni devuelve nada al cliente en pago en línea: las
   dos cosas se dicen en el aviso, pero se hacen a mano.
-- `orders` **no está versionada** en migraciones más allá de las columnas añadidas
-  ([pendientes #4](../pendientes.md)).
+- ~~`orders` **no está versionada**~~ — se crea en `20260228_esquema_base.sql` desde el 23
+  de agosto de 2026 ([pendientes #4](../pendientes.md)).
 
 ## Cómo probarlo
 

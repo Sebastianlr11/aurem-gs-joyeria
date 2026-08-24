@@ -1,15 +1,21 @@
 # Specs de Aurem Gs Joyería
 
 Un documento por feature. Cada uno responde lo mismo: **qué resuelve**, **cómo funciona
-hoy** (flujo, archivos con ruta:línea, tablas, variables de entorno), **qué se decidió y
-por qué**, **qué límites tiene** y **cómo probarlo**.
+hoy** (flujo, archivos, tablas, variables de entorno), **qué se decidió y por qué**, **qué
+límites tiene** y **cómo probarlo**.
 
-Están escritos contra el código del **22 de agosto de 2026**. Las decisiones no son
+Están conciliados con el código del **23 de agosto de 2026**. Las decisiones no son
 invención: casi todas salen de los comentarios del propio código, que documentan el
 incidente que las motivó.
 
+> **Ya no se citan números de línea.** Se citaban, y el 23 de agosto `Dashboard.jsx` pasó
+> de 4.100 líneas a 248 y `ChatPanel.jsx` se partió en doce archivos: **más de cien
+> referencias quedaron apuntando a sitios que ya no existen**, todas a la vez y sin que
+> nada fallara. Una referencia falsa manda a buscar donde no está, que es peor que no
+> tener ninguna. Se nombran archivos y funciones, que sobreviven a un reordenamiento.
+
 > Para el mapa general del proyecto, empieza por [`CLAUDE.md`](../../CLAUDE.md).
-> Para lo que está roto o a medias, [`pendientes.md`](../pendientes.md).
+> Para el historial de lo que estaba roto y cómo se cerró, [`pendientes.md`](../pendientes.md).
 
 ---
 
@@ -21,14 +27,14 @@ incidente que las motivó.
 | [catalogo.md](catalogo.md) | Ver y filtrar todas las piezas | En producción |
 | [ficha-producto.md](ficha-producto.md) | La pantalla donde se decide la compra | En producción |
 | [checkout-y-pagos.md](checkout-y-pagos.md) | Cobrar: Mercado Pago y contraentrega con abono | En producción |
-| [paginas-de-contenido.md](paginas-de-contenido.md) | Políticas legales y guía de tallas | En producción · con contradicciones |
+| [paginas-de-contenido.md](paginas-de-contenido.md) | Políticas legales y guía de tallas | En producción |
 
 ## WhatsApp y Valentina
 
 | Spec | Qué resuelve | Estado |
 |---|---|---|
 | [chatbot-valentina.md](chatbot-valentina.md) | Atender, cotizar y vender por WhatsApp sin una persona delante | En producción |
-| [whatsapp-envio-y-plantillas.md](whatsapp-envio-y-plantillas.md) | Hablarle a un cliente: mensajes naturales, ventana de 24 h, plantillas | Parcial · plantillas programadas apagadas |
+| [whatsapp-envio-y-plantillas.md](whatsapp-envio-y-plantillas.md) | Hablarle a un cliente: mensajes naturales, ventana de 24 h, plantillas | En producción · encendidas desde el 22 de agosto |
 
 ## Panel de administración
 
@@ -46,12 +52,12 @@ incidente que las motivó.
 
 | Spec | Qué resuelve | Estado |
 |---|---|---|
-| [modelo-de-datos.md](modelo-de-datos.md) | Qué hay en la base y qué está versionado | **Sólo 4 de ~22 tablas en el repo** |
+| [modelo-de-datos.md](modelo-de-datos.md) | Qué hay en la base y qué está versionado | Las 16 tablas versionadas · 5 RPC de analítica, no |
 | [correos.md](correos.md) | Correos transaccionales con Resend | En producción |
 | [atribucion-y-pixeles.md](atribucion-y-pixeles.md) | Saber qué anuncio trajo cada venta | En producción |
 | [seo-y-compartir.md](seo-y-compartir.md) | Que Google indexe y que WhatsApp muestre la foto al compartir | En producción |
 | [vigilancia.md](vigilancia.md) | Enterarse de que algo se rompió sin mirar el panel | En producción |
-| [diseno-y-frontend.md](diseno-y-frontend.md) | CSS, fuentes, animaciones y la relación con DESIGN.md | En producción · deuda alta |
+| [diseno-y-frontend.md](diseno-y-frontend.md) | CSS, fuentes, animaciones y la relación con DESIGN.md | En producción · de 143 bloques pisados a 4 |
 
 ---
 
@@ -59,7 +65,7 @@ incidente que las motivó.
 
 - **Un cambio de feature actualiza su spec en el mismo commit.** Si no, esto se convierte
   en lo que era `CLAUDE.md` antes del 22 de agosto: un documento que miente con confianza.
-- **Los números y las rutas:línea envejecen.** Si abres un spec y la línea no cuadra,
-  arréglala de paso.
+- **Los números envejecen.** Si abres un spec y un recuento de líneas no cuadra, arréglalo
+  de paso. Y no vuelvas a meter `archivo.js:123`: no sobrevive al siguiente reordenamiento.
 - **Lo que no se puede deducir del código es lo valioso.** El flujo se lee en los
   archivos; el *porqué* sólo está aquí y en los comentarios.

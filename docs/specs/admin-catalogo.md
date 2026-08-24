@@ -1,7 +1,7 @@
 # Panel — catálogo de piezas
 
 > **Estado:** en producción
-> **Última revisión:** 2026-08-22
+> **Última revisión:** 2026-08-23
 > **Ruta:** `/admin?tab=products`
 
 ## Qué resuelve
@@ -15,12 +15,12 @@ sitios donde se usan**: la web y WhatsApp — que no aceptan el mismo formato.
 
 | Ruta | Qué |
 |---|---|
-| `src/pages/admin/Dashboard.jsx:1034` | `ProductsSection` — listado, filtros, paginación (12) |
-| `src/pages/admin/Dashboard.jsx:1070-1087` | Exportar el catálogo a CSV |
-| `src/pages/admin/ProductModal.jsx` | Alta y edición (605 líneas, 6 secciones con riel) |
+| `src/pages/admin/secciones/Productos.jsx` | El listado, los filtros y la paginación (12 por página) |
+| `src/pages/admin/secciones/Productos.jsx` | Exportar el catálogo a CSV |
+| `src/pages/admin/ProductModal.jsx` | Alta y edición (632 líneas, 6 secciones con riel) |
 | `src/pages/admin/ProductModal.jsx:33-44` | Corrección del `numeric` "550000.00" |
 | `src/pages/admin/ProductModal.jsx:172-185` | Subida optimizada en el navegador |
-| `src/pages/admin/EliminarPieza.jsx` | Borrado con fricción (183 líneas) |
+| `src/pages/admin/EliminarPieza.jsx` | Borrado con fricción (195 líneas) |
 | `src/lib/optimizarFoto.js` | `versionesDeFoto()` — WebP, gemela JPEG y copias de 400/800 |
 | `src/lib/fotoProducto.js` | La otra mitad: arma el `srcset` al pintar |
 
@@ -62,16 +62,16 @@ simplemente nunca llega. Fue caro de diagnosticar precisamente por eso.
 **La optimización ocurre en el navegador, antes de subir** (`optimizarFoto.js`):
 `createImageBitmap` + canvas, lado máximo 1600 px, calidad 0,82. Detalles que costaron:
 
-- `imageOrientation: 'from-image'` (`:59-62`) — sin esto, las fotos de celular salían
+- `imageOrientation: 'from-image'` — sin esto, las fotos de celular salían
   rotadas.
-- Los GIF se saltan (`:53`).
-- **Si la WebP no pesa menos que el original, se devuelve el original** (`:89`). Convertir
+- Los GIF se saltan.
+- **Si la WebP no pesa menos que el original, se devuelve el original**. Convertir
   por convertir a veces engorda el archivo.
 
 **Borrar una pieza pide escribir su referencia `AG-####`** (`EliminarPieza.jsx:25, 42`). No
 es ceremonia: un catálogo pequeño con nombres parecidos ("Anillo solitario", "Anillo
 solitario clásico") hace fácil borrar el que no era. Además **cuenta los pedidos vivos que
-contienen esa pieza, excluyendo `es_prueba`** (`:50-62`), y avisa antes.
+contienen esa pieza, excluyendo `es_prueba`**, y avisa antes.
 
 **El precio se limpia al cargar** (`ProductModal.jsx:33-44`): Postgres devuelve `numeric`
 como `"550000.00"` y el campo mostraba los decimales.

@@ -1,7 +1,7 @@
 # Modelo de datos
 
-> **Estado:** ⚠️ **sólo 4 de ~22 tablas versionadas en el repositorio**
-> **Última revisión:** 2026-08-22
+> **Estado:** en producción · las 16 tablas versionadas; cinco RPC de analítica, no
+> **Última revisión:** 2026-08-23
 
 ## Qué resuelve
 
@@ -15,28 +15,26 @@ Este documento es el mapa de la base. Y su hallazgo principal es incómodo:
 
 ### Qué está y qué no está versionado
 
+Reconciliado con producción el 23 de agosto de 2026: la base tiene 16 tablas y una vista,
+y **las 17 se crean desde el repositorio**.
+
 | Tabla / objeto | ¿En el repo? | Dónde |
 |---|---|---|
-| `products` | ✅ sí | `20260228_esquema_base.sql` |
+| `products`, `orders`, `order_items`, `customers`, `whatsapp_conversaciones`, `chat_takeover`, `chat_status`, `contact_tags`, `notes`, `gasto_pauta`, `ajustes_internos`, `vigilancia_ultima` y la vista `envio_publico` | ✅ | `20260228_esquema_base.sql` |
 | `taller_precios` | ✅ | `20260818_taller_precios.sql` |
 | `taller_conocimiento` | ✅ | `20260818_taller_conocimiento.sql` |
 | `plantillas_enviadas` | ✅ | `20260819_plantillas_programadas.sql` |
-| `orders` | ⚠️ sólo columnas añadidas y RLS | varias migraciones |
-| `whatsapp_conversaciones` | ⚠️ sólo columnas añadidas | `20260818_*`, `20260819_*` |
-| `order_items` | ❌ | — |
-| `customers` | ❌ | — |
-| `chat_takeover` | ❌ | — |
-| `chat_status` | ❌ | — |
-| `contact_tags` | ❌ | — |
-| `notes` | ❌ | — |
-| `gasto_pauta` | ❌ | — |
-| `ajustes_internos` | ❌ | — |
-| `vigilancia_ultima` | ❌ | — |
-| vista `envio_publico` | ❌ | — |
-| `pagos` | ❌ | El libro de movimientos de `caja.js`, llenado por el trigger `registrar_pago` |
-| **Las RPC de analítica** | ❌ | — |
+| `pagos` | ✅ | `20260822_libro_de_caja.sql` — el libro de movimientos de `caja.js`, llenado por el trigger `registrar_pago` |
 | `chats_sin_responder`, `conversaciones_purgables` | ✅ | migraciones del 22-ago |
+| `revenue_por_fuente`, `embudo_whatsapp` | ✅ | `20260824_los_informes_cuentan_lo_que_entro.sql` |
+| RLS, políticas y el inventario de funciones | ✅ | `20260823_superficie_de_seguridad.sql` (875 líneas, volcado de producción) |
 | Programación de `pg_cron` | ✅ | `20260823_el_reloj_de_la_base.sql` |
+| `analiticas_whatsapp`, `buscar_conversaciones`, `clientes_nuevos_vs_recurrentes`, `tendencia_comparativa`, `top_ciudades_envio` | ⚠️ **sólo sus permisos** | cuerpos únicamente en la base |
+
+`20260228_esquema_base.sql` va fechada antes que ninguna a propósito: las incrementales
+—`20260311_add_shipping_address.sql` hace un `ALTER` sobre `orders`— necesitan que su tabla
+exista. Está volcada del catálogo de Postgres, no escrita a mano, y verificada comparando
+el md5 de lo generado contra el de la base.
 
 ### Las tablas, por área
 
@@ -178,9 +176,14 @@ necesita ver más de lo que ve quien la llama, y por eso hay que fijar el `searc
 
 ## Límites conocidos y pendientes
 
-- 🟠 **La mayoría de las tablas y las RPC de analítica no están versionadas** —
-  [pendientes #4](../pendientes.md). Es el hallazgo de fondo: hizo invisibles seis tablas
-  y permitió que un archivo de migración contradijera a la base sin que nadie lo notara.
+- ~~**La mayoría de las tablas no están versionadas**~~ — las 16 lo están desde el 23 de
+  agosto de 2026, en `20260228_esquema_base.sql`, volcado del catálogo de Postgres y
+  fechado antes que ninguna para que las incrementales encuentren su tabla —
+  [pendientes #4](../pendientes.md).
+- 🟠 **Cinco RPC de analítica siguen sin cuerpo en el repositorio**: `analiticas_whatsapp`,
+  `buscar_conversaciones`, `clientes_nuevos_vs_recurrentes`, `tendencia_comparativa` y
+  `top_ciudades_envio`. Sus permisos sí están versionados. Un entorno nuevo levanta con el
+  panel entero salvo cinco gráficas de Reportes.
 - ~~**`supabase-schema.sql` está obsoleto**~~: borrado el 23 de agosto. Lo reemplaza
   `20260228_esquema_base.sql`, volcado del catálogo. Le faltaban 7 columnas que el frontend consume
   y su `CHECK` de categoría no incluye `Dijes`.

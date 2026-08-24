@@ -1,7 +1,7 @@
 /**
  * Qué está pasando con un pedido, y qué pasa si pulsas ese botón.
  *
- * Escrito el 24 de agosto de 2026 por un motivo que se dice mejor con un
+ * Escrito el 23 de agosto de 2026 por un motivo que se dice mejor con un
  * ejemplo: **«Marcar entregado» en un contraentrega no cambia un color, declara
  * que entró medio millón de pesos.** Hace que la venta cuente completa en los
  * informes y le dice a Meta y a TikTok que ese anuncio vendió. Quien lleve una

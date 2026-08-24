@@ -1,8 +1,13 @@
 # Panel — ajustes
 
 > **Estado:** en producción
-> **Última revisión:** 2026-08-22
-> **Ruta:** `/admin?tab=settings` · `src/pages/admin/Dashboard.jsx:3266`
+> **Última revisión:** 2026-08-23
+> **Ruta:** `/admin?tab=settings` · `src/pages/admin/secciones/Ajustes.jsx`
+
+> **Sin números de línea.** Los llevaba, y el 23 de agosto de 2026 `Dashboard.jsx` pasó de
+> 4.100 líneas a 248 al repartirse en `src/pages/admin/secciones/`. Todos apuntaban a
+> sitios que ya no existen. Se nombran archivos y funciones, que sobreviven a un
+> reordenamiento.
 
 ## Qué resuelve
 
@@ -16,12 +21,12 @@ desplegar nada**. Precio del oro, políticas, cifras de contraentrega, administr
 | Bloque | Componente | Escribe en |
 |---|---|---|
 | Guía del circuito de un pedido | `GuiaDelCircuito` | — (sólo lee `src/lib/circuito.js`) |
-| Precio del oro, recargo, gramos mínimos | `PrecioOroCard` (`:2931`) | `taller_precios` |
-| Base de conocimiento de Valentina | `ConocimientoCard` (`:3132`) | `taller_conocimiento` |
-| Administradores | `:3287-3300` | `auth.users` vía `create-admin` |
-| Webhook propio + prueba | `:3266+` | `localStorage` |
-| Respuestas rápidas del chat | `:3266+` | `localStorage` |
-| Sonido de notificación | `:3266+` | `localStorage` |
+| Precio del oro, recargo, gramos mínimos | `PrecioOroCard` | `taller_precios` |
+| Base de conocimiento de Valentina | `ConocimientoCard` | `taller_conocimiento` |
+| Administradores | `Ajustes.jsx` | `auth.users` vía `create-admin` |
+| Webhook propio + prueba | `Ajustes.jsx` | `localStorage` |
+| Respuestas rápidas del chat | `Ajustes.jsx` | `localStorage` |
+| Sonido de notificación | `Ajustes.jsx` | `localStorage` |
 
 ### La guía del circuito
 
@@ -42,7 +47,7 @@ envíos, garantía, plazos y estuche.
 
 ### Variables de entorno
 
-`VITE_SUPABASE_URL` (`:3289`) · `SUPABASE_SERVICE_ROLE_KEY` en `create-admin`.
+`VITE_SUPABASE_URL` · `SUPABASE_SERVICE_ROLE_KEY` en `create-admin`.
 
 ## Decisiones tomadas y por qué
 

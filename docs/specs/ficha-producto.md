@@ -1,8 +1,8 @@
 # Ficha de producto
 
 > **Estado:** en producción
-> **Última revisión:** 2026-08-22
-> **Ruta:** `/catalogo/:id` · `src/pages/ProductPage.jsx` (1.429 líneas)
+> **Última revisión:** 2026-08-23
+> **Ruta:** `/catalogo/:id` · `src/pages/ProductPage.jsx` (1.475 líneas)
 
 ## Qué resuelve
 

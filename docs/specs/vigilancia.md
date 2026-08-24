@@ -1,8 +1,8 @@
 # El vigía
 
 > **Estado:** en producción
-> **Última revisión:** 2026-08-22
-> **Dónde vive:** `supabase/functions/vigilancia/index.ts` (297 líneas)
+> **Última revisión:** 2026-08-23
+> **Dónde vive:** `supabase/functions/vigilancia/index.ts` (432 líneas)
 
 ## Qué resuelve
 
@@ -28,7 +28,7 @@ pg_cron cada hora en el minuto 30  ·  '30 * * * *'
 ```
 
 El Dashboard lee `vigilancia_ultima` y muestra las averías y el "Revisado hace X"
-(`Dashboard.jsx:517-519, 741-759`).
+(`secciones/Portada.jsx`).
 
 ### Qué comprueba
 

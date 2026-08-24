@@ -1,7 +1,7 @@
 -- ============================================================================
 -- CONFIRMADO Y DEVUELTO
 -- ============================================================================
--- 24 de agosto de 2026. El circuito de un pedido gana dos estados, y la regla
+-- 23 de agosto de 2026 (el nombre del archivo va en UTC). El circuito de un pedido gana dos estados, y la regla
 -- del dinero aprende los dos.
 --
 --   confirmado  la clienta abonó el envío y el taller no ha empezado

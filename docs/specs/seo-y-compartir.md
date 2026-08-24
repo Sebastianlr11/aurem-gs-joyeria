@@ -1,7 +1,7 @@
 # SEO y compartir
 
-> **Estado:** en producción · con incoherencias de contenido
-> **Última revisión:** 2026-08-22
+> **Estado:** en producción
+> **Última revisión:** 2026-08-23
 
 ## Qué resuelve
 
@@ -88,16 +88,15 @@ texto en Marcellus.
 
 ## Límites conocidos y pendientes
 
-- 🟡 **El JSON-LD de la portada contradice al sitio.** `Home.jsx:11-21` anuncia platino,
-  collares/pulseras/aretes y certificación incluida — las cuatro promesas ya retiradas — y
-  usa URLs **sin `www`**. Es lo que lee Google — [pendientes #9](../pendientes.md).
-- **Las 4 páginas legales no llaman a `ponerMeta`**: heredan título y canónica de la
-  portada aunque están en el sitemap — [pendientes #14](../pendientes.md).
-- **No hay ruta 404**, así que una URL inválida devuelve 200 con una página en blanco —
-  malo para el rastreo — [pendientes #13](../pendientes.md).
-- **`scripts/prerender.mjs` está huérfano** (201 líneas): no lo invoca ningún script de
-  `package.json`. Su función la asumió `api/ficha.js`, que resuelve lo mismo en caliente.
-  Candidato a borrar — [pendientes #22](../pendientes.md).
+- ~~**El JSON-LD de la portada contradice al sitio**~~ — corregido el 23 de agosto de 2026:
+  fuera platino, collares, pulseras y aretes, y las URLs con `www` como la canónica. El
+  comentario de `Home.jsx` deja escrito qué decía — [pendientes #9](../pendientes.md).
+- ~~**Las 4 páginas legales no ponen meta**~~ — las cuatro montan `<Meta>`, con su título,
+  su descripción y su canónica — [pendientes #14](../pendientes.md).
+- ~~**No hay ruta 404**~~ — `App.jsx` tiene `path="*"` con `NoEncontrado` dentro del layout
+  normal — [pendientes #13](../pendientes.md).
+- ~~**`scripts/prerender.mjs` está huérfano**~~ — borrado. Su función la asumió
+  `api/ficha.js`, que resuelve lo mismo en caliente — [pendientes #22](../pendientes.md).
 - `/confirmacion` no pone meta, pero está en `robots.txt` como `Disallow`, así que es
   aceptable.
 

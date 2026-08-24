@@ -1,7 +1,7 @@
 # WhatsApp — envío, ventana de 24 h y plantillas
 
-> **Estado:** en producción · **plantillas programadas apagadas por defecto**
-> **Última revisión:** 2026-08-22
+> **Estado:** en producción · **plantillas encendidas y mandando de verdad desde el 22 de agosto de 2026**
+> **Última revisión:** 2026-08-23
 > **Dónde vive:** `supabase/functions/_shared/wa.ts` (464 líneas), `wa-send`, `plantillas-programadas`
 
 ## Qué resuelve
@@ -36,7 +36,7 @@ impone Meta y que gobiernan todo el diseño:
 | `wa.ts` | `enviarTexto`, `enviarImagen`, `enviarPlantilla`, `ventanaAbierta`, `numeroPropioDe` |
 | `supabase/functions/wa-send/index.ts` | Envío manual desde el panel (JWT de admin) |
 | `supabase/functions/wa-webhook/index.ts:111-135` | Acuses de entrega |
-| `supabase/functions/plantillas-programadas/index.ts` | Avisos programados (395 líneas) |
+| `supabase/functions/plantillas-programadas/index.ts` | Avisos programados (504 líneas) |
 
 ### Tablas y columnas
 
@@ -82,8 +82,11 @@ persona (`20260819_plantillas_programadas.sql`). Un `UNIQUE` normal no sirve: **
 los NULL no colisionan entre sí**, así que un aviso sin pedido asociado se habría podido
 mandar infinitas veces.
 
-**`PLANTILLAS_ACTIVAS` está apagada por defecto.** Las plantillas cuestan dinero y se
-mandan a clientes reales. Un fallo aquí no se puede deshacer: el mensaje ya llegó.
+**`PLANTILLAS_ACTIVAS` viene apagada por defecto, y en producción está encendida** desde
+el 22 de agosto de 2026. Apagada, la función recorre todo el camino —candado incluido— y
+reporta qué mandaría sin mandar nada; es como se prueba sin riesgo. El valor por defecto es
+«apagado» porque las plantillas cuestan dinero y se mandan a clientes reales: un fallo aquí
+no se puede deshacer, el mensaje ya llegó.
 
 **El modo prueba puede quemar plantillas.** Hubo un incidente (`fix/modo-prueba-quema`): un
 pedido `es_prueba` disparaba una plantilla real y consumía el candado, de modo que el aviso
@@ -134,7 +137,7 @@ y sí quema el candado de `plantillas_enviadas`.
 | `cotizacion_sin_cerrar` | **Marketing** | Habló, se interesó en una pieza concreta y no volvió en 2 a 4 días | nombre · pieza |
 
 Las tres primeras se despertaron el 22 de agosto de 2026, cuando Meta las aprobó y se puso
-`PLANTILLAS_ACTIVAS=true`. La cuarta —**`pieza_en_fabricacion`, del 24 de agosto**— tapa el
+`PLANTILLAS_ACTIVAS=true`. La cuarta —**`pieza_en_fabricacion`, del 23 de agosto**— tapa el
 hueco de silencio del recorrido: la clienta abona el envío y lo siguiente que sabe es que el
 paquete ya salió, con tres o cuatro días sin noticias en medio, que es justo cuando alguien
 que le pagó por WhatsApp a una tienda que no conoce se pone nerviosa. Sale al marcar
@@ -149,7 +152,7 @@ intentó y no salió». **Cualquier tropiezo, o una plantilla todavía sin aprob
 definitivamente el aviso de ese pedido**: el cliente no se enteraba nunca y en la tabla sólo
 quedaba una fila con un error que nadie mira.
 
-Desde el 24 de agosto de 2026, **si Meta contesta que no, se suelta el candado** y la
+Desde el 23 de agosto de 2026, **si Meta contesta que no, se suelta el candado** y la
 siguiente corrida lo reintenta. La ventana de búsqueda de cada aviso —48 horas— acota el
 reintento. Si en cambio la petición ni siquiera obtiene respuesta —red, Meta caída—, el
 candado **no** se suelta: no se sabe si el mensaje salió, y un duplicado es peor que un

@@ -1,7 +1,7 @@
 # Atribución y píxeles
 
 > **Estado:** en producción
-> **Última revisión:** 2026-08-22
+> **Última revisión:** 2026-08-23
 
 ## Qué resuelve
 
@@ -46,7 +46,7 @@ pixelCompra(pedidoId) ─────────┐       → Meta CAPI + TikTo
 | `src/lib/pixeles.js:59-60` | `fbq('set','autoConfig',false,…)` **antes** del `init` |
 | `src/lib/pixeles.js:163-170` | Guardia anti-doble-conteo en `sessionStorage` |
 | `src/lib/pixeles.js:180, 185` | `eventID` / `event_id` para deduplicar |
-| `supabase/functions/_shared/conversiones.ts` | Meta CAPI y TikTok Events API (328 líneas) |
+| `supabase/functions/_shared/conversiones.ts` | Meta CAPI y TikTok Events API (393 líneas) |
 | `src/lib/whatsapp.js:32-38` | El `[ref: …]` escrito en el mensaje |
 
 ### Qué se guarda en `orders`

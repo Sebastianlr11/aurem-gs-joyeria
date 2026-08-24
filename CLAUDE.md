@@ -2,7 +2,7 @@
 
 Guía para Claude Code (claude.ai/code) al trabajar en este repositorio.
 
-> **Última conciliación con el código: 22 de agosto de 2026.**
+> **Última conciliación con el código: 23 de agosto de 2026.**
 > Si algo de este documento no cuadra con lo que ves en el código, gana el código —
 > y avísalo, porque significa que este archivo volvió a quedarse atrás.
 
@@ -39,7 +39,7 @@ npm run dev          # Vite en http://localhost:5173
 npm run build        # eslint && vitest && sitemap.mjs && correos.mjs && tsc -b && vite build
 npm run preview      # Sirve /dist
 npm run lint         # ESLint (sí corre en el build)
-npm test             # Vitest, una pasada (162 pruebas)
+npm test             # Vitest, una pasada (186 pruebas)
 npm run test:mirar   # Vitest en marcha, repitiendo al guardar
 
 npm run sitemap      # Regenera public/sitemap.xml desde Supabase
@@ -61,10 +61,17 @@ Tres advertencias sobre el build:
 
 ### Las pruebas
 
-Hay **162**: `dinero.test.js` y `caja.test.js` cubren las cuentas de plata,
-`fotosEnStorage.test.js` la deducción de qué archivos se borran,
-`chat/ganchos.test.js`, `chat/ficha.test.js` y `chat/seleccion.test.js` los ganchos del
-chat, y `supabase/functions/_shared/reglas.test.ts` las reglas de Valentina.
+Hay **186**, en doce archivos que viven al lado de lo que prueban:
+
+| Archivo | Qué fija |
+|---|---|
+| `src/lib/dinero.test.js` · `src/lib/caja.test.js` | Las cuentas de plata |
+| `src/lib/circuito.test.js` | Lo que el panel le dice a quien va a pulsar un botón |
+| `src/lib/talla.test.js` | Que la guía del sitio y Valentina den la misma talla |
+| `src/lib/fotosEnStorage.test.js` | Qué archivos se borran al borrar una pieza |
+| `src/pages/admin/chat/*.test.js(x)` | Los ganchos del chat, la ficha, la selección y el diálogo |
+| `supabase/functions/_shared/reglas.test.ts` | Las reglas de Valentina |
+| `supabase/functions/_shared/bucle.test.ts` | El bucle del agente, sin Deno y sin red |
 
 **Una de ellas no comprueba código, compara dos copias.** La talla de anillo está
 implementada dos veces —`src/lib/talla.js` para la guía del sitio y
@@ -101,8 +108,8 @@ se le pone jsdom a ese archivo.
 Este es el punto donde más se equivoca quien llega nuevo:
 
 > **El backend real NO está en `api/`.**
-> `api/` son 2 endpoints (≈220 líneas). La lógica de negocio son **9 Edge Functions de
-> Supabase en Deno + 6 módulos compartidos, ≈3.400 líneas**.
+> `api/` son 2 endpoints (221 líneas). La lógica de negocio son **9 Edge Functions de
+> Supabase en Deno + 8 módulos compartidos, ≈5.300 líneas**.
 
 | Plano | Dónde | Runtime | Qué hace |
 |---|---|---|---|
@@ -119,7 +126,8 @@ Stack real (lo que hay en `package.json`, ni más ni menos):
 - Supabase (Auth, Postgres, Storage, Realtime, Edge Functions)
 - Mercado Pago (`@mercadopago/sdk-react`)
 - Resend + React Email
-- **CSS plano en un solo archivo.** No hay Tailwind, ni CSS modules, ni preprocesador.
+- **CSS plano, escrito a mano, en dos archivos** (`src/index.css` y `src/panel.css`).
+  No hay Tailwind, ni CSS modules, ni preprocesador.
 - **No hay Framer Motion.** Se eliminó (~41 KB) y se reemplazó por `src/lib/aparecer.js`.
 
 ---
@@ -152,15 +160,16 @@ Cosas que hay que saber antes de tocar el enrutado:
   Ajustes **no son rutas**: son secciones del mismo `Dashboard`, conmutadas por estado y
   sincronizadas con `?tab=`. Los identificadores del parámetro están **en inglés**
   (`products`, `orders`, `customers`, `reports`, `notes`, `settings`), no en español.
-  Desde el 23-ago cada una vive en `src/pages/admin/secciones/`; en `Dashboard.jsx` (390
+  Desde el 23-ago cada una vive en `src/pages/admin/secciones/`; en `Dashboard.jsx` (248
   líneas) sólo queda el contenedor. Lo que comparten varias está en `secciones/comunes.js`
   (datos) y `secciones/piezas.jsx` (componentes) — separados porque
   `react-refresh/only-export-components` no deja mezclarlos.
 - **`capturarClic()` e `iniciarPixeles()` corren a nivel de módulo** (`App.jsx:24-25`),
   no dentro de un efecto. React ejecuta los efectos de los hijos antes que los del
   padre, y metidos en un efecto se perdía el primer `PageView` de cada carga.
-- **No hay ruta `*`.** Una URL inválida cae en el rewrite de `vercel.json` y renderiza
-  una página en blanco. Es un hueco conocido — ver `docs/pendientes.md`.
+- **Sí hay ruta `*`** (`App.jsx:135`), con `NoEncontrado` dentro del layout normal. Antes
+  no la había y una URL inválida caía en el rewrite de `vercel.json` y renderizaba una
+  página en blanco; se cerró el 23 de agosto de 2026.
 
 ---
 
@@ -181,11 +190,11 @@ Cosas que hay que saber antes de tocar el enrutado:
 Módulos compartidos en `supabase/functions/_shared/`:
 
 - `bot.ts` (974 l.) — Valentina: prompt, herramientas, escalada
-- `bucle.ts` (118 l.) — el bucle del agente, **con las dependencias inyectadas**: es lo que
+- `bucle.ts` (115 l.) — el bucle del agente, **con las dependencias inyectadas**: es lo que
   permite probarlo sin Deno, sin red y sin gastar un céntimo de modelo
 - `wa.ts` (464 l.) — envío a WhatsApp, troceado natural, indicador de "escribiendo", plantillas
 - `medios.ts` (221 l.) — transcripción de audio y descripción de imágenes
-- `conversiones.ts` (328 l.) — Meta CAPI y TikTok Events API server-side
+- `conversiones.ts` (393 l.) — Meta CAPI y TikTok Events API server-side
 - `reglas.ts` — la lógica de Valentina **sin nada de Deno dentro**: la talla, la cotización
   del oro, la atribución, los teléfonos y el parseo de lo que el modelo pide al tomar un
   pedido. Existe para poder probarla: son las tres cosas del
@@ -214,33 +223,41 @@ Los tres valores que necesitan —`url_funciones`, `clave_anon`, `cron_secreto`�
 
 ## 6. Modelo de datos
 
-> **Advertencia de gobernanza: sólo 4 de las ~22 tablas y ninguna de las RPC de analítica
-> están en `supabase/migrations/`.** El resto se creó a mano en el dashboard de Supabase.
-> **Un entorno nuevo no se puede reconstruir desde este repositorio.** Y las políticas RLS
-> que no están versionadas tampoco se revisan en un diff — que es cómo se colaron los dos
-> fallos de acceso público. Ver `docs/pendientes.md`.
+> **Las 16 tablas están versionadas desde el 23 de agosto de 2026.** Antes sólo había
+> migraciones incrementales —añadir una columna, cerrar una política— sobre tablas que
+> nunca se crearon aquí, y **un entorno nuevo ni siquiera arrancaba**:
+> `20260311_add_shipping_address.sql` hacía un `ALTER` sobre una `orders` inexistente.
+> `20260228_esquema_base.sql` las crea todas; va fechada antes que ninguna a propósito, y
+> está volcada del catálogo de Postgres, no escrita a mano.
+>
+> **Lo que sigue sin poder reconstruirse son cinco RPC de analítica** —`analiticas_whatsapp`,
+> `buscar_conversaciones`, `clientes_nuevos_vs_recurrentes`, `tendencia_comparativa` y
+> `top_ciudades_envio`—: sus permisos están versionados, sus cuerpos viven sólo en la base.
+> Un entorno nuevo levanta con el panel entero salvo cinco gráficas de Reportes.
 
 ### Tablas
 
-| Tabla | ¿Migración en repo? | Para qué |
-|---|---|---|
-| `products` | sí (`20260228_esquema_base.sql`) | Catálogo |
-| `orders` | parcial (sólo columnas añadidas) | Pedidos |
-| `order_items` | **no** | Piezas de un pedido multi-pieza |
-| `customers` | **no** | Clientes |
-| `whatsapp_conversaciones` | parcial | Todos los mensajes de WhatsApp |
-| `chat_takeover` | **no** | Cuándo una persona toma el control de un chat |
-| `chat_status` | **no** | Resuelta / archivada |
-| `contact_tags` | **no** | Etiquetas de contacto |
-| `notes` | **no** | Anotaciones internas |
-| `gasto_pauta` | **no** | Gasto de publicidad por día y canal |
-| `taller_precios` | sí | Fila única: oro, recargo, abono, tope, IVA de pauta |
-| `taller_conocimiento` | sí | Base de conocimiento editable de Valentina |
-| `plantillas_enviadas` | sí | Candado anti-duplicado de plantillas de WhatsApp |
-| `ajustes_internos` | **no** | Clave/valor: `cron_secreto`, `clave_anon`, `url_funciones`, `telefonos_avisos`, `contactos_equipo` |
-| `vigilancia_ultima` | **no** | Fila id=1 con el último informe del vigía |
-| `envio_publico` | **no** (es una vista) | Expone sólo `abono_envio` y `tope_contraentrega` |
-| `pagos` | **no** | El libro de movimientos que lee `src/lib/caja.js`. Lo llena el trigger `registrar_pago` |
+Todas se crean en `20260228_esquema_base.sql` salvo donde se diga.
+
+| Tabla | Para qué |
+|---|---|
+| `products` | Catálogo |
+| `orders` | Pedidos |
+| `order_items` | Piezas de un pedido multi-pieza |
+| `customers` | Clientes |
+| `whatsapp_conversaciones` | Todos los mensajes de WhatsApp |
+| `chat_takeover` | Cuándo una persona toma el control de un chat |
+| `chat_status` | Resuelta / archivada |
+| `contact_tags` | Etiquetas de contacto |
+| `notes` | Anotaciones internas |
+| `gasto_pauta` | Gasto de publicidad por día y canal |
+| `taller_precios` | Fila única: oro, recargo, abono, tope, IVA de pauta (`20260818_taller_precios.sql`) |
+| `taller_conocimiento` | Base de conocimiento editable de Valentina (`20260818_taller_conocimiento.sql`) |
+| `plantillas_enviadas` | Candado anti-duplicado de plantillas de WhatsApp (`20260819_plantillas_programadas.sql`) |
+| `ajustes_internos` | Clave/valor: `cron_secreto`, `clave_anon`, `url_funciones`, `telefonos_avisos`, `contactos_equipo` |
+| `vigilancia_ultima` | Fila id=1 con el último informe del vigía |
+| `envio_publico` | **Es una vista.** Expone sólo `abono_envio` y `tope_contraentrega` |
+| `pagos` | El libro de movimientos que lee `src/lib/caja.js`, llenado por el trigger `registrar_pago` (`20260822_libro_de_caja.sql`) |
 
 **Ya no existen** `message_history`, `whatsapp_dedup`, `conversaciones` ni
 `whatsapp_conversaciones_respaldo`: borradas el 23-ago
@@ -272,11 +289,17 @@ vocabulario lo sostienen el código y esta tabla, no la base.
 `compare_price`. (`costo` y `costo_provisional` siguen en la tabla pero están **muertas**
 desde el 23-ago: el costo vive en el pedido.)
 
-### RPC (ninguna versionada)
+### RPC
 
-`chats_sin_responder`, `analiticas_whatsapp`, `buscar_conversaciones`,
-`clientes_nuevos_vs_recurrentes`, `embudo_whatsapp`, `revenue_por_fuente`,
-`tendencia_comparativa`, `top_ciudades_envio`.
+| Función | ¿El cuerpo está en el repo? |
+|---|---|
+| `chats_sin_responder` | sí (`20260822_chats_sin_responder.sql`) |
+| `revenue_por_fuente` · `embudo_whatsapp` | sí (`20260824_los_informes_cuentan_lo_que_entro.sql`) |
+| `analiticas_whatsapp` · `buscar_conversaciones` · `clientes_nuevos_vs_recurrentes` · `tendencia_comparativa` · `top_ciudades_envio` | **no**, sólo sus permisos |
+
+Los permisos de las ocho sí están, en `20260823_las_rpc_estaban_abiertas.sql`: eran
+`SECURITY DEFINER` y **cualquiera con la llave pública podía ejecutarlas**, que es la misma
+clase de agujero que el de las tablas pero por la puerta de al lado.
 
 ### Buckets de Storage
 
@@ -284,6 +307,13 @@ desde el 23-ago: el costo vive en el pedido.)
 - `chat-media` — **privado**. Fotos que mandan las clientas; se firman al vuelo por 1 h.
 
 ### Migraciones, en orden
+
+**El nombre del archivo va en UTC; la prosa, en hora de Bogotá.** Las dos
+`20260824_*` se aplicaron la noche del 23 de agosto de 2026 —pasadas las 7 p. m., que en
+UTC ya es el 24—, y el nombre coincide con lo que quedó registrado en
+`supabase_migrations.schema_migrations`. **No los renombres para «cuadrar» la fecha**: el
+nombre es el identificador que la base ya tiene anotado.
+
 
 | Archivo | Qué hizo |
 |---|---|
@@ -298,12 +328,22 @@ desde el 23-ago: el costo vive en el pedido.)
 | `20260819_abono_envio.sql` | `abono_monto`, `abono_pagado_en`, `abono_envio` |
 | `20260819_atribucion_origen.sql` | `ctwa_clid`, `anuncio_id`, `utm_*` |
 | `20260819_plantillas_programadas.sql` | `plantillas_enviadas` + `customers.no_escribir` |
+| `20260822_libro_de_caja.sql` | La tabla `pagos` y el disparador `registrar_pago`: cuándo entró cada peso |
 | `20260822_chats_sin_responder.sql` | Función `chats_sin_responder()` |
 | `20260822_cerrar_conversaciones_a_anon.sql` | 🔒 Cierra a `anon` las 5 tablas de conversaciones y enciende RLS en 3 respaldos |
 | `20260822_borrar_chat_media.sql` | Política DELETE en `chat-media` |
 | `20260822_conversaciones_purgables.sql` | Función `conversaciones_purgables()` — retención |
 | `20260822_pedido_publico.sql` | 🔒 `pedido_publico(uuid)` y anulación de la política mina |
 | `20260822_quitar_respaldos_de_chats.sql` | Elimina los respaldos del 22-ago |
+| `20260823_las_rpc_estaban_abiertas.sql` | 🔒 Las RPC `SECURITY DEFINER` eran leíbles con la llave pública: cerrar tablas no cierra funciones |
+| `20260823_un_cliente_por_persona.sql` | Índice único por los últimos diez dígitos: el mismo número entraba de tres formas y creaba tres clientes |
+| `20260823_clientes_del_equipo.sql` | Los contactos del equipo también se marcan de prueba, no sólo sus pedidos |
+| `20260823_costos_del_pedido.sql` | El costo pasa del catálogo al pedido: `costo_taller`, `costo_envio`, `costo_anotado_en` |
+| `20260823_avisar_cancelaciones.sql` | El candado de `PedidoCancelado` hacia Meta y TikTok |
+| `20260823_conocimiento_al_dia.sql` | Quita los «SIN CONFIRMAR» del seed de Valentina, que ya estaban confirmados |
+| `20260823_conocimiento_devoluciones.sql` | Valentina no tenía nada que decir de devoluciones: escalaba en vez de responder |
+| `20260823_plazos_de_verdad.sql` | Los plazos que promete Valentina, ajustados a cómo trabaja el taller |
+| `20260823_superficie_de_seguridad.sql` | Volcado de RLS, políticas y funciones tal como están en producción, para poder diffearlo |
 | `20260823_el_reloj_de_la_base.sql` | Declara los dos trabajos de `pg_cron`; antes el horario sólo vivía en la base |
 | `20260823_tener_sesion_no_es_ser_del_equipo.sql` | 🔒 Las 20 políticas del panel exigen `es_del_equipo()`, no sólo tener sesión |
 | `20260823_storage_tambien_pide_ser_del_equipo.sql` | 🔒 Lo mismo para las fotos: subir y borrar pide rol de equipo |
@@ -312,11 +352,13 @@ desde el 23-ago: el costo vive en el pedido.)
 | `20260824_confirmado_y_devuelto.sql` | Dos estados nuevos en el circuito, y el guardián que compara la regla del dinero de la base con la tabla de §8 |
 | `20260824_los_informes_cuentan_lo_que_entro.sql` | `revenue_por_fuente` sumaba todos los pedidos: decía 331 veces más de lo que había entrado |
 
-`20260822_cerrar_conversaciones_a_anon.sql` arregló un fallo del mismo tipo que el que
-sigue abierto en `orders`: `whatsapp_conversaciones` y `chat_takeover` tenían políticas
+`20260822_cerrar_conversaciones_a_anon.sql` cerró el fallo más grave de todos:
+`whatsapp_conversaciones` y `chat_takeover` tenían políticas
 `[public ALL] using=true`, así que **con la llave pública se podía leer y borrar toda la
-correspondencia con las clientas**. Ya está cerrado. **`orders` no** — ver
-`docs/pendientes.md` #1.
+correspondencia con las clientas**. Ya está cerrado, y **`orders` también**: la política
+`orders_anon_read_own` estaba escrita con `USING (true)` en la migración pero nunca llegó a
+la base, y `20260822_pedido_publico.sql` la deshace con un `DROP POLICY` posterior para que
+un entorno nuevo no la cree. Ver [Resueltos](docs/pendientes.md#resueltos).
 
 ---
 
@@ -487,7 +529,7 @@ Mulish, escala de 8px, radio de 2px.
 Reglas que se rompen con facilidad:
 
 - **Marcellus sólo tiene peso 400.** Cualquier `font-weight` mayor produce negrita
-  sintética. (Hay un caso vivo de esto en el titular de la portada — ver `docs/pendientes.md`.)
+  sintética. Hubo un caso en el titular de la portada; se corrigió el 23 de agosto de 2026.
 - **`--accent-red: #ea4335` sigue definido pero es legado** de catálogo/admin.
   `DESIGN.md` lo prohíbe como acento de marca. Para estados de error usa los tonos de la
   marca: `#8C2F1E`, `#5E2114`, `#FBEDE9`.
@@ -499,8 +541,8 @@ Reglas que se rompen con facilidad:
   la identidad entera y cambia lo que la densidad obliga —el cuerpo baja de 1rem a
   propósito, la escala es de 4px y no de 8, y el estado de un pedido se distingue por un
   punto y no por un color de fondo—. Para cualquier pantalla de `/admin`, manda aquél.
-  Trae además la deuda medida: 491 colores escritos a pelo y dos oros que no son el de
-  la marca.
+  Trae además la deuda medida, y lo que queda de ella: de 491 colores escritos a pelo a
+  **45**, y de dos oros que no son el de la marca a **ninguno**.
 
 ---
 
@@ -521,7 +563,7 @@ Cosas que ya costaron un incidente. Léelas antes de tocar lo que describen.
 - **Gmail borra los `<style>` externos.** Por eso `emails/_marca.tsx` duplica los tokens
   en línea y usa Georgia en vez de Marcellus.
 - **El CSS son DOS archivos desde el 23-ago:** `src/index.css` (tienda y compartido,
-  6.981 líneas) y `src/panel.css` (el panel, 7.922), que importan `Dashboard.jsx` y
+  6.854 líneas) y `src/panel.css` (el panel, 7.741), que importan `Dashboard.jsx` y
   `ChatPanel.jsx`. **`panel.css` se carga después, así que ante igual especificidad gana.**
   Si mueves una regla de un archivo al otro, compruébalo: se hizo midiendo 24 propiedades
   calculadas de 3.691 elementos en once pantallas.
@@ -579,5 +621,6 @@ hoy, decisiones tomadas y por qué, límites conocidos, cómo probarlo.
 - [`vigilancia.md`](docs/specs/vigilancia.md) — el vigía
 - [`diseno-y-frontend.md`](docs/specs/diseno-y-frontend.md) — CSS, fuentes, animaciones
 
-**Y aparte:** [`docs/pendientes.md`](docs/pendientes.md) — hallazgos priorizados, incluidos
-hallazgos pendientes, entre ellos dos de seguridad todavía sin resolver.
+**Y aparte:** [`docs/pendientes.md`](docs/pendientes.md) — los 36 hallazgos de la revisión,
+**todos cerrados** a 23 de agosto de 2026. Se conserva porque cada uno lleva escrito qué
+pasaba y por qué se decidió lo que se decidió; los specs enlazan a sus números.

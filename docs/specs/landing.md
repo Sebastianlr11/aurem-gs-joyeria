@@ -1,7 +1,7 @@
 # Landing — la portada
 
-> **Estado:** en producción · con promesas desalineadas
-> **Última revisión:** 2026-08-22
+> **Estado:** en producción · las promesas, alineadas con lo que el taller hace de verdad
+> **Última revisión:** 2026-08-23
 > **Ruta:** `/`
 
 ## Qué resuelve
@@ -94,11 +94,15 @@ anchos. El hero lleva `fetchPriority="high"`.
   el catálogo no tiene. Ahora se apoyan en el punzón, el estuche, la guía y el plazo real.
 - ~~**El JSON-LD promete platino, collares y certificación incluida**~~ — corregido; el
   comentario de `Home.jsx` deja escrito qué decía y por qué se cambió.
-- `Hero.jsx:56-57` y `Reviews.jsx:18` siguen prometiendo platino y certificación incluida
-  en texto visible.
-- **El titular sale en negrita sintética** por un bloque CSS duplicado que le mete
-  `font-weight: 800` a Marcellus, que sólo tiene peso 400 — [pendientes #15](../pendientes.md).
-- **El acordeón del FAQ no es accesible por teclado** (`Faq.jsx:34`).
+- ~~`Hero.jsx` y `Reviews.jsx` prometen platino y certificación incluida~~ — retirado el 23
+  de agosto de 2026. No hay ni una pieza de platino, y el certificado lo emite un
+  laboratorio aparte y cuesta $50.000. Los comentarios de los dos archivos dejan escrito
+  qué decían.
+- ~~**El titular sale en negrita sintética**~~ — corregido; era un bloque `HERO SECTION` del
+  diseño anterior, fuera de toda media query, metiéndole `font-weight: 800` a Marcellus.
+  Ver [pendientes #15](../pendientes.md).
+- ~~**El acordeón del FAQ no es accesible por teclado**~~ — la anidación es `h3 > button` y
+  el `onToggle` va en el botón, no en el `<div>` de fuera.
 - Hero, TrustBar, Reviews y TiltedCarousel **no usan `useAparecer`** — el Hero tiene su
   propio sistema de retardos inline.
 
