@@ -163,3 +163,69 @@ export function useFichaDelContacto(telefono) {
         guardarNotas, cancelarNotas,
     };
 }
+
+/**
+ * Marcar varias conversaciones para archivarlas o borrarlas de una vez.
+ *
+ * `marcadas` en `null` quiere decir que NO se está en modo selección, que no es
+ * lo mismo que estar en modo selección sin nada marcado: en el primer caso la
+ * lista se comporta como siempre —pulsar una fila la abre— y en el segundo
+ * pulsarla la marca. Un `Set` vacío y `null` son dos cosas distintas y la
+ * interfaz las distingue.
+ *
+ * El archivado en lote no toca `chat_status` fila por fila sino con un solo
+ * `upsert`: cincuenta conversaciones son cincuenta viajes a la base, y a mitad
+ * de camino un fallo de red deja media selección archivada y media no.
+ */
+export function useSeleccion() {
+    const [marcadas, setMarcadas] = useState(null);
+    const [archivando, setArchivando] = useState(false);
+    const [error, setError] = useState('');
+
+    const entrar = useCallback((iniciales) => setMarcadas(new Set(iniciales || [])), []);
+    const salir = useCallback(() => setMarcadas(null), []);
+
+    const alternar = useCallback((telefono) => {
+        setMarcadas(prev => {
+            const n = new Set(prev || []);
+            if (n.has(telefono)) n.delete(telefono); else n.add(telefono);
+            return n;
+        });
+    }, []);
+
+    /* Al borrar conversaciones hay que soltar las que ya no existen, o la
+       cuenta de «3 marcadas» seguiría contando fantasmas. */
+    const olvidar = useCallback((idos) => {
+        setMarcadas(prev => (prev ? new Set([...prev].filter(p => !idos.has(p))) : prev));
+    }, []);
+
+    /**
+     * @param alArchivar  se llama con los teléfonos archivados SÓLO si la base
+     *                    dijo que sí. Lo que hay que hacer después —refrescar la
+     *                    lista, cerrar el chat abierto si era uno de ellos— es
+     *                    del panel, no de aquí.
+     */
+    const archivar = useCallback(async (alArchivar) => {
+        if (!marcadas?.size || archivando) return;
+        setArchivando(true);
+        setError('');
+
+        const ahora = new Date().toISOString();
+        const filas = [...marcadas].map(phone => ({
+            phone_number: phone,
+            is_archived: true,
+            archived_at: ahora,
+            updated_at: ahora,
+        }));
+        const { error: err } = await supabase.from('chat_status')
+            .upsert(filas, { onConflict: 'phone_number' });
+
+        setArchivando(false);
+        if (err) { setError(`No se pudieron archivar: ${err.message}`); return; }
+
+        alArchivar([...marcadas]);
+        setMarcadas(null);
+    }, [marcadas, archivando]);
+
+    return { marcadas, archivando, error, setError, entrar, salir, alternar, olvidar, archivar };
+}

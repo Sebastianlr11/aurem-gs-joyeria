@@ -1197,3 +1197,31 @@ el día que salga la lista entera.
 **En total, en el día: 2.123 → 1.623 líneas, un 24 % menos**, siete archivos nuevos y cuatro
 fallos latentes encontrados. Queda la purga (6 estados) y la lista de contactos con su
 selección en lote (4).
+
+**Quinto tramo: 1.623 → 1.603 líneas.** Sale la selección en lote a `useSeleccion`: tres
+estados y el archivado. Baja poco porque casi todo era lógica, no pintura — la pintura de
+la selección está repartida por la lista de contactos y sale con ella.
+
+La distinción que había que dejar escrita es **`null` contra conjunto vacío**: `null` es «no
+estoy en modo selección» y el conjunto vacío es «estoy, y no he marcado nada». La lista se
+comporta al revés en cada caso —en el primero pulsar una fila la abre, en el segundo la
+marca— y confundirlos es cómo se llega a que un clic haga lo contrario de lo que espera
+quien lo dio. Ahora está en 12 pruebas y no en la cabeza de nadie.
+
+Y una regla que el gancho hace explícita: **si la base dice que no, no se avisa de que sí.**
+El archivado sólo llama de vuelta al panel cuando el `upsert` salió bien; al revés, la
+pantalla marcaría como archivadas conversaciones que siguen en la bandeja y estaría
+mintiendo hasta la siguiente recarga.
+
+Comprobado de punta a punta con la conversación de pruebas: marcar una, archivar, ver la
+fila en `chat_status`, que el chat abierto se cerrara solo, que el modo selección se
+apagara — y devolver la base a como estaba, vacía. Más 12 pruebas del gancho, rotas a
+propósito dos veces: que salir deje un conjunto vacío en vez de `null` (2 fallos) y que
+avise de archivado aunque la base fallara (1).
+
+**Un susto propio, del que conviene aprender:** el renombrado con expresión regular también
+cambió **dentro de los nombres de clase CSS** —`chat-seleccion-barra` quedó como
+`chat-lote.marcadas-barra`— porque el guion es frontera de palabra. Ni el lint ni el build
+lo ven: son cadenas. Apareció al comprobar en el navegador que la barra seguía teniendo
+estilo. Desde entonces, cada tramo se cierra comprobando que **toda clase del JSX existe en
+el CSS**.
