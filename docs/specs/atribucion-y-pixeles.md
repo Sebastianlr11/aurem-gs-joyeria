@@ -107,8 +107,34 @@ navegación privada** — se prefiere un duplicado ocasional a perder la medici�
 problema de TikTok: no manda nada equivalente al `ctwa_clid` de Meta, así que **la única
 forma de saber de dónde viene un chat es anotarlo en el propio texto**.
 
+## Las pruebas no se le cuentan a nadie
+
+Hasta el 23 de agosto de 2026 **sí se les contaban**. `conversion-pedido` y `mp-webhook`
+avisaban de cualquier pedido, y en la base había **tres compras ya enviadas a Meta y a
+TikTok desde pedidos `es_prueba`** —$1.550.000 en total, una de un pedido que después se
+canceló—. Con un píxel sin ninguna otra historia, esas tres ventas inventadas eran
+literalmente todo lo que Meta sabía del negocio, y lo que iba a usar para arrancar a
+optimizar el día que se prendiera pauta.
+
+El resto del sistema ya se defendía: `plantillas-programadas` excluye las pruebas desde el
+22 de agosto. Las conversiones se habían quedado atrás.
+
+Ahora hay tres frenos, y el que manda es el del servidor:
+
+| Dónde | Qué hace |
+|---|---|
+| `conversion-pedido` | Lee `es_prueba` **antes de tocar el candado** y se retira. Así `conversion_enviada_en` sigue significando «se le contó a una plataforma» |
+| `mp-webhook` | Procesa el pedido entero —estado, correo, WhatsApp— y sólo se salta `avisarVenta`. Aquí el candado **sí** se marca, porque en esta función es además el guardia contra los reintentos de Mercado Pago |
+| `Pedidos.jsx` | No hace ni el viaje. Es una comodidad, no el candado |
+
+**Para probar de verdad está `testEventCode`**: el evento sale en la pestaña de eventos de
+prueba de Meta o TikTok y no cuenta como conversión. Ese camino sigue abierto para los
+pedidos de prueba, que es exactamente para lo que existe.
+
 ## Límites conocidos y pendientes
 
+- ⚠️ **Hay tres compras de prueba ya contadas** (20, 21 y 23 de agosto de 2026). No se
+  pueden retirar desde aquí: si molestan, se borran desde el Events Manager de Meta.
 - ⚠️ **Hay dos píxeles de Meta con el mismo nombre y sólo uno recibe eventos.** Antes de
   concluir que una campaña no convierte, **verifica el ID**. Es la trampa que más tiempo ha
   costado en este proyecto.

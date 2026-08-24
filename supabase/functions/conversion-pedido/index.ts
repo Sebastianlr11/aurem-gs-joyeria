@@ -106,6 +106,36 @@ Deno.serve(async (req: Request) => {
     return json({ ok: true, prueba: true, candadoIntacto: true })
   }
 
+  /* Y LOS PEDIDOS DE PRUEBA NO SE AVISAN NUNCA.
+  
+     Esto faltaba, y no era teórico: el 23 de agosto de 2026 había **tres
+     compras ya enviadas a Meta y a TikTok desde pedidos `es_prueba`**, por
+     $1.550.000 en total, una de ellas de un pedido que después se canceló. Y
+     como el píxel no tenía ninguna otra historia, esas tres ventas inventadas
+     eran literalmente todo lo que Meta sabía del negocio — justo lo que iba a
+     usar para arrancar a optimizar el día que se prendiera pauta.
+
+     El resto del sistema ya se defendía: `plantillas-programadas` excluye las
+     pruebas desde el 22 de agosto. Las conversiones se habían quedado atrás.
+
+     Se comprueba ANTES de tocar el candado, a diferencia del resto de las
+     salidas: así `conversion_enviada_en` sigue significando «esto se le contó
+     a una plataforma» y no «esto se intentó». Si un pedido dejara de ser de
+     prueba, su venta todavía podría avisarse.
+
+     Para probar de verdad está el modo de arriba, con `testEventCode`: el
+     evento sale en la pestaña de eventos de prueba de Meta y no cuenta como
+     conversión. */
+  const { data: cual } = await admin
+    .from('orders').select('es_prueba').eq('id', pedidoId).maybeSingle()
+
+  if (!cual) return json({ error: 'No existe ese pedido' }, 404)
+
+  if (cual.es_prueba) {
+    console.log('Pedido de prueba: no se le cuenta a Meta ni a TikTok:', pedidoId)
+    return json({ ok: true, esPrueba: true, avisado: false, candadoIntacto: true })
+  }
+
   /* El mismo candado que usa el webhook de Mercado Pago, y a propósito la
      misma columna: así un pedido no puede contarse dos veces aunque llegue
      por los dos caminos, ni aunque le des dos clics al botón. Marcar y leer

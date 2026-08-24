@@ -232,7 +232,7 @@ Deno.serve(async (req: Request) => {
       })
       .eq('id', orderId)
       .is('conversion_enviada_en', null)
-      .select('customer_phone, customer_email, customer_name, product_id, product_name, amount, abono_monto, shipping_address, shipping_city, notes, ttclid, ttp, fbc, fbp, client_ua, client_ip, ctwa_clid')
+      .select('es_prueba, customer_phone, customer_email, customer_name, product_id, product_name, amount, abono_monto, shipping_address, shipping_city, notes, ttclid, ttp, fbc, fbp, client_ua, client_ip, ctwa_clid')
       .maybeSingle()
 
     if (updateError) {
@@ -255,8 +255,21 @@ Deno.serve(async (req: Request) => {
 
     /* La venta a TikTok y a Meta. Va antes del aviso por WhatsApp porque no
        depende de él y porque es lo que tiene ventana de tiempo: cuanto más
-       cerca del pago llegue, mejor atribuye. Nunca lanza. */
-    if (orden) {
+       cerca del pago llegue, mejor atribuye. Nunca lanza.
+
+       Los pedidos de prueba NO se avisan. Se le habían contado tres a Meta y a
+       TikTok antes de prender pauta, y con un píxel sin más historia esas
+       ventas inventadas son todo lo que la plataforma sabe. Aquí el pedido sí
+       se procesa entero —cambia de estado, sale el correo—: lo único que se
+       salta es contárselo a las plataformas.
+
+       `conversion_enviada_en` sí se marca igual, porque en esta función esa
+       columna es además el candado contra los reintentos de Mercado Pago, que
+       reenvía el mismo pago varias veces. Sin ella, una prueba repetiría el
+       correo y el WhatsApp en cada reintento. */
+    if (orden?.es_prueba) {
+      console.log('Pedido de prueba: no se le cuenta a Meta ni a TikTok:', orderId)
+    } else if (orden) {
       await avisarVenta({
         pedidoId: orderId,
         monto: Number(orden.amount),
