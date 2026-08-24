@@ -1402,3 +1402,30 @@ Ocho pruebas nuevas sobre los teléfonos —**125 en total**—, rotas a propós
 volver a comparar cadenas crudas (2 fallos) y ponerle el 57 a cualquier número de diez
 dígitos (1). Las tres funciones desplegadas responden 401 a una llamada sin credenciales,
 que es lo que prueba que cargan.
+
+**Y el último rato de Valentina: lo que el modelo pide al tomar un pedido.** No salió ningún
+fallo nuevo —`crear_pedido` está bien hecho: el precio sale del catálogo y no de lo que
+recuerde el modelo, si una pieza falla no se crea nada, y el pedido lo registra
+`create-preference` para no tener dos verdades sobre cómo nace un pedido—. Lo que se hizo
+fue **fijar en pruebas tres decisiones que estaban bien y era fácil deshacer sin darse
+cuenta**:
+
+- **El tope de 20 unidades por pieza.** Lo que llega son argumentos de un modelo de
+  lenguaje: un `cantidad: 1000` por alucinación crearía un pedido de cientos de millones
+  que alguien tendría que cancelar a mano.
+- **El formato viejo de una pieza suelta se sigue aceptando.** El modelo tiene el historial
+  delante y a veces repite la forma que vio antes; rechazar un pedido bien tomado por la
+  forma de los argumentos sería perder una venta por una tecnicidad.
+- **El sesgo de «contraentrega o pago en línea».** Hace falta la palabra «entrega» para que
+  sea contraentrega, y cualquier otra cosa cae en pago en línea. Los dos errores no cuestan
+  igual: registrar como pago en línea algo que era contraentrega manda un enlace de más
+  —molesto y recuperable en la misma conversación—; al revés se despacha una pieza sin
+  haberla cobrado.
+
+Rotas a propósito: quitar el tope de unidades (1 fallo) e invertir el sesgo del método de
+pago (1). **136 pruebas.**
+
+Lo que sigue sin probar del bot es el bucle del agente y las herramientas que hablan con la
+base. El bucle está bien guardado —tres pasos como máximo, presupuesto de 25 segundos, y el
+último paso va sin herramientas para forzar una respuesta de texto—, pero comprobarlo pide
+simular al modelo, que es otro proyecto.

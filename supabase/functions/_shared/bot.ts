@@ -4,7 +4,10 @@
  * invente nada.
  */
 import { admin, enviarImagen, enviarPlantilla, enviarTexto } from './wa.ts'
-import { anuncioDe, atribucionDe, calcularTalla, cotizarOro, origen, refDelTexto } from './reglas.ts'
+import {
+  anuncioDe, atribucionDe, calcularTalla, cotizarOro, esContraentrega,
+  origen, piezasDelPedido, refDelTexto,
+} from './reglas.ts'
 
 const MODELO = Deno.env.get('OPENROUTER_MODEL') || 'openai/gpt-5.6-luna-pro'
 const MENSAJES_DE_CONTEXTO = 20
@@ -604,15 +607,7 @@ async function ejecutarHerramienta(
   }
 
   if (nombre === 'crear_pedido') {
-    /* Se acepta la lista y también el formato viejo de una pieza suelta: el
-       modelo tiene el historial de la conversación delante y a veces repite
-       la forma que vio antes. Rechazar un pedido bien tomado por la forma de
-       los argumentos sería perder una venta por una tecnicidad. */
-    const pedidas: any[] = Array.isArray(args?.piezas) && args.piezas.length
-      ? args.piezas
-      : args?.producto
-      ? [{ producto: args.producto, talla: args.talla }]
-      : []
+    const pedidas = piezasDelPedido(args)
 
     if (!pedidas.length) {
       return 'No dijiste qué piezas. Recapitula con el cliente qué quiere y vuelve a intentarlo.'
@@ -624,17 +619,16 @@ async function ejecutarHerramienta(
     const noEncontradas: string[] = []
 
     for (const p of pedidas) {
-      const encontrada = await buscarPieza(p?.producto)
-      if (!encontrada) { noEncontradas.push(String(p?.producto ?? '(sin nombre)')); continue }
+      const encontrada = await buscarPieza(p.producto)
+      if (!encontrada) { noEncontradas.push(p.producto); continue }
       if (encontrada.stock === 0) { noEncontradas.push(`${encontrada.name} (agotada)`); continue }
 
-      const cantidad = Number(p?.cantidad)
       items.push({
         id: encontrada.id,
         name: encontrada.name,
         price: Number(encontrada.price),
-        quantity: Number.isFinite(cantidad) && cantidad > 0 ? Math.min(Math.floor(cantidad), 20) : 1,
-        talla: p?.talla ? String(p.talla).trim() : null,
+        quantity: p.cantidad,
+        talla: p.talla,
       })
     }
 
@@ -646,7 +640,7 @@ async function ejecutarHerramienta(
              `Díselo, ofrécele lo que sí hay, y vuelve a crear el pedido cuando esté claro.`
     }
 
-    const contraEntrega = String(args.metodo_pago || '').toLowerCase().includes('entrega')
+    const contraEntrega = esContraentrega(args.metodo_pago)
 
     /* Se delega en create-preference en vez de insertar acá. Esa función ya
        cancela pedidos pendientes duplicados, guarda la preferencia de Mercado

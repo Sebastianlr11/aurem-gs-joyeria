@@ -13,6 +13,7 @@ import { describe, it, expect } from 'vitest'
 import {
   TALLAS, calcularTalla, cotizarOro, origen, anuncioDe, atribucionDe, refDelTexto,
   DIAS_PARA_AVISAR, DIAS_PARA_NO_COTIZAR, diezUltimos, mismoTelefono, aNumeroDeWhatsApp,
+  cantidadPedida, piezasDelPedido, esContraentrega,
 } from './reglas.ts'
 
 describe('la tabla de tallas', () => {
@@ -240,5 +241,85 @@ describe('el número que se le pasa a WhatsApp', () => {
 
   it('lo que sale ya no lleva separadores', () => {
     for (const forma of MISMA_PERSONA) expect(aNumeroDeWhatsApp(forma)).toBe('573143602930')
+  })
+})
+
+describe('lo que el modelo pide al tomar un pedido', () => {
+  it('lee la lista de piezas con sus tallas', () => {
+    expect(piezasDelPedido({ piezas: [
+      { producto: 'Anillo Trinidad', talla: '7', cantidad: 2 },
+      { producto: 'Dije Cruz de Esmeraldas' },
+    ] })).toEqual([
+      { producto: 'Anillo Trinidad', talla: '7', cantidad: 2 },
+      { producto: 'Dije Cruz de Esmeraldas', talla: null, cantidad: 1 },
+    ])
+  })
+
+  /* El modelo tiene el historial delante y a veces repite la forma vieja, de
+     una pieza suelta. Rechazar un pedido bien tomado por la forma de los
+     argumentos sería perder una venta por una tecnicidad. */
+  it('acepta el formato viejo de una sola pieza', () => {
+    expect(piezasDelPedido({ producto: 'Anillo Trinidad', talla: '7' }))
+      .toEqual([{ producto: 'Anillo Trinidad', talla: '7', cantidad: 1 }])
+  })
+
+  it('la lista manda sobre el formato viejo si vienen los dos', () => {
+    const r = piezasDelPedido({ piezas: [{ producto: 'Anillo Majestuosa' }], producto: 'Otra cosa' })
+    expect(r).toHaveLength(1)
+    expect(r[0].producto).toBe('Anillo Majestuosa')
+  })
+
+  it('descarta las piezas sin nombre en vez de pedir "(sin nombre)"', () => {
+    expect(piezasDelPedido({ piezas: [{ producto: '' }, { talla: '7' }, { producto: '  ' }] })).toEqual([])
+    expect(piezasDelPedido({})).toEqual([])
+    expect(piezasDelPedido(null)).toEqual([])
+    expect(piezasDelPedido({ piezas: [] })).toEqual([])
+  })
+
+  it('limpia los espacios del nombre y de la talla', () => {
+    expect(piezasDelPedido({ piezas: [{ producto: '  Anillo Trinidad ', talla: ' 7 ' }] })[0])
+      .toEqual({ producto: 'Anillo Trinidad', talla: '7', cantidad: 1 })
+  })
+})
+
+describe('cuántas unidades', () => {
+  it('sin cantidad, una', () => {
+    for (const v of [undefined, null, 0, -3, 'dos', NaN, {}]) expect(cantidadPedida(v)).toBe(1)
+  })
+
+  it('acepta la cantidad que se pidió', () => {
+    expect(cantidadPedida(3)).toBe(3)
+    expect(cantidadPedida('4')).toBe(4)
+    expect(cantidadPedida(2.7)).toBe(2)      // no existen dos anillos y medio
+  })
+
+  /* Lo que llega son argumentos de un modelo de lenguaje: un `cantidad: 1000`
+     por alucinación crearía un pedido de cientos de millones que alguien
+     tendría que cancelar a mano. */
+  it('acota una alucinación', () => {
+    expect(cantidadPedida(1000)).toBe(20)
+    expect(cantidadPedida(Infinity)).toBe(1)
+  })
+})
+
+describe('contraentrega o pago en línea', () => {
+  it('reconoce los dos valores que la herramienta admite', () => {
+    expect(esContraentrega('Contra entrega')).toBe(true)
+    expect(esContraentrega('Mercado Pago')).toBe(false)
+  })
+
+  it('aguanta las formas que un modelo escribe igual', () => {
+    for (const v of ['contraentrega', 'CONTRA ENTREGA', 'pago contra entrega', 'contra-entrega  '])
+      expect(esContraentrega(v), v).toBe(true)
+  })
+
+  /* La regla está sesgada a propósito hacia el lado barato: hace falta la
+     palabra «entrega» para que sea contraentrega. Los dos errores no cuestan
+     igual — registrar como pago en línea algo que era contraentrega manda un
+     enlace de más, molesto y recuperable en la misma conversación; al revés se
+     despacha una pieza sin haberla cobrado. */
+  it('ante un valor que no reconoce se va al pago en línea, nunca al contraentrega', () => {
+    for (const v of ['COD', 'efectivo', 'transferencia', 'Nequi', '', null, undefined, 42, {}])
+      expect(esContraentrega(v), String(v)).toBe(false)
   })
 })
