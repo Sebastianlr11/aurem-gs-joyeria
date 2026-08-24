@@ -92,6 +92,25 @@ de verdad ya no salía. Cuidado al probar.
 **`customers.no_escribir`** existe para que alguien que pidió que no le escriban quede
 excluido, con independencia de la lógica de cada aviso.
 
+**Los dos frenos los comprueba la base, no el código**, con
+`public.puede_recibir_plantillas(telefono)`: que nadie haya pedido que no le escriban y que
+nadie del equipo esté atendiendo ese chat. Se pregunta así desde el 23 de agosto de 2026,
+porque antes se hacía aquí con `.eq('phone', …)` —comparando la cadena cruda— y **el mismo
+número entra de tres formas según el canal**: `3143602930` desde el panel, `+573143602930`
+desde el checkout, `573143602930` desde WhatsApp. Con 18 pedidos en la base, diez tenían el
+teléfono en un formato distinto al de su ficha de cliente: para esos diez **ninguno de los
+dos frenos se consultaba nunca**. La búsqueda no encontraba nada y el código lo leía como
+«adelante». No daba error; decía que sí.
+
+La función compara por los últimos diez dígitos con la misma expresión del índice único de
+`customers`. Y si la consulta falla, **no se escribe**: callar es recuperable, escribirle a
+quien pidió que no lo hicieran no lo es.
+
+**El número de destino se normaliza con `aNumeroDeWhatsApp`** antes de mandar. Un pedido
+cargado a mano en el panel guarda el móvil sin indicativo y Meta no entrega a diez dígitos
+pelados. Sólo se le antepone el 57 a lo que es inequívocamente un móvil colombiano —diez
+dígitos empezando por 3—; a lo demás no se le inventa un país.
+
 **Los disparos están programados con `pg_cron` dentro de Supabase**, autenticados con el
 header `x-cron-secreto`, cuyo valor vive en `ajustes_internos.cron_secreto` — no en
 variables de entorno, para poder rotarlo sin redesplegar. **La programación está

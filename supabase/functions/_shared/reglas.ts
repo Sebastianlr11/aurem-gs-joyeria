@@ -202,3 +202,41 @@ export function refDelTexto(texto: unknown): string | null {
   const marca = String(texto ?? '').match(/\[ref:\s*([a-z0-9_-]{1,20})\]/i)
   return marca ? marca[1].toLowerCase() : null
 }
+
+/* ── Teléfonos ───────────────────────────────────────────────────────── */
+
+/**
+ * El mismo número entra de tres formas según por dónde llegue: `3143602930`
+ * desde el panel, `+573143602930` desde el checkout y `573143602930` desde
+ * WhatsApp. Comparar las cadenas crudas es cómo se llega a que un freno no
+ * salte y a que la misma persona figure tres veces.
+ *
+ * Diez dígitos porque es el largo del móvil colombiano sin indicativo, y es el
+ * mismo criterio del índice único de `customers` y de los disparadores de
+ * `es_prueba`.
+ */
+export const diezUltimos = (t: unknown): string =>
+  String(t ?? '').replace(/\D/g, '').slice(-10)
+
+export const mismoTelefono = (a: unknown, b: unknown): boolean => {
+  const x = diezUltimos(a)
+  return x.length === 10 && x === diezUltimos(b)
+}
+
+/**
+ * El número tal como lo quiere la API de WhatsApp: con indicativo.
+ *
+ * Un pedido cargado a mano en el panel guarda `3143602930`, sin país, y Meta
+ * no entrega a eso. El 23 de agosto de 2026 diez de los dieciocho pedidos de
+ * la base tenían el teléfono así.
+ *
+ * Sólo se le pone el 57 a lo que es inequívocamente un móvil colombiano —diez
+ * dígitos empezando por 3—. Cualquier otra cosa se devuelve limpia de
+ * separadores y sin inventar nada: mandarle un mensaje a un número que no es
+ * el de la clienta es peor que no mandarlo.
+ */
+export function aNumeroDeWhatsApp(telefono: unknown): string {
+  const digitos = String(telefono ?? '').replace(/\D/g, '')
+  if (digitos.length === 10 && digitos.startsWith('3')) return `57${digitos}`
+  return digitos
+}

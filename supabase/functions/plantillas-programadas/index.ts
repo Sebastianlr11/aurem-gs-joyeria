@@ -21,6 +21,7 @@
  */
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { admin, enviarPlantilla } from '../_shared/wa.ts'
+import { aNumeroDeWhatsApp } from '../_shared/reglas.ts'
 import { rastreoDe } from '../_shared/envios.ts'
 
 const ACTIVAS = Deno.env.get('PLANTILLAS_ACTIVAS') === 'true'
@@ -65,11 +66,11 @@ type Envio = {
 async function mandar(e: Envio): Promise<'enviada' | 'repetida' | 'apagada' | string> {
   const db = admin()
 
-  const { error: choque } = await db.from('plantillas_enviadas').insert({
+  const { data: anotada, error: choque } = await db.from('plantillas_enviadas').insert({
     phone_number: e.telefono,
     plantilla: e.plantilla,
     pedido_id: e.pedidoId,
-  })
+  }).select('id').single()
 
   if (choque) {
     if (choque.code === '23505') return 'repetida'
@@ -107,27 +108,46 @@ async function mandar(e: Envio): Promise<'enviada' | 'repetida' | 'apagada' | st
 
   const res = await enviarPlantilla(e.telefono, e.plantilla, e.variables)
 
+  /* Por el `id` de la fila que se acaba de anotar, no por teléfono y
+     plantilla. La misma persona puede recibir la misma plantilla por dos
+     pedidos distintos —el candado lo permite a propósito—, y filtrando así se
+     pisaban las dos filas: el `wamid` viejo se sobrescribía con el nuevo, y un
+     envío fallido de hoy marcaba como fallido el de la semana pasada. La tabla
+     existe justamente para poder mirar eso después. */
   await db.from('plantillas_enviadas')
     .update({ wamid: res.wamid ?? null, error: res.ok ? null : (res.error ?? 'falló') })
-    .eq('phone_number', e.telefono)
-    .eq('plantilla', e.plantilla)
+    .eq('id', anotada.id)
 
   return res.ok ? 'enviada' : (res.error ?? 'falló')
 }
 
-/** ¿A esta persona se le puede escribir? */
+/**
+ * ¿A esta persona se le puede escribir?
+ *
+ * Dos frenos: que no haya pedido que no le escriban, y que no haya alguien del
+ * equipo atendiendo ese chat ahora mismo.
+ *
+ * Lo pregunta la base y no este archivo, y no es por elegancia. Antes se hacía
+ * aquí con `.eq('phone', telefono)`, comparando la cadena CRUDA — y el mismo
+ * número entra de tres formas según el canal. El 23 de agosto de 2026, con 18
+ * pedidos en la base, diez tenían el teléfono en un formato distinto al de su
+ * ficha de cliente: para esos diez **ninguno de los dos frenos se consultaba
+ * nunca**. La búsqueda no encontraba nada y el código lo leía como «adelante».
+ * No daba error; simplemente decía que sí.
+ *
+ * La función de la base compara por los últimos diez dígitos con la misma
+ * expresión del índice único de `customers`.
+ *
+ * Ante la duda, NO se escribe: si la consulta falla, callar es recuperable y
+ * escribirle a quien pidió que no lo hicieran, no.
+ */
 async function sePuede(telefono: string): Promise<boolean> {
-  const db = admin()
-
-  const [{ data: cliente }, { data: humano }] = await Promise.all([
-    db.from('customers').select('no_escribir').eq('phone', telefono).maybeSingle(),
-    db.from('chat_takeover').select('is_active').eq('phone_number', telefono).eq('is_active', true).maybeSingle(),
-  ])
-
-  if (cliente?.no_escribir) return false
-  // Si una persona del equipo está atendiendo, el robot no interrumpe.
-  if (humano) return false
-  return true
+  const { data, error } = await admin().rpc('puede_recibir_plantillas', { p_telefono: telefono })
+  if (error) {
+    console.error('No se pudo comprobar si se le puede escribir, se calla:', error.message)
+    return false
+  }
+  return data === true
 }
 
 /* ─── 1. Pedido despachado ──────────────────────────────────────────
@@ -177,7 +197,7 @@ async function despachados(): Promise<Envio[]> {
          rechazada no se puede editar. Reusar el nombre tampoco: Meta lo
          bloquea 30 días después de borrarla. */
       plantilla: 'pedido_en_camino',
-      telefono: o.customer_phone!,
+      telefono: aNumeroDeWhatsApp(o.customer_phone),
       pedidoId: o.id,
       // {{1}} nombre · {{2}} pieza · {{3}} transportadora · {{4}} guía
       variables: [
@@ -211,7 +231,7 @@ async function sinPagar(): Promise<Envio[]> {
 
   return (data ?? []).map((o) => ({
     plantilla: 'pago_pendiente',
-    telefono: o.customer_phone!,
+    telefono: aNumeroDeWhatsApp(o.customer_phone),
     pedidoId: o.id,
     variables: [primerNombre(o.customer_name), o.product_name],
   }))

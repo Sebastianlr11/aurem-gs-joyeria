@@ -12,7 +12,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   TALLAS, calcularTalla, cotizarOro, origen, anuncioDe, atribucionDe, refDelTexto,
-  DIAS_PARA_AVISAR, DIAS_PARA_NO_COTIZAR,
+  DIAS_PARA_AVISAR, DIAS_PARA_NO_COTIZAR, diezUltimos, mismoTelefono, aNumeroDeWhatsApp,
 } from './reglas.ts'
 
 describe('la tabla de tallas', () => {
@@ -176,5 +176,69 @@ describe('de dónde llegó la clienta', () => {
 
   it('no se traga una marca inventada de cien caracteres', () => {
     expect(refDelTexto(`[ref: ${'x'.repeat(100)}]`)).toBeNull()
+  })
+})
+
+/* Los tres formatos con los que el MISMO número entra al sistema, según por
+   dónde llegue la clienta. Están tomados de la base tal cual el 23 de agosto
+   de 2026: la ficha de cliente guardaba uno y diez de los dieciocho pedidos
+   guardaban otro. */
+const MISMA_PERSONA = ['3143602930', '+573143602930', '573143602930', '+57 314 360 2930', '57 (314) 360-2930']
+
+describe('el mismo número escrito de cinco formas', () => {
+  it('todas se reducen a los mismos diez dígitos', () => {
+    for (const forma of MISMA_PERSONA) expect(diezUltimos(forma)).toBe('3143602930')
+  })
+
+  /* Este es el fallo que se arregló: comparar las cadenas crudas hacía que el
+     freno de «no me escriban» y el de «hay una persona atendiendo» no saltaran
+     nunca para diez de los dieciocho pedidos. No daba error: decía que sí. */
+  it('se reconocen entre sí, comparen como comparen', () => {
+    for (const a of MISMA_PERSONA) {
+      for (const b of MISMA_PERSONA) expect(mismoTelefono(a, b), `${a} vs ${b}`).toBe(true)
+    }
+  })
+
+  it('y no se confunden con otra persona', () => {
+    expect(mismoTelefono('573143602930', '573224847819')).toBe(false)
+    expect(mismoTelefono('3143602930', '3143602931')).toBe(false)
+  })
+
+  /* Un número incompleto no puede parecerse a nadie: si se compararan los
+     últimos dígitos de "2930", media agenda coincidiría. */
+  it('lo que no llega a diez dígitos no coincide con nada, ni consigo mismo', () => {
+    expect(mismoTelefono('2930', '2930')).toBe(false)
+    expect(mismoTelefono('', '')).toBe(false)
+    expect(mismoTelefono(null, undefined)).toBe(false)
+  })
+})
+
+describe('el número que se le pasa a WhatsApp', () => {
+  /* Un pedido cargado a mano en el panel guarda el móvil sin país, y Meta no
+     entrega a diez dígitos pelados. */
+  it('le pone el indicativo a un móvil colombiano sin país', () => {
+    expect(aNumeroDeWhatsApp('3143602930')).toBe('573143602930')
+    expect(aNumeroDeWhatsApp('314 360 2930')).toBe('573143602930')
+  })
+
+  it('deja en paz lo que ya lo trae', () => {
+    expect(aNumeroDeWhatsApp('573143602930')).toBe('573143602930')
+    expect(aNumeroDeWhatsApp('+573143602930')).toBe('573143602930')
+    expect(aNumeroDeWhatsApp('+57 (314) 360-2930')).toBe('573143602930')
+  })
+
+  /* No se inventa un país para lo que no es inequívocamente un móvil
+     colombiano: mandarle un mensaje a un número que no es el de la clienta es
+     peor que no mandarlo. */
+  it('no le inventa el 57 a lo que no lo pide', () => {
+    expect(aNumeroDeWhatsApp('6012345678')).toBe('6012345678')   // fijo de Bogotá, no empieza por 3
+    expect(aNumeroDeWhatsApp('12025550143')).toBe('12025550143') // otro país
+    expect(aNumeroDeWhatsApp('31436029')).toBe('31436029')       // incompleto
+    expect(aNumeroDeWhatsApp('')).toBe('')
+    expect(aNumeroDeWhatsApp(null)).toBe('')
+  })
+
+  it('lo que sale ya no lleva separadores', () => {
+    for (const forma of MISMA_PERSONA) expect(aNumeroDeWhatsApp(forma)).toBe('573143602930')
   })
 })
