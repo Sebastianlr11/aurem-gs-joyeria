@@ -15,6 +15,21 @@
     <link rel="preload" as="font" type="font/woff2" href="/assets/fuentes/marcellus-latin.woff2" crossorigin />
     <link rel="preload" as="font" type="font/woff2" href="/assets/fuentes/mulish-latin.woff2" crossorigin />
 
+    <!-- La foto del hero, en paralelo con el JS.
+
+         Es el elemento más grande del primer viewport y ya iba con
+         fetchpriority alto, pero el navegador **no se enteraba de que existía**
+         hasta ejecutar el bundle entero y renderizar React: la descarga
+         empezaba tarde y el LCP se iba a 5,7 s.
+
+         El srcset tiene que ser EXACTAMENTE el del <source> de `Foto`
+         (src/components/Foto.jsx) y el sizes el del Hero, o el navegador se
+         baja la imagen dos veces. Si cambian allí, cambian aquí. -->
+    <link rel="preload" as="image" type="image/webp"
+          imagesrcset="/assets/pen-hero-768.webp 768w, /assets/pen-hero-928.webp 928w"
+          imagesizes="(max-width: 968px) 92vw, 40vw"
+          fetchpriority="high" />
+
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" type="image/png" sizes="64x64" href="/assets/logo-isotipo.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/assets/logo-isotipo.png" />
