@@ -185,6 +185,7 @@ Cosas que hay que saber antes de tocar el enrutado:
 | `correo-despacho` | JWT de admin | `/api/correo` → Resend | `CORREO_SECRETO`, `APP_URL` |
 | `plantillas-programadas` | `x-cron-secreto` desde BD | Meta Cloud API | `PLANTILLAS_ACTIVAS` |
 | `cotizar-envio` | JWT de admin | 99envios | `ENVIOS99_EMAIL`, `ENVIOS99_PASSWORD`, `ENVIOS99_URL` |
+| `crear-guia` | JWT de admin | 99envios | ídem, y `ENVIOS99_DICE_CONTENER` |
 | `vigilancia` | `x-cron-secreto` desde BD | HTTP checks, `/api/correo` | `CORREO_SECRETO`, `APP_URL` |
 | `create-admin` | JWT con `app_metadata.rol = 'dueño'` | Supabase Auth Admin | `SUPABASE_SERVICE_ROLE_KEY` |
 

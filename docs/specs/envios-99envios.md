@@ -1,6 +1,6 @@
 # Envíos — 99envios
 
-> **Estado:** fase 1 en producción · sólo cotiza, no emite guías
+> **Estado:** fase 1 en producción · fase 2 desplegada, **sin estrenar con un pedido real**
 > **Última revisión:** 2026-08-24
 > **Dónde vive:** `supabase/functions/cotizar-envio/index.ts` · `src/lib/envio.js` ·
 > `public.ciudades_envio` y `public.codigo_dane()`
@@ -31,7 +31,9 @@ declara que entraron los $530.000 de un contraentrega. Ver
 | `ciudades_envio` | Los 1.273 municipios con su código DANE, más alias |
 | `codigo_dane(ciudad, depto)` | Traduce lo que escribió la clienta. **Calla si duda** |
 | `src/lib/envio.js` | Qué caja usa una pieza: la suya, o la de la casa |
-| `ShipModal` | El botón «Cuánto cuesta mandarlo» y las cinco opciones |
+| `crear-guia` | Pide la guía. **Crea algo real y se factura** |
+| `src/lib/nombre.js` | Parte el nombre en nombre y apellidos, que la guía pide por separado |
+| `ShipModal` | «Cuánto cuesta mandarlo», las cinco opciones y «Pedir la guía» |
 
 ### La ciudad
 
@@ -92,12 +94,59 @@ Cotización real a Bogotá, pieza de $500.000, caja de 1 kg:
 **El abono de $20.000 cubre el envío en Bogotá con tres de las cinco, y con TCC se queda
 corto.** Y Bogotá es el destino barato. Es exactamente el número que no se tenía.
 
+## Fase 2: pedir la guía
+
+`crear-guia` es distinta de todo lo demás del panel: **crea algo en el mundo real**, una
+guía que se factura y que un mensajero va a ir a recoger. Por eso empieza por lo que se
+niega a hacer:
+
+| No emite si… | Por qué |
+|---|---|
+| el pedido es `es_prueba` | Probar el panel no puede costar un flete |
+| el pedido ya tiene guía | Dos guías son dos fletes y un mensajero que llega dos veces |
+| el nombre no trae apellido | El rótulo lo lee una persona; un apellido inventado no se entrega |
+| falta dirección o teléfono | Ídem |
+| la ciudad no se traduce | Una guía al municipio equivocado es un paquete perdido |
+| la transportadora no es una de las cinco | — |
+
+Los cuatro primeros se comprobaron contra producción: los cuatro devuelven su error y
+**ninguno llega a pedir nada**.
+
+**Anota antes de devolver.** La guía ya existe y se va a cobrar, así que transportadora,
+número y flete se guardan en el pedido nada más tener respuesta: si el panel no lo anotara
+porque alguien cerró el diálogo, quedaría pagada y perdida. Si el guardado falla, la
+respuesta trae el número para copiarlo a mano.
+
+**No despacha.** No toca el estado, no manda el correo ni el WhatsApp. Eso sigue siendo
+«Marcar como enviado», que es un solo camino y ya está probado. Aquí sólo se consigue el
+número —y, de paso, `costo_envio`, que hasta hoy se escribía a mano y por eso estaba vacío.
+
+**El rótulo no dice «joya».** `diceContener` es «Accesorio», configurable en
+`ENVIOS99_DICE_CONTENER`. Ese papel lo leen varias manos entre la bodega y la puerta, y
+anunciar lo que va dentro es la forma más barata de que el paquete no llegue.
+
+### El nombre
+
+99envios pide `nombre` y `primerApellido` por separado, los dos obligatorios, y el checkout
+guarda un solo campo. `partirNombre` usa la convención colombiana —los dos últimos trozos
+son los apellidos— y pega las partículas al apellido que acompañan, para que «María de los
+Ángeles Ruiz» no tenga por apellido «Ángeles».
+
+**Con una sola palabra devuelve `null` y no se emite nada.** Está en dos sitios —`src/lib/nombre.js`
+y dentro de `crear-guia`, que corre en Deno— por el motivo de siempre, y `src/lib/nombre.test.js`
+fija el comportamiento.
+
 ## Límites conocidos y pendientes
 
 - **Sólo cotiza.** La guía se sigue pidiendo por fuera; el botón sólo rellena la
   transportadora. Emitirla es la fase 2.
-- La URL base es `integration1.99envios.app` y el JSON no trae `servers`: **falta confirmar
-  cuál es la de producción.** Vive en `ENVIOS99_URL` para poder cambiarla sin desplegar.
+- **`integration1.99envios.app` e `integration.99envios.app` son la misma API**: sirven un
+  `api-docs-json` **byte a byte idéntico** (md5 `74519ca8…`, el mismo del archivo original) y
+  las dos validan el login. Lo que falta confirmar con soporte no es la URL, es otra cosa:
+  **si emitir un preenvío por la API genera una guía real y facturable o hay modo de
+  pruebas.** La URL vive en `ENVIOS99_URL` por si acaso.
+- **La fase 2 no se ha estrenado con un pedido real.** No se puede: todos los pedidos de la
+  base son `es_prueba` y la función se niega —correctamente— a emitirles guía.
 - El nombre del campo del token no está fijado en la especificación; se prueban las
   variantes conocidas (`token`, `access_token`, `data.token`, `jwt`).
 - La caja de un pedido multi-pieza es una aproximación: se suman los pesos y se toma la

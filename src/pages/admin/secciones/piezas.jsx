@@ -154,6 +154,34 @@ export const ShipModal = ({ order, onClose, onConfirm }) => {
     const [cotizacion, setCotizacion] = useState(null);
     const [errorCotiza, setErrorCotiza] = useState(null);
 
+    /* Pedir la guía. Esto SÍ crea algo real y se factura, así que el botón
+       aparece sólo con transportadora elegida, se confirma, y desaparece en
+       cuanto hay guía: no hay forma de pedir dos. */
+    const [pidiendo, setPidiendo] = useState(false);
+    const [guiaError, setGuiaError] = useState(null);
+    const [avisoGuia, setAvisoGuia] = useState(null);
+
+    const pedirGuia = async () => {
+        const nombre = Object.entries(CARRIER_DE_99ENVIOS).find(([, v]) => v === carrier)?.[0];
+        if (!nombre) { setGuiaError('Esa transportadora no la emite 99envios.'); return; }
+        if (!window.confirm(
+            `Se va a pedir la guía a ${carrier} para el pedido de ${order.customer_name}.\n\n` +
+            'Esto crea un envío de verdad y se factura. ¿Seguimos?'
+        )) return;
+
+        setPidiendo(true); setGuiaError(null); setAvisoGuia(null);
+        const { data, error } = await supabase.functions.invoke('crear-guia', {
+            body: { pedidoId: order.id, transportadora: nombre },
+        });
+        setPidiendo(false);
+        if (error || !data?.ok) {
+            setGuiaError(data?.detalle || error?.message || 'No se pudo pedir la guía');
+            return;
+        }
+        setTrackingNumber(data.guia);
+        if (data.aviso) setAvisoGuia(data.aviso);
+    };
+
     const cotizar = async () => {
         setCotizando(true); setErrorCotiza(null);
         const { data, error } = await supabase.functions.invoke('cotizar-envio', {
@@ -240,6 +268,15 @@ export const ShipModal = ({ order, onClose, onConfirm }) => {
                         <label>Numero de guia</label>
                         <input value={trackingNumber} onChange={e => setTrackingNumber(e.target.value)} placeholder="Numero de seguimiento" />
                     </div>
+
+                    {carrier && !trackingNumber && CARRIER_DE_99ENVIOS && Object.values(CARRIER_DE_99ENVIOS).includes(carrier) && (
+                        <button type="button" className="admin-btn admin-btn--outline envio-cotiza-btn"
+                                onClick={pedirGuia} disabled={pidiendo}>
+                            {pidiendo ? 'Pidiéndola…' : `Pedir la guía a ${carrier}`}
+                        </button>
+                    )}
+                    {guiaError && <p className="envio-cotiza-error">{guiaError}</p>}
+                    {avisoGuia && <p className="envio-cotiza-error">{avisoGuia}</p>}
                     <div className="modal-actions">
                         <button type="button" className="admin-btn admin-btn--outline" onClick={onClose}>Cancelar</button>
                         <button type="submit" className="admin-btn" disabled={saving}>{saving ? 'Guardando...' : 'Marcar como enviado'}</button>
