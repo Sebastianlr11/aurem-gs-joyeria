@@ -230,10 +230,16 @@ Los tres valores que necesitan —`url_funciones`, `clave_anon`, `cron_secreto`�
 > `20260228_esquema_base.sql` las crea todas; va fechada antes que ninguna a propósito, y
 > está volcada del catálogo de Postgres, no escrita a mano.
 >
-> **Lo que sigue sin poder reconstruirse son cinco RPC de analítica** —`analiticas_whatsapp`,
-> `buscar_conversaciones`, `clientes_nuevos_vs_recurrentes`, `tendencia_comparativa` y
-> `top_ciudades_envio`—: sus permisos están versionados, sus cuerpos viven sólo en la base.
-> Un entorno nuevo levanta con el panel entero salvo cinco gráficas de Reportes.
+> **Y desde el 23 de agosto por la noche, también las ocho RPC.** Las cinco que faltaban
+> entraron en `20260824_las_cinco_que_faltaban.sql`, y al leerlas —por primera vez, porque
+> nunca habían pasado por un diff— aparecieron tres que mentían: dos repetían el fallo de
+> `revenue_por_fuente` y una decía lo contrario de lo que existe para medir. Ver
+> [pendientes #37](docs/pendientes.md).
+>
+> **Ojo con cómo se aplican.** Los archivos de `supabase/migrations/` son el registro
+> escrito; a la base los cambios entran uno a uno, y `supabase_migrations.schema_migrations`
+> guarda nombres propios que no coinciden con los de los archivos. `supabase db push`
+> intentaría aplicarlos los 38 de golpe: no es el flujo de este proyecto.
 
 ### Tablas
 
@@ -295,11 +301,16 @@ desde el 23-ago: el costo vive en el pedido.)
 |---|---|
 | `chats_sin_responder` | sí (`20260822_chats_sin_responder.sql`) |
 | `revenue_por_fuente` · `embudo_whatsapp` | sí (`20260824_los_informes_cuentan_lo_que_entro.sql`) |
-| `analiticas_whatsapp` · `buscar_conversaciones` · `clientes_nuevos_vs_recurrentes` · `tendencia_comparativa` · `top_ciudades_envio` | **no**, sólo sus permisos |
+| `analiticas_whatsapp` · `buscar_conversaciones` · `clientes_nuevos_vs_recurrentes` · `tendencia_comparativa` · `top_ciudades_envio` | sí (`20260824_las_cinco_que_faltaban.sql`) |
 
-Los permisos de las ocho sí están, en `20260823_las_rpc_estaban_abiertas.sql`: eran
+**Las ocho están.** Los permisos, además, en `20260823_las_rpc_estaban_abiertas.sql`: eran
 `SECURITY DEFINER` y **cualquiera con la llave pública podía ejecutarlas**, que es la misma
 clase de agujero que el de las tablas pero por la puerta de al lado.
+
+**Ninguna filtra `es_prueba`, y es a propósito**: el lente de pruebas es un interruptor de
+la interfaz y una RPC agregada no puede saber cómo está puesto. La consecuencia hay que
+tenerla presente: en Reportes conviven números que obedecen al lente —los que salen de
+`orders` en JavaScript— con números que no —los de las RPC—.
 
 ### Buckets de Storage
 
@@ -351,6 +362,7 @@ nombre es el identificador que la base ya tiene anotado.
 | `20260823_a_quien_se_le_puede_escribir.sql` | 🔒 `puede_recibir_plantillas()`: el «no me escriban» se comprobaba con la cadena cruda y fallaba en 10 de 18 pedidos |
 | `20260824_confirmado_y_devuelto.sql` | Dos estados nuevos en el circuito, y el guardián que compara la regla del dinero de la base con la tabla de §8 |
 | `20260824_los_informes_cuentan_lo_que_entro.sql` | `revenue_por_fuente` sumaba todos los pedidos: decía 331 veces más de lo que había entrado |
+| `20260824_las_cinco_que_faltaban.sql` | Las cinco RPC que sólo vivían en la base; tres de ellas mentían |
 
 `20260822_cerrar_conversaciones_a_anon.sql` cerró el fallo más grave de todos:
 `whatsapp_conversaciones` y `chat_takeover` tenían políticas
@@ -621,6 +633,6 @@ hoy, decisiones tomadas y por qué, límites conocidos, cómo probarlo.
 - [`vigilancia.md`](docs/specs/vigilancia.md) — el vigía
 - [`diseno-y-frontend.md`](docs/specs/diseno-y-frontend.md) — CSS, fuentes, animaciones
 
-**Y aparte:** [`docs/pendientes.md`](docs/pendientes.md) — los 36 hallazgos de la revisión,
+**Y aparte:** [`docs/pendientes.md`](docs/pendientes.md) — los 37 hallazgos de la revisión,
 **todos cerrados** a 23 de agosto de 2026. Se conserva porque cada uno lleva escrito qué
 pasaba y por qué se decidió lo que se decidió; los specs enlazan a sus números.

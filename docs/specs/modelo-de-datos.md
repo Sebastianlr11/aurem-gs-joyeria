@@ -1,6 +1,6 @@
 # Modelo de datos
 
-> **Estado:** en producción · las 16 tablas versionadas; cinco RPC de analítica, no
+> **Estado:** en producción · la base entera se reconstruye desde el repositorio
 > **Última revisión:** 2026-08-23
 
 ## Qué resuelve
@@ -29,7 +29,7 @@ y **las 17 se crean desde el repositorio**.
 | `revenue_por_fuente`, `embudo_whatsapp` | ✅ | `20260824_los_informes_cuentan_lo_que_entro.sql` |
 | RLS, políticas y el inventario de funciones | ✅ | `20260823_superficie_de_seguridad.sql` (875 líneas, volcado de producción) |
 | Programación de `pg_cron` | ✅ | `20260823_el_reloj_de_la_base.sql` |
-| `analiticas_whatsapp`, `buscar_conversaciones`, `clientes_nuevos_vs_recurrentes`, `tendencia_comparativa`, `top_ciudades_envio` | ⚠️ **sólo sus permisos** | cuerpos únicamente en la base |
+| `analiticas_whatsapp`, `buscar_conversaciones`, `clientes_nuevos_vs_recurrentes`, `tendencia_comparativa`, `top_ciudades_envio` | ✅ | `20260824_las_cinco_que_faltaban.sql` |
 
 `20260228_esquema_base.sql` va fechada antes que ninguna a propósito: las incrementales
 —`20260311_add_shipping_address.sql` hace un `ALTER` sobre `orders`— necesitan que su tabla
@@ -180,10 +180,15 @@ necesita ver más de lo que ve quien la llama, y por eso hay que fijar el `searc
   agosto de 2026, en `20260228_esquema_base.sql`, volcado del catálogo de Postgres y
   fechado antes que ninguna para que las incrementales encuentren su tabla —
   [pendientes #4](../pendientes.md).
-- 🟠 **Cinco RPC de analítica siguen sin cuerpo en el repositorio**: `analiticas_whatsapp`,
-  `buscar_conversaciones`, `clientes_nuevos_vs_recurrentes`, `tendencia_comparativa` y
-  `top_ciudades_envio`. Sus permisos sí están versionados. Un entorno nuevo levanta con el
-  panel entero salvo cinco gráficas de Reportes.
+- ~~**Cinco RPC de analítica siguen sin cuerpo en el repositorio**~~ — entraron la noche
+  del 23 de agosto, y al leerlas aparecieron tres que mentían
+  ([pendientes #37](../pendientes.md)). **La base entera se reconstruye ya desde el
+  repositorio.**
+- Las RPC **no filtran `es_prueba`** y no pueden: el lente es un interruptor de la interfaz.
+  Reportes mezcla, entonces, números que obedecen al lente con números que no.
+- Los archivos de migración son el registro escrito; a la base los cambios entran uno a uno
+  y `schema_migrations` guarda nombres que no coinciden con los de los archivos.
+  **`supabase db push` intentaría aplicarlos todos de golpe**: no es el flujo de aquí.
 - ~~**`supabase-schema.sql` está obsoleto**~~: borrado el 23 de agosto. Lo reemplaza
   `20260228_esquema_base.sql`, volcado del catálogo. Le faltaban 7 columnas que el frontend consume
   y su `CHECK` de categoría no incluye `Dijes`.

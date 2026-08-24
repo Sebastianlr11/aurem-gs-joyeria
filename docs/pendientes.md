@@ -1745,3 +1745,77 @@ Al comprobar que cada clase escrita en el JSX exista en el CSS —la revisión q
 desde el destrozo del renombrado— aparecieron `admin-login-btn-loading` y
 `admin-login-success-icon`, usadas en `ResetPassword.jsx` y en ninguno de los dos archivos
 de estilos: el spinner sin alinear y el visto del acierto pegado a la izquierda. Añadidas.
+
+---
+
+## 37. ✅ Las cinco RPC que nadie había leído — versionadas, y tres mentían
+
+Quedaban cinco funciones de analítica cuyos **permisos** estaban en el repositorio y cuyos
+**cuerpos** no: existían sólo dentro de Postgres, escritas a mano en el panel de Supabase.
+Un entorno nuevo levantaba con todo salvo cinco gráficas de Reportes.
+
+Versionarlas era la tarea. Lo que importaba era otra cosa: **nunca habían pasado por un
+diff**, y son de la misma familia que `revenue_por_fuente` (#35), que decía 331 veces más
+de lo que había entrado.
+
+### Lo que decían
+
+| Función | Decía | Entró de verdad |
+|---|---|---|
+| `tendencia_comparativa` | $13.239.000 este mes, 18 pedidos | **$40.000, 2 pedidos** |
+| `top_ciudades_envio` | Bogotá: $13.239.000 en 18 envíos | **$40.000 en 2** |
+| `clientes_nuevos_vs_recurrentes` | 3 clientes nuevos, 0 recurrentes | **1 persona** |
+
+Las dos primeras sumaban `amount` de **todos** los pedidos —los 14 cancelados incluidos— sin
+pasar por `recibido_de`. Es exactamente el fallo de #35, dos veces más, en dos gráficas que
+se miran para decidir dónde poner plata de pauta.
+
+La tercera es más sutil y por eso peor: contaba por `customer_phone` **en crudo**, y el
+mismo número entra de tres formas según el canal —`3143602930` desde el panel,
+`+573143602930` desde el checkout, `573143602930` desde WhatsApp—. Con 18 pedidos hay tres
+cadenas distintas y **una sola persona**. Así que la gráfica de fidelidad decía «tres
+clientes nuevos, ninguno recurrente» sobre alguien que ha pedido varias veces: el revés
+justo de lo que existe para medir. Mismo fallo que `20260823_un_cliente_por_persona.sql`
+arregló en `customers`, por la puerta de al lado.
+
+**Y una cuarta, asimétrica.** `analiticas_whatsapp` filtraba `es_prueba = false` en el
+numerador de la tasa de conversión y no en el denominador: los chats del equipo restaban
+abajo y no sumaban arriba. La tasa salía más baja de lo real, y no había forma de notarlo.
+
+### Y dos más en la misma pantalla, en JavaScript
+
+Al comprobar el resultado en el navegador quedaron a la vista dos tarjetas que no vienen de
+ninguna RPC y hacían lo mismo:
+
+- **«Métodos de pago»** — sumaba `amount` sobre todos los pedidos, cancelados incluidos:
+  **contraentrega $12.700.000** cuando habían entrado $20.000.
+- **«Pedidos por canal»** — sí filtraba los muertos con `estaVivo`, pero sumaba `amount` en
+  vez de `recibidoDe`, así que daba por cobrado el total de un contraentrega en camino:
+  **Web $1.050.000** en vez de $40.000.
+
+Las dos ahora pasan por `recibidoDe`. Las cinco tarjetas de dinero de Reportes dicen
+**$40.000**, que es lo que dice la portada y lo que hay en `pagos`.
+
+### Cómo se comprobó que el archivo y la base son lo mismo
+
+El riesgo de aplicar una función escribiéndola en una llamada, en vez de leyéndola del
+disco, es la errata silenciosa — pasó el 21 de agosto con `bot.ts`. Aquí se cerró
+comparando el **md5 del cuerpo de cada función**, normalizando espacios, entre
+`supabase/migrations/20260824_las_cinco_que_faltaban.sql` y `pg_proc.prosrc` de producción.
+La primera pasada dio cuatro discrepancias: eran los comentarios, que se habían quedado
+fuera. Se reaplicó con ellos y las cinco coinciden. **Los comentarios viven ahora dentro de
+la función**, así que el próximo volcado los trae.
+
+### Lo que queda dicho, no arreglado
+
+**Ninguna RPC filtra `es_prueba`, y no puede.** El lente de pruebas es un interruptor de la
+interfaz y una función agregada no sabe cómo está puesto; meterlo por dentro lo rompería en
+la otra dirección. La consecuencia queda escrita en
+[`admin-reportes-y-pauta.md`](specs/admin-reportes-y-pauta.md): esa pantalla **mezcla
+números que obedecen al lente con números que no**. El arreglo limpio sería pasarle el lente
+como parámetro a las seis RPC, y es una decisión, no un descuido.
+
+**Y los archivos de migración no son el mecanismo.** A la base los cambios entran uno a uno,
+y `schema_migrations` guarda nombres propios que no coinciden con los de los archivos:
+ninguno de los 38 locales figura como aplicado. `supabase db push` intentaría aplicarlos
+todos de golpe sobre producción. Queda advertido en `CLAUDE.md`.

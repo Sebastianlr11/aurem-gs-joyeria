@@ -71,15 +71,43 @@ duplicaría el gasto y hundiría el ROAS sin motivo.
 uno recibe eventos**. Antes de concluir que una campaña no convierte, verifica el ID — ver
 [atribucion-y-pixeles.md](atribucion-y-pixeles.md).
 
+## Los números que mentían
+
+Esta pantalla tuvo, en dos días, **cinco cifras infladas por la misma razón**: sumar
+`amount` en vez de preguntar qué entró de verdad. La regla está en CLAUDE.md §8 y en
+`src/lib/dinero.js`, y el motivo de que se cuele tan fácil es que **el error no se ve**: da
+un número redondo, con signo de pesos y perfectamente creíble.
+
+| Tarjeta | Decía | Entró | Dónde estaba |
+|---|---|---|---|
+| Ingresos por fuente | $13.239.000 | $40.000 | `revenue_por_fuente` |
+| Tendencia mes a mes | $13.239.000 | $40.000 | `tendencia_comparativa` |
+| A dónde enviamos | $13.239.000 | $40.000 | `top_ciudades_envio` |
+| Métodos de pago | $12.700.000 | $40.000 | `Reportes.jsx`, en JavaScript |
+| Pedidos por canal | $1.050.000 | $40.000 | `Reportes.jsx`, en JavaScript |
+
+Las tres primeras sumaban todos los pedidos, cancelados incluidos. «Métodos de pago» hacía
+lo mismo. «Pedidos por canal» sí filtraba los muertos con `estaVivo`, pero daba por cobrado
+el total de un contraentrega que va en camino —y de esos son 16 de cada 17—.
+
+**Y una sexta que no era de dinero:** `clientes_nuevos_vs_recurrentes` contaba por
+`customer_phone` en crudo. El mismo número entra de tres formas según el canal, así que una
+sola persona con dos pedidos salía como «2 clientes nuevos, 0 recurrentes» — el revés justo
+de lo que la gráfica existe para medir. Ahora se cuenta por los últimos diez dígitos, como
+el índice único de `customers`.
+
 ## Límites conocidos y pendientes
 
-- **Las 6 RPC no están en el repo.** Si alguien las cambia en el dashboard de Supabase, los
-  reportes cambian sin dejar rastro en git.
+- ~~**Las 6 RPC no están en el repo**~~ — las ocho lo están desde el 23 de agosto de 2026.
+  Y al leerlas por primera vez aparecieron tres que mentían: ver más abajo.
+- 🟠 **Esta pantalla mezcla dos formas de contar.** Los números que salen de `orders` en
+  JavaScript obedecen al lente de pruebas; los que salen de una RPC, no —una función
+  agregada no puede saber cómo está puesto un interruptor de la interfaz—. Hoy, con los 18
+  pedidos de prueba, eso significa que con el lente apagado unas tarjetas se vacían y otras
+  no. No hay arreglo limpio sin pasarle el lente como parámetro a las seis RPC.
 - El gasto de pauta se anota **a mano**: no hay integración con las APIs de Meta ni TikTok.
 - `revenue_por_fuente` depende de que la atribución haya llegado; los pedidos manuales sin
   origen caen en "sin fuente".
-- Con los pedidos actuales (todos de prueba), los reportes están vacíos a menos que se
-  encienda el lente de pruebas.
 
 ## Cómo probarlo
 
