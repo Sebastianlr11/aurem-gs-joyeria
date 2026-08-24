@@ -1871,3 +1871,52 @@ portada, que calculaba la comisión sobre el precio y no sobre lo cobrado.
 —los seis, incluido el del contraentrega entregado— antes de dar nada por bueno.
 
 De paso se borró `calcMPNet`, que era un alias de `netoDeMercadoPago` sin ningún uso vivo.
+
+---
+
+## 39. ✅ El embudo de WhatsApp se ensanchaba en el segundo peldaño — resuelto
+
+En producción dibujaba **0 conversaciones → 1 interesada → 0 pedidos**. Un embudo cuyo
+segundo escalón es más ancho que el primero no está mal calibrado: es un gráfico que no
+puede ser cierto.
+
+Tres motivos, los tres de la misma familia que todo lo de estos días:
+
+1. **Los peldaños no eran subconjuntos.** «Interesadas» se medía sobre los mensajes de
+   Valentina sin exigir que esa persona hubiera escrito nunca, así que un chat donde sólo
+   habló ella —una plantilla saliente— entraba en el peldaño 2 sin estar en el 1.
+2. **`es_prueba` era asimétrico**, igual que en `analiticas_whatsapp`: se filtraba abajo
+   (pedidos, pagados) y no arriba (conversaciones, interesadas). Los chats del equipo
+   entraban por la boca y sus pedidos no salían por el cuello.
+3. **Los teléfonos se cruzaban en crudo**, así que el enlace entre una conversación y su
+   pedido no acertaba nunca.
+
+Ahora cada peldaño se calcula sobre los que escribieron, ninguno filtra `es_prueba` —el
+lente vive en la interfaz— y los teléfonos se comparan por los últimos diez dígitos. El
+archivo y la base se compararon por md5 antes de dar nada por bueno.
+
+**Límite que queda dicho:** «interesadas» detecta un precio con una expresión que busca
+`$1.234`. Si Valentina escribe «500 mil», ese chat no cuenta. Por eso los peldaños 3 y 4 se
+calculan sobre los que escribieron y no sobre las interesadas: **preferimos que el peldaño 3
+pueda salir más ancho que el 2 —y que eso se lea como «a la expresión se le escapó un
+precio»— antes que esconder pedidos de verdad.**
+
+---
+
+## 40. 🟠 El disparador que cancela duplicados compara el teléfono en crudo
+
+`cancel_duplicate_pending_orders` corre en cada `INSERT` sobre `orders` y cancela los
+pedidos `pendiente` del mismo cliente y la misma pieza. El cruce es
+`customer_phone = NEW.customer_phone`, **la cadena entera**.
+
+El mismo número entra de tres formas según el canal, así que **cuando el formato cambia, el
+duplicado no se detecta** y quedan dos pedidos pendientes vivos por la misma pieza. Es el
+mismo fallo que `20260823_un_cliente_por_persona.sql` cerró en `customers` y que apareció
+después en las RPC.
+
+**No se ha tocado a propósito.** Arreglarlo hace que el disparador cancele *más*, y cancelar
+es una escritura sobre pedidos reales: la decisión es de Sebastián, no mía. Y de paso hay
+una pregunta de negocio metida ahí dentro que conviene resolver antes: **el disparador
+también cancelaría un pedido legítimo repetido** —dos anillos iguales, uno para regalar—
+si el primero sigue en `pendiente`. Hoy eso ya pasa; ampliar el cruce sólo lo haría pasar
+más.
