@@ -69,6 +69,29 @@ como se vende casi todo.
 El plazo `cobrar` es la única avería de la lista donde puede haber **plata recogida y sin
 registrar**, y hasta ahora no la miraba nadie.
 
+### Que el libro de caja cuadre con la regla
+
+Dos comprobaciones, una encima de la otra, y la diferencia importa:
+
+- **`regla_del_dinero_cuadra()`** comprueba que `recibido_de` de la base siga diciendo lo
+  que dice la tabla de CLAUDE.md §8 — que la regla **diga lo que debe**.
+- **`caja_cuadra_con_la_regla()`**, desde el 24 de agosto de 2026, comprueba que la suma de
+  `pagos` de cada pedido sea lo que esa regla dice — que el libro **le haga caso**.
+
+La segunda existe porque de `pagos` salen ahora las cifras de la portada y del retorno de la
+pauta. La tabla y la regla son dos formas de responder «cuánto entró por este pedido», y
+como toda pareja de este proyecto pueden separarse sin que nadie lo note: el número seguiría
+saliendo redondo, con signo de pesos y perfectamente creíble.
+
+El disparador que llena `pagos` está bien pensado —recalcula lo que debería haber anotado,
+resta lo ya anotado y guarda sólo la diferencia, así que se autocorrige— pero corre en cada
+`INSERT` y en cada `UPDATE` de cinco columnas, y cualquier cambio futuro en el circuito de
+estados puede dejarlo desfasado.
+
+**Comprobada rompiéndola:** se metió un peso de más en el libro de un pedido de prueba, el
+guardián lo cazó, y se deshizo. Vacío es que cuadra, y así está hoy: 18 pedidos, cero
+descuadres.
+
 ### El candado del panel
 
 Las dos últimas comprobaciones son de otra clase que el resto: no vigilan que algo esté

@@ -321,6 +321,33 @@ Deno.serve(async (req: Request) => {
     }
   }
 
+  /* Y un piso más abajo: que el LIBRO le haga caso a la regla.
+
+     `pagos` lo llena el disparador `registrar_pago`, y de esa tabla salen las
+     cifras de la portada y del retorno de la pauta. La tabla y la regla son
+     dos formas de responder «cuánto entró por este pedido», y como toda
+     pareja de este proyecto pueden separarse sin que nadie lo note: el número
+     seguiría saliendo redondo y creíble.
+
+     La de arriba comprueba que la regla diga lo que debe; ésta, que el libro
+     le haga caso. */
+  const { data: caja, error: errCaja } = await db.rpc('caja_cuadra_con_la_regla')
+  if (errCaja) {
+    hallazgos.push({
+      que: 'No se pudo cuadrar el libro de caja',
+      detalle: errCaja.message,
+      grave: true,
+    })
+  } else if (caja?.length) {
+    for (const c of caja as Array<{ pedido: string; estado: string; forma_de_pago: string; dice_el_libro: number; dice_la_regla: number }>) {
+      hallazgos.push({
+        que: `El libro de caja no cuadra en un pedido ${c.estado} por ${c.forma_de_pago}`,
+        detalle: `el libro dice $${c.dice_el_libro} y la regla dice $${c.dice_la_regla} · pedido ${c.pedido}`,
+        grave: true,
+      })
+    }
+  }
+
   const { data: flojas, error: errFlojas } = await db.rpc('politicas_flojas')
   if (errFlojas) {
     hallazgos.push({
