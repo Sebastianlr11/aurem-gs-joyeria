@@ -39,7 +39,7 @@ npm run dev          # Vite en http://localhost:5173
 npm run build        # eslint && vitest && sitemap.mjs && correos.mjs && tsc -b && vite build
 npm run preview      # Sirve /dist
 npm run lint         # ESLint (sí corre en el build)
-npm test             # Vitest, una pasada (88 pruebas)
+npm test             # Vitest, una pasada (109 pruebas)
 npm run test:mirar   # Vitest en marcha, repitiendo al guardar
 
 npm run sitemap      # Regenera public/sitemap.xml desde Supabase
@@ -61,10 +61,10 @@ Tres advertencias sobre el build:
 
 ### Las pruebas
 
-Hay **88**: `dinero.test.js` y `caja.test.js` cubren las cuentas de plata,
-`fotosEnStorage.test.js` la deducción de qué archivos se borran, y
+Hay **109**: `dinero.test.js` y `caja.test.js` cubren las cuentas de plata,
+`fotosEnStorage.test.js` la deducción de qué archivos se borran,
 `chat/ganchos.test.js`, `chat/ficha.test.js` y `chat/seleccion.test.js` los ganchos del
-chat. Se empezó por el dinero a
+chat, y `supabase/functions/_shared/reglas.test.ts` las reglas de Valentina. Se empezó por el dinero a
 propósito, porque es el único sitio donde un error **no se ve**.
 
 Los ganchos del chat se prueban por otra razón: **no hay forma de probarlos a mano**. Para
@@ -177,6 +177,10 @@ Módulos compartidos en `supabase/functions/_shared/`:
 - `wa.ts` (464 l.) — envío a WhatsApp, troceado natural, indicador de "escribiendo", plantillas
 - `medios.ts` (221 l.) — transcripción de audio y descripción de imágenes
 - `conversiones.ts` (328 l.) — Meta CAPI y TikTok Events API server-side
+- `reglas.ts` (189 l.) — la lógica de Valentina **sin nada de Deno dentro**: la talla, la
+  cotización del oro y la atribución. Existe para poder probarla: son las tres cosas del
+  bot donde equivocarse le cuesta dinero a alguien, y `bot.ts` no se puede cargar desde
+  Node porque importa de `jsr:` y llama a `Deno.env`
 
 Los dos endpoints de Vercel:
 

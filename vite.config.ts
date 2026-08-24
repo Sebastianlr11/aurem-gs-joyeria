@@ -15,6 +15,14 @@ export default defineConfig({
      prueben componentes, se añade jsdom para esos archivos. */
   test: {
     environment: 'node',
-    include: ['src/**/*.test.{js,jsx,ts,tsx}'],
+    include: [
+      'src/**/*.test.{js,jsx,ts,tsx}',
+      /* Las edge functions corren en Deno, no en Node, así que la mayoría de
+         ese código no se puede cargar desde aquí: importa de `jsr:` y llama a
+         `Deno.env`. Lo que sí se prueba es `_shared/reglas.ts`, que existe
+         justamente por eso — es la lógica de Valentina sin nada de Deno
+         dentro, para que se pueda comprobar. */
+      'supabase/functions/**/*.test.ts',
+    ],
   },
 })
