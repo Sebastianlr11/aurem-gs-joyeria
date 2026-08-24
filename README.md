@@ -47,9 +47,10 @@ prefiere pagar solo.
 | **Estilos** | **CSS plano, escrito a mano, en dos archivos** — `index.css` (tienda) y `panel.css`. Sin Tailwind, sin CSS modules, sin preprocesador |
 | **Animaciones** | `src/lib/aparecer.js` propio. **Sin Framer Motion** |
 | **Datos y auth** | Supabase — Postgres, Auth, Storage, Realtime |
-| **Backend** | 9 Edge Functions de Supabase (Deno) + 2 endpoints serverless en Vercel |
+| **Backend** | 11 Edge Functions de Supabase (Deno) + 2 endpoints serverless en Vercel |
 | **Pagos** | Mercado Pago |
 | **Mensajería** | WhatsApp Cloud API (Meta) |
+| **Envíos** | 99envios — cotizar y emitir guías con cinco transportadoras |
 | **IA** | OpenRouter |
 | **Correos** | Resend + React Email |
 | **Hosting** | Vercel |
@@ -79,6 +80,7 @@ supabase/
 │                    plantillas-programadas, create-admin
 │   └── _shared/     bot.ts (Valentina), bucle.ts, reglas.ts, wa.ts,
 │                    medios.ts, conversiones.ts, envios.ts, pedidos.ts
+│                    (11 funciones: WhatsApp, pagos, envíos, correos, vigía)
 └── migrations/
 
 api/                 ficha.js (previsualizaciones), correo.js (Resend)
@@ -127,7 +129,7 @@ npm run email        # Previsualizador de correos en :3010
 npm run imagenes     # Convierte las fotos estáticas a WebP
 npm run css:pisadas  # Detecta reglas CSS que otras pisan
 npm run sitemap      # Regenera public/sitemap.xml
-npm test             # Vitest, una pasada (186 pruebas)
+npm test             # Vitest, una pasada (219 pruebas)
 npm run test:mirar   # Vitest en marcha, repitiendo al guardar
 ```
 
@@ -138,7 +140,7 @@ npm run test:mirar   # Vitest en marcha, repitiendo al guardar
 | Documento | Para qué |
 |---|---|
 | [**CLAUDE.md**](CLAUDE.md) | El mapa completo: arquitectura, rutas, modelo de datos, reglas de negocio, convenciones |
-| [**docs/specs/**](docs/specs/README.md) | Un documento por feature — 20 en total |
+| [**docs/specs/**](docs/specs/README.md) | Un documento por feature — 21 en total |
 | [**docs/pendientes.md**](docs/pendientes.md) | Los 36 hallazgos de la revisión, todos cerrados, con qué pasaba y por qué se decidió lo que se decidió |
 | [**DESIGN.md**](DESIGN.md) | El sistema de diseño de la tienda. **Fuente de verdad** de colores y tipografía |
 | [**DESIGN-PANEL.md**](DESIGN-PANEL.md) | El del panel: hereda la identidad y cambia lo que la densidad obliga |

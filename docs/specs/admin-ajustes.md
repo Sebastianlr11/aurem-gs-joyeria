@@ -1,7 +1,7 @@
 # Panel — ajustes
 
 > **Estado:** en producción
-> **Última revisión:** 2026-08-23
+> **Última revisión:** 2026-08-24
 > **Ruta:** `/admin?tab=settings` · `src/pages/admin/secciones/Ajustes.jsx`
 
 > **Sin números de línea.** Los llevaba, y el 23 de agosto de 2026 `Dashboard.jsx` pasó de

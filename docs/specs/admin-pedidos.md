@@ -1,7 +1,7 @@
 # Panel — pedidos
 
 > **Estado:** en producción
-> **Última revisión:** 2026-08-23
+> **Última revisión:** 2026-08-24
 > **Ruta:** `/admin?tab=orders`
 
 ## Qué resuelve
@@ -13,7 +13,7 @@ en cada paso cuál es la siguiente acción** — que no es la misma según cómo
 
 ### La máquina de estados, que es doble
 
-`status` ∈ `pendiente | pagado | procesando | enviado | entregado | cancelado`
+`status` ∈ `pendiente | confirmado | pagado | procesando | enviado | entregado | devuelto | cancelado`
 
 La acción sugerida depende del método de pago (`secciones/Pedidos.jsx`):
 
@@ -71,7 +71,7 @@ CONTRAENTREGA  pendiente ──► confirmado ──► procesando ──► env
 | `confirmado` | Confirmado | **Abonó el envío.** Hay compromiso; el taller no ha empezado | `mp-webhook`, solo, al entrar el abono | Anota el abono · plantilla `pedido_confirmado_abono` |
 | `pagado` | Pagado | Entró el importe completo | `mp-webhook`, solo | Anota la venta · avisa a Meta y TikTok |
 | `procesando` | **Fabricando** | El taller **está haciendo la pieza** | Una persona, «Empezar a fabricar» | Plantilla `pieza_en_fabricacion`, en la siguiente corrida del cron |
-| `enviado` | Enviado | Va con la transportadora | Una persona, «Marcar enviado» + guía | Correo con rastreo · plantilla `pedido_en_camino` |
+| `enviado` | Enviado | Va con la transportadora | Una persona, «Marcar enviado» + guía | Correo con rastreo · el WhatsApp de cada paso lo manda 99envios, no nosotros ([envios-99envios.md](envios-99envios.md)) |
 | `entregado` | Entregado | Llegó. En contraentrega, **además cobraste** | Una persona, «Marcar entregado» | En contraentrega: anota el saldo y avisa a Meta y TikTok |
 | `devuelto` | Devuelto | Salió, no se recibió y volvió | Una persona, «No la recibió» en la fila del pedido | El abono se queda · deja de haber saldo por cobrar · **no** se avisa a los anuncios |
 | `cancelado` | Cancelado | **Nunca salió** | Una persona | — |

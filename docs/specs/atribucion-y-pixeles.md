@@ -1,7 +1,7 @@
 # Atribución y píxeles
 
 > **Estado:** en producción
-> **Última revisión:** 2026-08-23
+> **Última revisión:** 2026-08-24
 
 ## Qué resuelve
 
@@ -42,11 +42,14 @@ pixelCompra(pedidoId) ─────────┐       → Meta CAPI + TikTo
 | `src/lib/atribucion.js:104-107` | Prefiere la cookie `_fbc`; si no, la sintetiza |
 | `src/lib/atribucion.js:113-117` | Incluye `navigator.userAgent` |
 | `src/lib/atribucion.js:134-141` | `origenCorto()` para el `[ref:]` de WhatsApp |
-| `src/lib/pixeles.js:13-14, 23-24` | Sin variable de entorno, no carga nada |
-| `src/lib/pixeles.js:59-60` | `fbq('set','autoConfig',false,…)` **antes** del `init` |
-| `src/lib/pixeles.js:163-170` | Guardia anti-doble-conteo en `sessionStorage` |
-| `src/lib/pixeles.js:180, 185` | `eventID` / `event_id` para deduplicar |
+| `src/lib/pixeles.js:13-14` | Sin variable de entorno, no carga nada |
+| `src/lib/pixeles.js:52-62` | La cola `pendientes`: ningún evento se pierde mientras el píxel llega |
+| `src/lib/pixeles.js:79-99` | `iniciarPixeles()` espera al `load` y a que haya un hueco |
+| `src/lib/pixeles.js:136` | `fbq('set','autoConfig',false,…)` **antes** del `init` |
+| `src/lib/pixeles.js:244-245` | Guardia anti-doble-conteo en `sessionStorage` |
+| `src/lib/pixeles.js:259, 264` | `eventID` / `event_id` para deduplicar |
 | `supabase/functions/_shared/conversiones.ts` | Meta CAPI y TikTok Events API (393 líneas) |
+| `src/lib/pixeles.test.js` | Que la cola no pierda nada, y que los dos identificadores cuadren |
 | `src/lib/whatsapp.js:32-38` | El `[ref: …]` escrito en el mensaje |
 
 ### Qué se guarda en `orders`
@@ -106,6 +109,27 @@ navegación privada** — se prefiere un duplicado ocasional a perder la medici�
 **El `[ref: …]` en el mensaje de WhatsApp** (`whatsapp.js:32-38`) es la respuesta al
 problema de TikTok: no manda nada equivalente al `ctwa_clid` de Meta, así que **la única
 forma de saber de dónde viene un chat es anotarlo en el propio texto**.
+
+## Los píxeles cargan después de que la página se pinte
+
+Desde el 24 de agosto de 2026 `iniciarPixeles()` ya no corre a nivel de módulo: espera al
+evento `load` y a que el navegador tenga un hueco (`requestIdleCallback`, con respaldo por
+`setTimeout` porque Safari no lo trae). Eran **284,6 KiB de terceros por delante del primer
+pintado** en una tienda cuya clienta llega desde TikTok, en un celular y con datos.
+
+**Lo delicado no era diferirlos, era no perder eventos.** `meta()` y `tiktok()` descartaban
+en silencio cualquier evento disparado antes de que el píxel existiera. Con la carga
+inmediata casi nunca pasaba; diferida, habría tirado el `PageView` de **cada** carga y la
+medición se habría desangrado sin que ningún error lo dijera.
+
+La solución es una cola: si el píxel todavía no está, el evento se guarda en `pendientes`
+(tope de 50, para que una pestaña abierta media hora sin red no crezca sin fin) y se vacía en
+cuanto `window.fbq` o `window.ttq` aparecen. Se vacía **de forma oportunista**, en cada
+intento de disparo, no sólo al arrancar: la primera versión sólo drenaba desde
+`iniciarPixeles()` y una prueba lo cazó.
+
+El coste real de diferir es la gente que cierra la pestaña en los primeros dos segundos. Es
+una fracción pequeña, y a cambio la página aparece antes — que hace que menos gente cierre.
 
 ## Las pruebas no se le cuentan a nadie
 

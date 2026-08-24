@@ -1,7 +1,7 @@
 # Modelo de datos
 
 > **Estado:** en producción · la base entera se reconstruye desde el repositorio
-> **Última revisión:** 2026-08-23
+> **Última revisión:** 2026-08-24
 
 ## Qué resuelve
 

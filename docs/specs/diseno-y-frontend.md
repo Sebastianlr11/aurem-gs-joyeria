@@ -1,7 +1,7 @@
 # Diseño y frontend
 
 > **Estado:** en producción · la deuda de CSS, de 143 bloques pisados a 4
-> **Última revisión:** 2026-08-23
+> **Última revisión:** 2026-08-24
 
 ## Qué resuelve
 
@@ -143,10 +143,11 @@ el listado sólo enseña los 25 peores—. Sólo 2 de esos 25 son del sitio púb
 1. **La ficha tiene tres capas conviviendo**: `.ficha-*` (`:2589`), `.product-page-*`
    (`:3090`) y una reescritura completa al final. Las `.product-page-*` sobreviven porque el
    esqueleto de carga y el "no encontrado" todavía las usan.
-2. 🔴 **El HERO está duplicado** (`:7912-7950`, **fuera de toda media query**) y pisa al
-   original de `:375`. `.hero-h1` pierde cuatro declaraciones, incluida
-   `font-weight: 400 → 800` **sobre Marcellus, que sólo tiene 400** → negrita sintética en
-   el titular de la portada — [pendientes #15](../pendientes.md).
+2. ~~**El HERO está duplicado**~~ — resuelto el 23 de agosto de 2026. Había un segundo
+   bloque al final del archivo, fuera de toda media query, que pisaba al original: `.hero-h1`
+   perdía cuatro declaraciones, entre ellas `font-weight: 400 → 800` **sobre Marcellus, que
+   sólo tiene el 400** → negrita sintética en el titular de la portada. Hoy `.hero-h1` está
+   una sola vez — [pendientes #15](../pendientes.md).
 3. `RING SIZE GUIDE` (`:8039`) y `GUÍA DE TALLAS` (`:8042`) son dos cabeceras consecutivas
    para lo mismo; la primera quedó vacía.
 4. Bloques "(redesigned)" conviviendo con sus originales en la zona de chat.
@@ -164,6 +165,48 @@ conflicto, pero rompe el "todos los tokens en un sitio".
 - `DESIGN.md` documenta un ⚠️ registrado de choque tipográfico entre isotipo, Marcellus y
   logotipo.
 - **Voz**: español de Colombia, botones que nombran la acción, sólo lo verificable.
+
+## Que cargue rápido en un celular
+
+Medido el 24 de agosto de 2026 con PageSpeed, en móvil: **68 de rendimiento, FCP 3,7 s,
+LCP 5,7 s** — los dos en rojo. Importa porque **la clienta llega desde TikTok o Instagram,
+en un celular y con datos**: cinco segundos y medio de pantalla en blanco antes de ver la
+primera joya es media venta perdida, y se paga por cada clic de pauta.
+
+Cinco cambios, cada uno aislado y reversible por separado:
+
+| Cambio | Dónde | Qué quita |
+|---|---|---|
+| Caché de los assets | `vercel.json` | 160 KiB revalidados en cada visita — abajo |
+| `ProtectedRoute` a `lazy()` | `src/App.jsx` | ~120 KiB: el cliente de Supabase entero |
+| Los píxeles, después de pintar | `src/lib/pixeles.js` | 284,6 KiB de terceros fuera de la ruta crítica |
+| Precargar la foto del hero | `index.html` | Deja de esperar a que React la descubra |
+| `build.target: 'es2022'` | `vite.config.ts` | 22 KiB de transpilación para navegadores que esta tienda no recibe |
+
+**`ProtectedRoute` sólo envuelve `/admin`, pero se importaba arriba del todo**, así que cada
+visitante de la portada se bajaba auth, realtime y storage de Supabase para no usarlos. El
+bundle de entrada pasó de **419 KB a 246 KB**. El `<Suspense>` de las rutas ya lo cubría.
+
+**Los píxeles se cargan ahora tras el evento `load`**, con `requestIdleCallback` y un
+respaldo por `setTimeout` porque Safari no lo trae. Lo delicado no era diferirlos sino **no
+perder eventos por el camino**: `meta()` y `tiktok()` descartaban en silencio cualquier
+evento disparado antes de que el píxel existiera, así que diferir habría tirado el `PageView`
+de cada carga. Por eso `pixeles.js` guarda una cola —`pendientes`, tope de 50— y la vacía en
+cuanto `window.fbq` o `window.ttq` aparecen. Se prueba en `src/lib/pixeles.test.js`.
+
+**Y el navbar pinta antes que la ruta.** El `<Suspense>` envolvía el layout entero, así que
+hasta que no llegaba el JS de la página no había ni navegación ni pie. Se movió dentro
+(`ConNavbar`), y el marco aparece de inmediato. Se hizo con cuidado por el CLS: navbar y pie
+tienen altura propia, así que el contenido no salta cuando la ruta entra.
+
+**El elemento LCP es el logo del navbar, que es texto en Marcellus** — no la foto. Está
+escrito arriba y con medición, y aun así se optimizó dos veces contra la foto del hero antes
+de releerlo. La foto sí se precarga, pero por el FCP, no por el LCP.
+
+Lo que **no** se tocó, a propósito: partir el CSS en crítico y diferido (el premio son
+16 KiB y este proyecto tiene historial de regresiones de CSS — para eso existe
+`css:pisadas`), y la región del servidor (el HTML se sirve desde Washington, pero antes de
+mover nada hay que medir el TTFB real desde Colombia).
 
 ## La caché de los assets
 
@@ -203,7 +246,8 @@ npm run dev
 ```
 
 1. **La negrita sintética:** abre la portada y mira el titular con el inspector. `.hero-h1`
-   debería ser `font-weight: 400`; hoy gana el `800` de la línea 7912.
+   tiene que salir en `font-weight: 400`. Si alguna vez sale en 800, es que volvió a aparecer
+   una segunda definición al final del archivo.
 2. **Contraste:** pasa la portada por un verificador de contraste. Todo texto con
    `--text-muted` debe dar ≥ 4,5:1.
 3. **Movimiento reducido:** activa `prefers-reduced-motion` en el SO. Nada debe animarse.
