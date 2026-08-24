@@ -3267,7 +3267,7 @@
 .chat-delivery-status--sending { color: var(--text-muted); }
 .chat-delivery-status--sent    { color: var(--text-muted); }
 .chat-delivery-status--delivered { color: var(--text-muted); }
-.chat-delivery-status--read    { color: var(--text-muted); }
+/* El leído NO va aquí: se distingue en oro, y su regla está más abajo. */
 .chat-delivery-status--failed  { color: var(--error-ink); }
 
 /* ─── Chat: clickable image bubbles ─────────────────────────────── */
