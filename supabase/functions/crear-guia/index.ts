@@ -45,6 +45,10 @@ const BASE = Deno.env.get('ENVIOS99_URL') ?? 'https://integration1.99envios.app'
    dentro es la forma más barata de que el paquete no llegue. */
 const DICE_CONTENER = Deno.env.get('ENVIOS99_DICE_CONTENER') ?? 'Accesorio'
 
+/* El mismo secreto que lee `cotizar-envio`: si no coinciden, lo cotizado y lo
+   cobrado dejan de ser lo mismo. */
+const SEGURO = Deno.env.get('ENVIOS99_SEGURO') ?? 'ninguno'
+
 let token: string | null = null
 let tokenHasta = 0
 const DURA_MS = 20 * 60 * 60 * 1000
@@ -235,8 +239,8 @@ Deno.serve(async (req: Request) => {
              devolución es EL riesgo, así que esto se enciende desde los
              secretos sin desplegar — pero apagado por defecto, porque
              encenderlo cuesta plata en cada envío y es decisión del negocio. */
-          seguro99: Deno.env.get('ENVIOS99_SEGURO') === 'basico',
-          seguro99plus: Deno.env.get('ENVIOS99_SEGURO') === 'plus',
+          seguro99: SEGURO === 'basico',
+          seguro99plus: SEGURO === 'plus',
           Destinatario: {
             tipoDocumento: 'CC',
             nombre: quien.nombre,

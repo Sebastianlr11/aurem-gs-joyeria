@@ -45,6 +45,10 @@ const json = (cuerpo: unknown, status = 200) =>
    son distintas, y equivocarse de una es cotizar contra datos que no existen. */
 const BASE = Deno.env.get('ENVIOS99_URL') ?? 'https://integration1.99envios.app'
 
+/* Cuál de los dos seguros antidevolución, o ninguno. Lo lee también
+   `crear-guia`: si los dos no coinciden, la cotización miente. */
+const SEGURO = Deno.env.get('ENVIOS99_SEGURO') ?? 'ninguno'
+
 /** El token y hasta cuándo sirve. En memoria del proceso, no en la base. */
 let token: string | null = null
 let tokenHasta = 0
@@ -206,8 +210,14 @@ Deno.serve(async (req: Request) => {
       largo: caja.largo,
       ancho: caja.ancho,
       fecha,
-      seguro99: false,
-      seguro99plus: false,
+      /* EL MISMO SEGURO QUE VA A LLEVAR LA GUÍA.
+      
+         Esto estaba fijo en `false` mientras `crear-guia` leía el secreto, así
+         que el día que se encendiera el seguro la cotización habría enseñado
+         $33.332 y la guía habría costado ~$35.712. Una cotización que no
+         cuesta lo que cuesta la guía no sirve para decidir nada. */
+      seguro99: SEGURO === 'basico',
+      seguro99plus: SEGURO === 'plus',
       AplicaContrapago: contrapago,
     })
 
@@ -285,7 +295,7 @@ Deno.serve(async (req: Request) => {
 
     return json({
       ok: true, ciudad: pedido.shipping_city, codigoDane: codigo, caja, opciones, noCotizaron,
-      contrapago, cobraElMensajero: contrapago ? porCobrar : 0,
+      contrapago, cobraElMensajero: contrapago ? porCobrar : 0, seguro: SEGURO,
     })
   } catch (e) {
     console.error('Cotizando con 99envios:', e instanceof Error ? e.message : e)
