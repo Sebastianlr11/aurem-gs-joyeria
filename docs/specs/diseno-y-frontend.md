@@ -1,7 +1,7 @@
 # Diseño y frontend
 
-> **Estado:** en producción · **deuda técnica alta en CSS**
-> **Última revisión:** 2026-08-22
+> **Estado:** en producción · la deuda de CSS, de 143 bloques pisados a 4
+> **Última revisión:** 2026-08-23
 
 ## Qué resuelve
 
@@ -167,10 +167,14 @@ conflicto, pero rompe el "todos los tokens en un sitio".
 
 ## Límites conocidos y pendientes
 
-- 🔴 **El titular de la portada sale en negrita sintética** — [pendientes #15](../pendientes.md).
-- 🟠 **No hay guía de diseño del panel**, que es la mitad del código.
-- 🟠 **La skill de diseño no está versionada** y contradice al código en el punto de las
-  fuentes — [pendientes #6](../pendientes.md).
+- ~~**El titular de la portada sale en negrita sintética**~~ — corregido el 23 de agosto de
+  2026 — [pendientes #15](../pendientes.md).
+- ~~**No hay guía de diseño del panel**~~ — `DESIGN-PANEL.md`, que hereda la identidad
+  entera y cambia lo que la densidad obliga: el cuerpo baja de 1rem, la escala es de 4px y
+  el estado de un pedido se distingue por un punto y no por un color de fondo.
+- ~~**La skill de diseño no está versionada**~~ — vive en
+  `.claude/skills/designing-aurem-gs/`, dentro del repositorio, y ya no contradice al
+  código en las fuentes — [pendientes #6](../pendientes.md).
 - 4 bloques con declaraciones pisadas, desde 143. Las «tres capas» de la ficha resultaron
   ser tres espacios de nombres con tres trabajos distintos — ver pendientes #16.
 - `DESIGN.md` tiene su propia sección de **Pendientes**: falta el precio del hero y las nueve

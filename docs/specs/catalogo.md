@@ -1,7 +1,7 @@
 # Catálogo
 
 > **Estado:** en producción
-> **Última revisión:** 2026-08-22
+> **Última revisión:** 2026-08-23
 > **Ruta:** `/catalogo` · `src/pages/Catalog.jsx` (658 líneas)
 
 ## Qué resuelve

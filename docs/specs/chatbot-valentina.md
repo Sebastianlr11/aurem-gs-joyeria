@@ -1,8 +1,8 @@
 # Valentina — el chatbot de WhatsApp
 
 > **Estado:** en producción
-> **Última revisión:** 2026-08-22
-> **Dónde vive:** `supabase/functions/_shared/bot.ts` (1.095 líneas)
+> **Última revisión:** 2026-08-23
+> **Dónde vive:** `supabase/functions/_shared/bot.ts` (974 líneas)
 
 ## Qué resuelve
 

@@ -1,8 +1,14 @@
 # Panel — Dashboard
 
 > **Estado:** en producción
-> **Última revisión:** 2026-08-22
-> **Ruta:** `/admin` (sección `dashboard`) · `src/pages/admin/Dashboard.jsx` (4.100 líneas)
+> **Última revisión:** 2026-08-23
+> **Ruta:** `/admin` (sección `dashboard`) · `src/pages/admin/secciones/Portada.jsx`
+
+> **Sin números de línea, a propósito.** Esta spec los llevaba —`:821-841`, `:439-465`— y
+> el 23 de agosto `Dashboard.jsx` pasó de 4.100 líneas a 248 al repartirse en
+> `secciones/`. Todas apuntaban a sitios que ya no existían, y una referencia falsa es
+> peor que ninguna: manda a buscar donde no está. Se nombran archivos y funciones, que
+> sobreviven a un reordenamiento.
 
 ## Qué resuelve
 
@@ -20,31 +26,37 @@ cliente.
 ### Arquitectura de la pantalla
 
 `/admin` es **una sola ruta** con 7 secciones conmutadas por estado y sincronizadas con
-`?tab=` (`:3650-3652`, `:3813-3839`): `dashboard`, `products`, `orders`, `customers`,
-`reports`, `notes`, `settings`. Sólo `chat` es una ruta aparte.
+`?tab=`: `dashboard`, `products`, `orders`, `customers`, `reports`, `notes`, `settings`.
+Sólo `chat` es una ruta aparte.
+
+El contenedor —carga de datos, lente de pruebas, conmutación de sección— es
+`src/pages/admin/Dashboard.jsx` (248 líneas). Cada sección vive en su archivo dentro de
+`src/pages/admin/secciones/`, y esta pantalla es `Portada.jsx`. Lo que comparten varias
+está en `secciones/comunes.js` (datos) y `secciones/piezas.jsx` (componentes), separados
+porque `react-refresh/only-export-components` no deja mezclarlos.
 
 ### Carga de datos
 
-| Origen | Línea |
+| Origen | Dónde |
 |---|---|
-| `products.select('*')` | `:3696` |
-| `orders.select('*, piezas:order_items(nombre, precio, cantidad, talla, creado_en)')` | `:3707-3710` |
-| `customers.select('*')` | `:3716` |
-| `rpc('chats_sin_responder')` | `:3674` |
-| `vigilancia_ultima`, `whatsapp_conversaciones`, `chat_takeover`, `gasto_pauta`, `taller_precios`, `rpc('analiticas_whatsapp')` | `DashboardHome` `:514-556` |
+| `products.select('*')` | `Dashboard.jsx` |
+| `orders.select('*, piezas:order_items(nombre, precio, cantidad, talla, creado_en)')` | `Dashboard.jsx` |
+| `customers.select('*')` | `Dashboard.jsx` |
+| `rpc('chats_sin_responder')` | `Dashboard.jsx` |
+| `vigilancia_ultima`, `whatsapp_conversaciones`, `chat_takeover`, `gasto_pauta`, `taller_precios`, `rpc('analiticas_whatsapp')` | `Portada.jsx` |
 
 ### El lente de pruebas
 
-`:3762-3776` — los pedidos con `es_prueba` se **ocultan por defecto en todo el panel**
-(pedidos y clientes incluidos). El interruptor está en la barra superior (`:3796-3807`) y
-se recuerda en `localStorage('aurem:ver-pruebas')` (`:3685-3686`).
+En `Dashboard.jsx`: los pedidos con `es_prueba` se **ocultan por defecto en todo el panel**
+(pedidos y clientes incluidos). El interruptor está en la barra superior y se recuerda en
+`localStorage('aurem:ver-pruebas')`.
 
-**Esto cambia todos los números de la pantalla.** Hoy los ~17 pedidos de la base son de
+**Esto cambia todos los números de la pantalla.** Hoy los 18 pedidos de la base son de
 prueba: con el lente apagado, el panel está prácticamente vacío, y eso es correcto.
 
 ### Las tarjetas, con su fórmula exacta
 
-**Cobrado · últimos 30 días** (`:821-841`, cálculo en `ingresosDe` `:439-465`)
+**Cobrado · últimos 30 días** — el cálculo es `ingresosDe`, de `src/lib/dinero.js`
 
 ```
 mpNeto     = Σ bruto de Mercado Pago − comisiones
@@ -55,12 +67,12 @@ codCobrado = Σ recibidoDe(pedido) de los contraentrega
 total      = mpNeto + codCobrado
 ```
 
-Constantes en `:428-432`. Ventana: `hace30 = hoy − 30 días` sobre `pedidos30` (`:558-559`).
+Las constantes viven en `src/lib/dinero.js`. Ventana: `hace30 = hoy − 30 días` sobre `pedidos30`.
 
-**Falta cobrar** (`:843-860`) — `Σ porCobrarDe(pedido)` de los contraentrega con saldo, más
+**Falta cobrar** — `Σ porCobrarDe(pedido)` de los contraentrega con saldo, más
 cuántos pedidos son. Ver `src/lib/dinero.js`.
 
-**Atender hoy** (`:563-565`, `:781-818`) — **mira todos los pedidos, no sólo 30 días**:
+**Atender hoy** — **mira todos los pedidos, no sólo 30 días**:
 
 | Concepto | Criterio |
 |---|---|
@@ -77,32 +89,32 @@ contraentrega en `pendiente` es plata casi hecha que falta cerrar; un pago en l�
 servía para decidir a quién llamar primero. Los criterios viven en `GRUPOS`
 (`secciones/comunes.js`) y los comparten la portada y la pantalla de Pedidos.
 
-**Averías** (`:517-519`, `:741-759`) — fila `vigilancia_ultima` (id=1): `hallazgos[]` y
+**Averías** — fila `vigilancia_ultima` (id=1): `hallazgos[]` y
 "Revisado hace X" desde `corrida_en`. Ver [vigilancia.md](vigilancia.md).
 
-**Stock** (`:571-572`, `:765-778`) — piezas publicadas con `stock === 0` (agotadas) y
+**Stock** — piezas publicadas con `stock === 0` (agotadas) y
 `stock === 1` (última unidad).
 
-**Tendencia de 14 días** (`:636-661`, `:864-886`) — un palito por día con **`Σ amount` de
+**Tendencia de 14 días** — un palito por día con **`Σ amount` de
 los pedidos creados ese día**, excluyendo cancelados. Pie: *"Hoy entraron N pedidos por
 $X"*, con la nota **"Lo que se pidió, no lo que se cobró"**.
 
-**Pauta** (`:548-555`, `:894-914`) — `Σ gasto_pauta.monto` de 30 días
+**Pauta** — `Σ gasto_pauta.monto` de 30 días
 `× (1 + taller_precios.iva_pauta ?? 0.19)`. La métrica "por cada peso gastado" es
 `ingresos.total / gastoPauta`. **Sólo se muestra si hay gasto anotado.**
 
-**Lo último** (`:688-710`, `:916-937`) — mezcla los 8 pedidos más recientes con los 8
+**Lo último** — mezcla los 8 pedidos más recientes con los 8
 últimos mensajes `role === 'user'`, ordenados por fecha y recortados a 7. `leerContenido`
-(`:679-686`) traduce `image` / `audio` / `[unsupported]` a frases en español.
+traduce `image` / `audio` / `[unsupported]` a frases en español.
 
-**Cómo le va a Valentina** (`:528-539`, `:942-989`) — sólo si hay conversaciones.
+**Cómo le va a Valentina** — sólo si hay conversaciones.
 `rpc('analiticas_whatsapp', { p_dias: 30 })` → `total_conversaciones`, `mensajes_totales`,
 `conversaciones_con_pedido`, `tasa_conversion`, `tiempo_respuesta_seg/min`. Más
 `escalados` = teléfonos distintos en `chat_takeover` de los últimos 30 días.
 
 ### Frescura de los datos
 
-`:487-500`, `:785-792`, `:3727-3760` — se guarda `actualizadoEn` real, el texto
+Se guarda `actualizadoEn` real, el texto
 "Actualizado hace X" se refresca con un reloj de 30 s y es **clicable para recargar**.
 Además recarga sola al volver a la pestaña (`visibilitychange` / `focus`) con una gracia de
 60 s.
@@ -123,7 +135,7 @@ días sigue estando pendiente hoy.
 
 **La tendencia cambió de plata cobrada a plata pedida**, con la nota explícita. Son dos
 preguntas distintas y mezclarlas era el origen de la confusión. Se recalcula sola a
-medianoche (`:613-616` recalcula `inicioDeHoy` con el reloj de 30 s) para que la ventana
+medianoche (`Portada.jsx` recalcula `inicioDeHoy` con el reloj de 30 s) para que la ventana
 cruce el día sin recargar.
 
 **El panel dice cuándo se enteró.** Un dashboard sin marca de tiempo miente por omisión:
@@ -142,12 +154,12 @@ pasaba de 3**. La función `chats_sin_responder()` usa `DISTINCT ON (phone_numbe
 - ⚠️ **Si `chats_sin_responder()` no está desplegada en Supabase, el contador queda en 0** y
   el panel dice "todo al día" siendo falso. La migración ya está commiteada (`2d140cc`);
   falta confirmar que está aplicada — [pendientes #5](../pendientes.md).
-- **El badge de mensajes sin leer no llega al sidebar** desde aquí (`:3783` monta
+- **El badge de mensajes sin leer no llega al sidebar** desde aquí (`Dashboard.jsx` monta
   `AdminSidebar` sin `chatUnread`) — [pendientes #19](../pendientes.md).
 - **4.100 líneas en un archivo** con las 7 secciones dentro — [pendientes #17](../pendientes.md).
 - Las 6 RPC de analítica **no están versionadas**.
 - El ticket promedio de Reportes usa `amount` completo, no `recibidoDe` — es deliberado y
-  está comentado (`:2085-2087`), pero conviene saberlo.
+  está comentado, pero conviene saberlo.
 
 ## Un cliente es una persona, no un formato de teléfono
 

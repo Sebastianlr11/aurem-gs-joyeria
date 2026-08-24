@@ -1,7 +1,7 @@
 # Panel — reportes y retorno de pauta
 
 > **Estado:** en producción
-> **Última revisión:** 2026-08-22
+> **Última revisión:** 2026-08-23
 > **Ruta:** `/admin?tab=reports`
 
 ## Qué resuelve
@@ -17,12 +17,12 @@ entra, y que **en Colombia cada millón de pauta cuesta 1.190.000** con IVA.
 
 | Ruta | Qué |
 |---|---|
-| `src/pages/admin/Dashboard.jsx:2004` | `ReportsSection` |
-| `src/pages/admin/Dashboard.jsx:1999` | `calcMPNet` — comisiones de Mercado Pago |
-| `src/pages/admin/Dashboard.jsx:2004-2110` | Cobrado vs por cobrar, separados |
-| `src/pages/admin/Dashboard.jsx:2085-2087` | Ticket promedio — usa `amount` completo, comentado a propósito |
-| `src/pages/admin/Dashboard.jsx:2363` | Entrada a `PautaRetorno` |
-| `src/pages/admin/PautaRetorno.jsx` | Gasto de pauta y retorno (274 líneas) |
+| `src/pages/admin/secciones/Reportes.jsx` | La pantalla entera |
+| `src/pages/admin/secciones/comunes.js` | `calcMPNet` — comisiones de Mercado Pago |
+| `src/pages/admin/secciones/Reportes.jsx` | Cobrado vs por cobrar, separados |
+| `src/pages/admin/secciones/Reportes.jsx` | Ticket promedio — usa `amount` completo, comentado a propósito |
+| `src/pages/admin/secciones/Reportes.jsx` | Entrada a `PautaRetorno` |
+| `src/pages/admin/PautaRetorno.jsx` | Gasto de pauta y retorno (336 líneas) |
 | `src/pages/admin/PautaRetorno.jsx` | Aviso de pedidos sin costo anotado, y la utilidad |
 
 ### RPC que consume
@@ -60,7 +60,7 @@ corta. Se dice sobre cuántos pedidos está calculada: un margen sobre uno de ci
 mentira, pero tampoco es el periodo. Antes el aviso miraba `products.costo_provisional`,
 cuando el costo era un número fijo del catálogo.
 
-**El ticket promedio sí usa `amount` completo** (`:2085-2087`), a diferencia del resto de
+**El ticket promedio sí usa `amount` completo**, a diferencia del resto de
 las cifras — y está comentado en el código para que nadie lo "arregle". El ticket es
 **cuánto vale un pedido**, no cuánto se ha cobrado de él.
 

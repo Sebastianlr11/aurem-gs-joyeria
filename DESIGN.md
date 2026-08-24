@@ -589,8 +589,11 @@ y **el requisito del primer viewport lo da por presente**. La línea se quitó
 antes de publicar el 2026-08-17, porque el número que traía el diseño
 —`$380.000 COP`— lo había generado la herramienta y no el negocio. **Cuando
 exista el precio real de entrada, vuelve al mismo sitio**, en Mulish 700 a
-0,875rem, entre los botones y la línea de pelo. El componente `hero-price` sigue
-definido en el CSS a la espera.
+0,875rem, entre los botones y la línea de pelo.
+
+El componente `hero-price` **ya no está en el CSS**: se lo llevó la limpieza del
+23 de agosto de 2026, que borró lo que no usaba nadie. Habrá que reponerlo, y son
+cuatro líneas.
 
 ⚠️ **Las nueve fotos son de relleno.** Vienen del diseño y encajan con la
 dirección —mármol cálido, luz de ventana, oro—, pero no muestran el inventario

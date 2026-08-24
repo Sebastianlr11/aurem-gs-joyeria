@@ -200,7 +200,7 @@ tipo mal copiado en 180 columnas.
 **Al hacerlo aparecieron cuatro cosas que no se sabían:**
 
 1. **Las 21 funciones y las políticas ya estaban versionadas**, en
-   `20260823_superficie_de_seguridad.sql` — 926 líneas que este documento no mencionaba. El
+   `20260823_superficie_de_seguridad.sql` — 875 líneas que este documento no mencionaba. El
    hueco era sólo de tablas.
 2. **Hay una tabla `pagos`** que ni `CLAUDE.md` ni este documento listaban: es el libro de
    movimientos que lee `src/lib/caja.js`, con su trigger `registrar_pago`.
@@ -452,7 +452,7 @@ talla de anillo", que es la única de las cuatro que alguien busca.
 
 ### 15. ✅ El titular de la portada salía en negrita sintética — resuelto
 
-Un bloque `HERO SECTION` del diseño anterior, en `src/index.css:7913` y **fuera de toda
+Un bloque `HERO SECTION` del diseño anterior, en `src/index.css` y **fuera de toda
 media query**, pisaba a `.hero-h1` con `font-weight: 800`. Marcellus sólo tiene el peso
 400, así que el navegador engordaba los trazos por su cuenta: el titular de la portada
 —que además es el elemento LCP— salía emborronado, contra lo que dice `DESIGN.md`.
@@ -1651,7 +1651,7 @@ Apareció ordenando el circuito del pedido, y es el número más engañoso que h
 panel: **es con el que se decide dónde poner la pauta.**
 
 `revenue_por_fuente` sumaba `amount` de **todos** los pedidos, sin mirar el estado. Con los
-datos del 24 de agosto de 2026:
+datos del 23 de agosto de 2026:
 
 | | Pedidos | «Ingresos» |
 |---|---|---|

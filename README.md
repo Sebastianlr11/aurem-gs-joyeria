@@ -44,7 +44,7 @@ prefiere pagar solo.
 | | |
 |---|---|
 | **Frontend** | React 19, Vite 7, react-router 7, TypeScript (modo estricto) |
-| **Estilos** | **CSS plano en un archivo.** Sin Tailwind, sin CSS modules, sin preprocesador |
+| **Estilos** | **CSS plano, escrito a mano, en dos archivos** — `index.css` (tienda) y `panel.css`. Sin Tailwind, sin CSS modules, sin preprocesador |
 | **Animaciones** | `src/lib/aparecer.js` propio. **Sin Framer Motion** |
 | **Datos y auth** | Supabase — Postgres, Auth, Storage, Realtime |
 | **Backend** | 9 Edge Functions de Supabase (Deno) + 2 endpoints serverless en Vercel |
@@ -54,7 +54,7 @@ prefiere pagar solo.
 | **Correos** | Resend + React Email |
 | **Hosting** | Vercel |
 
-> **El backend no está en `api/`.** Son 2 endpoints (~220 líneas) frente a ~3.400 líneas de
+> **El backend no está en `api/`.** Son 2 endpoints (221 líneas) frente a ~5.300 líneas de
 > Edge Functions en `supabase/functions/`.
 
 ---
@@ -63,18 +63,22 @@ prefiere pagar solo.
 
 ```
 src/
-├── pages/           Tienda pública (8 rutas) + admin/ (4 pantallas)
-├── components/      15 componentes + catalog/
-├── lib/             supabase, dinero, atribucion, pixeles, meta,
-│                    whatsapp, aparecer, optimizarFoto
-├── index.css        Todo el CSS (17.562 líneas)
+├── pages/           Tienda pública (8 rutas) + admin/
+│   └── admin/       Dashboard (contenedor) + secciones/ (7 pantallas)
+│                    + ChatPanel y chat/ (12 archivos)
+├── components/      Componentes de la tienda + catalog/
+├── lib/             supabase, dinero, caja, circuito, talla, atribucion,
+│                    pixeles, meta, whatsapp, aparecer, optimizarFoto
+├── index.css        La tienda y lo compartido (6.854 líneas)
+├── panel.css        El panel (7.741 líneas)
 └── fuentes.css      Marcellus y Mulish, autoalojadas
 
 supabase/
 ├── functions/       wa-webhook, wa-send, create-preference, mp-webhook,
 │                    conversion-pedido, correo-despacho, vigilancia,
 │                    plantillas-programadas, create-admin
-│   └── _shared/     bot.ts (Valentina), wa.ts, medios.ts, conversiones.ts
+│   └── _shared/     bot.ts (Valentina), bucle.ts, reglas.ts, wa.ts,
+│                    medios.ts, conversiones.ts, envios.ts, pedidos.ts
 └── migrations/
 
 api/                 ficha.js (previsualizaciones), correo.js (Resend)
@@ -115,14 +119,16 @@ npm run dev
 
 ```bash
 npm run dev          # Vite en http://localhost:5173
-npm run build        # sitemap + plantillas de correo + tsc + vite build
-npm run lint         # ESLint (no corre en el build)
+npm run build        # lint + pruebas + sitemap + correos + tsc + vite build
+npm run lint         # ESLint (sí corre en el build, y lo tumba)
 npm run preview      # Sirve /dist
 
 npm run email        # Previsualizador de correos en :3010
 npm run imagenes     # Convierte las fotos estáticas a WebP
 npm run css:pisadas  # Detecta reglas CSS que otras pisan
 npm run sitemap      # Regenera public/sitemap.xml
+npm test             # Vitest, una pasada (186 pruebas)
+npm run test:mirar   # Vitest en marcha, repitiendo al guardar
 ```
 
 ---
@@ -133,19 +139,21 @@ npm run sitemap      # Regenera public/sitemap.xml
 |---|---|
 | [**CLAUDE.md**](CLAUDE.md) | El mapa completo: arquitectura, rutas, modelo de datos, reglas de negocio, convenciones |
 | [**docs/specs/**](docs/specs/README.md) | Un documento por feature — 20 en total |
-| [**docs/pendientes.md**](docs/pendientes.md) | Lo que está roto o a medias, priorizado |
-| [**DESIGN.md**](DESIGN.md) | El sistema de diseño. **Fuente de verdad** de colores y tipografía |
+| [**docs/pendientes.md**](docs/pendientes.md) | Los 36 hallazgos de la revisión, todos cerrados, con qué pasaba y por qué se decidió lo que se decidió |
+| [**DESIGN.md**](DESIGN.md) | El sistema de diseño de la tienda. **Fuente de verdad** de colores y tipografía |
+| [**DESIGN-PANEL.md**](DESIGN-PANEL.md) | El del panel: hereda la identidad y cambia lo que la densidad obliga |
 
-> ⚠️ Antes de tocar producción, lee [`docs/pendientes.md`](docs/pendientes.md). Los fallos
-> de seguridad conocidos ya están cerrados; lo que queda es gobernanza (el esquema de la
-> base sin versionar) y coherencia de lo que le prometemos al cliente.
+> Antes de tocar producción, lee [`docs/pendientes.md`](docs/pendientes.md). A 23 de agosto
+> de 2026 los 36 hallazgos están cerrados —los de seguridad incluidos— y el esquema de la
+> base ya se reconstruye desde el repositorio. Lo único que sigue viviendo sólo en la base
+> son cinco RPC de analítica.
 
 ---
 
 ## Convenciones
 
 - **Todo en español de Colombia**: código, comentarios, interfaz, ramas y commits.
-- Ramas `feat/`, `fix/`, `perf/`, `chore/` + frase descriptiva
+- Ramas `feat/`, `fix/`, `perf/`, `chore/`, `revert/`, `docs/` + frase descriptiva
   (`fix/dashboard-decia-lo-que-no-sabia`).
 - **El mensaje de commit describe el efecto para el negocio**, no el cambio técnico.
 - Los comentarios del código explican **el incidente que motivó cada decisión no obvia**.

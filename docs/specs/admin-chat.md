@@ -1,10 +1,16 @@
 # Panel — conversaciones
 
 > **Estado:** en producción
-> **Última revisión:** 2026-08-22
-> **Ruta:** `/admin/chat` · `src/pages/admin/ChatPanel.jsx` (1.289 líneas) + `chat/`
-> (`comunes.js`, `piezas.jsx`, `ganchos.js`, `BuscadorDeMensajes.jsx`, `FichaDelContacto.jsx`,
-> `SelectorDeImagen.jsx`, `FilaDeContacto.jsx`)
+> **Última revisión:** 2026-08-23
+> **Ruta:** `/admin/chat` · `src/pages/admin/ChatPanel.jsx` (1.289 líneas) + doce archivos
+> en `src/pages/admin/chat/`: `comunes.js`, `piezas.jsx`, `ganchos.js`, `useSuscripcion.js`,
+> `BuscadorDeMensajes.jsx`, `FichaDelContacto.jsx`, `SelectorDeImagen.jsx`,
+> `FilaDeContacto.jsx`, `CabeceraDeContactos.jsx`, `DialogoDeConfirmacion.jsx`,
+> `HiloDeMensajes.jsx`, `Compositor.jsx` — más sus cuatro archivos de prueba.
+
+> **Sin números de línea, a propósito.** Los llevaba, y al partirse el componente todos
+> quedaron apuntando a sitios que ya no existen. Una referencia falsa manda a buscar donde
+> no está: peor que ninguna. Se nombran archivos y funciones.
 
 ## Qué resuelve
 
@@ -29,18 +35,19 @@ real que no se puede montar y desmontar como una pestaña.
 
 | Ruta | Qué |
 |---|---|
-| `ChatPanel.jsx:304-361` | `fetchContacts` — 1000 mensajes, agrupa por teléfono, cruza `customers`, cuenta no leídos |
-| `ChatPanel.jsx:10-14` | Normalización del teléfono con prefijo 57 |
-| `ChatPanel.jsx:471-495` | Hilo activo + marcado automático como leído |
-| `ChatPanel.jsx:589-749` | Canal `chat-realtime` — dos suscripciones |
-| `ChatPanel.jsx:683-700` | Suscripción a **`UPDATE`** — imprescindible |
-| `ChatPanel.jsx:706-733` | Fallback de polling si el canal cae |
-| `ChatPanel.jsx:756-817` | Envío vía `wa-send`, con burbuja optimista |
-| `ChatPanel.jsx:426-468, 819-835` | Takeover |
-| `ChatPanel.jsx:71-104` | Imágenes: públicas de catálogo vs privadas firmadas |
-| `ChatPanel.jsx:44-68` | `PieDeFoto` — el pie de la clienta y "lo que vio Valentina" |
-| `ChatPanel.jsx:534-583` | Móvil: bloqueo de scroll y teclado de iOS |
-| `ChatPanel.jsx:410-419` | Búsqueda vía `rpc('buscar_conversaciones')`, debounce 400 ms |
+| `ChatPanel.jsx` | `fetchContacts` — 1000 mensajes, agrupa por teléfono, cruza `customers`, cuenta no leídos |
+| `chat/comunes.js` | Normalización del teléfono con prefijo 57 y demás utilidades compartidas |
+| `ChatPanel.jsx` | Hilo activo + marcado automático como leído |
+| `ChatPanel.jsx` | Canal `chat-realtime` — dos suscripciones, y el fallback de polling si cae |
+| `chat/useSuscripcion.js` | El gancho que abre y cierra un canal de realtime sin fugas |
+| `chat/Compositor.jsx` | La caja de escribir; el envío vía `wa-send` con burbuja optimista está en `ChatPanel.jsx` |
+| `chat/CabeceraDeContactos.jsx` · `chat/FilaDeContacto.jsx` | Takeover, filtros y el menú de cada fila |
+| `chat/piezas.jsx` | Imágenes: públicas de catálogo vs privadas firmadas, y `PieDeFoto` |
+| `chat/HiloDeMensajes.jsx` | Las burbujas, los acuses y el visor de fotos |
+| `chat/ganchos.js` | Los ganchos sueltos: avisos, visor, scroll |
+| `chat/BuscadorDeMensajes.jsx` | Búsqueda vía `rpc('buscar_conversaciones')`, debounce 400 ms |
+| `chat/FichaDelContacto.jsx` | La ficha lateral: pedidos, etiquetas, plata |
+| `chat/SelectorDeImagen.jsx` · `chat/DialogoDeConfirmacion.jsx` | Mandar una foto del catálogo · confirmar lo que no se deshace |
 | `src/pages/admin/EliminarChat.jsx` | Borrado completo con fricción |
 
 ### Tablas y Storage
@@ -51,42 +58,42 @@ RPC `buscar_conversaciones`.
 
 ## Decisiones tomadas y por qué
 
-**Hay dos suscripciones de realtime, no una** (`:589-749`). La de `UPDATE` (`:683-700`) es
+**Hay dos suscripciones de realtime, no una.** La de `UPDATE` es
 **imprescindible**, no un extra: una foto entra a la base como `[image]` y un audio como
 `[audio]`, y el contenido real llega **segundos después**, cuando el bot termina de
 transcribir o describir (ver [chatbot-valentina.md](chatbot-valentina.md)). Sin escuchar
 los `UPDATE`, el panel se quedaba enseñando `[audio]` para siempre. Por el mismo canal
 llegan los acuses de entrega.
 
-**Hay fallback de polling** (`:706-733`): si el canal cae (`CHANNEL_ERROR` / `TIMED_OUT`),
+**Hay fallback de polling**: si el canal cae (`CHANNEL_ERROR` / `TIMED_OUT`),
 pasa a consultar contactos cada 10 s y mensajes cada 5 s. Un panel de chat que se queda
 mudo sin avisar es peor que uno lento.
 
 **Las fotos de las clientas viven en un bucket privado y se firman al vuelo por 1 hora**
-(`:90`). Son fotos que manda gente real —a veces de su propia mano con un anillo puesto—;
+(`chat/piezas.jsx`). Son fotos que manda gente real —a veces de su propia mano con un anillo puesto—;
 no pueden estar en una URL pública adivinable.
 
-**`PieDeFoto` (`:44-68`) muestra el pie que escribió la clienta y esconde tras un clic "lo
+**`PieDeFoto` muestra el pie que escribió la clienta y esconde tras un clic "lo
 que vio Valentina"**: la descripción que el modelo generó para su propio contexto. Es la
 ventana para entender por qué el bot respondió lo que respondió, sin ensuciar la lectura
 normal del chat.
 
-**El teclado de iOS obligó a CSS a medida** (`:554-583`): variables `--vv-alto` y `--vv-top`
-alimentadas desde `visualViewport`, más la clase `chat-abierto` en `<html>` (`:534-538`)
+**El teclado de iOS obligó a CSS a medida**: variables `--vv-alto` y `--vv-top`
+alimentadas desde `visualViewport`, más la clase `chat-abierto` en `<html>`
 para bloquear el scroll del documento. Sin eso, el compositor quedaba debajo del teclado.
 
-**Burbuja optimista al enviar** (`:756-817`), con marca `_failed` si falla. Escribir por
+**Burbuja optimista al enviar**, con marca `_failed` si falla. Escribir por
 WhatsApp desde un panel que tarda en confirmar se siente roto.
 
-**El takeover tiene su propio canal de realtime** (`:426-468`): cuando Valentina escala, el
+**El takeover tiene su propio canal de realtime**: cuando Valentina escala, el
 panel suena y notifica **aunque estés en otro contacto**. Se guarda `admin_email` para
 saber quién tomó el chat, y la fila se marca visualmente con `--takeover`.
 
 **Los contactos archivados se desarchivan solos si el cliente vuelve a escribir**
-(`:618-631`). Archivar significa "terminado", no "no me interesa".
+(`ChatPanel.jsx`). Archivar significa "terminado", no "no me interesa".
 
 **Notificación de escritorio sólo si la pestaña está oculta**, y toast si el mensaje es de
-otro contacto (`:658-665`). Refresco de la lista con debounce de 800 ms.
+otro contacto. Refresco de la lista con debounce de 800 ms.
 
 ## Retención y borrado de conversaciones (en curso)
 
@@ -147,7 +154,7 @@ Tres detalles que importan:
 - Muestra antes cuántos mensajes y fotos hay y desde cuándo, y avisa de pedidos vivos
   excluyendo `es_prueba`.
 - **Un lote que falla entero por una conversación es peor que un lote a medias**
-  (`:153`): se sigue con las demás.
+ : se sigue con las demás.
 - La fila de contacto pasó de `<button>` a `div role="button" tabIndex=0`, porque el menú de
   tres puntos por fila metía un botón dentro de otro botón — HTML inválido.
 
@@ -161,7 +168,8 @@ fotos y —por diseño— no borra nada.**
 - **La purga no está automatizada** y es deliberado: el panel propone, decide una persona.
 - `fetchContacts` trae **los últimos 1000 mensajes** y agrupa en cliente: no escala.
 - El hilo carga 200 mensajes sin paginación hacia atrás.
-- `buscar_conversaciones` **no está versionada**.
+- `buscar_conversaciones` **sigue sin cuerpo en el repositorio**: sólo sus permisos. Es
+  una de las cinco RPC que un entorno nuevo no levantaría.
 - Las respuestas rápidas viven en `localStorage`, así que son por navegador, no por equipo.
 
 ## Cómo probarlo

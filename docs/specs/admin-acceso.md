@@ -1,7 +1,7 @@
 # Panel — acceso y administradores
 
 > **Estado:** en producción · el dueño administra las cuentas
-> **Última revisión:** 2026-08-22
+> **Última revisión:** 2026-08-23
 > **Rutas:** `/admin/login`, `/admin/reset-password`
 
 ## Qué resuelve
@@ -39,7 +39,7 @@ Alta/baja de administradores
 | `src/pages/admin/Login.jsx:48-50` | Login con error **genérico** en español |
 | `src/pages/admin/Login.jsx:62-64` | `resetPasswordForEmail` con `redirectTo` |
 | `src/pages/admin/ResetPassword.jsx:28-38` | Mínimo 6 caracteres, confirma coincidencia |
-| `src/pages/admin/Dashboard.jsx:3287-3300` | UI de administradores en Ajustes |
+| `src/pages/admin/secciones/Ajustes.jsx` | UI de administradores en Ajustes |
 | `supabase/functions/create-admin/index.ts:30-42` | Verificación del llamante |
 
 ### Tablas
@@ -100,15 +100,15 @@ entre alguien que sólo deba ver una parte (un contador, un asistente).
 
 - **Sólo hay dos niveles**: dueño y administrador. No hay permisos parciales, así que
   cualquier administrador sigue viendo pedidos, clientes y conversaciones completas.
-- **`ProtectedRoute` no escucha `onAuthStateChange`** (`:9-18`): llama a `getSession()` una
+- **`ProtectedRoute` no escucha `onAuthStateChange`**: llama a `getSession()` una
   sola vez al montar. Una sesión que expira, o un cierre de sesión en otra pestaña, no
   reaccionan hasta que algo remonte la ruta — [pendientes #18](../pendientes.md).
-- **Comprobación duplicada:** `Dashboard.jsx:3688-3692` y `ChatPanel.jsx:297-301` vuelven a
+- **Comprobación duplicada:** `Dashboard.jsx` y `ChatPanel.jsx` vuelven a
   pedir la sesión y redirigen por su cuenta. Redundante con `ProtectedRoute`.
 - **`ResetPassword` se quedó en el diseño anterior** ("PORTAL EXCLUSIVO", logo como `<img>`)
   mientras `Login` ya usa `<Isotipo />` y la dirección nueva. Además arrastra un
-  `onAuthStateChange` con el cuerpo vacío (`:14-22`) y props de Framer Motion sobre un
-  `div` plano (`:79`) — [pendientes #22](../pendientes.md).
+  `onAuthStateChange` con el cuerpo vacío y props de Framer Motion sobre un
+  `div` plano — [pendientes #22](../pendientes.md).
 - Las tres "stats" de la vitrina del login (`18k`, `24–48 h`, `925`) están hardcodeadas
   (`Login.jsx:28-32`).
 - Contraseña mínima de 6 caracteres, sin más requisitos.
