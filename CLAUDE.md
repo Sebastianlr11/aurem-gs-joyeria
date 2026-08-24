@@ -39,7 +39,7 @@ npm run dev          # Vite en http://localhost:5173
 npm run build        # eslint && vitest && sitemap.mjs && correos.mjs && tsc -b && vite build
 npm run preview      # Sirve /dist
 npm run lint         # ESLint (sí corre en el build)
-npm test             # Vitest, una pasada (150 pruebas)
+npm test             # Vitest, una pasada (162 pruebas)
 npm run test:mirar   # Vitest en marcha, repitiendo al guardar
 
 npm run sitemap      # Regenera public/sitemap.xml desde Supabase
@@ -61,7 +61,7 @@ Tres advertencias sobre el build:
 
 ### Las pruebas
 
-Hay **150**: `dinero.test.js` y `caja.test.js` cubren las cuentas de plata,
+Hay **162**: `dinero.test.js` y `caja.test.js` cubren las cuentas de plata,
 `fotosEnStorage.test.js` la deducción de qué archivos se borran,
 `chat/ganchos.test.js`, `chat/ficha.test.js` y `chat/seleccion.test.js` los ganchos del
 chat, y `supabase/functions/_shared/reglas.test.ts` las reglas de Valentina.
@@ -180,7 +180,9 @@ Cosas que hay que saber antes de tocar el enrutado:
 
 Módulos compartidos en `supabase/functions/_shared/`:
 
-- `bot.ts` (1.095 l.) — Valentina: prompt, herramientas, bucle de agente, escalada
+- `bot.ts` (974 l.) — Valentina: prompt, herramientas, escalada
+- `bucle.ts` (118 l.) — el bucle del agente, **con las dependencias inyectadas**: es lo que
+  permite probarlo sin Deno, sin red y sin gastar un céntimo de modelo
 - `wa.ts` (464 l.) — envío a WhatsApp, troceado natural, indicador de "escribiendo", plantillas
 - `medios.ts` (221 l.) — transcripción de audio y descripción de imágenes
 - `conversiones.ts` (328 l.) — Meta CAPI y TikTok Events API server-side

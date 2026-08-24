@@ -8,6 +8,7 @@ import {
   anuncioDe, atribucionDe, calcularTalla, cotizarOro, esContraentrega,
   origen, piezasDelPedido, refDelTexto,
 } from './reglas.ts'
+import { correrElBucle } from './bucle.ts'
 
 const MODELO = Deno.env.get('OPENROUTER_MODEL') || 'openai/gpt-5.6-luna-pro'
 const MENSAJES_DE_CONTEXTO = 20
@@ -15,8 +16,6 @@ const MENSAJES_DE_CONTEXTO = 20
 /* Topes del bucle de herramientas. Un agente sin freno es una factura sin
    freno. El último paso va sin herramientas, así siempre termina con algo
    que decirle al cliente. */
-const MAX_PASOS = 3
-const PRESUPUESTO_MS = 25_000
 /** Más de tres fotos seguidas satura el chat. */
 const MAX_FOTOS = 3
 
@@ -965,53 +964,11 @@ export async function responder(
     ...conversacion,
   ]
 
-  const empezo = Date.now()
-
-  for (let paso = 0; paso < MAX_PASOS; paso++) {
-    /* El último paso va sin herramientas para forzar una respuesta de texto:
-       nunca se le deja al cliente el chat en silencio. */
-    const sinTiempo = Date.now() - empezo > PRESUPUESTO_MS
-    const ultimo = paso === MAX_PASOS - 1 || sinTiempo
-
-    const tModelo = Date.now()
-    const respuesta = await llamarModelo(mensajes, ultimo ? [] : HERRAMIENTAS)
-    const llamadas = respuesta?.tool_calls ?? []
-    console.log(
-      `modelo · paso ${paso + 1} · ${Date.now() - tModelo} ms · ` +
-      `${llamadas.length ? llamadas.map((l: any) => l.function.name).join('+') : 'texto'}`,
-    )
-
-    if (!llamadas.length) {
-      console.log(`turno resuelto en ${Date.now() - empezo} ms y ${paso + 1} paso(s)`)
-      return String(respuesta?.content || '').trim() || null
-    }
-
-    mensajes.push(respuesta)
-
-    for (const llamada of llamadas) {
-      let args: any = {}
-      try { args = JSON.parse(llamada.function.arguments || '{}') } catch { /* argumentos rotos */ }
-
-      // Escalar corta el bucle: a partir de acá contesta una persona.
-      if (llamada.function.name === 'escalar_a_humano') {
-        await ejecutarHerramienta(llamada.function.name, args, telefono, desdeId)
-        /* Lo que escribió el modelo, que sabe de qué venían hablando. El
-           respaldo sólo aparece si no escribió nada: mejor una frase genérica
-           que un silencio. */
-        const suyo = String(args?.mensaje ?? '').trim()
-        return suyo || 'Dame un momento, te comunico con alguien del equipo que te ayuda con eso. 🌿'
-      }
-
-      /* Se registra qué herramienta y cuánto tardó. Sin esto, un turno de
-         86 segundos es un misterio: no se sabe si fue el modelo, la base o
-         Meta, ni cuántas vueltas dio el bucle. */
-      const t0 = Date.now()
-      const resultado = await ejecutarHerramienta(llamada.function.name, args, telefono, desdeId)
-      console.log(`herramienta ${llamada.function.name} · paso ${paso + 1} · ${Date.now() - t0} ms`)
-      mensajes.push({ role: 'tool', tool_call_id: llamada.id, content: resultado })
-    }
-  }
-
-  console.error(`Se agotaron los ${MAX_PASOS} pasos sin respuesta, tras ${Date.now() - empezo} ms`)
-  return null
+  return correrElBucle(mensajes, {
+    llamarModelo,
+    ejecutarHerramienta: (nombre, args) => ejecutarHerramienta(nombre, args, telefono, desdeId),
+    herramientas: HERRAMIENTAS,
+    registrar: (linea) => console.log(linea),
+    avisar: (linea) => console.error(linea),
+  })
 }

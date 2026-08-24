@@ -1528,3 +1528,38 @@ guardó nada: siguen siendo dos mensajes en la base. El freno hizo exactamente s
 Y acabó siendo mejor comprobación que la que buscaba: se recorrió el camino entero de
 verdad —botón, burbuja provisional al instante, llamada, error, burbuja marcada como
 fallida y banda de error— y lo único que impidió el envío fue la regla de la plataforma.
+
+---
+
+## 34. ✅ El bucle de Valentina nunca se había podido probar — resuelto
+
+Un bucle que llama a un modelo de lenguaje y ejecuta lo que le diga es, por construcción,
+algo que puede no parar. El de Valentina lleva tres frenos —un máximo de tres pasos, un
+presupuesto de 25 segundos y que **el último paso vaya sin herramientas**— y llevaba meses
+funcionando **sin que ninguno de los tres se hubiera comprobado nunca**, porque para
+probarlo hacía falta Deno, la red y un modelo de verdad.
+
+Sale a `_shared/bucle.ts` **recibiendo sus dependencias en vez de importándolas**. No es
+una preferencia de estilo: es lo único que lo vuelve comprobable. El modelo pasa a ser una
+lista de respuestas preparadas y el reloj una variable, así que el bucle entero se prueba
+en milisegundos y sin gastar nada.
+
+El tercer freno es el que menos se entiende leyendo el código y el que más importa: **si al
+último paso se le dejaran herramientas, el modelo podría gastarlo pidiendo otra y la
+clienta se quedaría mirando un chat en silencio.** Nunca se deja el chat mudo.
+
+**12 pruebas**, y cubren lo que sólo se habría visto en producción: que unos argumentos rotos
+—los escribe el modelo y a veces no son JSON— no tumban el turno; que si pide varias
+herramientas en un paso se ejecutan todas y en orden; que el resultado vuelve atado al
+`tool_call_id` de su llamada; que escalar corta el bucle y dice lo que el modelo escribió,
+con respaldo si no escribió nada; y que escalar junto a otra herramienta no ejecuta la
+segunda.
+
+Rotos a propósito los cuatro frenos: devolver las herramientas al último paso (2 fallos),
+ignorar el presupuesto de tiempo (1), quitar el respaldo al escalar (1) y quitar el tope de
+pasos (2). **162 pruebas en total.**
+
+**Lo que sigue sin probar del bot** son las cinco herramientas, que hablan con la base.
+Probarlas pide inyectarle el cliente a `ejecutarHerramienta`, que son 300 líneas de refactor
+sobre el código que toma pedidos — y `crear_pedido` ya se revisó línea a línea y está bien
+hecho. El riesgo de ese refactor supera al que quitaría.
