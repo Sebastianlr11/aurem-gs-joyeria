@@ -2,15 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { waUrl } from '../lib/whatsapp';
 import Meta from '../components/Meta';
-
-/* Tabla estándar de tallas US: circunferencia interior en milímetros.
-   El diámetro se deriva dividiendo por π, no se guarda por separado. */
-const TALLAS = [
-    ['3', 44.2], ['3.5', 45.5], ['4', 46.8], ['4.5', 48.0], ['5', 49.3],
-    ['5.5', 50.6], ['6', 51.9], ['6.5', 53.1], ['7', 54.4], ['7.5', 55.7],
-    ['8', 57.0], ['8.5', 58.3], ['9', 59.5], ['9.5', 60.8], ['10', 62.1],
-    ['10.5', 63.4], ['11', 64.6], ['11.5', 65.9], ['12', 67.2], ['12.5', 68.5],
-];
+import { TALLAS, tallaDeCircunferencia } from '../lib/talla';
 
 const UNIDADES = {
     'circ-mm': { label: 'Circunferencia mm', sufijo: 'mm de circunferencia', aCirc: v => v },
@@ -86,18 +78,18 @@ const RingSizeGuide = () => {
         }
 
         const circ = UNIDADES[unidad].aCirc(v);
-        if (circ < TALLAS[0][1] - 0.6) {
-            return { talla: '?', detalle: 'Esa medida queda por debajo de la talla 3. Escríbenos y la fabricamos a tu medida.' };
+        const t = tallaDeCircunferencia(circ);
+        if (!t) {
+            return {
+                talla: '?',
+                detalle: circ < TALLAS[0][1]
+                    ? 'Esa medida queda por debajo de la talla 3. Escríbenos y la fabricamos a tu medida.'
+                    : 'Esa medida pasa la talla 12.5. Escríbenos y la fabricamos a tu medida.',
+            };
         }
-        if (circ > TALLAS[TALLAS.length - 1][1] + 0.6) {
-            return { talla: '?', detalle: 'Esa medida pasa la talla 12.5. Escríbenos y la fabricamos a tu medida.' };
-        }
-
-        // Entre dos tallas se toma la mayor: un anillo holgado se ajusta, uno apretado no entra.
-        const fila = TALLAS.find(f => f[1] >= circ - 0.35) || TALLAS[TALLAS.length - 1];
         return {
-            talla: fila[0],
-            detalle: `${num(fila[1])} mm de circunferencia · ${num(fila[1] / Math.PI)} mm de diámetro interior.`,
+            talla: t.talla,
+            detalle: `${num(t.circunferencia)} mm de circunferencia · ${num(t.diametro)} mm de diámetro interior.`,
         };
     };
 

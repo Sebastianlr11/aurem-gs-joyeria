@@ -39,7 +39,7 @@ npm run dev          # Vite en http://localhost:5173
 npm run build        # eslint && vitest && sitemap.mjs && correos.mjs && tsc -b && vite build
 npm run preview      # Sirve /dist
 npm run lint         # ESLint (sí corre en el build)
-npm test             # Vitest, una pasada (109 pruebas)
+npm test             # Vitest, una pasada (117 pruebas)
 npm run test:mirar   # Vitest en marcha, repitiendo al guardar
 
 npm run sitemap      # Regenera public/sitemap.xml desde Supabase
@@ -61,10 +61,17 @@ Tres advertencias sobre el build:
 
 ### Las pruebas
 
-Hay **109**: `dinero.test.js` y `caja.test.js` cubren las cuentas de plata,
+Hay **117**: `dinero.test.js` y `caja.test.js` cubren las cuentas de plata,
 `fotosEnStorage.test.js` la deducción de qué archivos se borran,
 `chat/ganchos.test.js`, `chat/ficha.test.js` y `chat/seleccion.test.js` los ganchos del
-chat, y `supabase/functions/_shared/reglas.test.ts` las reglas de Valentina. Se empezó por el dinero a
+chat, y `supabase/functions/_shared/reglas.test.ts` las reglas de Valentina.
+
+**Una de ellas no comprueba código, compara dos copias.** La talla de anillo está
+implementada dos veces —`src/lib/talla.js` para la guía del sitio y
+`supabase/functions/_shared/reglas.ts` para Valentina— porque corren en runtimes distintos
+y `supabase functions deploy` sólo empaqueta lo que hay en su carpeta. `src/lib/talla.test.js`
+las barre milímetro a milímetro y tumba el build si dejan de coincidir. **Si tocas una,
+toca la otra.** Se empezó por el dinero a
 propósito, porque es el único sitio donde un error **no se ve**.
 
 Los ganchos del chat se prueban por otra razón: **no hay forma de probarlos a mano**. Para
@@ -384,6 +391,11 @@ cliente daba dos números.
   Los ~17 pedidos que hay son todos del equipo.
 - **El descuento por pagar en línea es 2%** (`MP_DISCOUNT` en `ProductPage.jsx`).
 - **La talla del anillo no viaja al checkout.** Sólo al mensaje de WhatsApp.
+- **La talla se calcula igual en la guía y en el chat, y eso está atado con una prueba.**
+  Entre dos tallas se toma la mayor —un anillo holgado se ajusta, uno apretado no entra—
+  con 0,35 mm de tolerancia para bajar y 0,6 mm de holgura antes de mandar a fabricar a
+  medida. Hasta el 23 de agosto de 2026 el bot no tenía ninguna de las dos y discrepaba con
+  la guía en el **29 %** de las medidas.
 - **La referencia visible de una pieza es `AG-` + los últimos 4 dígitos del uuid.** Misma
   fórmula en `meta.js`, `ProductPage.jsx` y `EliminarPieza.jsx`.
 - **Comisiones de Mercado Pago que aplica el panel**: `(monto × 3,29% + $800) × 1,19`

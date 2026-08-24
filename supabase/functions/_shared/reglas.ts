@@ -42,17 +42,22 @@ export const A_CIRCUNFERENCIA: Record<string, (v: number) => number> = {
 /** Cuánto puede separarse de la talla exacta y aun así decirse «cae justa». */
 const MARGEN_JUSTA_MM = 0.15
 
-/* Un pelo, para que la coma flotante no cambie la talla.
-   Medir el diámetro y medir la circunferencia del MISMO dedo tiene que dar la
-   misma talla, y no daba: `54,4 ÷ π` y luego `× π` devuelve 54,400000000000006,
-   que ya no cabe en la talla 7 y saltaba a la 7,5. No es una tolerancia de
-   medición —para eso está el margen de arriba—: es la basura del último bit. */
-const PELO_MM = 1e-9
+/* ⚠️ ESTOS DOS NÚMEROS SON LOS MISMOS QUE LOS DE `src/lib/talla.js`, y tienen
+   que seguir siéndolo.
+   Hasta el 23 de agosto de 2026 no lo eran: la guía del sitio aceptaba 0,35 mm
+   de tolerancia y 0,6 de holgura fuera de tabla, y aquí no había ninguna. Sobre
+   531 medidas entre 43 y 69,5 mm **discrepaban en el 29 %** — 55,9 mm era una
+   7,5 en la guía y una 8 en el chat. La clienta mide su dedo, lo comprueba en
+   la página y después escribe: dos números para el mismo dedo o le hacen
+   desconfiar, o le fabrican un anillo a medida que no entra.
+   `src/lib/talla.test.js` barre las dos y tumba el build si se separan. */
+const TOLERANCIA_MM = 0.35
+const HOLGURA_FUERA_MM = 0.6
 
 export type Talla =
   | { ok: false; motivo: 'medida_invalida' }
   | { ok: false; motivo: 'muy_pequena' | 'muy_grande'; circunferencia: number; limite: string }
-  | { ok: true; talla: string; circunferencia: number; diametro: number; justa: boolean }
+  | { ok: true; talla: string; circunferencia: number; diametro: number; justa: boolean; ajustada: boolean }
 
 /**
  * De una medida cualquiera a una talla.
@@ -70,21 +75,24 @@ export function calcularTalla(medida: unknown, unidad: unknown): Talla {
 
   const circunferencia = convertir(valor)
 
-  if (circunferencia < TALLAS[0][1]) {
+  if (circunferencia < TALLAS[0][1] - HOLGURA_FUERA_MM) {
     return { ok: false, motivo: 'muy_pequena', circunferencia, limite: TALLAS[0][0] }
   }
   const mayor = TALLAS[TALLAS.length - 1]
-  if (circunferencia > mayor[1]) {
+  if (circunferencia > mayor[1] + HOLGURA_FUERA_MM) {
     return { ok: false, motivo: 'muy_grande', circunferencia, limite: mayor[0] }
   }
 
-  const fila = TALLAS.find(([, mm]) => mm >= circunferencia - PELO_MM)!
+  const fila = TALLAS.find(([, mm]) => mm >= circunferencia - TOLERANCIA_MM) ?? mayor
   return {
     ok: true,
     talla: fila[0],
     circunferencia,
     diametro: fila[1] / Math.PI,
     justa: Math.abs(fila[1] - circunferencia) < MARGEN_JUSTA_MM,
+    /* La talla elegida queda por DEBAJO del dedo: entra dentro de la
+       tolerancia, pero no es «se tomó la mayor» y no hay que decirlo así. */
+    ajustada: fila[1] < circunferencia,
   }
 }
 
