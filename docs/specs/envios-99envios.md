@@ -290,8 +290,16 @@ eso se avisa **en la lista de cotización**, antes de elegirla, y no sólo despu
 La de las 11:30 no es un detalle logístico: decide si la pieza sale hoy o mañana, que es lo
 que se le prometió a la clienta.
 
-**El manifiesto.** Al entregar los paquetes hay que generarlo y hacerlo firmar por quien
-los recibe. Es el comprobante de que salieron.
+**El manifiesto.** La lista de lo que entregas, firmada por quien la recibe: el comprobante
+de que los paquetes salieron de tus manos. Se genera en **Envíos completos → Acciones
+rápidas**, y hay dos:
+
+- **General**, por transportadora y rango de fechas. Para cuando salen varios el mismo día
+  con la misma transportadora.
+- **Individual**, por las guías que se marquen en la tabla. Para uno suelto, o cuando sólo
+  salen algunos de los del día.
+
+Va **uno por transportadora**: cada mensajero firma sólo lo que se lleva.
 
 **El cierre logístico.** Si un paquete se entregó y la transportadora no actualizó el
 estado, se fuerza desde su plataforma — y **si es contrapago, eso es lo que dispara que te

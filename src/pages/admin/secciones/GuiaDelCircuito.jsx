@@ -135,7 +135,8 @@ const DESPACHO = [
     },
     {
         paso: '5. Genera el manifiesto',
-        que: 'En 99envios. Es la lista de lo que entregas, y el mensajero te la firma: es tu prueba de que los paquetes salieron.',
+        que: 'En 99envios → Envíos completos → Acciones rápidas. Es la lista de lo que entregas, y quien recibe te la firma: es tu prueba de que los paquetes salieron de tus manos.',
+        ojo: 'Hay dos. El GENERAL va por transportadora y rango de fechas: úsalo cuando salgan varios el mismo día con la misma. El INDIVIDUAL va por las guías que marques en la tabla: úsalo para uno suelto, o cuando sólo salen algunos. Va uno por transportadora, porque cada mensajero firma sólo lo que se lleva.',
     },
     {
         paso: '6. Marca el pedido como enviado',
