@@ -12,22 +12,26 @@ import PedidoModal from '../PedidoModal';
 import { GRUPOS, ORDER_STATUSES, SOURCE_META, STATUS_META, VENTAS_VIVAS, coincideTelefono, despacharPedido, enGrupo, fireWebhook, fmt, fmtDate, isCOD, norm } from './comunes';
 import { ConfirmModal, ShipModal, SourceBadge, StatusBadge, StatusConfirmModal } from './piezas';
 
+/* Contraentrega. Sólo hay un botón visible por pedido: el que toca ahora.
+   `pendiente` y `confirmado` llevan al mismo sitio pero llegan distinto — a
+   `confirmado` se llega sola, cuando entra el abono; en `pendiente` se queda un
+   pedido cargado a mano en el panel, que no tiene abono que esperar. */
 const NEXT_ACTION_COD = {
-    pendiente:  { next: 'procesando', label: 'Procesar' },
+    pendiente:  { next: 'procesando', label: 'Empezar a fabricar' },
+    confirmado: { next: 'procesando', label: 'Empezar a fabricar' },
     procesando: { next: 'enviado',    label: 'Marcar enviado' },
     enviado:    { next: 'entregado',  label: 'Marcar entregado' },
-    confirmado: { next: 'procesando', label: 'Procesar' },
 };
 
 const NEXT_ACTION_PREPAID = {
     pendiente:  { next: 'pagado',     label: 'Confirmar pago' },
-    pagado:     { next: 'procesando', label: 'Procesar' },
+    pagado:     { next: 'procesando', label: 'Empezar a fabricar' },
     procesando: { next: 'enviado',    label: 'Marcar enviado' },
     enviado:    { next: 'entregado',  label: 'Marcar entregado' },
-    /* 'confirmado' es del diseño viejo. No se usa desde hace tiempo, pero la
-       base todavía lo acepta, y sin esta línea un pedido así se quedaba sin
-       acción siguiente: la tabla lo daba por cerrado sin estarlo. */
-    confirmado: { next: 'procesando', label: 'Procesar' },
+    /* Pagando en línea no se pasa por `confirmado` —ese estado es del abono—,
+       pero la base lo acepta y sin esta línea un pedido así se quedaría sin
+       acción siguiente: la tabla lo daría por cerrado sin estarlo. */
+    confirmado: { next: 'procesando', label: 'Empezar a fabricar' },
 };
 
 /* Flujo contraentrega: pendiente → procesando → enviado → entregado.

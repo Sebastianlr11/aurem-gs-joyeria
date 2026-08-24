@@ -43,7 +43,13 @@ export const GRUPOS = [
       test: o => o.status === 'enviado' },
 ];
 
-export const ORDER_STATUSES = ['pendiente', 'pagado', 'procesando', 'enviado', 'entregado', 'cancelado'];
+/* El orden es el del recorrido, no el alfabético, y los tres finales van al
+   final: entregado (salió bien), devuelto (salió y volvió) y cancelado (nunca
+   salió). Los filtros de la pantalla los pintan en este orden. */
+export const ORDER_STATUSES = [
+    'pendiente', 'confirmado', 'pagado', 'procesando', 'enviado',
+    'entregado', 'devuelto', 'cancelado',
+];
 
 /* El canal no lleva color: los cuatro se ven igual y la palabra dice
    cuál es. Tenía un pastel por canal —azul web, verde WhatsApp, rosa
@@ -58,14 +64,21 @@ export const SOURCE_META = {
 /* El estado se lee por intensidad del punto, no por color: quieto (nada
    ha pasado) → tenue (empezó) → vivo (va por la calle) → pleno (llegó)
    → nulo (no fue). La escala está explicada en panel.css. */
+/* La palabra que se ve NO es siempre el valor de la base, y hay un caso: el
+   estado `procesando` se lee «Fabricando». La razón es que la palabra tiene que
+   decirle a quien mira la pantalla qué está pasando —el taller está haciendo la
+   pieza—, y «procesando» no dice nada. El valor en la base no se renombra a
+   propósito: tocaría la base, cuatro edge functions, las RPC y los
+   disparadores, con riesgo real y ninguna ganancia. */
 export const STATUS_META = {
     pendiente:  { label: 'Pendiente',   cls: 'badge--quieto' },
+    confirmado: { label: 'Confirmado',  cls: 'badge--tenue'  },
     pagado:     { label: 'Pagado',      cls: 'badge--tenue'  },
-    procesando: { label: 'Procesando',  cls: 'badge--tenue'  },
+    procesando: { label: 'Fabricando',  cls: 'badge--tenue'  },
     enviado:    { label: 'Enviado',     cls: 'badge--vivo'   },
     entregado:  { label: 'Entregado',   cls: 'badge--pleno'  },
+    devuelto:   { label: 'Devuelto',    cls: 'badge--nulo'   },
     cancelado:  { label: 'Cancelado',   cls: 'badge--nulo'   },
-    confirmado: { label: 'Confirmado',  cls: 'badge--tenue'  }, // legacy
 };
 
 /* Flujo pago anticipado: pendiente → pagado → procesando → enviado → entregado */

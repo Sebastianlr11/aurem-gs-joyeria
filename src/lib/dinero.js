@@ -35,16 +35,25 @@ export function recibidoDe(pedido) {
     if (estado === 'cancelado' || estado === 'pendiente') return 0;
 
     const total = Number(pedido.amount) || 0;
+    const abono = Number(pedido.abono_monto) || 0;
 
     if (!esContraentrega(pedido)) {
+        /* En línea sólo hay una plata y entra de golpe. `devuelto` da cero
+           porque una pieza que se pagó entera y volvió se devuelve: si algún
+           día se decide quedarse con algo, se cambia aquí y en la base. */
         return ['pagado', 'procesando', 'enviado', 'entregado'].includes(estado) ? total : 0;
     }
 
-    // Entregado o cobrado: la plata ya se recogió.
+    // Entregado o cobrado: la plata ya se recogió entera.
     if (estado === 'entregado' || estado === 'pagado') return total;
 
-    // Confirmado o en camino: sólo el abono.
-    if (estado === 'procesando' || estado === 'enviado') return Number(pedido.abono_monto) || 0;
+    /* Con el abono pagado y nada más: confirmado (el taller no ha empezado),
+       fabricando, o en camino. El resto está en el bolsillo de la clienta.
+
+       Y `devuelto` también, que es la parte que sorprende: la pieza salió, no
+       se recibió y volvió — pero **el abono se queda**. Es exactamente para lo
+       que existe, cubrir el flete de una entrega que no se cerró. */
+    if (['confirmado', 'procesando', 'enviado', 'devuelto'].includes(estado)) return abono;
 
     return 0;
 }
@@ -58,14 +67,27 @@ export function recibidoDe(pedido) {
  * lo que te deben.
  */
 export function porCobrarDe(pedido) {
-    if (!pedido) return 0;
-    if (pedido.status === 'cancelado' || pedido.status === 'pendiente') return 0;
+    /* Se pregunta por `estaVivo` en vez de repetir la lista de estados, que es
+       lo que hacía antes: el comentario de arriba ya decía «pedidos vivos» y el
+       código llevaba su propia copia. Al nacer `devuelto` las dos se separaron
+       —un pedido devuelto dejaba el resto contado como por cobrar para
+       siempre— y así no puede volver a pasar. */
+    if (!estaVivo(pedido)) return 0;
     return Math.max(0, (Number(pedido.amount) || 0) - recibidoDe(pedido));
 }
 
-/** Un pedido que sigue vivo: ni cancelado, ni esperando confirmación. */
+/**
+ * Un pedido que sigue vivo: alguien se comprometió y la historia no ha
+ * terminado.
+ *
+ * Fuera quedan los tres finales y el principio: `cancelado` (nunca pasó),
+ * `pendiente` (nadie ha pagado nada todavía) y `devuelto` (salió, volvió, y no
+ * hay nada más que cobrar). Un devuelto que siguiera vivo dejaría el resto del
+ * importe contado como «por cobrar» para siempre, esperando una plata que no
+ * va a llegar.
+ */
 export const estaVivo = (pedido) =>
-    !!pedido && pedido.status !== 'cancelado' && pedido.status !== 'pendiente';
+    !!pedido && !['cancelado', 'pendiente', 'devuelto'].includes(pedido.status);
 
 /** Lo recibido y lo que falta, de un conjunto de pedidos. */
 export function resumenDe(pedidos = []) {

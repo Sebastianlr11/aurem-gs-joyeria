@@ -258,7 +258,9 @@ cuarta era una copia entera de los chats que hacía falsa la promesa de borrado 
 (`ttclid`, `ttp`, `fbc`, `fbp`, `client_ua`, `client_ip`, `ctwa_clid`, `anuncio_id`,
 `utm_source`, `utm_campaign`).
 
-`status` ∈ `pendiente | pagado | procesando | enviado | entregado | cancelado`.
+`status` ∈ `pendiente | confirmado | pagado | procesando | enviado | entregado | devuelto |
+cancelado`. **La columna es texto sin restricción**: acepta cualquier cosa, así que el
+vocabulario lo sostienen el código y esta tabla, no la base.
 `payment_method` ∈ `mercadopago | contraentrega | …`.
 
 **`whatsapp_conversaciones`** — `id`, `phone_number`, `role`, `content`, `message_type`,
@@ -307,6 +309,7 @@ desde el 23-ago: el costo vive en el pedido.)
 | `20260823_storage_tambien_pide_ser_del_equipo.sql` | 🔒 Lo mismo para las fotos: subir y borrar pide rol de equipo |
 | `20260823_el_vigia_mira_el_candado.sql` | `politicas_flojas()`: el vigía avisa si una política deja de exigir `es_del_equipo()` |
 | `20260823_a_quien_se_le_puede_escribir.sql` | 🔒 `puede_recibir_plantillas()`: el «no me escriban» se comprobaba con la cadena cruda y fallaba en 10 de 18 pedidos |
+| `20260824_confirmado_y_devuelto.sql` | Dos estados nuevos en el circuito, y el guardián que compara la regla del dinero de la base con la tabla de §8 |
 
 `20260822_cerrar_conversaciones_a_anon.sql` arregló un fallo del mismo tipo que el que
 sigue abierto en `orders`: `whatsapp_conversaciones` y `chat_takeover` tenían políticas
@@ -372,14 +375,26 @@ La regla que más se ha equivocado históricamente:
 > **Un pedido contraentrega en estado `enviado` NO cuenta como cobrado.**
 > Sólo cuenta el abono. El paquete va en camino y nadie ha pagado el resto.
 
-| Estado | Pago en línea | Contraentrega |
-|---|---|---|
-| `pendiente` | 0 | 0 |
-| `pagado` | total | total |
-| `procesando` | total | **sólo el abono** |
-| `enviado` | total | **sólo el abono** |
-| `entregado` | total | total |
-| `cancelado` | 0 | 0 |
+| Estado | Se lee | Pago en línea | Contraentrega |
+|---|---|---|---|
+| `pendiente` | Pendiente | 0 | 0 |
+| `confirmado` | Confirmado | 0 | **el abono** |
+| `pagado` | Pagado | total | total |
+| `procesando` | **Fabricando** | total | **sólo el abono** |
+| `enviado` | Enviado | total | **sólo el abono** |
+| `entregado` | Entregado | total | total |
+| `devuelto` | Devuelto | 0 | **el abono se queda** |
+| `cancelado` | Cancelado | 0 | 0 |
+
+**`procesando` se lee «Fabricando» en pantalla.** El valor de la base no se renombró a
+propósito: tocaría la base, cuatro edge functions, las RPC y los disparadores, con riesgo
+real y ninguna ganancia. Cambia la palabra, no el dato.
+
+**Esta misma regla está escrita DOS veces**, y tiene que ser así: `recibidoDe` en
+`src/lib/dinero.js` calcula sobre filas que el panel ya tiene en el navegador, y
+`public.recibido_de(...)` corre dentro de Postgres para el disparador que llena `pagos`.
+Ninguna puede llamar a la otra. **Si tocas una, toca la otra** — y el vigía comprueba cada
+hora que la de la base siga diciendo lo que dice esta tabla (`regla_del_dinero_cuadra()`).
 
 `porCobrarDe` = `amount − recibidoDe` en pedidos vivos. `estaVivo` = ni `cancelado` ni
 `pendiente`. **Cualquier cifra de dinero del panel debe pasar por estas funciones**: el

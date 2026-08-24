@@ -50,6 +50,52 @@ En contraentrega, `enviado` **no** significa cobrado (ver [checkout-y-pagos.md](
 `META_CAPI_TOKEN`, `TIKTOK_ACCESS_TOKEN` (`conversion-pedido`) ·
 `CORREO_SECRETO`, `APP_URL` (`correo-despacho`).
 
+## El circuito de un pedido
+
+Los dos caminos, con quién mueve cada paso y qué dispara. **Ésta es la fuente de verdad**:
+si el código y esto no cuadran, gana esto y hay que arreglar el código.
+
+```
+EN LÍNEA       pendiente ──► pagado ──► procesando ──► enviado ──► entregado
+                                                              └──► devuelto
+
+CONTRAENTREGA  pendiente ──► confirmado ──► procesando ──► enviado ──► entregado
+                            (paga el abono)                       └──► devuelto
+
+                        cualquiera ──► cancelado   (nunca salió)
+```
+
+| Estado | Se lee | Qué significa | Quién lo pone | Qué dispara |
+|---|---|---|---|---|
+| `pendiente` | Pendiente | El pedido existe y **nadie ha pagado nada** | El checkout, o a mano en el panel | Plantilla `pago_pendiente` si se queda ahí |
+| `confirmado` | Confirmado | **Abonó el envío.** Hay compromiso; el taller no ha empezado | `mp-webhook`, solo, al entrar el abono | Anota el abono · plantilla `pedido_confirmado_abono` |
+| `pagado` | Pagado | Entró el importe completo | `mp-webhook`, solo | Anota la venta · avisa a Meta y TikTok |
+| `procesando` | **Fabricando** | El taller **está haciendo la pieza** | Una persona, «Empezar a fabricar» | — |
+| `enviado` | Enviado | Va con la transportadora | Una persona, «Marcar enviado» + guía | Correo con rastreo · plantilla `pedido_en_camino` |
+| `entregado` | Entregado | Llegó. En contraentrega, **además cobraste** | Una persona, «Marcar entregado» | En contraentrega: anota el saldo y avisa a Meta y TikTok |
+| `devuelto` | Devuelto | Salió, no se recibió y volvió | Una persona | El abono se queda · la pieza vuelve al inventario · **no** se avisa a los anuncios |
+| `cancelado` | Cancelado | **Nunca salió** | Una persona | — |
+
+### Tres cosas que no son obvias
+
+**«Enviado» en contraentrega no es una venta cobrada.** El paquete va en camino y nadie ha
+pagado el resto: los informes sólo cuentan el abono hasta que se marque entregado.
+
+**«Devuelto» no es «cancelado», y la diferencia es plata.** Cancelado es *nunca pasó* y no
+deja nada. Devuelto *pasó*, costó un flete y **dejó el abono**, que es exactamente para lo
+que el abono existe. Además es el número que dice cuántos de cada diez vuelven, que en un
+negocio de contraentrega decide si el negocio aguanta.
+
+**Un pedido cargado a mano en el panel no pasa por `confirmado`.** Ese estado sólo lo pone
+el abono al entrar; un pedido tomado por teléfono va de `pendiente` a `procesando` cuando
+se le dice al taller que empiece.
+
+### Por qué no se paga a medias
+
+No existe el cobro parcial, y es una decisión del negocio: si la clienta no paga completo,
+**el mensajero no entrega** y el pedido vuelve. Y si el mensajero cobra de menos, eso lo
+responde la transportadora — por eso el envío va por una empresa y no por un conocido.
+
 ## Decisiones tomadas y por qué
 
 **La acción sugerida se bifurca por método de pago.** Es la traducción a la interfaz de la
