@@ -4,6 +4,7 @@
  * invente nada.
  */
 import { admin, enviarImagen, enviarPlantilla, enviarTexto } from './wa.ts'
+import { anuncioDe, atribucionDe, calcularTalla, cotizarOro, origen, refDelTexto } from './reglas.ts'
 
 const MODELO = Deno.env.get('OPENROUTER_MODEL') || 'openai/gpt-5.6-luna-pro'
 const MENSAJES_DE_CONTEXTO = 20
@@ -20,8 +21,6 @@ const MAX_FOTOS = 3
    diario, pero NO cambia la cotización por movimientos chicos: "si mañana
    baja 5000 o sube 3000 no importa". Así que el dato guardado se usa tal
    cual; lo único que se vigila es que no esté abandonado. */
-const DIAS_PARA_AVISAR = 3
-const DIAS_PARA_NO_COTIZAR = 10
 
 type Mensaje = { role: 'user' | 'assistant' | 'system'; content: string }
 
@@ -111,52 +110,6 @@ async function referralDe(telefono: string): Promise<any | null> {
 }
 
 /** Cómo contárselo al modelo, para que abra reconociendo lo que vio. */
-function origen(r: any | null): string {
-  if (!r) return ''
-
-  const titular = r.headline || r.body || null
-  const tipo = r.source_type === 'post' ? 'una publicación' : 'un anuncio'
-
-  return titular
-    ? `Esta persona llegó desde ${tipo} que decía: "${String(titular).slice(0, 160)}".`
-    : `Esta persona llegó desde ${tipo}.`
-}
-
-/** Cómo anotarlo en el pedido, para poder medir qué creativo vende. */
-function anuncioDe(r: any | null): string | null {
-  if (!r) return null
-  const id = r.source_id || r.ctwa_clid || null
-  return id ? `Anuncio: ${id}` : 'Llegó por anuncio'
-}
-
-/**
- * Los identificadores del anuncio, para guardarlos como datos y no como
- * texto en una nota.
- *
- * El `ctwa_clid` es el que importa de verdad: es lo que hay que devolverle a
- * Meta cuando la venta se cierra para que se la atribuya al anuncio que la
- * trajo. Sin él, Valentina vende y el anuncio nunca se entera.
- */
-function atribucionDe(r: any | null): { ctwa_clid: string | null; anuncio_id: string | null } {
-  if (!r) return { ctwa_clid: null, anuncio_id: null }
-  return {
-    ctwa_clid: r.ctwa_clid ?? null,
-    anuncio_id: r.source_id ?? null,
-  }
-}
-
-/**
- * La marca `[ref: tiktok]` que el sitio le pega al primer mensaje.
- *
- * Existe porque TikTok, a diferencia de Meta, no manda ningún identificador
- * cuando su anuncio abre WhatsApp. Sin esto, todas esas conversaciones
- * parecerían tráfico directo y las campañas de TikTok se verían como si no
- * vendieran nada.
- *
- * Se busca en el primer mensaje de la persona, que es donde el enlace la
- * pone. Un mensaje posterior que traiga la marca es de una visita nueva y no
- * debería reescribir de dónde vino originalmente.
- */
 async function refDeMensajes(telefono: string): Promise<string | null> {
   const { data } = await admin()
     .from('whatsapp_conversaciones')
@@ -167,8 +120,7 @@ async function refDeMensajes(telefono: string): Promise<string | null> {
     .limit(1)
     .maybeSingle()
 
-  const marca = String(data?.content ?? '').match(/\[ref:\s*([a-z0-9_-]{1,20})\]/i)
-  return marca ? marca[1].toLowerCase() : null
+  return refDelTexto(data?.content)
 }
 
 function instrucciones(piezas: string, politicas: string, deDonde: string, cod: { tope: number | null; abono: number | null }): string {
@@ -481,21 +433,6 @@ async function llamarModelo(mensajes: any[], herramientas = HERRAMIENTAS) {
 
    No va en el prompt a propósito. Los modelos calculan mal, y acá una
    equivocación se convierte en un anillo que no entra y una devolución. */
-const TALLAS: Array<[string, number]> = [
-  ['3', 44.2], ['3.5', 45.5], ['4', 46.8], ['4.5', 48.0], ['5', 49.3],
-  ['5.5', 50.6], ['6', 51.9], ['6.5', 53.1], ['7', 54.4], ['7.5', 55.7],
-  ['8', 57.0], ['8.5', 58.3], ['9', 59.5], ['9.5', 60.8], ['10', 62.1],
-  ['10.5', 63.4], ['11', 64.6], ['11.5', 65.9], ['12', 67.2], ['12.5', 68.5],
-]
-
-/** Pasa cualquier medida a circunferencia en milímetros. */
-const A_CIRCUNFERENCIA: Record<string, (v: number) => number> = {
-  circunferencia_mm: (v) => v,
-  circunferencia_cm: (v) => v * 10,
-  diametro_mm: (v) => v * Math.PI,
-  diametro_cm: (v) => v * 10 * Math.PI,
-}
-
 const unDecimal = (n: number) => n.toFixed(1).replace('.', ',')
 const enPesos = (n: number) => `$${Math.round(n).toLocaleString('es-CO')}`
 
@@ -581,41 +518,26 @@ async function ejecutarHerramienta(
   }
 
   if (nombre === 'calcular_talla') {
-    const medida = Number(args?.medida)
-    const convertir = A_CIRCUNFERENCIA[String(args?.unidad)]
-    if (!Number.isFinite(medida) || medida <= 0 || !convertir) {
-      return 'Esa medida no se entiende. Pregúntale cómo midió y con qué unidad.'
-    }
+    const t = calcularTalla(args?.medida, args?.unidad)
 
-    const circ = convertir(medida)
-
-    if (circ < TALLAS[0][1]) {
-      return `Esa medida (${unDecimal(circ)} mm de circunferencia) queda por debajo de la talla 3. ` +
-             `Dile que se la fabricamos a la medida y que le confirmas por interno.`
-    }
-    const mayor = TALLAS[TALLAS.length - 1]
-    if (circ > mayor[1]) {
-      return `Esa medida (${unDecimal(circ)} mm de circunferencia) pasa la talla ${mayor[0]}. ` +
+    if (!t.ok) {
+      if (t.motivo === 'medida_invalida') {
+        return 'Esa medida no se entiende. Pregúntale cómo midió y con qué unidad.'
+      }
+      const donde = t.motivo === 'muy_pequena'
+        ? `queda por debajo de la talla ${t.limite}`
+        : `pasa la talla ${t.limite}`
+      return `Esa medida (${unDecimal(t.circunferencia)} mm de circunferencia) ${donde}. ` +
              `Dile que se la fabricamos a la medida y que le confirmas por interno.`
     }
 
-    /* Entre dos tallas se toma la mayor: un anillo holgado se acomoda, uno
-       apretado no entra. Es la misma regla que la calculadora del sitio. */
-    const fila = TALLAS.find(([, mm]) => mm >= circ)!
-    const justa = Math.abs(fila[1] - circ) < 0.15
-
-    return `La talla es ${fila[0]}. (${unDecimal(circ)} mm de circunferencia, ` +
-           `${unDecimal(fila[1] / Math.PI)} mm de diámetro interior.) ` +
-           (justa ? 'Cae justo en esa talla. ' : 'Quedó entre dos tallas y se toma la mayor, porque un anillo holgado se acomoda y uno apretado no entra. ') +
+    return `La talla es ${t.talla}. (${unDecimal(t.circunferencia)} mm de circunferencia, ` +
+           `${unDecimal(t.diametro)} mm de diámetro interior.) ` +
+           (t.justa ? 'Cae justo en esa talla. ' : 'Quedó entre dos tallas y se toma la mayor, porque un anillo holgado se acomoda y uno apretado no entra. ') +
            `Díselo con naturalidad y sigue con el pedido. No le preguntes otra vez qué talla es: ya la sabes.`
   }
 
   if (nombre === 'cotizar_oro') {
-    const gramos = Number(args?.gramos)
-    if (!Number.isFinite(gramos) || gramos <= 0) {
-      return 'No dijo cuántos gramos. Pregúntale por el diseño y el tamaño, o escala para que el taller lo calcule.'
-    }
-
     const { data: precios } = await db.from('taller_precios')
       .select('precio_gramo_oro, recargo_por_gramo, gramos_minimos, actualizado_en')
       .maybeSingle()
@@ -625,28 +547,25 @@ async function ejecutarHerramienta(
       return 'No tengo la lista de precios a mano. Usa escalar_a_humano.'
     }
 
-    /* En piezas livianas la merma se come la ganancia, así que no se cotiza
-       por gramo: va por pieza, y ese número lo pone una persona. */
-    if (gramos < Number(precios.gramos_minimos)) {
-      return `Son ${gramos} gramos, menos del mínimo de ${precios.gramos_minimos} para cotizar por gramo. ` +
-             `Una pieza así se cobra por pieza, no por peso. Dile que lo consultas con el taller y usa escalar_a_humano.`
-    }
+    const c = cotizarOro(args?.gramos, precios, Date.now())
 
-    const dias = (Date.now() - new Date(precios.actualizado_en).getTime()) / 86_400_000
-
-    if (dias > DIAS_PARA_NO_COTIZAR) {
-      console.error(`Precio del oro con ${Math.round(dias)} días sin actualizar: no se cotiza`)
+    if (!c.ok) {
+      if (c.motivo === 'sin_gramos') {
+        return 'No dijo cuántos gramos. Pregúntale por el diseño y el tamaño, o escala para que el taller lo calcule.'
+      }
+      if (c.motivo === 'bajo_el_minimo') {
+        return `Son ${c.gramos} gramos, menos del mínimo de ${c.minimo} para cotizar por gramo. ` +
+               `Una pieza así se cobra por pieza, no por peso. Dile que lo consultas con el taller y usa escalar_a_humano.`
+      }
+      console.error(`Precio del oro con ${Math.round(c.dias)} días sin actualizar: no se cotiza`)
       return 'El precio del oro que tengo está viejo y no quiero darte un número equivocado. Usa escalar_a_humano.'
     }
 
-    const porGramo = Number(precios.precio_gramo_oro) + Number(precios.recargo_por_gramo)
-    const total = porGramo * gramos
-
-    const aviso = dias > DIAS_PARA_AVISAR
-      ? ` (Ojo: el precio base lleva ${Math.round(dias)} días sin actualizarse.)`
+    const aviso = c.avisar
+      ? ` (Ojo: el precio base lleva ${Math.round(c.dias)} días sin actualizarse.)`
       : ''
 
-    return `Son ${enPesos(total)} por ${gramos} gramos de oro — ${enPesos(porGramo)} el gramo.${aviso} ` +
+    return `Son ${enPesos(c.total)} por ${c.gramos} gramos de oro — ${enPesos(c.porGramo)} el gramo.${aviso} ` +
            `Ese precio ya incluye diseño, fundición y terminado. ` +
            `Si la pieza lleva esmeraldas o diamantes eso suma aparte y NO lo sabes calcular: dilo y escala. ` +
            `Dale el número redondeado y con naturalidad, sin desglosar el recargo.`
