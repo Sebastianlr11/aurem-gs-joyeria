@@ -1563,3 +1563,43 @@ pasos (2). **162 pruebas en total.**
 Probarlas pide inyectarle el cliente a `ejecutarHerramienta`, que son 300 líneas de refactor
 sobre el código que toma pedidos — y `crear_pedido` ya se revisó línea a línea y está bien
 hecho. El riesgo de ese refactor supera al que quitaría.
+
+**Duodécimo tramo, y el último del chat: el tiempo real.** Es lo único de esta pantalla
+que, si se rompe, **deja la bandeja muda** — no falla con un error, deja de llegar todo, y
+eso se nota horas después cuando alguien pregunta por qué no contestamos.
+
+Por eso salió **sólo el armazón**, a `useSuscripcion`: crear el canal, engancharle las
+escuchas, suscribirse, seguir el estado y limpiar al salir. Lo que hace cada mensaje que
+llega se queda en el panel, que es quien sabe de mensajes. El manejador del INSERT hace
+siete cosas —sonido, aviso de escritorio, desarchivar sola la conversación, meterlo en el
+hilo, marcarlo leído, avisar si es de otra, refrescar la lista— y todas necesitan estado
+del panel: meterlas en un gancho habría sido pasarle doce cosas para que las devolviera.
+
+**El detalle que hace que funcione**, y que era la forma fácil de romperlo: las escuchas se
+guardan en una referencia y el efecto **no depende de ellas**. Si dependiera —se escriben en
+línea, son un array nuevo en cada render— el panel se desuscribiría y volvería a suscribirse
+sesenta veces por minuto, y en cada hueco los mensajes que llegaran se perderían sin dejar
+rastro.
+
+**Y el sondeo de respaldo pasó de imperativo a declarativo.** Los dos temporizadores se
+creaban y se destruían a mano dentro de la respuesta de `subscribe`, con un `if (!intervalo)`
+para no duplicarlos y otro para apagarlos al reconectar. Escrito como efecto de un estado no
+hace falta ninguno de los dos: un estado que no sea `SUBSCRIBED` es exactamente «no hay
+conexión, sondea».
+
+### Comprobado en vivo, que es la única forma
+
+Se insertó un mensaje en la base y **apareció solo en el hilo, sin recargar**. Después se le
+cambió el acuse a «leído» y **el visto cambió en pantalla**, también solo — las dos escuchas,
+INSERT y UPDATE, funcionando. La fila de prueba se borró: siguen siendo dos mensajes.
+
+### Y esa prueba destapó un fallo mío de la mañana
+
+El acuse de «leído» es el único que debe distinguirse, y salía igual que los demás. El
+selector que lo pone en oro pide que el acuse sea **hija** de la burbuja, y vive en
+`.chat-bubble-time`, que es **hermana**: nunca ha aplicado desde que se escribió.
+
+No se notaba porque el leído era azul de otra paleta. **Al unificar los acuses en el tono
+discreto le quité la única distinción que tenía** — y lo escribí en el commit al revés,
+diciendo que el azul «ni se veía». Sí se veía. Arreglado con un selector que sí encaja y en
+`--oro-ink`, que es el oro para fondo claro: **5,64:1 de contraste**, comprobado en pantalla.

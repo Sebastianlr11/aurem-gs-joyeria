@@ -18,6 +18,7 @@ import CabeceraDeContactos from './chat/CabeceraDeContactos';
 import DialogoDeConfirmacion from './chat/DialogoDeConfirmacion';
 import HiloDeMensajes from './chat/HiloDeMensajes';
 import Compositor from './chat/Compositor';
+import { useSuscripcion } from './chat/useSuscripcion';
 import BuscadorDeMensajes from './chat/BuscadorDeMensajes';
 
 
@@ -114,7 +115,6 @@ const ChatPanel = () => {
     const [cargandoPurga, setCargandoPurga] = useState(false);
     const exportMenuRef = useRef(null);
     const menuFilaRef = useRef(null);
-    const [realtimeStatus, setRealtimeStatus] = useState('CONNECTING');
     const [soundEnabled, setSoundEnabled] = useState(() => localStorage.getItem('admin_sound_enabled') !== 'false');
     const quickReplies = useMemo(() => leerRespuestas(), []);
     const quickRepliesRef = useRef(null);
@@ -403,166 +403,162 @@ const ChatPanel = () => {
     const fetchContactsRef = useRef(fetchContacts);
     useEffect(() => { fetchContactsRef.current = fetchContacts; }, [fetchContacts]);
 
-    useEffect(() => {
-        if (!session) return;
-        let fallbackInterval = null;
-        let fallbackMsgInterval = null;
+    /* ─── Lo que llega en vivo ────────────────────────────────────── */
 
-        const channel = supabase
-            .channel('chat-realtime', { config: { broadcast: { self: true } } })
-            .on('postgres_changes',
-                { event: 'INSERT', schema: 'public', table: 'whatsapp_conversaciones' },
-                (payload) => {
-                    const newMsg = payload.new;
-                    if (!newMsg) return;
-                    console.log('[Realtime] Nuevo mensaje:', newMsg.role, newMsg.phone_number);
+    /* Un mensaje nuevo. Hace siete cosas, y por eso vive aquí y no dentro del
+       gancho: sonido, aviso de escritorio, desarchivar sola la conversación,
+       meterlo en el hilo si es el que está abierto, marcarlo leído, avisar si
+       es de otra, y refrescar la lista. Todas necesitan estado del panel. */
+    const alMensajeNuevo = (payload) => {
+        const newMsg = payload.new;
+        if (!newMsg) return;
+        console.log('[Realtime] Nuevo mensaje:', newMsg.role, newMsg.phone_number);
 
-                    // Play sound for incoming user messages
-                    if (newMsg.role === 'user') {
-                        playNotifSound();
-                    }
-
-                    // Desktop notification for user messages when tab is hidden
-                    if (newMsg.role === 'user' && document.hidden && Notification.permission === 'granted') {
-                        try {
-                            new Notification('Nuevo mensaje - Aurem Gs', {
-                                body: truncate(newMsg.content, 80),
-                                icon: '/assets/logo-isotipo.png',
-                            });
-                        } catch { /* Igual que arriba: si el aviso no sale, el mensaje ya llegó al panel. */ }
-                    }
-
-                    // Auto-unarchive if new message from archived contact
-                    if (newMsg.role === 'user') {
-                        setStatusMap(prev => {
-                            if (prev[newMsg.phone_number]?.is_archived) {
-                                supabase.from('chat_status').upsert({
-                                    phone_number: newMsg.phone_number,
-                                    is_archived: false,
-                                    updated_at: new Date().toISOString(),
-                                }, { onConflict: 'phone_number' }).then(() => {});
-                                return { ...prev, [newMsg.phone_number]: { ...prev[newMsg.phone_number], is_archived: false } };
-                            }
-                            return prev;
-                        });
-                    }
-
-                    // If message belongs to active contact, add to messages (dedup by id)
-                    const phone = activeContactRef.current;
-                    if (phone && newMsg.phone_number === phone) {
-                        setMessages(prev => {
-                            // Skip if already exists (dedup by real id or temp id)
-                            if (prev.some(m => m.id === newMsg.id)) return prev;
-                            // Replace optimistic temp message if this is our own sent message
-                            if (newMsg.role === 'assistant') {
-                                const tempIdx = prev.findIndex(m => String(m.id).startsWith('temp-') && m.content === newMsg.content);
-                                if (tempIdx !== -1) {
-                                    const updated = [...prev];
-                                    updated[tempIdx] = newMsg;
-                                    return updated;
-                                }
-                            }
-                            return sortMessages([...prev, newMsg]);
-                        });
-
-                        // Mark as read since user is viewing this contact
-                        if (newMsg.role === 'user') {
-                            supabase.from('whatsapp_conversaciones')
-                                .update({ is_read: true })
-                                .eq('id', newMsg.id)
-                                .then(() => {});
-                        }
-                    } else if (newMsg.role === 'user') {
-                        /* Aviso de que entró un mensaje en OTRA conversación.
-                           El reloj y el descarte los lleva el gancho. */
-                        avisos.avisar({
-                            nombre: contactsRef.current.find(c => c.phone_number === newMsg.phone_number)?.customer_name || newMsg.phone_number,
-                            texto: truncate(newMsg.content, 50),
-                            telefono: newMsg.phone_number,
-                        });
-                    }
-
-                    // Refresh contacts list (debounced to avoid flooding with rapid messages)
-                    clearTimeout(fetchContactsTimerRef.current);
-                    fetchContactsTimerRef.current = setTimeout(() => fetchContactsRef.current(true), 800);
-                }
-            )
-            /* Los mensajes cambian DESPUÉS de guardarse, y hasta ahora eso no
-               llegaba: el panel sólo escuchaba INSERT.
-
-               Una foto se guarda al instante como "[image]" y sin imagen,
-               porque descargarla de Meta y describirla tarda unos segundos.
-               Lo mismo una nota de voz, que entra como "[audio]" hasta que se
-               transcribe. Quien tuviera el chat abierto se quedaba mirando el
-               marcador para siempre, aunque en la base ya estuviera todo.
-
-               También trae los acuses de entrega, que antes sólo aparecían al
-               recargar. */
-            .on('postgres_changes',
-                { event: 'UPDATE', schema: 'public', table: 'whatsapp_conversaciones' },
-                (payload) => {
-                    const cambiado = payload.new;
-                    if (!cambiado) return;
-
-                    const phone = activeContactRef.current;
-                    if (!phone || cambiado.phone_number !== phone) return;
-
-                    setMessages(prev => {
-                        const i = prev.findIndex(m => m.id === cambiado.id);
-                        if (i === -1) return prev;
-                        const copia = [...prev];
-                        copia[i] = { ...copia[i], ...cambiado };
-                        return copia;
-                    });
-                }
-            )
-            .subscribe((status, err) => {
-                console.log('[Realtime] Estado:', status, err || '');
-                setRealtimeStatus(status);
-
-                // Fallback polling if Realtime disconnects
-                if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-                    console.warn('[Realtime] Desconectado, activando polling de respaldo');
-                    if (!fallbackInterval) {
-                        fallbackInterval = setInterval(() => fetchContactsRef.current(true), 10000);
-                    }
-                    if (!fallbackMsgInterval) {
-                        fallbackMsgInterval = setInterval(() => {
-                            const phone = activeContactRef.current;
-                            if (!phone) return;
-                            supabase.from('whatsapp_conversaciones')
-                                .select('*').eq('phone_number', phone)
-                                .order('created_at', { ascending: true }).limit(200)
-                                .then(({ data }) => {
-                                    if (data && activeContactRef.current === phone) {
-                                        setMessages(prev => {
-                                            const sorted = sortMessages(data);
-                                            if (prev.length === sorted.length && prev[prev.length - 1]?.id === sorted[sorted.length - 1]?.id) return prev;
-                                            return sorted;
-                                        });
-                                    }
-                                });
-                        }, 5000);
-                    }
-                } else if (status === 'SUBSCRIBED') {
-                    console.log('[Realtime] Conectado correctamente');
-                    if (fallbackInterval) { clearInterval(fallbackInterval); fallbackInterval = null; }
-                    if (fallbackMsgInterval) { clearInterval(fallbackMsgInterval); fallbackMsgInterval = null; }
-                }
-            });
-
-        // Request notification permission
-        if ('Notification' in window && Notification.permission === 'default') {
-            Notification.requestPermission();
+        // Play sound for incoming user messages
+        if (newMsg.role === 'user') {
+            playNotifSound();
         }
 
-        return () => {
-            supabase.removeChannel(channel);
-            if (fallbackInterval) clearInterval(fallbackInterval);
-            if (fallbackMsgInterval) clearInterval(fallbackMsgInterval);
-            clearTimeout(fetchContactsTimerRef.current);
-        };
-    }, [session]); // eslint-disable-line react-hooks/exhaustive-deps
+        // Desktop notification for user messages when tab is hidden
+        if (newMsg.role === 'user' && document.hidden && Notification.permission === 'granted') {
+            try {
+                new Notification('Nuevo mensaje - Aurem Gs', {
+                    body: truncate(newMsg.content, 80),
+                    icon: '/assets/logo-isotipo.png',
+                });
+            } catch { /* Igual que arriba: si el aviso no sale, el mensaje ya llegó al panel. */ }
+        }
+
+        // Auto-unarchive if new message from archived contact
+        if (newMsg.role === 'user') {
+            setStatusMap(prev => {
+                if (prev[newMsg.phone_number]?.is_archived) {
+                    supabase.from('chat_status').upsert({
+                        phone_number: newMsg.phone_number,
+                        is_archived: false,
+                        updated_at: new Date().toISOString(),
+                    }, { onConflict: 'phone_number' }).then(() => {});
+                    return { ...prev, [newMsg.phone_number]: { ...prev[newMsg.phone_number], is_archived: false } };
+                }
+                return prev;
+            });
+        }
+
+        // If message belongs to active contact, add to messages (dedup by id)
+        const phone = activeContactRef.current;
+        if (phone && newMsg.phone_number === phone) {
+            setMessages(prev => {
+                // Skip if already exists (dedup by real id or temp id)
+                if (prev.some(m => m.id === newMsg.id)) return prev;
+                // Replace optimistic temp message if this is our own sent message
+                if (newMsg.role === 'assistant') {
+                    const tempIdx = prev.findIndex(m => String(m.id).startsWith('temp-') && m.content === newMsg.content);
+                    if (tempIdx !== -1) {
+                        const updated = [...prev];
+                        updated[tempIdx] = newMsg;
+                        return updated;
+                    }
+                }
+                return sortMessages([...prev, newMsg]);
+            });
+
+            // Mark as read since user is viewing this contact
+            if (newMsg.role === 'user') {
+                supabase.from('whatsapp_conversaciones')
+                    .update({ is_read: true })
+                    .eq('id', newMsg.id)
+                    .then(() => {});
+            }
+        } else if (newMsg.role === 'user') {
+            /* Aviso de que entró un mensaje en OTRA conversación.
+               El reloj y el descarte los lleva el gancho. */
+            avisos.avisar({
+                nombre: contactsRef.current.find(c => c.phone_number === newMsg.phone_number)?.customer_name || newMsg.phone_number,
+                texto: truncate(newMsg.content, 50),
+                telefono: newMsg.phone_number,
+            });
+        }
+
+        // Refresh contacts list (debounced to avoid flooding with rapid messages)
+        clearTimeout(fetchContactsTimerRef.current);
+        fetchContactsTimerRef.current = setTimeout(() => fetchContactsRef.current(true), 800);
+    };
+
+    /* Los mensajes cambian DESPUÉS de guardarse, y hasta que se escuchó el
+       UPDATE eso no llegaba.
+
+       Una foto se guarda al instante como "[image]" y sin imagen, porque
+       descargarla de Meta y describirla tarda unos segundos. Lo mismo una nota
+       de voz, que entra como "[audio]" hasta que se transcribe. Quien tuviera
+       el chat abierto se quedaba mirando el marcador para siempre, aunque en
+       la base ya estuviera todo. También trae los acuses de entrega, que antes
+       sólo aparecían al recargar. */
+    const alMensajeCambiado = (payload) => {
+        const cambiado = payload.new;
+        if (!cambiado) return;
+
+        const phone = activeContactRef.current;
+        if (!phone || cambiado.phone_number !== phone) return;
+
+        setMessages(prev => {
+            const i = prev.findIndex(m => m.id === cambiado.id);
+            if (i === -1) return prev;
+            const copia = [...prev];
+            copia[i] = { ...copia[i], ...cambiado };
+            return copia;
+        });
+    };
+
+    const realtimeStatus = useSuscripcion(
+        'chat-realtime',
+        !!session,
+        [
+            { tabla: 'whatsapp_conversaciones', evento: 'INSERT', al: alMensajeNuevo },
+            { tabla: 'whatsapp_conversaciones', evento: 'UPDATE', al: alMensajeCambiado },
+        ],
+        { config: { broadcast: { self: true } } },
+    );
+
+    /* El respaldo por sondeo cuando no hay conexión en vivo.
+
+       Antes los dos temporizadores se creaban y se destruían a mano dentro de
+       la respuesta de `subscribe`, con un `if (!intervalo)` para no duplicarlos
+       y otro para apagarlos al reconectar. Escrito como efecto de un estado, no
+       hace falta ninguno de los dos: React monta y desmonta, y un estado que no
+       sea 'SUBSCRIBED' es exactamente «no hay conexión, sondea». */
+    useEffect(() => {
+        if (!session || realtimeStatus === 'SUBSCRIBED') return;
+
+        const lista = setInterval(() => fetchContactsRef.current(true), 10000);
+        const hilo = setInterval(() => {
+            const phone = activeContactRef.current;
+            if (!phone) return;
+            supabase.from('whatsapp_conversaciones')
+                .select('*').eq('phone_number', phone)
+                .order('created_at', { ascending: true }).limit(200)
+                .then(({ data }) => {
+                    if (data && activeContactRef.current === phone) {
+                        setMessages(prev => {
+                            const sorted = sortMessages(data);
+                            if (prev.length === sorted.length && prev[prev.length - 1]?.id === sorted[sorted.length - 1]?.id) return prev;
+                            return sorted;
+                        });
+                    }
+                });
+        }, 5000);
+
+        return () => { clearInterval(lista); clearInterval(hilo); };
+    }, [session, realtimeStatus]);
+
+    /* Se pide una sola vez y sólo si nunca se ha respondido: preguntar en cada
+       carga es la forma más rápida de que digan que no para siempre. */
+    useEffect(() => {
+        if (session && 'Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
+    }, [session]);
+
+    useEffect(() => () => clearTimeout(fetchContactsTimerRef.current), []);
 
     /* ─── Enviar un mensaje escrito por una persona ───────────────
        Va por la función wa-send, que habla con la Cloud API y guarda la
