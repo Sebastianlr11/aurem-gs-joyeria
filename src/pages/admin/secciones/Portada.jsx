@@ -7,7 +7,7 @@
  */
 import React, { useEffect, useMemo, useState } from 'react';
 import { cajaDeLosUltimos } from '../../../lib/caja';
-import { estaVivo, netoDeMercadoPago, porCobrarDe, recibidoDe } from '../../../lib/dinero';
+import { estaVivo, netoRecibidoDe, porCobrarDe } from '../../../lib/dinero';
 import { supabase } from '../../../lib/supabase';
 import { STATUS_META, despacharPedido, enGrupo, fmt, isCOD } from './comunes';
 import { ShipModal } from './piezas';
@@ -43,13 +43,20 @@ const RE_TALLA = /talla[:\s]+(\d+(?:[.,]\d+)?)/i;
 
 const ingresosDe = (pedidos) => {
     const mp = pedidos.filter(o => estaVivo(o) && !isCOD(o));
-    const mpNeto = mp.reduce((s, o) => s + netoDeMercadoPago(Number(o.amount)), 0);
+    /* `netoRecibidoDe` y no la comisión sobre `amount`: un pedido vivo cuyo
+       pago no ha entrado —`confirmado`— contaba como cobrado entero. */
+    const mpNeto = mp.reduce((s, o) => s + netoRecibidoDe(o), 0);
 
     /* El abono del contraentrega también es plata que entró, aunque el
        pedido no esté cobrado del todo. Sin esto, los $20.000 de cada pedido
-       confirmado no aparecían por ningún lado. */
+       confirmado no aparecían por ningún lado.
+
+       Y va NETO: el abono se cobra por Mercado Pago, que se lleva $2.118 de
+       cada $20.000. Sumarlo en bruto era decir que habían entrado $40.000
+       cuando quedaron $35.764 — que es justo lo que el libro de caja, dos
+       tarjetas más abajo en esta misma pantalla, ya venía diciendo bien. */
     const cod = pedidos.filter(isCOD);
-    const codCobrado = cod.reduce((s, o) => s + recibidoDe(o), 0);
+    const codCobrado = cod.reduce((s, o) => s + netoRecibidoDe(o), 0);
 
     const porCobrar = cod.filter(o => porCobrarDe(o) > 0);
 

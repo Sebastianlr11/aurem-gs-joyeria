@@ -18,7 +18,7 @@ entra, y que **en Colombia cada millón de pauta cuesta 1.190.000** con IVA.
 | Ruta | Qué |
 |---|---|
 | `src/pages/admin/secciones/Reportes.jsx` | La pantalla entera |
-| `src/pages/admin/secciones/comunes.js` | `calcMPNet` — comisiones de Mercado Pago |
+| `src/lib/dinero.js` | `netoRecibidoDe` y `costoDePasarelaDe` — lo que llegó a la cuenta |
 | `src/pages/admin/secciones/Reportes.jsx` | Cobrado vs por cobrar, separados |
 | `src/pages/admin/secciones/Reportes.jsx` | Ticket promedio — usa `amount` completo, comentado a propósito |
 | `src/pages/admin/secciones/Reportes.jsx` | Entrada a `PautaRetorno` |
@@ -99,6 +99,48 @@ escondido dentro de un porcentaje que decía otra cosa.
 `Pedidos` sigue contando todo a propósito —cuántos entraron— y por eso ahora dice en qué
 quedaron: «2 en pie, 14 cancelados».
 
+## «Ingreso neto» no era neto
+
+`recibidoDe` responde **cuánto entregó la clienta**. Esta pantalla usaba esa cifra debajo de
+un rótulo que promete otra: *«Plata que ya entró, con las comisiones descontadas»*. No las
+descontaba, y la línea de al lado remataba con *«Comisiones Mercado Pago −$0»*.
+
+El agujero es el abono. **Se cobra por Mercado Pago** —lo genera `create-preference` y lo
+confirma `mp-webhook`—, así que la pasarela se lleva **$2.118 de cada $20.000**:
+
+```
+Dos abonos, en bruto     $40.000
+Lo que quedó de verdad   $35.764
+```
+
+Y **la portada ya decía $35.764**, porque tira del libro de caja (`caja.js`), que sí lo
+descuenta. Dos pantallas, la misma pregunta, dos respuestas — el bug original de este
+proyecto, otra vez.
+
+Ahora las dos llaman a `netoRecibidoDe`, con la sutileza que hace falta hacer bien: de un
+contraentrega **entregado** sólo el abono pasó por la pasarela, y el resto lo cobró el
+mensajero en efectivo. Se le descuenta la comisión de los $20.000 y no la de los $550.000 —
+lo segundo se inventaría $26.000 de gasto que nunca ocurrió. Y sólo si el abono llegó a
+pagarse por ahí: `abono_pagado_en` es la prueba, porque un pedido cargado a mano en el panel
+nunca pasó por la pasarela.
+
+**La regla de rotulación**, para que no vuelva a mezclarse: lo que diga *entró*, *neto* o
+*deja* va **después** de comisiones; lo que diga *vendido* o *pedido* se queda en precio.
+
+### Dónde más faltaba
+
+| Dónde | Qué pasaba |
+|---|---|
+| Ingreso neto · Comisiones | Los abonos, en bruto. $40.000 → **$35.764**, y −$0 → **−$4.236** |
+| «Lo que deja» por pieza | `precio − taller − flete`, sin la comisión |
+| «Deja neto» del retorno de pauta | Lo mismo, en la única cifra que responde «¿esto deja plata?» |
+| `revenue_por_fuente` · `top_ciudades_envio` · `tendencia_comparativa` | Sumaban `recibido_de` en bruto |
+| `ingresosDe` de la portada | Calculaba la comisión sobre el precio, no sobre lo cobrado |
+
+El espejo en SQL es `public.neto_recibido_de(...)`, comprobado caso por caso contra el
+JavaScript —incluido el del contraentrega entregado, que es donde es fácil equivocarse—.
+**Si tocas una, toca la otra.**
+
 ## Los números que mentían
 
 Esta pantalla tuvo, en dos días, **cinco cifras infladas por la misma razón**: sumar
@@ -154,5 +196,5 @@ el índice único de `customers`.
    debe avisar y decir sobre cuántos de cuántos calculó.
 4. **Duplicado:** intenta anotar dos veces el mismo día y canal. Debe rechazarlo el índice
    único.
-5. **Comisiones:** compara `calcMPNet` con una liquidación real de Mercado Pago.
+5. **Comisiones:** compara `costoDePasarelaDe` con una liquidación real de Mercado Pago.
 6. Verifica que las 6 RPC existen: `SELECT proname FROM pg_proc WHERE proname LIKE '%whatsapp%';`

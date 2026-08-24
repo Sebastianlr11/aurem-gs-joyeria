@@ -11,7 +11,6 @@
  * dependencias, no a ojo — mirar sólo el cuerpo de cada sección dejaba fuera
  * nueve símbolos que se usan dentro de otros ayudantes.
  */
-import { netoDeMercadoPago } from '../../../lib/dinero';
 import { supabase } from '../../../lib/supabase';
 
 export const CARRIERS = ['Servientrega', 'Interrapidisimo', 'Coordinadora', 'Otro'];
@@ -112,7 +111,6 @@ export const avisarDespachoPorCorreo = async (orderId) => {
     }
 };
 
-export const calcMPNet = (amount) => netoDeMercadoPago(amount);
 
 export const coincideTelefono = (guardado, consulta) => {
     const d = soloDigitos(consulta);

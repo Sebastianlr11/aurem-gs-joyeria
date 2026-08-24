@@ -23,6 +23,8 @@ import {
     resumenDe,
     costoDeMercadoPago,
     netoDeMercadoPago,
+    costoDePasarelaDe,
+    netoRecibidoDe,
 } from './dinero';
 
 const PRECIO = 550_000;
@@ -218,5 +220,81 @@ describe('lo que Mercado Pago descuenta', () => {
         expect(costoDeMercadoPago(null)).toBe(0);
         expect(costoDeMercadoPago(-500)).toBe(0);
         expect(netoDeMercadoPago(0)).toBe(0);
+    });
+});
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   Lo que llegó a la cuenta, que no es lo que pagó la clienta.
+
+   Se prueba porque el panel prometía lo segundo y enseñaba lo primero:
+   «$40.000 — plata que ya entró, con las comisiones descontadas» sobre dos
+   abonos cobrados por Mercado Pago, con la línea de al lado diciendo
+   «Comisiones −$0». Habían entrado $35.764.
+═══════════════════════════════════════════════════════════════════ */
+
+/** Un contraentrega cuyo abono SÍ pasó por la pasarela. */
+const conAbonoPagado = (status, abono = ABONO) =>
+    ({ ...contraentrega(status, abono), abono_pagado_en: '2026-08-20T10:00:00Z' });
+
+describe('netoRecibidoDe', () => {
+    it('en línea descuenta la comisión de todo lo cobrado', () => {
+        const p = enLinea('pagado');
+        expect(netoRecibidoDe(p)).toBe(PRECIO - costoDeMercadoPago(PRECIO));
+    });
+
+    /* El caso que motivó todo esto. */
+    it('descuenta la comisión del abono, que se cobra por Mercado Pago', () => {
+        expect(recibidoDe(conAbonoPagado('enviado'))).toBe(ABONO);
+        expect(netoRecibidoDe(conAbonoPagado('enviado'))).toBe(ABONO - costoDeMercadoPago(ABONO));
+        expect(netoRecibidoDe(conAbonoPagado('enviado'))).toBe(17_882);
+    });
+
+    /* La sutileza que hace falta hacer bien: de un contraentrega entregado,
+       sólo el abono pasó por la pasarela. El resto lo cobró el mensajero en
+       efectivo, y de eso Mercado Pago no ve un peso. Descontar la comisión
+       del total inventaría un gasto de $26.000 que nunca ocurrió. */
+    it('en un contraentrega entregado sólo descuenta la comisión del abono', () => {
+        const p = conAbonoPagado('entregado');
+        expect(recibidoDe(p)).toBe(PRECIO);
+        expect(netoRecibidoDe(p)).toBe(PRECIO - costoDeMercadoPago(ABONO));
+        expect(costoDePasarelaDe(p)).toBe(costoDeMercadoPago(ABONO));
+        expect(costoDePasarelaDe(p)).toBeLessThan(costoDeMercadoPago(PRECIO));
+    });
+
+    /* Un pedido cargado a mano en el panel nunca pasó por la pasarela, aunque
+       lleve anotado un abono. Cobrarle una comisión sería restarle plata que
+       nadie se llevó. */
+    it('no cobra comisión si el abono no se pagó por la pasarela', () => {
+        expect(costoDePasarelaDe(contraentrega('entregado'))).toBe(0);
+        expect(netoRecibidoDe(contraentrega('entregado'))).toBe(PRECIO);
+    });
+
+    it('sin plata recibida no hay comisión que descontar', () => {
+        for (const p of [enLinea('cancelado'), enLinea('pendiente'), conAbonoPagado('cancelado')]) {
+            expect(recibidoDe(p)).toBe(0);
+            expect(costoDePasarelaDe(p)).toBe(0);
+            expect(netoRecibidoDe(p)).toBe(0);
+        }
+    });
+
+    /* Un devuelto se queda el abono, y de ese abono ya se cobró la comisión:
+       la plata que queda en la cuenta es menos todavía. */
+    it('un devuelto se queda el abono, ya neto', () => {
+        expect(netoRecibidoDe(conAbonoPagado('devuelto'))).toBe(ABONO - costoDeMercadoPago(ABONO));
+    });
+
+    it('nunca devuelve más de lo que entró', () => {
+        for (const estado of ['confirmado', 'pagado', 'procesando', 'enviado', 'entregado', 'devuelto']) {
+            for (const p of [enLinea(estado), conAbonoPagado(estado)]) {
+                expect(netoRecibidoDe(p)).toBeLessThanOrEqual(recibidoDe(p));
+                expect(netoRecibidoDe(p)).toBeGreaterThanOrEqual(0);
+            }
+        }
+    });
+
+    it('sin pedido no revienta', () => {
+        expect(netoRecibidoDe(null)).toBe(0);
+        expect(costoDePasarelaDe(undefined)).toBe(0);
     });
 });

@@ -6,10 +6,10 @@
  * secciones vive en `comunes.jsx`.
  */
 import React, { useEffect, useState } from 'react';
-import { estaVivo, porCobrarDe, recibidoDe } from '../../../lib/dinero';
+import { costoDePasarelaDe, estaVivo, netoRecibidoDe, porCobrarDe, recibidoDe } from '../../../lib/dinero';
 import { supabase } from '../../../lib/supabase';
 import PautaRetorno from '../PautaRetorno';
-import { ORDER_STATUSES, SOURCE_META, STATUS_META, calcMPNet, enGrupo, fmt, fmtDate, isCOD } from './comunes';
+import { ORDER_STATUSES, SOURCE_META, STATUS_META, enGrupo, fmt, fmtDate, isCOD } from './comunes';
 
 const ReportsSection = ({ orders, products = [], verPruebas = false, onNavigate }) => {
     const [period, setPeriod] = useState('30d');
@@ -96,17 +96,31 @@ const ReportsSection = ({ orders, products = [], verPruebas = false, onNavigate 
     const porCobrarTotal = paidFiltered.reduce((s, o) => s + porCobrarDe(o), 0);
     const mpOrders = paidFiltered.filter(o => !isCOD(o));
     const codOrders = paidFiltered.filter(o => isCOD(o));
-    /* Sobre lo que entró, no sobre el precio. Mercado Pago cobra su comisión
-       de lo que efectivamente cobró; un pedido vivo cuyo pago todavía no ha
-       entrado —`confirmado`— no ha dejado ni plata ni comisión, y calculando
-       sobre `amount` contaba como cobrado entero. */
+    /* Sobre lo que entró, no sobre el precio: un pedido vivo cuyo pago todavía
+       no ha entrado —`confirmado`— no ha dejado ni plata ni comisión. */
     const mpGross = mpOrders.reduce((s, o) => s + recibidoDe(o), 0);
-    const mpNet = mpOrders.reduce((s, o) => s + calcMPNet(recibidoDe(o)), 0);
-    const mpFees = mpGross - mpNet;
-    const codTotal = codOrders.reduce((s, o) => s + recibidoDe(o), 0);
+    const mpNet = mpOrders.reduce((s, o) => s + netoRecibidoDe(o), 0);
+
+    /* EL ABONO DEL CONTRAENTREGA TAMBIÉN PAGA COMISIÓN.
+
+       Se cobra por Mercado Pago —lo genera `create-preference` y lo confirma
+       `mp-webhook`—, y esta cuenta lo sumaba en bruto. Con dos abonos de
+       $20.000 la tarjeta decía «$40.000 · plata que ya entró, con las
+       comisiones descontadas» y debajo «Comisiones −$0». Habían entrado
+       $35.764, y la portada ya lo decía bien porque tira del libro de caja:
+       dos pantallas, la misma pregunta, dos respuestas.
+
+       `netoRecibidoDe` sabe además que de un contraentrega ENTREGADO sólo el
+       abono pasó por la pasarela; el resto lo cobró el mensajero en efectivo. */
+    const codBruto = codOrders.reduce((s, o) => s + recibidoDe(o), 0);
+    const codTotal = codOrders.reduce((s, o) => s + netoRecibidoDe(o), 0);
+
+    /* Todas las comisiones, vengan de donde vengan. Antes sólo contaba las de
+       los pedidos pagados en línea, y por eso salía en cero. */
+    const mpFees = (mpGross - mpNet) + (codBruto - codTotal);
     const netTotal = mpNet + codTotal;
 
-    const prevNetTotal = prevPaid.reduce((s, o) => s + (isCOD(o) ? recibidoDe(o) : calcMPNet(recibidoDe(o))), 0);
+    const prevNetTotal = prevPaid.reduce((s, o) => s + netoRecibidoDe(o), 0);
 
     /* El ticket promedio sí es el precio de lo que se vende, no lo que ya
        entró: mide qué tan caro compra la gente, no en qué punto va el cobro.
@@ -237,8 +251,11 @@ const ReportsSection = ({ orders, products = [], verPruebas = false, onNavigate 
             const conCosto = vivos.filter(o =>
                 o.product_name === nombre && o.costo_taller != null);
 
+            /* La comisión de la pasarela es un costo como el taller y el
+               flete, y se estaba olvidando: en un anillo de $550.000 pagado en
+               línea son ~$33.000 de margen inflado. */
             const deja = conCosto.reduce((t, o) =>
-                t + (Number(o.amount) - Number(o.costo_taller) - Number(o.costo_envio || 0)), 0);
+                t + (Number(o.amount) - Number(o.costo_taller) - Number(o.costo_envio || 0) - costoDePasarelaDe(o)), 0);
             const facturado = conCosto.reduce((t, o) => t + Number(o.amount), 0);
 
             return {
