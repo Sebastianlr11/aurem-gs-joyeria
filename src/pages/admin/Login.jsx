@@ -4,6 +4,14 @@ import { supabase } from '../../lib/supabase';
 import { waUrl } from '../../lib/whatsapp';
 import Isotipo from '../../components/Isotipo';
 
+/* El panel entero, incluida esta pantalla, se pinta con `panel.css`. Se
+   importa aquí y no sólo en Dashboard/ChatPanel porque **a esta se llega
+   por la URL, sin haber pasado por el panel**: es la primera pantalla, no
+   una más. Del 23 al 24 de agosto de 2026 quien abría /admin/login de
+   entrada veía la página cruda —enlaces azules, el isotipo a tamaño
+   natural—; desde dentro se veía bien, porque la hoja ya estaba cargada. */
+import '../../panel.css';
+
 const MailIcon = () => (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
         <rect x="2" y="4" width="20" height="16" rx="1" />

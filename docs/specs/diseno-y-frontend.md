@@ -119,6 +119,21 @@ de CSS: `src/index.css` y `src/panel.css`.
 
 Sin `@layer`, sin CSS modules, sin preprocesador. Un solo `@import './fuentes.css'`.
 
+**Quién importa cada uno.** `index.css` lo importa `main.tsx`, así que va en todas partes.
+`panel.css` no: lo importa **cada pantalla del panel que lo necesita** — `Dashboard.jsx`,
+`ChatPanel.jsx`, `Login.jsx` y `ResetPassword.jsx`.
+
+Las dos últimas se añadieron el 24 de agosto de 2026, después de un mes pintándose crudas.
+Sus 69 reglas `.admin-login*` viven en `panel.css` y ninguna de las dos lo importaba, así
+que **quien abría `/admin/login` escribiendo la dirección veía la página sin estilos**:
+enlaces azules del navegador, el isotipo a tamaño natural, cursivas donde el sistema pide
+versalitas. Desde dentro del panel se veía perfecta, porque la hoja ya estaba cargada — y
+ese es el único camino que recorre quien programa. Lo encontró el joyero, en su celular, la
+primera vez que intentó entrar.
+
+La regla que queda: **si a una pantalla del panel se puede llegar por la URL sin pasar por
+otra, importa su CSS ella misma.**
+
 | Rango | Contenido | Ámbito |
 |---|---|---|
 | 1-373 | `:root` con tokens + reset | global |

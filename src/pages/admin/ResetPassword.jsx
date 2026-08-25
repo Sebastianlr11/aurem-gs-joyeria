@@ -3,6 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import Isotipo from '../../components/Isotipo';
 
+/* El panel entero, incluida esta pantalla, se pinta con `panel.css`. Se
+   importa aquí y no sólo en Dashboard/ChatPanel porque **a esta se llega
+   por la URL, sin haber pasado por el panel**: es la primera pantalla, no
+   una más. Del 23 al 24 de agosto de 2026 quien abría /admin/login de
+   entrada veía la página cruda —enlaces azules, el isotipo a tamaño
+   natural—; desde dentro se veía bien, porque la hoja ya estaba cargada. */
+import '../../panel.css';
+
 const ResetPassword = () => {
     const [password, setPassword] = useState('');
     const [confirm, setConfirm] = useState('');
