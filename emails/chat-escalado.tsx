@@ -88,7 +88,7 @@ export default function ChatEscalado({ nombre, telefono, motivo, ultimos, hora }
             <table role="presentation" cellPadding={0} cellSpacing={0} border={0}>
               <tbody>
                 <tr>
-                  <Boton href={`${SITIO}/admin/chats`}>Abrir la conversación</Boton>
+                  <Boton href={`${SITIO}/admin/chat`}>Abrir la conversación</Boton>
                 </tr>
               </tbody>
             </table>
