@@ -601,10 +601,20 @@ Cosas que ya costaron un incidente. Léelas antes de tocar lo que describen.
 - **Gmail borra los `<style>` externos.** Por eso `emails/_marca.tsx` duplica los tokens
   en línea y usa Georgia en vez de Marcellus.
 - **El CSS son DOS archivos desde el 23-ago:** `src/index.css` (tienda y compartido,
-  6.854 líneas) y `src/panel.css` (el panel, 7.862), que importan `Dashboard.jsx` y
-  `ChatPanel.jsx`. **`panel.css` se carga después, así que ante igual especificidad gana.**
+  6.854 líneas) y `src/panel.css` (el panel, 7.862). **`panel.css` se carga después, así
+  que ante igual especificidad gana.** Lo importan **cuatro** pantallas: `Dashboard.jsx`,
+  `ChatPanel.jsx`, `Login.jsx` y `ResetPassword.jsx`.
   Si mueves una regla de un archivo al otro, compruébalo: se hizo midiendo 24 propiedades
   calculadas de 3.691 elementos en once pantallas.
+- **Una pantalla del panel a la que se llega por la URL tiene que importar `panel.css`
+  ella misma.** Del 23 al 24 de agosto de 2026, `/admin/login` y `/admin/reset-password` se
+  pintaron **crudas** —enlaces azules, el isotipo a tamaño natural, cursivas donde van
+  versalitas— para quien abriera la dirección de entrada. Sus 69 reglas viven en
+  `panel.css`, que entonces sólo importaban `Dashboard.jsx` y `ChatPanel.jsx`. **No se vio
+  en un mes porque desde dentro del panel se ve bien**: al cerrar sesión la hoja ya está
+  cargada, y es el único camino que recorre quien programa. El primero que la abrió en frío,
+  en un celular, fue el joyero.
+
 - **Qué es "del panel" no se decide por el nombre de la clase.** Se intentó por prefijos y
   `.joyero` —que es la ficha de producto— acabó en el panel y rompió la ficha. El criterio
   es dónde se usa: sólo en `src/pages/admin/` y en ningún otro sitio.
