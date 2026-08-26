@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import ProductCard from '../components/catalog/ProductCard';
 import { supabase } from '../lib/supabase';
@@ -30,7 +30,42 @@ const ORDENES = [
     { v: 'price_desc', label: 'Precio: mayor a menor', corto: 'Mayor precio' },
 ];
 
-const PER_PAGE = 8;
+/* Cuántas piezas caben en una fila no lo decide este archivo: lo decide el
+   CSS, con `auto-fill` y columnas de 272px, en tiempo de layout. Por eso un
+   tamaño de página fijo dejaba filas cojas — con 8 por página y una pantalla
+   de 5 columnas se veía una fila de 5 y otra de 3, con dos huecos abiertos
+   junto al botón de "ver más". Se mide la rejilla y se paginan filas enteras. */
+const PIEZAS_OBJETIVO = 8;
+const FILAS_MINIMAS = 2;
+
+const piezasPorPagina = (columnas) => {
+    const cols = Math.max(1, columnas);
+    return cols * Math.max(FILAS_MINIMAS, Math.ceil(PIEZAS_OBJETIVO / cols));
+};
+
+/* Le pregunta al elemento cuántas columnas acabó pintando. No hay forma de
+   deducirlo: `auto-fill` depende del ancho real, del gap y de los paddings. */
+const useColumnas = (rejilla) => {
+    const [columnas, setColumnas] = useState(1);
+
+    useLayoutEffect(() => {
+        if (!rejilla) return;
+        const medir = () => {
+            const plantilla = getComputedStyle(rejilla).gridTemplateColumns;
+            setColumnas(plantilla && plantilla !== 'none'
+                ? plantilla.split(' ').filter(Boolean).length
+                : 1);
+        };
+        medir();
+        /* Al girar el celular o al abrir el panel de filtros el ancho cambia
+           sin que se vuelva a montar nada. */
+        const observador = new ResizeObserver(medir);
+        observador.observe(rejilla);
+        return () => observador.disconnect();
+    }, [rejilla]);
+
+    return columnas;
+};
 
 const Catalog = () => {
     const [searchParams] = useSearchParams();
@@ -124,7 +159,13 @@ const Catalog = () => {
         return result;
     }, [products, categoria, busqueda, orden, rango, metal]);
 
-    const visibles = filtradas.slice(0, pagina * PER_PAGE);
+    /* Ref por estado y no por `useRef`: hace falta que el efecto de medida se
+       vuelva a correr cuando la rejilla aparece, y un `useRef` no avisa. */
+    const [rejilla, setRejilla] = useState(null);
+    const columnas = useColumnas(rejilla);
+    const porPagina = piezasPorPagina(columnas);
+
+    const visibles = filtradas.slice(0, pagina * porPagina);
 
     /* Cuántos filtros hay puestos aparte de la categoría, que vive fuera del
        panel porque es el que más se usa. Va en el botón, para que en móvil se
@@ -542,7 +583,7 @@ const Catalog = () => {
 
             <section className="container catalogo-cuerpo">
                 {loading ? (
-                    <div className="catalogo-grid">
+                    <div className="catalogo-grid" ref={setRejilla}>
                         {[...Array(8)].map((_, i) => <div key={i} className="pieza-esqueleto" />)}
                     </div>
                 ) : filtradas.length === 0 ? (
