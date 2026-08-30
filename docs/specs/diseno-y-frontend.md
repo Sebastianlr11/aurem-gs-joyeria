@@ -333,6 +333,44 @@ que se vea**. Lo que hubo que arreglar:
 **La regla, para lo que venga: nada que se pinte puede depender de `navigator`,
 `localStorage`, la fecha o el azar en el primer render.**
 
+### Dónde quedó
+
+**De 95 a 99–100 en PageSpeed móvil**, el 30 de agosto de 2026. El primer pintado real de la
+portada, medido en el navegador con 4× de CPU y 4G lenta, bajó de **2.332 a 416 ms**.
+
+Los tres cambios no se hicieron de una: se hicieron en dos despliegues, y el intermedio es
+la parte que vale la pena recordar. Con la portada ya prerenderizada y los píxeles fuera,
+cinco corridas de PageSpeed dieron esto:
+
+| LCP | Speed Index | Puntaje |
+|---|---|---|
+| 1,7 s | 1,4 s | 100 |
+| 2,5 s | 2,1 s | 97 |
+| 2,7 s | 4,2 s | 94 |
+
+El TBT ya estaba en cero y el FCP clavado en 1,4 s en todas, así que **lo único que bailaba
+era cuándo aparecía la foto** — con el Speed Index moviéndose en bloque con el LCP, que es
+lo que delata una sola causa y no dos. La cadena crítica terminaba a los 299 ms: la foto
+llevaba rato en el disco del celular. Lo que faltaba era descodificarla, y `decoding="async"`
+decía explícitamente que eso podía esperar a que hubiera un hueco. El hueco se lo comía la
+hidratación.
+
+**Lo que se aprende de ahí, para la próxima:** cuando el LCP salta entre dos valores de
+corrida a corrida con el FCP quieto, no es la red. Y si el Speed Index salta con él, es una
+sola cosa. Mirar la fase antes de tocar nada — está en las trampas de `CLAUDE.md`, y en este
+proyecto ya se optimizó dos veces contra el elemento equivocado.
+
+**Lo que no hay que perseguir es un 100 estable.** No hay datos de usuarios reales en CrUX,
+así que esto es puro laboratorio y PageSpeed trae varianza propia: en la tanda de arriba hay
+un Speed Index de 4,3 s que no se explica por nada del sitio. Lo que se persigue es la
+mediana. Y **PageSpeed cachea su resultado**: dos corridas seguidas devuelven los mismos
+cinco números y parecen dos mediciones. Dejar pasar un minuto entre una y otra.
+
+**Y lo que sí hay que vigilar no es la velocidad, es la medición.** El precio de haber sacado
+los píxeles del bloqueo es que una visita sin un solo gesto ya no le llega a TikTok. Está en
+[`atribucion-y-pixeles.md`](atribucion-y-pixeles.md#los-píxeles-esperan-al-primer-gesto-de-la-persona),
+con lo que lo cubre y lo que no.
+
 ## La caché de los assets
 
 `vercel.json` sirve `/assets/*` con `max-age=31536000, immutable` — un año. Se puede porque
