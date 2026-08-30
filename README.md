@@ -44,10 +44,10 @@ prefiere pagar solo.
 | | |
 |---|---|
 | **Frontend** | React 19, Vite 7, react-router 7, TypeScript (modo estricto) |
-| **Estilos** | **CSS plano, escrito a mano, en dos archivos** — `index.css` (tienda) y `panel.css`. Sin Tailwind, sin CSS modules, sin preprocesador |
+| **Estilos** | **CSS plano, escrito a mano, en diez archivos** — `index.css` y `panel.css` más siete hojas que sólo se cargan con su pantalla. Sin Tailwind, sin CSS modules, sin preprocesador |
 | **Animaciones** | `src/lib/aparecer.js` propio. **Sin Framer Motion** |
 | **Datos y auth** | Supabase — Postgres, Auth, Storage, Realtime |
-| **Backend** | 11 Edge Functions de Supabase (Deno) + 2 endpoints serverless en Vercel |
+| **Backend** | 12 Edge Functions de Supabase (Deno) + 2 endpoints serverless en Vercel |
 | **Pagos** | Mercado Pago |
 | **Mensajería** | WhatsApp Cloud API (Meta) |
 | **Envíos** | 99envios — cotizar y emitir guías con cinco transportadoras |
@@ -55,8 +55,12 @@ prefiere pagar solo.
 | **Correos** | Resend + React Email |
 | **Hosting** | Vercel |
 
-> **El backend no está en `api/`.** Son 2 endpoints (221 líneas) frente a ~5.300 líneas de
+> **El backend no está en `api/`.** Son 2 endpoints (221 líneas) frente a ~6.500 líneas de
 > Edge Functions en `supabase/functions/`.
+
+> **Y la portada no la pinta el navegador.** `npm run build` la deja hecha dentro de
+> `dist/index.html`, con la hoja de estilos adentro; las demás rutas se sirven desde
+> `dist/app.html`, que va vacío. Ver [`docs/specs/diseno-y-frontend.md`](docs/specs/diseno-y-frontend.md).
 
 ---
 
@@ -64,28 +68,32 @@ prefiere pagar solo.
 
 ```
 src/
-├── pages/           Tienda pública (8 rutas) + admin/
-│   └── admin/       Dashboard (contenedor) + secciones/ (7 pantallas)
-│                    + ChatPanel y chat/ (12 archivos)
+├── pages/           Tienda pública (9 rutas, la 404 incluida) + admin/
+│   ├── *.css        Seis hojas que sólo se cargan con su pantalla
+│   └── admin/       Dashboard (contenedor) + secciones/ (8 pantallas)
+│                    + ChatPanel y chat/ (17 archivos)
 ├── components/      Componentes de la tienda + catalog/
-├── lib/             supabase, dinero, caja, circuito, talla, atribucion,
-│                    pixeles, meta, whatsapp, aparecer, optimizarFoto
-├── index.css        La tienda y lo compartido (6.854 líneas)
-├── panel.css        El panel (7.741 líneas)
+├── lib/             supabase, apiPublica, dinero, caja, circuito, talla,
+│                    atribucion, pixeles, meta, whatsapp, portada, envio,
+│                    aparecer, optimizarFoto, fotoProducto, tituloPieza
+├── entrada-servidor.jsx  La app pintada en Node, sólo para el build
+├── index.css        El sistema de diseño, la portada y lo compartido (2.899 l.)
+├── panel.css        El panel (7.885 l.)
 └── fuentes.css      Marcellus y Mulish, autoalojadas
 
 supabase/
 ├── functions/       wa-webhook, wa-send, create-preference, mp-webhook,
 │                    conversion-pedido, correo-despacho, vigilancia,
-│                    plantillas-programadas, create-admin
-│   └── _shared/     bot.ts (Valentina), bucle.ts, reglas.ts, wa.ts,
-│                    medios.ts, conversiones.ts, envios.ts, pedidos.ts
-│                    (11 funciones: WhatsApp, pagos, envíos, correos, vigía)
-└── migrations/
+│                    plantillas-programadas, create-admin, redactar-pieza,
+│                    cotizar-envio, crear-guia          (12 funciones)
+│   └── _shared/     bot.ts (Valentina), bucle.ts, reglas.ts, redaccion.ts,
+│                    wa.ts, medios.ts, conversiones.ts, envios.ts, pedidos.ts
+└── migrations/      44 archivos: la base entera se reconstruye desde aquí
 
 api/                 ficha.js (previsualizaciones), correo.js (Resend)
-emails/              4 plantillas de React Email
-scripts/             sitemap, correos, imagenes, css-pisadas
+emails/              4 plantillas de React Email + la marca compartida
+scripts/             sitemap, correos, prerenderizar, imagenes, css-pisadas,
+                     css-de-quien-es, css-mudanza, huella-estilos
 docs/                Documentación por feature  ← empieza aquí
 ```
 
@@ -121,15 +129,16 @@ npm run dev
 
 ```bash
 npm run dev          # Vite en http://localhost:5173
-npm run build        # lint + pruebas + sitemap + correos + tsc + vite build
+npm run build        # lint + pruebas + sitemap + correos + tsc + vite build + prerenderizar
 npm run lint         # ESLint (sí corre en el build, y lo tumba)
 npm run preview      # Sirve /dist
 
 npm run email        # Previsualizador de correos en :3010
 npm run imagenes     # Convierte las fotos estáticas a WebP
 npm run css:pisadas  # Detecta reglas CSS que otras pisan
+npm run prerenderizar # Pinta la portada en Node y la mete en dist/index.html
 npm run sitemap      # Regenera public/sitemap.xml
-npm test             # Vitest, una pasada (219 pruebas)
+npm test             # Vitest, una pasada (292 pruebas)
 npm run test:mirar   # Vitest en marcha, repitiendo al guardar
 ```
 
@@ -141,13 +150,13 @@ npm run test:mirar   # Vitest en marcha, repitiendo al guardar
 |---|---|
 | [**CLAUDE.md**](CLAUDE.md) | El mapa completo: arquitectura, rutas, modelo de datos, reglas de negocio, convenciones |
 | [**docs/specs/**](docs/specs/README.md) | Un documento por feature — 21 en total |
-| [**docs/pendientes.md**](docs/pendientes.md) | Los 36 hallazgos de la revisión, todos cerrados, con qué pasaba y por qué se decidió lo que se decidió |
+| [**docs/pendientes.md**](docs/pendientes.md) | Los 41 hallazgos de la revisión, todos cerrados, con qué pasaba y por qué se decidió lo que se decidió |
 | [**DESIGN.md**](DESIGN.md) | El sistema de diseño de la tienda. **Fuente de verdad** de colores y tipografía |
 | [**DESIGN-PANEL.md**](DESIGN-PANEL.md) | El del panel: hereda la identidad y cambia lo que la densidad obliga |
 
 > Antes de tocar producción, lee [`docs/pendientes.md`](docs/pendientes.md). A 23 de agosto
 > de 2026 los 41 hallazgos están cerrados —los de seguridad incluidos— y **la base entera se
-> reconstruye desde el repositorio**: las 16 tablas, las 8 RPC, las políticas y los dos
+> reconstruye desde el repositorio**: las 17 tablas, las 8 RPC, las políticas y los dos
 > trabajos del cron.
 
 ---

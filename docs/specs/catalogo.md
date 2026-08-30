@@ -2,7 +2,7 @@
 
 > **Estado:** en producción
 > **Última revisión:** 2026-08-23
-> **Ruta:** `/catalogo` · `src/pages/Catalog.jsx` (658 líneas)
+> **Ruta:** `/catalogo` · `src/pages/Catalog.jsx` (723 líneas)
 
 ## Qué resuelve
 
@@ -82,9 +82,11 @@ abrió**. Es el código más cuidado del frontend público en accesibilidad.
 
 - **No escala.** Una consulta que trae el catálogo entero deja de funcionar a partir de
   unos cientos de piezas.
-- **Las tarjetas ya optimizan imagen** desde el 23 de agosto: `srcset`, `sizes`,
-  `width`/`height` y `decoding="async"` vía `src/lib/fotoProducto.js`. Con la salvedad de
-  que una foto sólo entra en el juego de tamaños si se subió con el tratamiento nuevo; las
+- **Las tarjetas ya optimizan imagen** desde el 23 de agosto: `srcset`, `sizes` y
+  `width`/`height` salen de `src/lib/fotoProducto.js`, y el `decoding="async"` lo pone
+  `ProductCard.jsx` — ahí sí conviene, porque ninguna tarjeta es el LCP de nada (en la
+  ficha y en la portada se quitó, ver la trampa de `CLAUDE.md`). Con la salvedad de que una
+  foto sólo entra en el juego de tamaños si se subió con el tratamiento nuevo; las
   anteriores se sirven enteras hasta que se resuban.
 - Los rangos de precio están hardcodeados y no se ajustan al catálogo real.
 - **`CATEGORIAS` y el `CHECK` de la base tienen que decir lo mismo.** Son ocho chips

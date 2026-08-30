@@ -70,9 +70,27 @@ anónima y la URL ya viajan en el bundle público, y es la misma lectura públic
 catálogo. Comprobado en el build: `Home` pasó de 9,08 a 9,22 KB comprimidos y el trozo de
 `supabase` no entra en la portada.
 
+### La portada llega pintada
+
+Desde el 30 de agosto de 2026 **la portada no la construye el navegador**: `npm run build`
+la pinta con `react-dom/server` y la deja dentro de `dist/index.html`, con la hoja de
+estilos en un `<style>`. El navegador la recibe hecha y React sólo se engancha a lo que ya
+está. Las demás rutas se sirven desde `dist/app.html`, que va vacío.
+
+Importa para esta pantalla más que para ninguna: es la que recibe el tráfico de pauta. El
+primer pintado en un celular lento bajó de 2.332 a 416 ms.
+
+**La consecuencia al tocar la portada:** nada de lo que se pinta aquí puede depender de
+`navigator`, `localStorage`, la fecha o el azar en el primer render, o React tira el HTML
+que ya estaba en pantalla y reconstruye todo. Por eso el enlace de WhatsApp del hero usa
+`useWaUrl()` y no `waUrl()`. El detalle, en
+[`diseno-y-frontend.md`](diseno-y-frontend.md#la-portada-se-pinta-en-el-build-no-en-el-celular).
+
 ### Variables de entorno
 
-Ninguna propia. Los píxeles se inicializan en `App.jsx`, no aquí.
+Ninguna propia. Los píxeles se inicializan en `App.jsx`, no aquí — y **esperan al primer
+gesto** de quien mira, así que en la portada no bajan hasta que alguien desplaza o toca.
+Ver [`atribucion-y-pixeles.md`](atribucion-y-pixeles.md).
 
 ## Decisiones tomadas y por qué
 

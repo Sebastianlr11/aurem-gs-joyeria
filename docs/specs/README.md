@@ -4,7 +4,7 @@ Un documento por feature. Cada uno responde lo mismo: **qué resuelve**, **cómo
 hoy** (flujo, archivos, tablas, variables de entorno), **qué se decidió y por qué**, **qué
 límites tiene** y **cómo probarlo**.
 
-Están conciliados con el código del **24 de agosto de 2026**. Las decisiones no son
+Están conciliados con el código del **30 de agosto de 2026**. Las decisiones no son
 invención: casi todas salen de los comentarios del propio código, que documentan el
 incidente que las motivó.
 
@@ -52,13 +52,13 @@ incidente que las motivó.
 
 | Spec | Qué resuelve | Estado |
 |---|---|---|
-| [modelo-de-datos.md](modelo-de-datos.md) | Qué hay en la base y qué está versionado | Las 16 tablas versionadas · 5 RPC de analítica, no |
+| [modelo-de-datos.md](modelo-de-datos.md) | Qué hay en la base y qué está versionado | Las 17 tablas, la vista y las 8 RPC, versionadas |
 | [correos.md](correos.md) | Correos transaccionales con Resend | En producción |
 | [atribucion-y-pixeles.md](atribucion-y-pixeles.md) | Saber qué anuncio trajo cada venta | En producción |
 | [seo-y-compartir.md](seo-y-compartir.md) | Que Google indexe y que WhatsApp muestre la foto al compartir | En producción |
 | [vigilancia.md](vigilancia.md) | Enterarse de que algo se rompió sin mirar el panel | En producción |
 | [envios-99envios.md](envios-99envios.md) | Cotizar el envío y pedir la guía a las cinco transportadoras | Cotizar, en producción · emitir, sin estrenar |
-| [diseno-y-frontend.md](diseno-y-frontend.md) | CSS, fuentes, animaciones y la relación con DESIGN.md | En producción · de 143 bloques pisados a 4 |
+| [diseno-y-frontend.md](diseno-y-frontend.md) | CSS, fuentes, animaciones y la relación con DESIGN.md | En producción · la portada se prerenderiza · de 143 bloques pisados a 3 |
 
 ---
 

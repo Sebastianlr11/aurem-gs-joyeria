@@ -2,7 +2,7 @@
 
 Guía para Claude Code (claude.ai/code) al trabajar en este repositorio.
 
-> **Última conciliación con el código: 24 de agosto de 2026.**
+> **Última conciliación con el código: 30 de agosto de 2026.**
 > Si algo de este documento no cuadra con lo que ves en el código, gana el código —
 > y avísalo, porque significa que este archivo volvió a quedarse atrás.
 
@@ -178,10 +178,11 @@ Cosas que hay que saber antes de tocar el enrutado:
 - **La ficha va sin Navbar a propósito** (`App.jsx:98-101`): es la pantalla donde se
   decide la compra y la píldora de navegación le quitaba sitio a la pieza. El camino de
   vuelta es el botón sobre la foto.
-- **El panel son sólo dos rutas.** Productos, Pedidos, Clientes, Reportes, Anotaciones y
-  Ajustes **no son rutas**: son secciones del mismo `Dashboard`, conmutadas por estado y
-  sincronizadas con `?tab=`. Los identificadores del parámetro están **en inglés**
-  (`products`, `orders`, `customers`, `reports`, `notes`, `settings`), no en español.
+- **El panel son sólo dos rutas.** Portada, Productos, Pedidos, Clientes, Reportes,
+  Anotaciones y Ajustes **no son rutas**: son secciones del mismo `Dashboard`, conmutadas
+  por estado y sincronizadas con `?tab=`. Los identificadores del parámetro están **en
+  inglés** (`dashboard` —el de por defecto—, `products`, `orders`, `customers`, `reports`,
+  `notes`, `settings`), no en español.
   Desde el 23-ago cada una vive en `src/pages/admin/secciones/`; en `Dashboard.jsx` (248
   líneas) sólo queda el contenedor. Lo que comparten varias está en `secciones/comunes.js`
   (datos) y `secciones/piezas.jsx` (componentes) — separados porque
@@ -223,6 +224,11 @@ Módulos compartidos en `supabase/functions/_shared/`:
 - `redaccion.ts` — qué se le pide al modelo para redactar una pieza y qué se le revisa a
   lo que contesta, **sin nada de Deno dentro**, para poder probarlo sin desplegar y sin
   gastar modelo
+- `envios.ts` (59 l.) — las transportadoras y dónde se rastrea cada una. Aparte porque lo
+  usan el correo de despacho y la plantilla de WhatsApp, que no se conocen entre sí:
+  duplicarlo sería garantizar que algún día lleven a sitios distintos
+- `pedidos.ts` (79 l.) — qué piezas lleva un pedido, listas para enseñar. Aparte por lo
+  mismo: lo usan el correo de confirmación y el de despacho
 - `reglas.ts` — la lógica de Valentina **sin nada de Deno dentro**: la talla, la cotización
   del oro, la atribución, los teléfonos y el parseo de lo que el modelo pide al tomar un
   pedido. Existe para poder probarla: son las tres cosas del
@@ -251,7 +257,7 @@ Los tres valores que necesitan —`url_funciones`, `clave_anon`, `cron_secreto`�
 
 ## 6. Modelo de datos
 
-> **Las 16 tablas están versionadas desde el 23 de agosto de 2026.** Antes sólo había
+> **Las 17 tablas están versionadas desde el 23 de agosto de 2026.** Antes sólo había
 > migraciones incrementales —añadir una columna, cerrar una política— sobre tablas que
 > nunca se crearon aquí, y **un entorno nuevo ni siquiera arrancaba**:
 > `20260311_add_shipping_address.sql` hacía un `ALTER` sobre una `orders` inexistente.
@@ -267,7 +273,7 @@ Los tres valores que necesitan —`url_funciones`, `clave_anon`, `cron_secreto`�
 > **Ojo con cómo se aplican.** Los archivos de `supabase/migrations/` son el registro
 > escrito; a la base los cambios entran uno a uno, y `supabase_migrations.schema_migrations`
 > guarda nombres propios que no coinciden con los de los archivos. `supabase db push`
-> intentaría aplicarlos los 38 de golpe: no es el flujo de este proyecto.
+> intentaría aplicarlos los 44 de golpe: no es el flujo de este proyecto.
 
 ### Tablas
 
@@ -618,8 +624,10 @@ Reglas que se rompen con facilidad:
   marca: `#8C2F1E`, `#5E2114`, `#FBEDE9`.
 - **Las fuentes se autoalojan** (`src/fuentes.css` + `public/assets/fuentes/*.woff2`).
   **No importes nada de `fonts.googleapis.com`** — se midió: pasar de Google Fonts a
-  self-hosting fue lo que arregló un LCP de 5,7 s, porque el elemento LCP es el logo del
-  navbar, que es texto en Marcellus.
+  self-hosting fue lo que arregló un LCP de 5,7 s: entonces el elemento LCP era el logo del
+  navbar, que es texto en Marcellus, y venía de otro dominio al final de una cadena de
+  cuatro pasos. Hoy el LCP es la foto del hero —ver §11—, pero el motivo para autoalojarlas
+  sigue en pie.
 - **`DESIGN.md` cubre la landing; el panel tiene el suyo: `DESIGN-PANEL.md`.** Hereda
   la identidad entera y cambia lo que la densidad obliga —el cuerpo baja de 1rem a
   propósito, la escala es de 4px y no de 8, y el estado de un pedido se distingue por un
