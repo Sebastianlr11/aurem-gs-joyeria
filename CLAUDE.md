@@ -811,6 +811,26 @@ Cosas que ya costaron un incidente. Léelas antes de tocar lo que describen.
   del HTML y la corre contra la de verdad; el `sizes` vive una sola vez, en `TAMANOS_FICHA`.
   Y la precarga va **sin `href`** a propósito: con él, un navegador que no entienda
   `imagesrcset` se bajaría un archivo que el `<img>` no va a usar.
+- **«Mejora la entrega de imágenes» miente cuando hay densidad de pantalla de por medio.**
+  El 30 de agosto de 2026 dijo que sobraban 36 KiB en la foto de la ficha: que el archivo
+  (717×800) era más grande de lo necesario para sus dimensiones de visualización (461×461).
+  Está **comparando píxeles de pantalla contra píxeles CSS**: 717 y 800 son 412 y 461
+  multiplicados por el 1,75 de densidad del Moto G que emula. Con cualquier densidad mayor
+  que 1 el archivo siempre va a parecer grande. Medido de verdad, con la caja real y el
+  recorte de `object-fit: cover` —que en una foto cuadrada manda el lado MAYOR de la caja,
+  no el ancho—:
+
+  | Aparato | Caja | Necesita | Baja | |
+  |---|---|---|---|---|
+  | Moto G Power (el de Lighthouse) | 412×461 · 1,75 | 807 px | 800 | falta 1 % |
+  | iPhone 14/15 | 390×470 · 3 | 1.410 px | 1.254 | falta 11 % |
+  | Galaxy A típico | 412×470 · 2,625 | 1.234 px | 1.254 | sobra 2 % |
+  | Escritorio 1440 | 720×900 · 2 | 1.800 px | 1.254 | falta 30 % |
+
+  O sea que la escalera `[400, 800]` más el original está bien calibrada, y si algo le pasa
+  es que **se queda corta arriba**, no que sobre. **No resubas fotos por este aviso**, y no
+  añadas un peldaño de 600: no hay aparato que lo pida —el Moto G necesita 807 y seguiría
+  eligiendo el de 800—. El script para volver a medirlo está en la spec de la ficha.
 - **`decoding="async"` en el elemento LCP es un tiro en el pie.** Le dice al navegador que
   pinte sin esperar a descodificar la imagen y que la descodifique cuando pueda — y ese
   «cuando pueda», en un celular lento, es después de hidratar React. La foto del hero lo
