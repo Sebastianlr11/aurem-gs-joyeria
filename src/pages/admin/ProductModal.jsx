@@ -24,6 +24,7 @@ import { supabase } from '../../lib/supabase';
 import { borrarFotos } from '../../lib/fotosEnStorage';
 import { versionesDeFoto } from '../../lib/optimizarFoto';
 import { CATEGORIAS as CATEGORIES } from '../../lib/categorias';
+import { choqueDeNombre } from '../../lib/nombreUnico';
 
 const METALES = ['Plata 925', 'Oro 18k', 'Oro blanco 18k', 'Oro rosa 18k', 'Platino PT950'];
 const MAX_DESC = 600;
@@ -294,6 +295,20 @@ export default function ProductModal({ product, onClose, onSaved }) {
         if (precio === null || precio <= 0) { setError('Falta el precio de venta.'); irA('precio'); return; }
 
         setSaving(true);
+
+        /* Que el nombre no se confunda con el de otra pieza. Valentina las
+           busca por nombre y si le coinciden dos no manda ninguna foto —el
+           porqué, en `nombreUnico.js`—, y el fallo es mudo: la clienta pide la
+           foto y la respuesta es que no se encuentra. Se comprueba acá porque
+           es el único sitio donde todavía se puede cambiar. */
+        const { data: otras } = await supabase.from('products').select('id, name');
+        const choque = choqueDeNombre(form.name, otras, product?.id);
+        if (choque) {
+            setSaving(false);
+            setError(`«${texto(form.name)}» se confunde con «${choque.name}». Valentina las busca por nombre y con dos parecidas no manda ninguna de las dos fotos.`);
+            irA('identidad');
+            return;
+        }
         const comparar = numero(form.compare_price);
         const payload = {
             name: texto(form.name),

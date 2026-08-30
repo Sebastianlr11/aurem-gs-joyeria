@@ -40,6 +40,34 @@ sitios donde se usan**: la web y WhatsApp — que no aceptan el mismo formato.
 
 Ninguna propia.
 
+## Cómo se escribe una pieza
+
+Desde el 30 de agosto de 2026 las 31 piezas siguen la misma regla. No es sólo estética:
+cada límite viene de un sitio donde el texto se usa.
+
+**El nombre: de 15 a 33 caracteres, tipo y rasgo.** «Anillo solitario clásico», no «Anillo
+solitario clásico en plata 925 con esmeralda natural». El metal y la piedra no van en el
+nombre porque ya viven en sus columnas y se pintan debajo, en la tarjeta y en la ficha. En
+la rejilla del catálogo un nombre así ocupa **un renglón** en vez de tres, y en la ficha se
+parte solo en dos líneas —«Anillo» arriba, «SOLITARIO CLÁSICO.» en versalitas— como el
+resto de los titulares del sitio.
+
+**Ningún nombre puede ser subcadena de otro.** Valentina busca la pieza por nombre y
+`buscarPieza()` (`bot.ts`) devuelve `null` a propósito cuando coinciden dos: prefiere no
+mandar nada a mandar la pieza equivocada. Dos nombres que se confundan la dejan sin poder
+enseñar ninguno de los dos. **El formulario lo comprueba al guardar** y no deja pasar el
+choque.
+
+**La descripción: dos frases, 180 caracteres como techo.** Tampoco es estética. `bot.ts`
+corta la descripción en 180 para armar el catálogo que lee Valentina; más largo le llega
+partido a mitad de frase. La primera frase dice **qué es, de qué metal y con qué piedra**
+—que es lo que preguntan por WhatsApp— y la segunda, el rasgo que la distingue. De paso
+cabe entera en la meta description de Google, que corta en 155.
+
+**Lo que se busca no se escribe: se compone.** `src/lib/tituloPieza.js` arma el `<title>`
+con el nombre, la piedra y el metal, por debajo de los 60 caracteres que Google enseña y
+sin precio. El precio sigue en el título que ve WhatsApp, que lo sirve `api/ficha.js`.
+
 ## Decisiones tomadas y por qué
 
 **Cada foto se guarda dos veces** (`src/lib/optimizarFoto.js:34-42`, incidente del 21 de

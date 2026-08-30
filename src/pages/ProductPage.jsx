@@ -15,6 +15,7 @@ initMercadoPago(import.meta.env.VITE_MP_PUBLIC_KEY, { locale: 'es-CO' });
 import ProductCard from '../components/catalog/ProductCard';
 import { pixelVerPieza, pixelIniciarPago } from '../lib/pixeles'
 import { ponerMeta, ponerProductoJsonLd } from '../lib/meta'
+import { tituloDePieza } from '../lib/tituloPieza'
 import { refDe } from '../lib/referencia'
 import { datosDeAtribucion } from '../lib/atribucion';
 
@@ -958,10 +959,12 @@ const ProductPage = () => {
        el título del anillo, o se queda puesto. */
     useEffect(() => {
         if (!product) return;
-        const pesos = `$${Math.round(Number(product.price) || 0).toLocaleString('es-CO')}`;
         const ficha = [product.metal, product.piedra].filter(Boolean).join(' · ');
         const soltarMeta = ponerMeta({
-            titulo: `${product.name} — ${pesos} | Aurem Gs Joyería`,
+            /* Sin precio y por debajo de los sesenta caracteres — el porqué,
+               en `tituloPieza.js`. El precio sigue en la tarjeta que ve
+               WhatsApp, que la sirve `api/ficha.js`. */
+            titulo: tituloDePieza(product),
             descripcion: (product.description || '').trim().replace(/\s+/g, ' ').slice(0, 155)
                 || `${product.name} en ${ficha || 'plata 925'}. Estuche incluido y garantía de por vida en el metal.`,
             imagen: (Array.isArray(product.images) && product.images[0]) || product.image_url,

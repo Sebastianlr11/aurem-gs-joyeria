@@ -39,7 +39,7 @@ npm run dev          # Vite en http://localhost:5173
 npm run build        # eslint && vitest && sitemap.mjs && correos.mjs && tsc -b && vite build
 npm run preview      # Sirve /dist
 npm run lint         # ESLint (sí corre en el build)
-npm test             # Vitest, una pasada (239 pruebas)
+npm test             # Vitest, una pasada (250 pruebas)
 npm run test:mirar   # Vitest en marcha, repitiendo al guardar
 
 npm run sitemap      # Regenera public/sitemap.xml desde Supabase
@@ -61,7 +61,7 @@ Tres advertencias sobre el build:
 
 ### Las pruebas
 
-Hay **239**, en diecisiete archivos que viven al lado de lo que prueban:
+Hay **250**, en dieciocho archivos que viven al lado de lo que prueban:
 
 | Archivo | Qué fija |
 |---|---|
@@ -77,6 +77,7 @@ Hay **239**, en diecisiete archivos que viven al lado de lo que prueban:
 | `src/lib/recogida.test.js` | Quién viene por el paquete y cuándo |
 | `src/lib/pixeles.test.js` | Que diferir los píxeles no pierda ni un evento |
 | `src/lib/portada.test.js` | Qué saca la portada del catálogo, y que no ofrezca una vitrina vacía |
+| `src/lib/tituloPieza.test.js` | Que el `<title>` de una pieza quepa en lo que Google enseña |
 
 **Una de ellas no comprueba código, compara dos copias.** La talla de anillo está
 implementada dos veces —`src/lib/talla.js` para la guía del sitio y
@@ -499,6 +500,19 @@ cliente daba dos números.
 
 ### Otras reglas
 
+- **El nombre de una pieza es corto y el `<title>` se compone.** Desde el 30 de agosto de
+  2026 los nombres van de 15 a 33 caracteres —«Anillo solitario clásico», no «Anillo
+  solitario clásico en plata 925 con esmeralda natural»— porque el metal y la piedra ya
+  viven en sus columnas y se pintan debajo. Las palabras que se buscan las añade
+  `src/lib/tituloPieza.js`, que arma el título por debajo de los 60 caracteres que Google
+  enseña y **sin precio**: el precio sigue en el título que sirve `api/ficha.js` a
+  WhatsApp, donde es la mitad del motivo de compartir el enlace.
+- **Y ningún nombre puede ser subcadena de otro.** Valentina busca la pieza por nombre y
+  `buscarPieza()` devuelve `null` a propósito si coinciden dos, así que dos nombres que se
+  confundan la dejan sin poder mandar la foto de ninguno. El panel lo comprueba al guardar.
+- **La descripción cabe en 180 caracteres.** No es estética: `bot.ts` la corta ahí para
+  armar el catálogo que lee Valentina, y una descripción más larga le llega partida. En dos
+  frases: qué es la pieza —con metal y piedra, que es lo que le preguntan— y su rasgo.
 - **`is_featured` es lo que la portada enseña.** Una pieza destacada va en el carrusel de
   «Piezas seleccionadas» y es la cara de su categoría en «Lo que hacemos». Si no hay
   ninguna destacada manda la más reciente, y una pieza agotada nunca va de cara. Hasta el
