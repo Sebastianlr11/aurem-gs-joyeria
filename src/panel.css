@@ -6730,6 +6730,14 @@
 }
 .pm-cuenta--cerca { color: var(--oro-ink); }
 
+/* Una ayuda que pide atención sin ser un error: el metal vacío no impide
+   guardar, pero deja la tarjeta del catálogo sin decir de qué es la pieza. */
+.pm-ayuda--ojo { color: var(--oro-ink); }
+
+/* La segunda línea bajo el nombre, la del título que verá Google. Se pega a
+   la de arriba para que se lean como una sola cosa. */
+.pm-vistazo { margin-top: -0.125rem; }
+
 .pm-select { position: relative; display: flex; align-items: center; }
 .pm-select select {
   width: 100%; box-sizing: border-box;

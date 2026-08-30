@@ -68,6 +68,21 @@ cabe entera en la meta description de Google, que corta en 155.
 con el nombre, la piedra y el metal, por debajo de los 60 caracteres que Google enseña y
 sin precio. El precio sigue en el título que ve WhatsApp, que lo sirve `api/ficha.js`.
 
+**Y nada de esto vive sólo en este documento.** Un documento no se lee a las once de la
+noche subiendo una pieza, así que la regla está en el formulario, que es donde se comete el
+error:
+
+| En el modal | Qué hace |
+|---|---|
+| Nombre | Cuenta hasta 33 y avisa al pasarse — «va largo: en la rejilla ocupará dos renglones» |
+| Nombre | Debajo, **el título que verá Google**, armado en vivo, con su cuenta sobre 60 |
+| Nombre | **Bloquea** el guardado si se confunde con el de otra pieza, y dice con cuál |
+| Descripción | Tope duro de 180, con el porqué a la vista: «Valentina la lee hasta acá». Era de 600 y no lo decía nadie |
+| Metal | Si queda vacío lo dice: «la tarjeta no dice de qué es la pieza: el nombre ya no lo lleva» |
+
+Sólo el choque de nombres bloquea. Lo demás avisa: una pieza rara puede necesitar un
+nombre largo, y quien la sube tiene que poder decidirlo.
+
 ## Decisiones tomadas y por qué
 
 **Cada foto se guarda dos veces** (`src/lib/optimizarFoto.js:34-42`, incidente del 21 de

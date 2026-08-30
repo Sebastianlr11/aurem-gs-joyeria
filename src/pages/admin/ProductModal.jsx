@@ -25,9 +25,21 @@ import { borrarFotos } from '../../lib/fotosEnStorage';
 import { versionesDeFoto } from '../../lib/optimizarFoto';
 import { CATEGORIAS as CATEGORIES } from '../../lib/categorias';
 import { choqueDeNombre } from '../../lib/nombreUnico';
+import { tituloDePieza } from '../../lib/tituloPieza';
 
 const METALES = ['Plata 925', 'Oro 18k', 'Oro blanco 18k', 'Oro rosa 18k', 'Platino PT950'];
-const MAX_DESC = 600;
+
+/* Los dos límites de la pieza escrita, y ninguno es una manía de estilo.
+
+   El nombre: pasados los 33 caracteres ocupa dos renglones en la rejilla del
+   catálogo y empuja el precio. Se avisa, no se bloquea — una pieza rara puede
+   necesitarlo.
+
+   La descripción: `bot.ts` la corta en 180 para armar el catálogo que lee
+   Valentina, así que lo que pase de ahí le llega partido a mitad de frase.
+   Ese sí es un tope duro; era de 600 y no lo decía nadie. */
+const NOMBRE_MAX = 33;
+const MAX_DESC = 180;
 
 const texto = (v) => String(v ?? '').trim();
 const fmt = (n) => Math.round(n).toLocaleString('es-CO');
@@ -286,6 +298,16 @@ export default function ProductModal({ product, onClose, onSaved }) {
     }, [form.stock]);
 
     const descLargo = (form.description || '').length;
+    const nombreLargo = texto(form.name).length;
+
+    /* El título que verá Google, armado en vivo con lo que se lleva escrito.
+       Es la única forma de que quien escribe el nombre vea lo que de verdad
+       sale publicado: el nombre corto es la mitad, la otra la ponen el metal y
+       la piedra, que se escriben en otra sección. */
+    const tituloGoogle = useMemo(
+        () => (texto(form.name) ? tituloDePieza({ name: texto(form.name), metal: form.metal, piedra: form.piedra }) : ''),
+        [form.name, form.metal, form.piedra],
+    );
 
     /* ── Guardar ──────────────────────────────────────────────────── */
 
@@ -425,8 +447,28 @@ export default function ProductModal({ product, onClose, onSaved }) {
                                         className="pm-input"
                                         value={form.name}
                                         onChange={e => set('name', e.target.value)}
-                                        placeholder="Anillo Camino Verde"
+                                        placeholder="Anillo solitario clásico"
                                     />
+                                    <div className="pm-area-pie">
+                                        <span className="pm-ayuda">
+                                            {nombreLargo > NOMBRE_MAX
+                                                ? 'Va largo: en la rejilla ocupará dos renglones.'
+                                                : 'Tipo y rasgo. El metal y la piedra van en sus casillas.'}
+                                        </span>
+                                        <span className={`pm-cuenta${nombreLargo > NOMBRE_MAX ? ' pm-cuenta--cerca' : ''}`}>
+                                            {nombreLargo} / {NOMBRE_MAX}
+                                        </span>
+                                    </div>
+                                    {tituloGoogle && (
+                                        <div className="pm-area-pie pm-vistazo">
+                                            <span className="pm-ayuda">
+                                                En Google: «{tituloGoogle}»
+                                            </span>
+                                            <span className={`pm-cuenta${tituloGoogle.length > 60 ? ' pm-cuenta--cerca' : ''}`}>
+                                                {tituloGoogle.length} / 60
+                                            </span>
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="pm-campo">
                                     <label className="pm-label">Categoría<span className="pm-obligatorio"> · obligatorio</span></label>
@@ -508,7 +550,11 @@ export default function ProductModal({ product, onClose, onSaved }) {
                                     <datalist id="pm-metales">
                                         {METALES.map(m => <option key={m} value={m} />)}
                                     </datalist>
-                                    <span className="pm-ayuda">De acá sale el punzón de la pieza.</span>
+                                    <span className={`pm-ayuda${texto(form.metal) ? '' : ' pm-ayuda--ojo'}`}>
+                                        {texto(form.metal)
+                                            ? 'De acá sale el punzón de la pieza.'
+                                            : 'Sin esto, la tarjeta no dice de qué es la pieza: el nombre ya no lo lleva.'}
+                                    </span>
                                 </div>
                                 <div className="pm-campo">
                                     <label className="pm-label">Piedra</label>
@@ -543,11 +589,14 @@ export default function ProductModal({ product, onClose, onSaved }) {
                                     maxLength={MAX_DESC}
                                     value={form.description || ''}
                                     onChange={e => set('description', e.target.value)}
-                                    placeholder="Metal, ley, piedra, entrega y garantía."
+                                    placeholder="Qué es, de qué metal y con qué piedra. Después, su rasgo."
                                 />
                                 <div className="pm-area-pie">
-                                    <span className="pm-ayuda">Metal, ley, piedra, entrega y garantía. Sin adjetivos.</span>
-                                    <span className={`pm-cuenta${descLargo > MAX_DESC - 60 ? ' pm-cuenta--cerca' : ''}`}>
+                                    <span className="pm-ayuda">
+                                        Dos frases: qué es —con metal y piedra, que es lo que preguntan— y su rasgo.
+                                        Valentina la lee hasta acá.
+                                    </span>
+                                    <span className={`pm-cuenta${descLargo > MAX_DESC - 25 ? ' pm-cuenta--cerca' : ''}`}>
                                         {descLargo} / {MAX_DESC}
                                     </span>
                                 </div>
