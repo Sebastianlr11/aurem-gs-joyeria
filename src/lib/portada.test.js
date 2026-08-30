@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { coleccionesDe, punzonDe } from './colecciones'
+import { coleccionesDe, piezasDelCarrusel, punzonDe } from './portada'
 
 /* Una pieza de mentira, con lo mínimo que mira `coleccionesDe`. */
 const pieza = (category, extra = {}) => ({
@@ -53,6 +53,22 @@ describe('coleccionesDe', () => {
     expect(cs[0].alt).toBe('La nueva')
   })
 
+  it('pone de cara la que el joyero destacó, aunque no sea la más reciente', () => {
+    const cs = coleccionesDe([
+      pieza('Dijes', { name: 'La reciente', created_at: '2026-08-20T00:00:00Z' }),
+      pieza('Dijes', { name: 'La destacada', is_featured: true, created_at: '2026-01-01T00:00:00Z' }),
+    ])
+    expect(cs[0].alt).toBe('La destacada')
+  })
+
+  it('una destacada agotada no le quita el sitio a una disponible', () => {
+    const cs = coleccionesDe([
+      pieza('Dijes', { name: 'Destacada pero vendida', is_featured: true, stock: 0 }),
+      pieza('Dijes', { name: 'Disponible' }),
+    ])
+    expect(cs[0].alt).toBe('Disponible')
+  })
+
   it('no pone de cara una pieza agotada si hay otra disponible', () => {
     const cs = coleccionesDe([
       pieza('Anillos', { name: 'Agotada', stock: 0, created_at: '2026-08-20T00:00:00Z' }),
@@ -101,5 +117,36 @@ describe('punzonDe', () => {
        sello que diga «Oro 18k» sobre una vitrina de plata es la misma
        promesa que hubo que quitar del JSON-LD de la portada. */
     expect(punzonDe([pieza('Anillos', { metal: null }), pieza('Anillos', { metal: '  ' })])).toBe(null)
+  })
+})
+
+describe('piezasDelCarrusel', () => {
+  it('empieza por las destacadas y sigue por las recientes', () => {
+    const cinta = piezasDelCarrusel([
+      pieza('Anillos', { name: 'Vieja', created_at: '2026-01-01T00:00:00Z' }),
+      pieza('Dijes', { name: 'Reciente', created_at: '2026-08-20T00:00:00Z' }),
+      pieza('Topos', { name: 'Destacada', is_featured: true, created_at: '2026-02-01T00:00:00Z' }),
+    ])
+    expect(cinta.map((p) => p.name)).toEqual(['Destacada', 'Reciente', 'Vieja'])
+  })
+
+  it('deja fuera las que no tienen foto — la cinta es de fotos', () => {
+    const cinta = piezasDelCarrusel([pieza('Anillos'), pieza('Dijes', { image_url: null })])
+    expect(cinta).toHaveLength(1)
+  })
+
+  it('manda las agotadas al final', () => {
+    const cinta = piezasDelCarrusel([
+      pieza('Anillos', { name: 'Agotada', stock: 0, is_featured: true }),
+      pieza('Dijes', { name: 'Disponible' }),
+    ])
+    expect(cinta[0].name).toBe('Disponible')
+  })
+
+  it('no pide más de las que caben, ni se rompe sin piezas', () => {
+    const muchas = Array.from({ length: 9 }, (_, i) => pieza('Anillos', { name: `n${i}` }))
+    expect(piezasDelCarrusel(muchas, 5)).toHaveLength(5)
+    expect(piezasDelCarrusel([])).toEqual([])
+    expect(piezasDelCarrusel(null)).toEqual([])
   })
 })

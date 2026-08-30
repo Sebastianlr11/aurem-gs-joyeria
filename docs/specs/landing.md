@@ -30,9 +30,10 @@ reseñas, contacto, pie), entra al catálogo, o se va. No hay carrito ni cuenta 
 | `src/components/Hero.jsx` | Titular, CTAs y foto principal; sistema de retardos propio (`--hero-delay`, `--line-delay`) |
 | `src/components/TrustBar.jsx` | Señales de confianza (`:41-45` — el certificado cuesta $50.000 aparte) |
 | `src/components/Collections.jsx` | Tres colecciones **sacadas del catálogo**, con animación de aparición |
-| `src/lib/colecciones.js` | Cuáles son esas tres y con qué foto — probado en `colecciones.test.js` |
+| `src/lib/portada.js` | Qué saca la portada del catálogo: las tres colecciones y la cinta — probado en `portada.test.js` |
+| `src/lib/piezasPublicadas.js` | La consulta, una sola para las dos secciones |
 | `src/lib/categorias.js` | La lista única de categorías, compartida con el catálogo, el panel y el contacto |
-| `src/components/TiltedCarousel.jsx` + `.css` | Carrusel infinito, −2° de inclinación, 40 s de bucle |
+| `src/components/TiltedCarousel.jsx` + `.css` | Carrusel infinito **de piezas del catálogo**, −2° de inclinación |
 | `src/components/WhyUs.jsx` | Por qué comprar aquí (`:38`) |
 | `src/components/Reviews.jsx` | Testimonios — **hardcodeados** (`:4-29`, `:51-58`) |
 | `src/components/Faq.jsx` | Acordeón de 6 preguntas (`:6-31`) |
@@ -47,14 +48,19 @@ reseñas, contacto, pie), entra al catálogo, o se va. No hay carrito ni cuenta 
 
 **`products`**, y sólo desde el 30 de agosto de 2026. Hasta ese día la portada era 100%
 estática y eso era una virtud declarada: cargaba rápido y seguía en pie con la base caída.
-Lo que la rompió fue que la sección de colecciones llevaba tres categorías escritas a mano
-—Anillos, Collares y Pulseras— y **«Collares» no tiene ni una pieza**: el clic llevaba a una
-vitrina vacía. Una lista escrita a mano no puede saber qué hay en el catálogo.
+Lo que la rompió fueron **dos secciones que enseñaban un catálogo que no era el catálogo**:
+«Lo que hacemos» llevaba tres categorías escritas a mano —Anillos, Collares y Pulseras— y
+«Collares» no tiene ni una pieza, así que el clic iba a una vitrina vacía; y «Piezas
+seleccionadas» eran cinco fotos de banco en `public/assets`, las mismas desde el primer
+día. Una lista escrita a mano no puede saber qué hay en el catálogo.
 
-La consulta pide seis columnas (`name`, `category`, `metal`, `image_url`, `stock`,
-`created_at`), va en un `useEffect` —no bloquea el pintado— y la sección está bajo el
-pliegue con las fotos en `lazy`. **Si falla, la sección conserva su titular y su botón al
-catálogo**: lo que desaparece son las tarjetas, no el camino.
+La consulta pide ocho columnas (`id`, `name`, `category`, `metal`, `image_url`, `stock`,
+`is_featured`, `created_at`), **se hace una sola vez para las dos secciones** —montan a la
+vez y si no compartieran la promesa la portada preguntaría dos veces lo mismo—, va en un
+`useEffect` —no bloquea el pintado— y las dos secciones están bajo el pliegue con las fotos
+en `lazy`. **Si falla, «Lo que hacemos» conserva su titular y su botón al catálogo** —lo que
+desaparece son las tarjetas, no el camino— y el carrusel se salta entero, porque una cinta
+sin piezas no es una sección.
 
 Y se pregunta con un `fetch` pelado al REST de Supabase, **no con el cliente de la
 librería**, que es lo que usa el resto del sitio. Son 46 KB comprimidos: hasta ese día la
@@ -77,7 +83,8 @@ agosto de 2026). Tres reglas, y cada una es un fallo que ya se vio:
 |---|---|
 | Sólo categorías **con una foto que enseñar** | Una tarjeta sin foto es un rectángulo gris del alto de una tarjeta |
 | Manda **cuántas piezas hay**; los empates los rompe el orden del riel | Que la portada y el catálogo no se contradigan |
-| La foto es **la pieza más reciente**, y las agotadas van al final | La portada no invita a una vitrina cuya cara está vendida |
+| La cara la escoge **el joyero**, con el interruptor «Destacado» del panel | Ese interruptor decía «aparece en la portada» y no hacía nada |
+| Sin ninguna destacada manda **la más reciente**, y las agotadas van al final | La portada no invita a una vitrina cuya cara está vendida |
 
 El sello de metal se calcula igual de despacio: un solo metal se dice entero, varios de la
 misma familia suben a la familia, y **si ninguna pieza lo tiene anotado no se pinta sello**
@@ -86,6 +93,14 @@ prometía platino.
 
 Las frases de cada tarjeta siguen escritas a mano, en el componente: son voz, no dato. Las
 anteriores hablaban de diamantes y de platino, que el taller no vende.
+
+**El carrusel enseña las destacadas, y por eso cambió de forma.** Las tarjetas eran de
+380×260, apaisadas, que era la proporción de las fotos de banco. Una foto de producto es
+cuadrada, y en un recuadro apaisado se le va el 30% del alto: al dije de la cruz se le iba
+el brazo de abajo. Ahora son de 4/5 —240×300, la misma proporción que las tarjetas del
+catálogo, con el mismo `object-position: center 38%`— y el recorte cae en los lados, que es
+fondo. Van seis piezas, duplicadas, porque la animación del CSS va a `-50%` y las dos
+mitades tienen que ser iguales.
 
 **El formulario de contacto no tiene backend.** `Contact.jsx:70` valida, arma un mensaje
 formateado y hace `window.open(waUrl(lines))`. Un formulario que manda correo habría

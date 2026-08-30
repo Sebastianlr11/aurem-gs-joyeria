@@ -39,7 +39,7 @@ npm run dev          # Vite en http://localhost:5173
 npm run build        # eslint && vitest && sitemap.mjs && correos.mjs && tsc -b && vite build
 npm run preview      # Sirve /dist
 npm run lint         # ESLint (sí corre en el build)
-npm test             # Vitest, una pasada (233 pruebas)
+npm test             # Vitest, una pasada (239 pruebas)
 npm run test:mirar   # Vitest en marcha, repitiendo al guardar
 
 npm run sitemap      # Regenera public/sitemap.xml desde Supabase
@@ -61,7 +61,7 @@ Tres advertencias sobre el build:
 
 ### Las pruebas
 
-Hay **233**, en diecisiete archivos que viven al lado de lo que prueban:
+Hay **239**, en diecisiete archivos que viven al lado de lo que prueban:
 
 | Archivo | Qué fija |
 |---|---|
@@ -76,7 +76,7 @@ Hay **233**, en diecisiete archivos que viven al lado de lo que prueban:
 | `src/lib/nombre.test.js` | Partir un nombre para la guía, sin inventarse un apellido |
 | `src/lib/recogida.test.js` | Quién viene por el paquete y cuándo |
 | `src/lib/pixeles.test.js` | Que diferir los píxeles no pierda ni un evento |
-| `src/lib/colecciones.test.js` | Que la portada no ofrezca una colección vacía |
+| `src/lib/portada.test.js` | Qué saca la portada del catálogo, y que no ofrezca una vitrina vacía |
 
 **Una de ellas no comprueba código, compara dos copias.** La talla de anillo está
 implementada dos veces —`src/lib/talla.js` para la guía del sitio y
@@ -499,6 +499,11 @@ cliente daba dos números.
 
 ### Otras reglas
 
+- **`is_featured` es lo que la portada enseña.** Una pieza destacada va en el carrusel de
+  «Piezas seleccionadas» y es la cara de su categoría en «Lo que hacemos». Si no hay
+  ninguna destacada manda la más reciente, y una pieza agotada nunca va de cara. Hasta el
+  30 de agosto de 2026 el interruptor decía «aparece en la portada» y no hacía nada: la
+  portada no leía el catálogo.
 - **Los precios se congelan en `order_items`.** Un pedido viejo no cambia de importe
   porque hoy suba el oro.
 - **`es_prueba` es un lente global del panel.** Los pedidos de prueba se ocultan por

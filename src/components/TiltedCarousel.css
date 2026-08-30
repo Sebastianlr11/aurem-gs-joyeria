@@ -65,10 +65,15 @@
     animation-play-state: paused;
 }
 
+/* 4/5, la misma proporción que las tarjetas del catálogo. Era 380x260
+   apaisado, que servía para las fotos de banco pero parte las piezas: una foto
+   de producto es cuadrada y en un recuadro apaisado se le va el 30% del alto
+   —al dije de la cruz se le iba el brazo de abajo—. En vertical el recorte cae
+   en los lados, que es fondo. */
 .tilted-carousel-slide {
     flex-shrink: 0;
-    width: 380px;
-    height: 260px;
+    width: 240px;
+    height: 300px;
     border-radius: 2px;
     overflow: hidden;
     border: 1px solid rgba(168, 134, 63, 0.2);
@@ -85,6 +90,9 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
+    /* Igual que en el catálogo: la pieza vive en el tercio alto y el cuarto de
+       abajo es el reflejo sobre la mesa. */
+    object-position: center 38%;
     transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -114,8 +122,8 @@
     }
 
     .tilted-carousel-slide {
-        width: 260px;
-        height: 180px;
+        width: 176px;
+        height: 220px;
     }
 
     .tilted-carousel-wrapper {
