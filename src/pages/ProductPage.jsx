@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { traerPieza, traerEnvioPublico, llamarFuncion } from '../lib/apiPublica';
 import { piezasPublicadas } from '../lib/piezasPublicadas';
-import { fotoProducto } from '../lib/fotoProducto';
+import { fotoProducto, TAMANOS_FICHA } from '../lib/fotoProducto';
 import { waUrl } from '../lib/whatsapp';
 import { initMercadoPago } from '@mercadopago/sdk-react';
 
@@ -811,7 +811,7 @@ const Gallery = ({ images, badges, volver, referencia }) => {
                         donde costaba hasta un segundo de LCP. */}
                     <img
                         {...fotoProducto(images[activeIdx])}
-                        sizes="(max-width: 900px) 100vw, 55vw"
+                        sizes={TAMANOS_FICHA}
                         fetchPriority="high"
                         alt={`Imagen ${activeIdx + 1}`}
                         style={{ opacity: fading ? 0 : 1, transition: 'opacity 0.22s ease' }}
@@ -1196,7 +1196,14 @@ const ProductPage = () => {
                             badges={badges}
                             referencia={referencia.replace('REF. ', '')}
                             volver={
-                                <Link to="/catalogo" className="pg-volver" onClick={(e) => e.stopPropagation()}>
+                                /* `aria-label` aunque el enlace lleve texto: en
+                                   celular `.ficha-hero .pg-volver-txt` se apaga
+                                   con `display: none` y el enlace se queda mudo
+                                   —un círculo con una flecha—. Para un lector de
+                                   pantalla y para un agente eso es «enlace, sin
+                                   nombre», y era el único fallo de accesibilidad
+                                   de la ficha (30 de agosto de 2026). */
+                                <Link to="/catalogo" className="pg-volver" aria-label="Volver al catálogo" onClick={(e) => e.stopPropagation()}>
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
                                         <line x1="19" y1="12" x2="5" y2="12" />
                                         <polyline points="11 6 5 12 11 18" />

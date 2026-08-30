@@ -39,7 +39,7 @@ npm run dev          # Vite en http://localhost:5173
 npm run build        # eslint && vitest && sitemap.mjs && correos.mjs && tsc -b && vite build
 npm run preview      # Sirve /dist
 npm run lint         # ESLint (sí corre en el build)
-npm test             # Vitest, una pasada (292 pruebas)
+npm test             # Vitest, una pasada (303 pruebas)
 npm run test:mirar   # Vitest en marcha, repitiendo al guardar
 
 npm run sitemap      # Regenera public/sitemap.xml desde Supabase
@@ -74,7 +74,7 @@ Cuatro advertencias sobre el build:
 
 ### Las pruebas
 
-Hay **292**, en veintidós archivos que viven al lado de lo que prueban:
+Hay **303**, en veintitrés archivos que viven al lado de lo que prueban:
 
 | Archivo | Qué fija |
 |---|---|
@@ -94,6 +94,7 @@ Hay **292**, en veintidós archivos que viven al lado de lo que prueban:
 | `src/lib/tituloPieza.test.js` | Que el `<title>` de una pieza quepa en lo que Google enseña |
 | `src/lib/meta.test.js` | Las migas de la ficha y que el `FAQPage` diga lo que se ve |
 | `src/lib/nombreUnico.test.js` | Que dos nombres no se confundan y dejen a Valentina sin fotos |
+| `src/lib/fotoProducto.test.js` | Que la foto que se precarga sea la misma que se pinta |
 
 **Una de ellas no comprueba código, compara dos copias.** La talla de anillo está
 implementada dos veces —`src/lib/talla.js` para la guía del sitio y
@@ -738,6 +739,12 @@ Cosas que ya costaron un incidente. Léelas antes de tocar lo que describen.
   conexión y TLS marcados como reusados —cero coste—, mientras que en esa misma carga el
   favicon, que no está precalentado, paga 171 ms de conexión y 142 de TLS. El aviso de
   «preconnect no utilizado» es un falso positivo aquí. **No los quites.**
+- **Cada HTML del build lleva sólo lo suyo, y el prerenderizador lo recorta.** `index.html`
+  se queda con la precarga de la foto del hero y **sin** el adelanto de la pieza; `app.html`,
+  al revés. Antes los dos llevaban todo: cada ficha, cada catálogo y cada pantalla del panel
+  precargaban `pen-hero-768.webp` con `fetchpriority="high"` —20 KB a máxima prioridad
+  compitiendo con la foto que sí era su LCP—. El script se planta si no encuentra alguno de
+  los dos bloques: son recortes que se creen hechos.
 - **La hoja de estilos viaja DENTRO de `dist/index.html`, no colgando de un `<link>`.**
   Por eso pesa 44 KB en crudo. Es la hoja entera y en el sitio donde estaba el `<link>` —no
   un recorte «crítico»—, justamente para que la cascada no cambie; comprobado con
@@ -782,6 +789,15 @@ Cosas que ya costaron un incidente. Léelas antes de tocar lo que describen.
   siendo la misma y es la que importa: **mirar qué dice `largest-contentful-paint-element` en
   el informe antes de tocar nada**, porque este sitio ya se optimizó dos veces contra el
   elemento equivocado.
+- **La foto de la ficha se precarga desde el HTML, y eso son TRES copias de la misma
+  regla.** El `<script>` de `index.html` arma el `srcset` de la foto en cuanto llega el JSON
+  de la pieza —a los ~250 ms, en vez de esperar a que React pinte el `<img>` sobre el segundo
+  1,5—. Para eso repite lo que hacen `fotoProducto()` y el `sizes` del `<img>`. **Si las tres
+  dejan de decir lo mismo, el navegador precarga un archivo y pinta otro: la foto se baja dos
+  veces**, sin error y sin nada raro en pantalla. `fotoProducto.test.js` extrae la función
+  del HTML y la corre contra la de verdad; el `sizes` vive una sola vez, en `TAMANOS_FICHA`.
+  Y la precarga va **sin `href`** a propósito: con él, un navegador que no entienda
+  `imagesrcset` se bajaría un archivo que el `<img>` no va a usar.
 - **`decoding="async"` en el elemento LCP es un tiro en el pie.** Le dice al navegador que
   pinte sin esperar a descodificar la imagen y que la descodifique cuando pueda — y ese
   «cuando pueda», en un celular lento, es después de hidratar React. La foto del hero lo

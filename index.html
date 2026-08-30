@@ -94,6 +94,73 @@
         var ruta = location.pathname.match(/^\/catalogo\/([0-9a-f-]{36})\/?$/i);
         if (!ruta) return;
 
+        /* Qué foto va a pintar la ficha, y en qué tamaños existe.
+
+           ── Por qué esto está acá ────────────────────────────────────────
+           El adelanto de abajo trae los DATOS de la pieza a los ~225 ms, pero
+           la foto —que es el LCP de esta pantalla— el navegador no sabe que
+           existe hasta que baja el bundle, baja el trozo de la ficha, lo
+           ejecuta y React pinta el <img>: sobre el segundo 1,5. Recién ahí
+           empezaba a bajar. Medido con PageSpeed el 30 de agosto de 2026:
+           LCP 2,9 s, con el aviso «la solicitud no se puede descubrir en el
+           documento inicial». Con la precarga inyectada acá, la foto empieza
+           a los ~250 ms y está lista mucho antes de que haya dónde pintarla.
+
+           ── Es una COPIA, y por eso hay una prueba ───────────────────────
+           Repite `fotoProducto()` (src/lib/fotoProducto.js) y el `sizes` del
+           <img> de la ficha, porque no hay forma de compartir una función
+           entre el HTML y el bundle. **Si dejan de coincidir, el navegador
+           precarga un archivo y pinta otro: la foto se baja dos veces** y no
+           se nota en nada. Las compara `src/lib/fotoProducto.test.js`, que
+           extrae esta función de aquí y la corre contra la de verdad.
+
+           @copia:fotoProducto */
+        function fotoDeLaPieza(pieza) {
+          var u = (pieza.images && pieza.images[0]) || pieza.image_url;
+          if (!u) return null;
+
+          /* Sin la marca `-<ancho>x<alto>.webp` no hay copias que ofrecer:
+             es una foto vieja o una URL pegada a mano, y se precarga sola. */
+          var m = /-(\d+)x(\d+)\.webp$/.exec(u);
+          if (!m) return { href: u, srcset: '', sizes: '' };
+
+          var base = u.slice(0, -m[0].length);
+          var ancho = Number(m[1]);
+          var anchos = [400, 800];
+          var juego = [];
+          for (var i = 0; i < anchos.length; i++) {
+            if (anchos[i] < ancho) juego.push(base + '-w' + anchos[i] + '.webp ' + anchos[i] + 'w');
+          }
+          juego.push(u + ' ' + ancho + 'w');
+          return { href: '', srcset: juego.join(', '), sizes: '(max-width: 900px) 100vw, 55vw' };
+        }
+        /* @fin */
+
+        function adelantarFoto(pieza) {
+          if (!pieza) return;
+          var f = fotoDeLaPieza(pieza);
+          if (!f) return;
+
+          var l = document.createElement('link');
+          l.rel = 'preload';
+          l.setAttribute('as', 'image');
+          l.setAttribute('fetchpriority', 'high');
+
+          if (f.srcset) {
+            /* Sin `href` a propósito. Con `imagesrcset` el navegador que lo
+               entiende elige de ahí, y el que no —Safari viejo— **usaría el
+               href y se bajaría un archivo que el <img> no va a pintar**. Sin
+               href, ése simplemente ignora la precarga: no gana nada, pero
+               tampoco paga una foto de más. */
+            l.setAttribute('imagesrcset', f.srcset);
+            l.setAttribute('imagesizes', f.sizes);
+          } else {
+            l.href = f.href;
+          }
+
+          document.head.appendChild(l);
+        }
+
         window.__pieza = {
           id: ruta[1],
           promesa: fetch(
@@ -107,6 +174,9 @@
           )
             .then(function (r) { return r.ok ? r.json() : null })
             .then(function (filas) { return (filas && filas[0]) || null })
+            /* La precarga de la foto se lanza acá y no al pintar: es el
+               primer instante en el que se sabe cuál es la foto. */
+            .then(function (pieza) { adelantarFoto(pieza); return pieza })
             /* Resuelve en null y no rechaza: `traerPieza` lo lee como "no
                llegó" y pregunta otra vez por el camino normal. Una promesa
                rechazada acá, además, sería un error suelto en la consola. */
