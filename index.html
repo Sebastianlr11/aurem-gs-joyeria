@@ -48,6 +48,60 @@
           imagesizes="(max-width: 968px) 92vw, 40vw"
           fetchpriority="high" />
 
+    <!-- La pieza, preguntada desde aquí y no desde el bundle.
+
+         Quien abre el enlace que Valentina le mandó por WhatsApp cae directo
+         en /catalogo/<uuid>, sin haber pasado por la portada. Ahí la foto de
+         la pieza es el LCP, y el navegador no se enteraba de que existía hasta
+         desenredar esta cadena entera —medida el 30 de agosto de 2026—:
+
+             HTML 172 ms → index.js 330 ms → supabase.js 425 ms → pieza 881 ms → foto
+
+         Cuatro eslabones en serie antes del primer byte de la imagen. Desde
+         acá la pregunta sale con el HTML, en paralelo con todo lo demás: la
+         respuesta llega sobre los 400 ms y la foto empieza a bajar mientras
+         React todavía se está montando.
+
+         La llave anónima ya viaja dentro del bundle público —todo lo que
+         empieza por VITE_ acaba ahí—, así que escribirla acá no expone nada
+         nuevo: es la misma lectura pública que hace el catálogo.
+
+         La consulta está escrita dos veces, aquí y en `src/lib/apiPublica.js`,
+         porque no hay forma de compartir una constante entre el HTML y el
+         bundle. `apiPublica.test.js` compara las dos y tumba el build si dejan
+         de coincidir. **Si tocas una, toca la otra.** -->
+    <script>
+      (function () {
+        var url = '%VITE_SUPABASE_URL%';
+        var clave = '%VITE_SUPABASE_ANON_KEY%';
+        /* Si Vite no sustituyó las variables —un entorno sin ellas— acá queda
+           el literal con los porcentajes. Mejor no preguntar nada y dejar que
+           el módulo consulte por el camino normal, que salir a una URL
+           inventada. */
+        if (url.slice(0, 4) !== 'http') return;
+
+        /* El uuid tal como lo escribe la ruta. Si no calza —una URL a medias,
+           otra pantalla— no se pregunta nada: una consulta con un id inventado
+           es un viaje perdido. */
+        var ruta = location.pathname.match(/^\/catalogo\/([0-9a-f-]{36})\/?$/i);
+        if (!ruta) return;
+
+        window.__pieza = {
+          id: ruta[1],
+          promesa: fetch(
+            url + '/rest/v1/products?select=id,name,category,description,price,compare_price,image_url,images,metal,piedra,talla_rango,stock,is_new,is_featured&id=eq.' + ruta[1],
+            { headers: { apikey: clave, Authorization: 'Bearer ' + clave } }
+          )
+            .then(function (r) { return r.ok ? r.json() : null })
+            .then(function (filas) { return (filas && filas[0]) || null })
+            /* Resuelve en null y no rechaza: `traerPieza` lo lee como "no
+               llegó" y pregunta otra vez por el camino normal. Una promesa
+               rechazada acá, además, sería un error suelto en la consola. */
+            .catch(function () { return null }),
+        };
+      })();
+    </script>
+
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" type="image/png" sizes="64x64" href="/assets/logo-isotipo.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/assets/logo-isotipo.png" />

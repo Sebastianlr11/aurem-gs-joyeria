@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 
 /**
- * El catálogo, para las dos secciones de la portada que lo enseñan.
+ * El catálogo, para todo el sitio público: las dos secciones de la portada
+ * que lo enseñan y la rejilla de `/catalogo`.
  *
  * Se pregunta con un `fetch` pelado al REST de Supabase y **no con el cliente
  * de la librería**, que es lo que usa el resto del sitio. La razón son 46 KB
@@ -18,14 +19,36 @@ import { useEffect, useState } from 'react'
 const URL_BASE = import.meta.env.VITE_SUPABASE_URL
 const CLAVE = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-/* Sólo las columnas que las tarjetas usan: no se baja el catálogo entero con
-   descripciones para enseñar ocho fotos. */
+/* Las columnas se nombran, nunca `select=*`.
+
+   Dos razones. La de peso: `products` tiene `costo` y `costo_provisional`, y
+   ésta es una lectura con la llave pública — hasta el 30 de agosto de 2026 el
+   catálogo pedía `*` y **publicaba el costo de cada pieza a quien abriera la
+   pestaña de red**. La otra: `images[]` es la galería entera de la ficha, y
+   una rejilla que enseña una foto por pieza no la necesita.
+
+   Es la unión de lo que piden las tres pantallas, no la lista mínima de
+   ninguna: la portada no usa `price` ni `description`, y los baja igual. Sale
+   a cuenta porque así hay UNA consulta en todo el sitio y no dos — ver abajo.
+   `description` cabe en 180 caracteres por la regla de las fichas, así que lo
+   que suma son ~1,5 KB comprimidos en la portada. */
 const CONSULTA =
-  'select=id,name,category,metal,image_url,stock,is_featured,created_at&order=created_at.desc'
+  'select=id,name,category,metal,piedra,image_url,stock,is_featured,is_new,' +
+  'price,compare_price,description,created_at&order=created_at.desc'
 
 let enCurso = null
 
-export function piezasPublicadas() {
+/**
+ * La consulta, una sola por pestaña, con la marca de si llegó o no.
+ *
+ * Resuelve `{ piezas, fallo }` y **nunca rechaza**. El `fallo` va aparte
+ * porque las dos pantallas necesitan cosas distintas de él: a la portada le
+ * da igual —una sección sin tarjetas se calla y el resto de la página sigue
+ * en pie—, pero el catálogo tiene que decir "no pudimos cargar" y no
+ * "estamos surtiendo": con un corte de red le anunciaría a la clienta que no
+ * hay inventario.
+ */
+function traer() {
   /* La promesa se guarda, no el resultado: si la segunda sección pregunta
      mientras la primera espera, se cuelga de la misma respuesta.
 
@@ -40,12 +63,15 @@ export function piezasPublicadas() {
       if (!res.ok) throw new Error(`Supabase respondió ${res.status}`)
       return res.json()
     })
-    /* Que falle la red no pinta un error en la portada: las secciones que
-       dependen de esto se guardan sus tarjetas y el resto de la página sigue
-       en pie. Por eso devuelve una lista vacía y no rechaza. */
-    .catch(() => [])
+    .then((piezas) => ({ piezas: piezas || [], fallo: false }))
+    .catch(() => ({ piezas: [], fallo: true }))
 
   return enCurso
+}
+
+/** La lista, sin más. Es lo que usan las dos secciones de la portada. */
+export function piezasPublicadas() {
+  return traer().then(({ piezas }) => piezas)
 }
 
 /* La pregunta sale al evaluar el módulo, no al montar el componente.
@@ -56,12 +82,16 @@ export function piezasPublicadas() {
    bundle, y para cuando la portada esté pintada la respuesta ya viene en
    camino. Con el preconnect de index.html, además, sin pagar el saludo.
 
-   `piezasPublicadas()` se guarda la promesa, así que el gancho de abajo se
-   cuelga de ésta y no dispara una segunda.
+   `traer()` se guarda la promesa, así que los ganchos de abajo se cuelgan de
+   ésta y no disparan una segunda. Eso es también lo que arregló que
+   `/catalogo` preguntara DOS veces por la misma tabla: la portada va estática
+   en `App.jsx`, así que este módulo se evalúa en todas las rutas y esta
+   consulta salía igual; el catálogo hacía la suya aparte, con el cliente de
+   Supabase, y encima esperaba a que bajara su propio chunk para empezarla.
 
    La guarda de `window` es para que importar este archivo desde Node —una
    prueba, un script del build— no intente salir a la red. */
-if (typeof window !== 'undefined') piezasPublicadas()
+if (typeof window !== 'undefined') traer()
 
 /**
  * @returns `null` mientras carga, y la lista —quizá vacía— cuando llega.
@@ -76,4 +106,27 @@ export function usePiezasPublicadas() {
   }, [])
 
   return piezas
+}
+
+/**
+ * El mismo catálogo, para `/catalogo`.
+ *
+ * Existe aparte de `usePiezasPublicadas` porque la rejilla necesita
+ * distinguir tres estados y no dos: mientras carga enseña esqueletos, si
+ * llegó vacío dice que se está surtiendo, y si no llegó dice que recargue.
+ *
+ * @returns {{piezas: object[], cargando: boolean, fallo: boolean}}
+ */
+export function useCatalogoPublico() {
+  const [estado, setEstado] = useState({ piezas: [], cargando: true, fallo: false })
+
+  useEffect(() => {
+    let vivo = true
+    traer().then(({ piezas, fallo }) => {
+      if (vivo) setEstado({ piezas, cargando: false, fallo })
+    })
+    return () => { vivo = false }
+  }, [])
+
+  return estado
 }

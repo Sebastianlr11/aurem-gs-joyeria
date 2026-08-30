@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import { traerPieza, traerEnvioPublico, llamarFuncion } from '../lib/apiPublica';
+import { piezasPublicadas } from '../lib/piezasPublicadas';
 import { fotoProducto } from '../lib/fotoProducto';
 import { waUrl } from '../lib/whatsapp';
 import { initMercadoPago } from '@mercadopago/sdk-react';
@@ -197,7 +198,7 @@ const BuyModal = ({ product, onClose }) => {
 
   useEffect(() => {
     let vivo = true;
-    supabase.from('envio_publico').select('abono_envio, tope_contraentrega').maybeSingle()
+    traerEnvioPublico()
       .then(({ data }) => {
         if (!vivo || !data) return;
         if (data.abono_envio) setAbonoEnvio(Number(data.abono_envio));
@@ -245,23 +246,21 @@ const BuyModal = ({ product, onClose }) => {
          intento de compra igual ocurrió y es lo que este evento mide. */
       pixelIniciarPago({ id: product.id, nombre: product.name, precio: finalPrice });
 
-      const { data, error } = await supabase.functions.invoke('create-preference', {
-        body: {
-          paymentMethod,
-          product: { id: product.id, name: product.name, price: finalPrice },
-          buyer: {
-            name: form.name.trim(),
-            email: form.email.trim(),
-            phone: form.phone.trim() || undefined,
-            city: (paymentMethod === 'cod' ? COD_CIUDAD : form.city) || undefined,
-            address: form.address.trim() || undefined,
-            department: (paymentMethod === 'cod' ? COD_DEPARTAMENTO : form.department.trim()) || undefined,
-          },
-          /* De qué anuncio vino. Se guarda con el pedido para que el webhook
-             de Mercado Pago pueda decirle a TikTok y a Meta qué clic terminó
-             en venta — para entonces el navegador ya no está. */
-          atribucion: datosDeAtribucion(),
+      const { data, error } = await llamarFuncion('create-preference', {
+        paymentMethod,
+        product: { id: product.id, name: product.name, price: finalPrice },
+        buyer: {
+          name: form.name.trim(),
+          email: form.email.trim(),
+          phone: form.phone.trim() || undefined,
+          city: (paymentMethod === 'cod' ? COD_CIUDAD : form.city) || undefined,
+          address: form.address.trim() || undefined,
+          department: (paymentMethod === 'cod' ? COD_DEPARTAMENTO : form.department.trim()) || undefined,
         },
+        /* De qué anuncio vino. Se guarda con el pedido para que el webhook
+           de Mercado Pago pueda decirle a TikTok y a Meta qué clic terminó
+           en venta — para entonces el navegador ya no está. */
+        atribucion: datosDeAtribucion(),
       });
 
       if (error || !data) throw new Error(data?.error || error?.message || 'Error desconocido');
@@ -769,7 +768,7 @@ const Gallery = ({ images, badges, volver, referencia }) => {
 
     if (images.length === 0) {
         return (
-            <div className="pg-gallery hero-anim" style={{ '--hero-delay': '0s' }}>
+            <div className="pg-gallery hero-alza">
                 <div className="pg-gallery-main">
                     <div className="product-page-placeholder"><span>✦</span></div>
                     {volver}
@@ -781,7 +780,16 @@ const Gallery = ({ images, badges, volver, referencia }) => {
 
     return (
         <>
-            <div className="pg-gallery hero-anim" style={{ '--hero-delay': '0s' }}>
+            {/* `hero-alza` y no `hero-anim`: la caja sube, pero NO se funde.
+                El primer fotograma de `hero-anim` es `opacity: 0`, y Chrome no
+                toma como candidato a LCP un elemento transparente — o sea que
+                el fundido de la foto se le sumaba entero a la métrica. Es el
+                mismo cambio que se le hizo a la foto de la portada el 30 de
+                agosto de 2026 y por el mismo motivo; ver `.hero-alza` en
+                index.css. Si algún día se le vuelve a poner `opacity` a esta
+                caja, vuelve el problema y no se va a ver: la galería seguirá
+                apareciendo igual de bien. */}
+            <div className="pg-gallery hero-alza">
                 <div
                     className="pg-gallery-main"
                     onClick={alPulsar}
@@ -924,15 +932,18 @@ const ProductPage = () => {
 
     useEffect(() => {
         window.scrollTo(0, 0);
+        let vigente = true;
+
         const fetchData = async () => {
             setLoading(true);
             setNotFound(false);
+            /* Las de la pieza anterior se sueltan acá. Si no, al saltar de una
+               ficha a otra el pie enseña un segundo las relacionadas de la que
+               se acaba de dejar. */
+            setRelated([]);
 
-            const { data, error } = await supabase
-                .from('products')
-                .select('*')
-                .eq('id', id)
-                .single();
+            const { data, error } = await traerPieza(id);
+            if (!vigente) return;
 
             if (error || !data) {
                 setNotFound(true);
@@ -941,24 +952,50 @@ const ProductPage = () => {
             }
 
             setProduct(data);
+            /* La pieza está, así que la ficha ya se puede pintar.
+
+               Hasta el 30 de agosto de 2026 esta línea estaba DESPUÉS de la
+               consulta de las relacionadas, y como abajo hay un
+               `if (loading) return <Skeleton />`, la ficha entera esperaba en
+               esqueleto a que llegaran tres tarjetas que están al final del
+               scroll: la pieza respondía a los 881 ms y la página no se pintaba
+               hasta los 1.137. */
+            setLoading(false);
 
             /* Vio la pieza. Va acá y no al montar el componente: hasta que
                no cargó, no se sabe qué está mirando ni cuánto vale. */
             pixelVerPieza({ id: data.id, nombre: data.name, precio: data.price });
-
-            const { data: rel } = await supabase
-                .from('products')
-                .select('*')
-                .eq('category', data.category)
-                .neq('id', id)
-                .limit(3);
-
-            setRelated(rel || []);
-            setLoading(false);
         };
 
         fetchData();
+        return () => { vigente = false; };
     }, [id]);
+
+    /* Las piezas del mismo tipo, del catálogo que ya está en camino.
+
+       No es una consulta: `piezasPublicadas` se pide una sola vez por pestaña
+       —arranca al evaluar el módulo, en todas las rutas— y la comparten la
+       portada y `/catalogo`. Antes la ficha preguntaba lo mismo por su cuenta,
+       así que abrir una ficha eran dos viajes a la base cuando el segundo ya
+       venía de camino igual.
+
+       Trae menos columnas que la pieza —no hay `images[]` ni `talla_rango`—,
+       pero son exactamente las que pinta `ProductCard`. */
+    useEffect(() => {
+        if (!product) return;
+        let vigente = true;
+
+        piezasPublicadas().then((piezas) => {
+            if (!vigente) return;
+            setRelated(
+                piezas
+                    .filter((p) => p.category === product.category && p.id !== product.id)
+                    .slice(0, 3),
+            );
+        });
+
+        return () => { vigente = false; };
+    }, [product]);
 
     /* El <head> de esta pieza. Sin esto las cinco fichas se titulan igual que
        la home, y para Google —que sí ejecuta JavaScript antes de indexar— son
@@ -1450,7 +1487,15 @@ const ProductPage = () => {
                             </Link>
                         </div>
                         <div className="ficha-relacionadas-grid">
-                            {related.map(p => <ProductCard key={p.id} product={p} />)}
+                            {/* El índice arranca en 2 a propósito. `ProductCard`
+                                les quita el `lazy` a las dos primeras tarjetas y
+                                le pone prioridad alta a la primera, porque en la
+                                rejilla del catálogo esa foto es el LCP. Acá no:
+                                estas tres están al final del scroll, y sin
+                                desplazarlas del principio se bajaban las tres de
+                                entrada compitiendo con la foto de la pieza, que
+                                es la que sí mide. */}
+                            {related.map((p, i) => <ProductCard key={p.id} product={p} indice={i + 2} />)}
                         </div>
                     </div>
                 )}

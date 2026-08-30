@@ -26,8 +26,14 @@ const WhatsAppIcon = () => (
 /* La tarjeta, sin caja. Se fue el recuadro blanco con borde y sombra: la foto
    se apoya en el marfil y debajo la ordena una sola línea de pelo. Menos
    cromo, foto más grande, y el nombre y el precio en el mismo renglón —que es
-   la comparación que se hace de verdad al recorrer una rejilla—. */
-const ProductCard = ({ product }) => {
+   la comparación que se hace de verdad al recorrer una rejilla—.
+
+   `indice` es el puesto de la tarjeta en la rejilla que se está viendo, y se
+   usa para una sola cosa: decidir qué fotos NO pueden ir perezosas. La de
+   arriba a la izquierda es el elemento LCP de esta pantalla, y con
+   `loading="lazy"` el navegador ni siquiera la pide hasta haber hecho el
+   diseño — encima de que su URL sólo se conoce cuando llega la consulta. */
+const ProductCard = ({ product, indice = 0 }) => {
     const sello = insignia(product);
     const agotada = product.stock === 0;
 
@@ -49,17 +55,33 @@ const ProductCard = ({ product }) => {
         <article className={`pieza${agotada ? ' pieza--agotada' : ''}`}>
             <Link to={`/catalogo/${product.id}`} className="pieza-foto" aria-label={`Ver ${product.name}`}>
                 {product.image_url
-                    /* `sizes` sigue a .catalogo-grid: una columna a lo ancho
-                       en el celular, dos o tres a media pantalla en la
-                       tableta, y ~300px cuando la rejilla ya está llena.
-                       Sin esto el navegador supone el ancho de la ventana y
-                       se baja el archivo más grande, que es justo lo que se
-                       quería evitar. */
+                    /* `sizes` sigue a .catalogo-grid, y hay que mirarlo ahí
+                       cada vez que cambien sus columnas: es una promesa sobre
+                       el ancho que va a tener la foto, y si miente el
+                       navegador elige mal el archivo y nadie se entera.
+
+                       Decía `92vw` en el celular, de cuando la rejilla tenía
+                       una sola columna. Desde entonces `Catalog.css` puso DOS
+                       desde 768px —la tarjeta mide ~180px— y esto siguió
+                       pidiendo el ancho de la pantalla entera: cada tarjeta se
+                       bajaba `-w800.webp`, 32,5 KB, para un hueco al que le
+                       basta `-w400.webp`, 13,7 KB. Ocho tarjetas a la vista,
+                       19 KB de más cada una. Medido el 30 de agosto de 2026.
+
+                       Los tres tramos son los tres de la hoja: dos columnas
+                       hasta 768, `auto-fill minmax(240px)` hasta 968 —que da
+                       tres—, y de ahí arriba la rejilla llena, donde ninguna
+                       columna pasa de ~300px. */
                     ? <img
                         {...fotoProducto(product.image_url)}
-                        sizes="(max-width: 700px) 92vw, (max-width: 1100px) 45vw, 300px"
+                        sizes="(max-width: 768px) 46vw, (max-width: 968px) 31vw, 300px"
                         alt={product.name}
-                        loading="lazy"
+                        /* Las dos primeras son la fila de arriba en el celular,
+                           y en escritorio están de todos modos a la vista. La
+                           prioridad alta va sólo en la primera: es la que mide
+                           el LCP, y dársela a varias es no dársela a ninguna. */
+                        loading={indice < 2 ? 'eager' : 'lazy'}
+                        fetchPriority={indice === 0 ? 'high' : undefined}
                         decoding="async"
                     />
                     : <span className="pieza-foto-vacia">✦</span>}
