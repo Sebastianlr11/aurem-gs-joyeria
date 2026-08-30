@@ -91,7 +91,20 @@ export function iniciarPixeles() {
 
   const enCuantoSePueda = () => {
     if (typeof window.requestIdleCallback === 'function') {
-      window.requestIdleCallback(cargar, { timeout: 3000 });
+      /* El tope era de 3 s, y un tope corto deshace lo que se vino a hacer:
+         `requestIdleCallback` existe justamente para esperar a que el hilo
+         principal esté libre, y el tope lo obliga a entrar aunque esté
+         ocupado — o sea, a meter 284 KB de terceros exactamente en el peor
+         momento posible, que en un celular lento es cuando todavía se está
+         pintando la portada.
+
+         Con 10 s el tope deja de ser el que manda: en un teléfono decente el
+         hueco llega de inmediato después de `load` y no cambia nada; en uno
+         lento se espera a que de verdad haya sitio. La medición no se
+         resiente porque el hueco llega casi siempre en el primer segundo
+         después de `load`, y lo que se lance mientras tanto lo guarda la cola
+         de arriba. Medido el 30 de agosto de 2026. */
+      window.requestIdleCallback(cargar, { timeout: 10000 });
     } else {
       setTimeout(cargar, 1200);
     }
