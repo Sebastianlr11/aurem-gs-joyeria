@@ -18,10 +18,15 @@ const WhatsAppIcon = () => (
 
 const EMAIL = 'hola@auremgsjoyeria.com';
 
-/* Mismo orden que el riel del catálogo, y «Personalizado» siempre al final
-   porque no es una categoría sino la otra conversación. Topos y Juegos entran
-   el 30 de agosto de 2026, con las categorías nuevas. */
-const interestOptions = ['Anillos', 'Collares', 'Topos', 'Pulseras', 'Juegos', 'Personalizado'];
+/* Las siete categorías del catálogo, en el mismo orden del riel, y
+   «Personalizado» al final porque no es una categoría sino la otra
+   conversación. Hasta el 30 de agosto de 2026 eran cuatro: quien entraba
+   buscando unos aretes, unos topos, un dije o un juego marcaba
+   «personalizado» o no marcaba nada, y esa era la mitad del catálogo.
+   Si se añade una categoría allá, se añade aquí. */
+const interestOptions = [
+    'Anillos', 'Collares', 'Aretes', 'Topos', 'Pulseras', 'Dijes', 'Juegos', 'Personalizado',
+];
 
 const Contact = () => {
     const encabezado = useAparecer();
