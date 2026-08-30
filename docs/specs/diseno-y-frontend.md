@@ -226,12 +226,49 @@ mover nada hay que medir el TTFB real desde Colombia).
 ## La caché de los assets
 
 `vercel.json` sirve `/assets/*` con `max-age=31536000, immutable` — un año. Se puede porque
-esos archivos llevan **el hash del contenido en el nombre**: si el contenido cambia, cambia
-la URL, así que no hay forma de servir algo viejo. `index.html` se queda sin caché, para que
-un despliegue se vea al instante.
+el bundle y las hojas llevan **el hash del contenido en el nombre**: si el contenido cambia,
+cambia la URL, así que no hay forma de servir algo viejo. `index.html` se queda sin caché,
+para que un despliegue se vea al instante.
 
 Antes de eso, Vercel servía **todo** con `max-age=0, must-revalidate`, incluidos el bundle y
 las fuentes. Cada visita revalidaba 160 KiB que ya estaban en el disco del visitante.
+
+**Y hasta el 30 de agosto de 2026 esa regla no llegaba a las fuentes ni a las fotos.** La
+segunda regla del archivo —`/(.*)\.(svg|png|jpg|jpeg|webp|ico|woff2)`, siete días— también
+hacía match sobre `/assets/`, y **en Vercel gana la última que coincide**. Medido con `curl`:
+`/assets/fuentes/mulish-latin.woff2` y `/assets/pen-hero-768.webp` salían con
+`max-age=604800`, mientras el bundle —que no es de esas extensiones— sí tenía su año. O sea
+que la regla del año sólo se aplicaba donde no hacía falta discutirla.
+
+Ahora la segunda regla lleva `(?!assets/)` delante y se queda con lo que vive en la raíz de
+`public/`, que hoy es sólo `favicon.svg`. La misma sintaxis de lookahead que ya usaba el
+rewrite de abajo.
+
+El precio de la mudanza: los archivos de `public/assets/` **no llevan hash**, llevan nombre
+propio (`pen-hero-768.webp`, `marcellus-latin.woff2`). Con un año e `immutable`, cambiar una
+de esas fotos dejando el mismo nombre significa que quien ya la tenga verá la vieja hasta un
+año. **Al cambiar una foto de `public/assets/`, se cambia también su nombre** — el nombre ya
+lleva el ancho, añadirle una versión no rompe nada porque quien las referencia son
+`index.html` y los componentes, no la base.
+
+### Las fotos del catálogo, que no están en Vercel
+
+Las de `product-images` las sirve Supabase, y su `Cache-Control` sale de los metadatos que
+se le ponen **al subir el archivo**. Nadie se los puso nunca, así que los 344 archivos del
+bucket decían `max-age=3600`: una hora. En la portada eso son 110 KiB que se vuelven a bajar
+al día siguiente.
+
+Desde el 30 de agosto de 2026 `ProductModal.jsx` sube con `cacheControl: '31536000'` en las
+tres subidas —las copias del `srcset`, la grande y la gemela JPEG de WhatsApp—. Se puede
+poner un año sin miedo porque la ruta de una foto lleva fecha e identificador al azar
+(`${Date.now()}-${random}`) y **nunca se reescribe**: cambiar la foto de una pieza sube una
+ruta nueva.
+
+Para las que ya estaban hay `scripts/refrescar-cache-fotos.mjs`, que se corre a mano una vez.
+La API de Storage no tiene un «actualizar cabeceras», sólo un PUT con el archivo entero, así
+que el script se baja cada foto y la vuelve a poner **en la misma ruta** — nunca renombra ni
+mueve, porque el nombre es lo que sostiene el `srcset` y la gemela de WhatsApp. Pide
+`SUPABASE_SERVICE_ROLE_KEY` en la línea de comandos, y sin `--de-verdad` sólo cuenta.
 
 **`vercel.json` no admite comentarios ni claves inventadas.** El primer intento llevaba una
 clave `_comentario` con la explicación de arriba, y Vercel **rechazó el despliegue entero

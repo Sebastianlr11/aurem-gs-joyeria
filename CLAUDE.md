@@ -50,6 +50,7 @@ npm run css:pisadas  # Diagnóstico: reglas CSS que otras pisan
 
 node scripts/huella-estilos.mjs tomar h.json   # Huella de estilos: qué se ve, medido
 node scripts/css-de-quien-es.mjs               # De qué ruta es cada bloque de index.css
+node scripts/refrescar-cache-fotos.mjs         # Una vez: resube las fotos del bucket con caché de un año
 ```
 
 Tres advertencias sobre el build:
@@ -679,6 +680,18 @@ Cosas que ya costaron un incidente. Léelas antes de tocar lo que describen.
   Lee la primera línea de su salida, no cuentes los bloques impresos: sólo enseña los 25
   peores. Acepta una ruta (`node scripts/css-pisadas.mjs src/panel.css`) y un filtro de
   selector.
+- **`/assets/` se sirve con caché de un año e `immutable`, y la regla de siete días lleva
+  `(?!assets/)` delante a propósito.** En Vercel **gana la última regla que coincide**, y sin
+  ese lookahead la de siete días pisaba a la del año: hasta el 30 de agosto de 2026 las
+  fuentes y la foto del hero caducaban en una semana aunque `vercel.json` pidiera un año.
+  Consecuencia de tenerlo bien: los archivos de `public/assets/` **no llevan hash en el
+  nombre**, así que al cambiar una foto hay que cambiarle también el nombre — si no, quien ya
+  la tenga verá la vieja hasta un año.
+- **El `Cache-Control` de una foto del catálogo se decide al subirla.** Supabase lo guarda en
+  los metadatos del archivo y por defecto pone una hora; `ProductModal.jsx` sube con un año.
+  Cambiarlo en las que ya están no se puede sin volver a subirlas —no hay «actualizar
+  cabeceras» en la API—: para eso está `scripts/refrescar-cache-fotos.mjs`, que reescribe
+  **la misma ruta** y nunca renombra.
 - **390px no basta para probar móvil.** El iframe es la única forma de medir de verdad
   el comportamiento en pantallas reales en esta sesión.
 - **Hay dos píxeles de Meta con el mismo nombre y sólo uno recibe eventos.** Verifica el
