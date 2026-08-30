@@ -5,7 +5,10 @@ import { supabase } from '../lib/supabase';
 import { waUrl } from '../lib/whatsapp';
 import { ponerMeta } from '../lib/meta';
 
-const CATEGORIAS = ['Todos', 'Anillos', 'Collares', 'Aretes', 'Pulseras', 'Dijes'];
+/* «Topos» va aparte de «Aretes» aunque sea un arete: es como los pide la
+   clienta y como los nombra el taller. Y «Juegos» son los combos —dije con
+   topos, dije con aretes—, que hasta ahora entraban donde cupieran. */
+const CATEGORIAS = ['Todos', 'Anillos', 'Collares', 'Aretes', 'Topos', 'Pulseras', 'Dijes', 'Juegos'];
 
 const RANGOS = [
     { label: 'Todos', min: 0, max: Infinity },

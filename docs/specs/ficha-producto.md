@@ -45,7 +45,7 @@ sitio a la pieza sin ofrecer nada necesario. La vuelta es el botón sobre la fot
 
 | Tabla | Uso |
 |---|---|
-| `products` | `select('*').eq('id')` — consume `images[]`, `piedra`, `engaste`, `talla_rango`, `compare_price`, `is_featured`, `stock` |
+| `products` | `select('*').eq('id')` — consume `images[]`, `piedra`, `talla_rango`, `compare_price`, `is_featured`, `stock` |
 | `products` | Relacionadas: `.eq('category').neq('id').limit(3)` |
 | `envio_publico` (vista) | `abono_envio`, `tope_contraentrega` — para el checkout |
 

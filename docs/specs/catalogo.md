@@ -87,9 +87,14 @@ abrió**. Es el código más cuidado del frontend público en accesibilidad.
   que una foto sólo entra en el juego de tamaños si se subió con el tratamiento nuevo; las
   anteriores se sirven enteras hasta que se resuban.
 - Los rangos de precio están hardcodeados y no se ajustan al catálogo real.
-- `CATEGORIAS` incluye `Dijes`, y el `CHECK` real de la base **sí lo contempla** (ver
-  `20260228_esquema_base.sql`); era el `supabase-schema.sql` viejo el que no — el
-  esquema de la raíz está obsoleto, no la lista.
+- **`CATEGORIAS` y el `CHECK` de la base tienen que decir lo mismo.** Son ocho chips
+  —`Todos`, `Anillos`, `Collares`, `Aretes`, `Topos`, `Pulseras`, `Dijes`, `Juegos`— y el
+  riel ya scrollea en horizontal, así que caben; lo que no cabe es añadir uno aquí y
+  olvidar la migración: el panel dejaría escoger la categoría y la base rechazaría el
+  guardado (ver `20260830_topos_y_juegos.sql`).
+- **`Topos` va aparte de `Aretes`** aunque un topo sea un arete, y **`Juegos`** son los
+  combos de dije con topos o aretes. Antes de existir, los juegos entraban donde cupieran:
+  había tres archivados en `Anillos`.
 - El botón flotante de WhatsApp se oculta en esta ruta a propósito.
 
 ## Cómo probarlo
