@@ -39,7 +39,7 @@ npm run dev          # Vite en http://localhost:5173
 npm run build        # eslint && vitest && sitemap.mjs && correos.mjs && tsc -b && vite build
 npm run preview      # Sirve /dist
 npm run lint         # ESLint (sí corre en el build)
-npm test             # Vitest, una pasada (264 pruebas)
+npm test             # Vitest, una pasada (281 pruebas)
 npm run test:mirar   # Vitest en marcha, repitiendo al guardar
 
 npm run sitemap      # Regenera public/sitemap.xml desde Supabase
@@ -61,7 +61,7 @@ Tres advertencias sobre el build:
 
 ### Las pruebas
 
-Hay **264**, en veinte archivos que viven al lado de lo que prueban:
+Hay **281**, en veintiún archivos que viven al lado de lo que prueban:
 
 | Archivo | Qué fija |
 |---|---|
@@ -72,6 +72,7 @@ Hay **264**, en veinte archivos que viven al lado de lo que prueban:
 | `src/pages/admin/chat/*.test.js(x)` | Los ganchos del chat, la ficha, la selección y el diálogo |
 | `supabase/functions/_shared/reglas.test.ts` | Las reglas de Valentina |
 | `supabase/functions/_shared/bucle.test.ts` | El bucle del agente, sin Deno y sin red |
+| `supabase/functions/_shared/redaccion.test.ts` | Lo que se le pide al modelo al redactar una pieza, y lo que se le revisa |
 | `src/lib/envio.test.js` | La caja en la que viaja una pieza: `null` nunca viaja como cero |
 | `src/lib/nombre.test.js` | Partir un nombre para la guía, sin inventarse un apellido |
 | `src/lib/recogida.test.js` | Quién viene por el paquete y cuándo |
@@ -116,8 +117,8 @@ se le pone jsdom a ese archivo.
 Este es el punto donde más se equivoca quien llega nuevo:
 
 > **El backend real NO está en `api/`.**
-> `api/` son 2 endpoints (221 líneas). La lógica de negocio son **11 Edge Functions de
-> Supabase en Deno + 8 módulos compartidos**.
+> `api/` son 2 endpoints (221 líneas). La lógica de negocio son **12 Edge Functions de
+> Supabase en Deno + 9 módulos compartidos**.
 
 | Plano | Dónde | Runtime | Qué hace |
 |---|---|---|---|
@@ -192,6 +193,7 @@ Cosas que hay que saber antes de tocar el enrutado:
 | `conversion-pedido` | JWT de admin | Meta CAPI, TikTok | `META_CAPI_TOKEN`, `TIKTOK_ACCESS_TOKEN` |
 | `correo-despacho` | JWT de admin | `/api/correo` → Resend | `CORREO_SECRETO`, `APP_URL` |
 | `plantillas-programadas` | `x-cron-secreto` desde BD | Meta Cloud API | `PLANTILLAS_ACTIVAS`, `PLANTILLA_EN_CAMINO` |
+| `redactar-pieza` | JWT de admin | OpenRouter (visión) | `OPENROUTER_API_KEY`, `OPENROUTER_VISION_MODEL` |
 | `cotizar-envio` | JWT de admin | 99envios | `ENVIOS99_EMAIL`, `ENVIOS99_PASSWORD`, `ENVIOS99_URL` |
 | `crear-guia` | JWT de admin | 99envios | ídem, más `ENVIOS99_SEGURO` y `ENVIOS99_DICE_CONTENER` |
 | `vigilancia` | `x-cron-secreto` desde BD | HTTP checks, `/api/correo` | `CORREO_SECRETO`, `APP_URL` |
@@ -205,6 +207,9 @@ Módulos compartidos en `supabase/functions/_shared/`:
 - `wa.ts` (464 l.) — envío a WhatsApp, troceado natural, indicador de "escribiendo", plantillas
 - `medios.ts` (221 l.) — transcripción de audio y descripción de imágenes
 - `conversiones.ts` (393 l.) — Meta CAPI y TikTok Events API server-side
+- `redaccion.ts` — qué se le pide al modelo para redactar una pieza y qué se le revisa a
+  lo que contesta, **sin nada de Deno dentro**, para poder probarlo sin desplegar y sin
+  gastar modelo
 - `reglas.ts` — la lógica de Valentina **sin nada de Deno dentro**: la talla, la cotización
   del oro, la atribución, los teléfonos y el parseo de lo que el modelo pide al tomar un
   pedido. Existe para poder probarla: son las tres cosas del

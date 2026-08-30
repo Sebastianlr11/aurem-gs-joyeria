@@ -6738,6 +6738,21 @@
    la de arriba para que se lean como una sola cosa. */
 .pm-vistazo { margin-top: -0.125rem; }
 
+/* La etiqueta del nombre y el botón de redactar, en la misma línea: el botón
+   pertenece a ese campo y no a la sección entera. */
+.pm-label-fila { display: flex; align-items: baseline; justify-content: space-between; gap: 0.75rem; }
+
+.pm-redactar {
+  flex: 0 0 auto;
+  padding: 0.25rem 0.7rem; border-radius: 100px;
+  border: 1px solid var(--hairline); background: transparent;
+  font-family: var(--font-ui); font-size: 0.7rem; font-weight: 700;
+  letter-spacing: 0.04em; color: var(--oro-ink); cursor: pointer;
+  transition: var(--transition-smooth); white-space: nowrap;
+}
+.pm-redactar:hover:not(:disabled) { background: var(--bg-arena); border-color: rgba(168, 134, 63, 0.35); }
+.pm-redactar:disabled { opacity: 0.45; cursor: not-allowed; }
+
 .pm-select { position: relative; display: flex; align-items: center; }
 .pm-select select {
   width: 100%; box-sizing: border-box;

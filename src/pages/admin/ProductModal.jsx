@@ -127,6 +127,11 @@ export default function ProductModal({ product, onClose, onSaved }) {
     const [saving, setSaving] = useState(false);
     const [subiendo, setSubiendo] = useState(0);
     const [error, setError] = useState('');
+    /* El borrador que propone el modelo, y lo que le encontró la revisión. Se
+       enseñan al lado del nombre y se van solos en cuanto se toca el campo:
+       son de ese borrador, no de lo que quede escrito después. */
+    const [redactando, setRedactando] = useState(false);
+    const [avisosIA, setAvisosIA] = useState([]);
     const [tocado, setTocado] = useState(false);
     const [activa, setActiva] = useState('identidad');
 
@@ -309,6 +314,48 @@ export default function ProductModal({ product, onClose, onSaved }) {
         [form.name, form.metal, form.piedra],
     );
 
+    /* ── El redactor ──────────────────────────────────────────────── */
+
+    /**
+     * Le pide a `redactar-pieza` un borrador del nombre y la descripción.
+     *
+     * Pisa lo que haya escrito a propósito: se pulsa queriendo, y si lo que
+     * proponga no gusta, deshacer es volver a escribir. Lo que NO hace es
+     * guardar: el borrador se queda en el formulario hasta que alguien lo
+     * revise, que es todo el punto.
+     *
+     * El metal no se manda desde acá por comodidad: la función se niega a
+     * redactar sin él. Un modelo de visión dice «oro 18k» de una plata bañada
+     * sin pestañear, y eso acabaría en la ficha y en boca de Valentina.
+     */
+    const redactar = async () => {
+        setError(''); setAvisosIA([]); setRedactando(true);
+        try {
+            const { data, error: err } = await supabase.functions.invoke('redactar-pieza', {
+                body: {
+                    id: product?.id,
+                    fotos: images.slice(0, 3),
+                    categoria: form.category,
+                    metal: texto(form.metal),
+                    piedra: texto(form.piedra),
+                    precio,
+                    talla_rango: texto(form.talla_rango),
+                },
+            });
+            /* El error de negocio viaja en el cuerpo con su 400, y `invoke` lo
+               da como fallo genérico: sin esto, «escribe primero el metal» se
+               vería como «Error al invocar la función». */
+            const motivo = data?.error || (err ? 'No se pudo redactar. Intenta de nuevo.' : null);
+            if (motivo) { setError(motivo); return; }
+
+            setForm(f => ({ ...f, name: data.nombre, description: data.descripcion }));
+            setTocado(true);
+            setAvisosIA(data.avisos || []);
+        } finally {
+            setRedactando(false);
+        }
+    };
+
     /* ── Guardar ──────────────────────────────────────────────────── */
 
     const guardar = async (e) => {
@@ -442,11 +489,26 @@ export default function ProductModal({ product, onClose, onSaved }) {
                             <Regla>Identidad</Regla>
                             <div className="pm-rejilla">
                                 <div className="pm-campo">
-                                    <label className="pm-label">Nombre<span className="pm-obligatorio"> · obligatorio</span></label>
+                                    <div className="pm-label-fila">
+                                        <label className="pm-label">Nombre<span className="pm-obligatorio"> · obligatorio</span></label>
+                                        {/* Redacta con la foto, no en lugar del joyero: rellena
+                                            los dos campos y espera a que los revise. Pide fotos
+                                            —de ahí sale el texto— y metal, que no se ve en una
+                                            foto por mucho que el modelo lo asegure. */}
+                                        <button
+                                            type="button"
+                                            className="pm-redactar"
+                                            onClick={redactar}
+                                            disabled={redactando || saving || !images.length}
+                                            title={!images.length ? 'Sube primero una foto' : 'Escribe el nombre y la descripción mirando la foto'}
+                                        >
+                                            {redactando ? 'Redactando…' : '✦ Redactar'}
+                                        </button>
+                                    </div>
                                     <input
                                         className="pm-input"
                                         value={form.name}
-                                        onChange={e => set('name', e.target.value)}
+                                        onChange={e => { set('name', e.target.value); setAvisosIA([]); }}
                                         placeholder="Anillo solitario clásico"
                                     />
                                     <div className="pm-area-pie">
@@ -459,6 +521,9 @@ export default function ProductModal({ product, onClose, onSaved }) {
                                             {nombreLargo} / {NOMBRE_MAX}
                                         </span>
                                     </div>
+                                    {avisosIA.map((aviso, i) => (
+                                        <span key={i} className="pm-ayuda pm-ayuda--ojo">{aviso}</span>
+                                    ))}
                                     {tituloGoogle && (
                                         <div className="pm-area-pie pm-vistazo">
                                             <span className="pm-ayuda">
