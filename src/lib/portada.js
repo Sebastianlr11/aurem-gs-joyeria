@@ -1,6 +1,15 @@
 import { CATEGORIAS } from './categorias'
 
 /**
+ * Qué saca la portada del catálogo: las tres colecciones y el carrusel.
+ *
+ * Las dos secciones enseñaban fotos de banco escritas a mano, y las dos se
+ * quedaban quietas mientras el taller subía piezas de verdad. Están juntas
+ * aquí porque comparten el criterio —**manda `is_featured`**— y porque así se
+ * prueban sin montar la portada entera.
+ */
+
+/**
  * Qué colecciones enseña la portada.
  *
  * Hasta el 30 de agosto de 2026 eran tres escritas a mano —Anillos, Collares
@@ -16,8 +25,11 @@ import { CATEGORIAS } from './categorias'
  *    colección de menos.
  * 2. **Manda cuántas piezas hay**, y los empates los rompe el orden del riel
  *    del catálogo, para que la portada y el catálogo no se contradigan.
- * 3. **La foto es la de la pieza más reciente**, y las agotadas van al final:
- *    la portada no invita a una vitrina cuya cara está vendida.
+ * 3. **La cara la escoge el joyero** con el interruptor «Destacado» del panel,
+ *    que hasta hoy prometía «aparece en la portada» sin que la portada leyera
+ *    nada. Si no hay ninguna destacada manda la más reciente, y las agotadas
+ *    van al final en los dos casos: la portada no invita a una vitrina cuya
+ *    cara está vendida.
  *
  * Es una función aparte y no un `useMemo` dentro del componente porque así se
  * puede probar: son tres reglas y cada una tiene una forma de salir mal.
@@ -41,7 +53,7 @@ export function coleccionesDe(piezas, cuantas = 3) {
   for (const [categoria, suyas] of porCategoria) {
     const conFoto = suyas
       .filter((p) => p.image_url)
-      .sort((a, b) => agotada(a) - agotada(b) || cuando(b) - cuando(a))
+      .sort(deCara)
 
     if (!conFoto.length) continue
 
@@ -64,8 +76,32 @@ export function coleccionesDe(piezas, cuantas = 3) {
     .slice(0, cuantas)
 }
 
+/**
+ * Las piezas del carrusel de «Piezas seleccionadas».
+ *
+ * Seleccionadas de verdad: las que el joyero marcó «Destacado» en el panel, y
+ * detrás las más recientes hasta llenar la cinta. Antes eran cinco fotos de
+ * banco en `public/assets`, las mismas desde el primer día.
+ *
+ * Devuelve la lista **sin duplicar**: el bucle continuo lo arma el componente
+ * repitiéndola, porque la animación del CSS va a `-50%` y necesita las dos
+ * mitades iguales.
+ */
+export function piezasDelCarrusel(piezas, cuantas = 5) {
+  return (piezas || [])
+    .filter((p) => p && p.image_url)
+    .sort(deCara)
+    .slice(0, cuantas)
+}
+
+/* El mismo criterio para la cara de una colección y para la cinta: primero lo
+   que se puede vender, dentro de eso lo que el joyero destacó, y al final lo
+   más reciente. */
+const deCara = (a, b) => agotada(a) - agotada(b) || destacada(b) - destacada(a) || cuando(b) - cuando(a)
+
 const orden = (categoria) => CATEGORIAS.indexOf(categoria)
 const agotada = (p) => (p.stock === 0 ? 1 : 0)
+const destacada = (p) => (p.is_featured ? 1 : 0)
 const cuando = (p) => new Date(p.created_at || 0).getTime() || 0
 
 /**

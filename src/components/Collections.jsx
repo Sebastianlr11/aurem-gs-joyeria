@@ -1,26 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { fotoProducto } from '../lib/fotoProducto';
-import { coleccionesDe } from '../lib/colecciones';
+import { coleccionesDe } from '../lib/portada';
+import { usePiezasPublicadas } from '../lib/piezasPublicadas';
 import { useAparecer, useAparecerGrupo } from '../lib/aparecer';
 
 /* Cuántas caben en la rejilla: `repeat(3, 1fr)` en escritorio. Si el catálogo
    sólo da para dos, se pintan dos — la rejilla no las estira. */
 const CUANTAS = 3;
-
-/* Se pregunta por el catálogo con un `fetch` pelado y NO con el cliente de
-   Supabase, que es lo que usa el resto del sitio. La razón son 46 KB
-   comprimidos: hasta hoy la portada no cargaba ese paquete —sólo lo cargan el
-   catálogo, la ficha y el panel—, y traerlo entero para leer tres fotos es
-   exactamente lo que se hizo al revés cuando se sacó Framer Motion. La llave
-   anónima y la URL ya viajan dentro del bundle público de todos modos, y esta
-   consulta es la misma lectura pública que hace el catálogo.
-
-   Sólo las seis columnas que la tarjeta usa: no se baja el catálogo entero con
-   descripciones para enseñar tres fotos. */
-const URL_BASE = import.meta.env.VITE_SUPABASE_URL;
-const CLAVE = import.meta.env.VITE_SUPABASE_ANON_KEY;
-const CONSULTA = 'select=name,category,metal,image_url,stock,created_at&order=created_at.desc';
 
 /* Lo único que sigue escrito a mano, porque es voz y no dato. Cada frase
    describe lo que el taller sí hace en esa categoría: nada de platino ni de
@@ -45,33 +32,12 @@ const Arrow = () => (
 const Collections = () => {
     const cabecera = useAparecer();
 
-    /* `null` mientras carga y `[]` si falló o no hay nada. La diferencia no se
-       usa para pintar —en los dos casos no hay tarjetas— pero sí para no
-       animar una rejilla vacía. */
-    const [colecciones, setColecciones] = useState(null);
-    const rejilla = useAparecerGrupo(0.12, colecciones?.length ?? 0);
-
-    useEffect(() => {
-        let vivo = true;
-
-        (async () => {
-            try {
-                const res = await fetch(`${URL_BASE}/rest/v1/products?${CONSULTA}`, {
-                    headers: { apikey: CLAVE, Authorization: `Bearer ${CLAVE}` },
-                });
-                if (!res.ok) throw new Error(`Supabase respondió ${res.status}`);
-                const piezas = await res.json();
-                if (vivo) setColecciones(coleccionesDe(piezas, CUANTAS));
-            } catch {
-                /* Que falle la red no pinta un error en la portada: la sección
-                   se queda con su titular y su botón al catálogo, que es el
-                   camino que de todos modos importa. */
-                if (vivo) setColecciones([]);
-            }
-        })();
-
-        return () => { vivo = false; };
-    }, []);
+    /* `null` mientras carga el catálogo. Si falla, `coleccionesDe` recibe una
+       lista vacía y la sección se queda con su titular y su botón al catálogo,
+       que es el camino que de todos modos importa. */
+    const piezas = usePiezasPublicadas();
+    const colecciones = useMemo(() => coleccionesDe(piezas, CUANTAS), [piezas]);
+    const rejilla = useAparecerGrupo(0.12, colecciones.length);
 
     return (
         <section id="colecciones" className="collections-section">
@@ -91,7 +57,7 @@ const Collections = () => {
                 <div
                     className="collections-grid" ref={rejilla}
                 >
-                    {(colecciones || []).map(c => (
+                    {colecciones.map(c => (
                         <article key={c.categoria} className="collection-card">
 
                             <Link to={`/catalogo?categoria=${c.categoria}`} className="collection-card-image" aria-label={`Ver ${c.categoria.toLowerCase()}`}>

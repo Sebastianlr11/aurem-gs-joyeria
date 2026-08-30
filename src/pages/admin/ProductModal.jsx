@@ -598,7 +598,11 @@ export default function ProductModal({ product, onClose, onSaved }) {
                                 <button type="button" className="pm-opcion" onClick={() => set('is_featured', !form.is_featured)}>
                                     <span className="pm-opcion-txt">
                                         <span className="pm-opcion-t">Destacado</span>
-                                        <span className="pm-opcion-s">Aparece en la portada de la tienda.</span>
+                                        {/* Desde el 30 de agosto de 2026 esto es verdad: la
+                                            portada lee el catálogo. Antes prometía «aparece en la
+                                            portada» y la portada no leía nada — eran cinco fotos
+                                            de banco y tres colecciones escritas a mano. */}
+                                        <span className="pm-opcion-s">Va en el carrusel y es la cara de su categoría.</span>
                                     </span>
                                     <Palanca on={!!form.is_featured} />
                                 </button>
