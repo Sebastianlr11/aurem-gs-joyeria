@@ -710,6 +710,19 @@ Cosas que ya costaron un incidente. Léelas antes de tocar lo que describen.
   `--estados` los abre y los mide; sin él, una regresión ahí pasa con un «ni una diferencia»
   perfectamente creíble. Las dos tomas tienen que llevar la misma opción o `comparar` se
   planta.
+- **Una lectura pública a Supabase con cabeceras `apikey`/`Authorization` paga un viaje de
+  red de más.** Ninguna de las dos está en la lista de cabeceras inofensivas de CORS, así que
+  el navegador manda antes un `OPTIONS` y espera su respuesta para recién entonces pedir los
+  datos: medido en producción el 30 de agosto de 2026, **261 ms de preflight** delante de una
+  consulta de 194. Los GET públicos llevan la llave en la URL (`&apikey=…`) y ninguna
+  cabecera propia, que es lo que los convierte en peticiones «simples». **No les añadas
+  cabeceras**, ni siquiera un `Accept`, o vuelve el preflight. Los POST —`create-preference`,
+  las RPC— sí las llevan: siempre preflightean y no están en la ruta crítica.
+- **Los dos `preconnect` a Supabase de `index.html` sirven, aunque Lighthouse diga que no.**
+  Medido con el protocolo de Chrome sobre producción: la consulta del catálogo sale con dns,
+  conexión y TLS marcados como reusados —cero coste—, mientras que en esa misma carga el
+  favicon, que no está precalentado, paga 171 ms de conexión y 142 de TLS. El aviso de
+  «preconnect no utilizado» es un falso positivo aquí. **No los quites.**
 - **390px no basta para probar móvil.** El iframe es la única forma de medir de verdad
   el comportamiento en pantallas reales en esta sesión.
 - **Hay dos píxeles de Meta con el mismo nombre y sólo uno recibe eventos.** Verifica el

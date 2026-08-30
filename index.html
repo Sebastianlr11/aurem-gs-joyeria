@@ -25,9 +25,17 @@
 
          Son dos líneas y no una a propósito: el navegador guarda por separado
          la conexión anónima —las fotos, que van en un <img> normal— de la que
-         lleva credenciales —el fetch del catálogo, que manda cabeceras y por
-         tanto es CORS—. Con una sola, la otra abre su propia conexión desde
-         cero. Es el mismo motivo por el que Google Fonts pide dos.
+         usa una petición CORS —el fetch del catálogo y el de la pieza—. Con
+         una sola, la otra abre su propia conexión desde cero. Es el mismo
+         motivo por el que Google Fonts pide dos.
+
+         Y sirven, aunque Lighthouse diga que no. Medido el 30 de agosto de
+         2026 sobre producción, con el protocolo de Chrome: la consulta del
+         catálogo sale a los 350 ms con dns, conexión y TLS marcados como
+         reusados —cero coste—, mientras que el favicon, que no está
+         precalentado, paga 171 ms de conexión y 142 de TLS en esa misma
+         carga. El aviso de Lighthouse en este caso es un falso positivo:
+         **no los quites.**
 
          Vite sustituye la variable al compilar. -->
     <link rel="preconnect" href="%VITE_SUPABASE_URL%" />
@@ -89,8 +97,13 @@
         window.__pieza = {
           id: ruta[1],
           promesa: fetch(
-            url + '/rest/v1/products?select=id,name,category,description,price,compare_price,image_url,images,metal,piedra,talla_rango,stock,is_new,is_featured&id=eq.' + ruta[1],
-            { headers: { apikey: clave, Authorization: 'Bearer ' + clave } }
+            url + '/rest/v1/products?select=id,name,category,description,price,compare_price,image_url,images,metal,piedra,talla_rango,stock,is_new,is_featured&id=eq.' + ruta[1] + '&apikey=' + clave
+            /* La llave en la URL y ni una cabecera: `apikey` y
+               `Authorization` obligan al navegador a pedir permiso antes con
+               un OPTIONS, y ese viaje de red se metía aquí, entre el HTML y
+               la foto de la pieza —que es el LCP de la ficha—. Justo lo que
+               este adelanto viene a evitar. Medido en producción el 30 de
+               agosto de 2026: 261 ms de preflight. */
           )
             .then(function (r) { return r.ok ? r.json() : null })
             .then(function (filas) { return (filas && filas[0]) || null })
