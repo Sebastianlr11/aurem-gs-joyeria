@@ -34,6 +34,8 @@ Googlebot                 →  NO se desvía (a propósito)
 | `src/lib/meta.js:19-32` | Guarda los valores originales una sola vez |
 | `src/lib/meta.js:57-84` | `ponerMeta()` — **devuelve la función de limpieza** |
 | `src/lib/meta.js:91-144` | `ponerProductoJsonLd()` — `schema.org/Product` |
+| `src/lib/meta.js` | `migasDePieza()` / `ponerMigasJsonLd()` — `BreadcrumbList` |
+| `src/lib/preguntas.js` | Las 6 preguntas y su `FAQPage`, que publica `Faq.jsx` |
 | `src/lib/meta.js:101-104` | Deduplica imágenes con un `Set` |
 | `src/lib/meta.js:125-128` | `stock === null` cuenta como `InStock` |
 | `src/lib/meta.js:132-133` | `offers.url` con `www`, para coincidir con la canónica |
@@ -86,6 +88,37 @@ sólo las rutas fijas.
 **Las fuentes se precargan y se autoalojan** (`index.html:14-15`). Ver
 [diseno-y-frontend.md](diseno-y-frontend.md): el elemento LCP es el logo del navbar, que es
 texto en Marcellus.
+
+### Tres datos estructurados, y por qué esos tres
+
+Desde el 30 de agosto de 2026 el sitio publica tres bloques de schema.org, y cada uno
+responde a una pregunta distinta:
+
+| Bloque | Dónde | Para qué |
+|---|---|---|
+| `JewelryStore` | portada (`Home.jsx`) | Quién es la tienda: dónde está, a qué país vende y por qué número se le escribe |
+| `FAQPage` | portada (`Faq.jsx` ← `src/lib/preguntas.js`) | Las seis respuestas, para que quien pregunte «¿cuánto tarda un anillo a medida?» reciba la de la casa y no la de un foro |
+| `Product` + `BreadcrumbList` | ficha (`meta.js`) | La pieza y su sitio en el catálogo |
+
+**Las migas no son adorno: la URL de una ficha es un UUID.** Debajo del título, en el
+resultado de Google, va o `auremgsjoyeria.com/catalogo/235cde01-0649-4b7a…` —que no dice
+nada y ocupa dos líneas— o `auremgsjoyeria.com › Catálogo › Anillos`, si se le dan las
+migas. El último peldaño va sin `item` a propósito: es la página donde ya estás.
+
+**El `FAQPage` se arma de la misma lista que pinta el acordeón**, no de un texto aparte, y
+hay una prueba que lo comprueba. Publicar una respuesta que la página no enseña —o
+enseñarla recortada— es contenido oculto para Google, y cuesta la ficha enriquecida entera.
+
+**Lo que deliberadamente NO se publica:**
+
+- **`aggregateRating`.** Las reseñas de la portada son inventadas y así está decidido. Una
+  estrella en el resultado de Google que no venga de una reseña real es una violación de
+  sus políticas, además de una mentira que sí se ve.
+- **`hasMerchantReturnPolicy` y `shippingDetails`.** El retracto es de **5 días hábiles** y
+  el esquema sólo admite un número de días corridos: no hay forma de decirlo sin
+  redondear el derecho de la clienta, ni hacia arriba ni hacia abajo. Y el envío depende de
+  la ciudad y de si paga en línea o con abono. Se quedan fuera hasta que se puedan decir
+  exactos.
 
 ## Límites conocidos y pendientes
 

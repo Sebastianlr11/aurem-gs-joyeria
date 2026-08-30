@@ -23,7 +23,13 @@ const orgJsonLd = {
        catálogo y la pantalla de pago; el dato estructurado se había quedado
        atrás justo donde nadie lo mira. */
     description: 'Joyería en oro 18k y plata 925 con esmeralda colombiana natural. Anillos y dijes de catálogo, y piezas a medida hechas en nuestro taller. Envío a toda Colombia.',
-    address: { '@type': 'PostalAddress', addressCountry: 'CO' },
+    address: { '@type': 'PostalAddress', addressCountry: 'CO', addressLocality: 'Bogotá' },
+    /* El WhatsApp, que es por donde entra todo. Va aquí porque es la pregunta
+       que un asistente responde peor si no se la damos —«¿cómo contacto a
+       Aurem Gs?»— y porque es el mismo número que ya está en el botón
+       flotante y en la sección de contacto, no un dato nuevo. */
+    telephone: '+573115761896',
+    areaServed: { '@type': 'Country', name: 'Colombia' },
     priceRange: '$$',
     sameAs: ['https://www.instagram.com/auremgsjoyeria'],
 };

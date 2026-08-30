@@ -14,7 +14,7 @@ import { initMercadoPago } from '@mercadopago/sdk-react';
 initMercadoPago(import.meta.env.VITE_MP_PUBLIC_KEY, { locale: 'es-CO' });
 import ProductCard from '../components/catalog/ProductCard';
 import { pixelVerPieza, pixelIniciarPago } from '../lib/pixeles'
-import { ponerMeta, ponerProductoJsonLd } from '../lib/meta'
+import { ponerMeta, ponerProductoJsonLd, ponerMigasJsonLd } from '../lib/meta'
 import { tituloDePieza } from '../lib/tituloPieza'
 import { refDe } from '../lib/referencia'
 import { datosDeAtribucion } from '../lib/atribucion';
@@ -972,7 +972,10 @@ const ProductPage = () => {
             tipo: 'product',
         });
         const soltarJsonLd = ponerProductoJsonLd(product);
-        return () => { soltarMeta(); soltarJsonLd(); };
+        /* Las migas van aparte del producto porque son otro tipo de dato, y
+           porque son las que le quitan el UUID al resultado de Google. */
+        const soltarMigas = ponerMigasJsonLd(product);
+        return () => { soltarMeta(); soltarJsonLd(); soltarMigas(); };
     }, [product]);
 
     useEffect(() => {

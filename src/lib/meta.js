@@ -148,3 +148,59 @@ export function ponerProductoJsonLd(pieza) {
 
   return () => document.getElementById(id)?.remove();
 }
+
+/**
+ * Las migas de pan de una pieza, para el resultado de Google.
+ *
+ * No es adorno: **la URL de una ficha es un UUID**. En el resultado de
+ * búsqueda, debajo del título, Google enseña o la dirección —
+ * `auremgsjoyeria.com/catalogo/235cde01-0649-4b7a…`, que no dice nada y ocupa
+ * dos líneas— o las migas, si se las damos. Con esto enseña
+ * `auremgsjoyeria.com › Catálogo › Anillos`.
+ *
+ * Se corresponde con lo que la ficha sí tiene a la vista: el botón de volver
+ * al catálogo y el antetítulo con la categoría. Marcar un camino que la
+ * página no enseña es justo lo que Google penaliza.
+ */
+export function migasDePieza(pieza) {
+  if (!pieza?.id) return null;
+
+  const camino = [
+    { nombre: 'Inicio', ruta: '/' },
+    { nombre: 'Catálogo', ruta: '/catalogo' },
+    pieza.category ? { nombre: pieza.category, ruta: `/catalogo?categoria=${encodeURIComponent(pieza.category)}` } : null,
+    /* El último peldaño es la página donde ya estás. Va sin `item`: así lo
+       pide el esquema, y sin eso Google lo cuenta como un enlace a sí misma. */
+    { nombre: pieza.name || 'La pieza' },
+  ].filter(Boolean);
+
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: camino.map((paso, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      name: paso.nombre,
+      ...(paso.ruta ? { item: `${RAIZ}${paso.ruta}` } : {}),
+    })),
+  };
+}
+
+/** Las migas puestas en el `<head>`, con su limpieza, como el resto. */
+export function ponerMigasJsonLd(pieza) {
+  if (typeof document === 'undefined') return () => {};
+
+  const id = 'jsonld-migas';
+  document.getElementById(id)?.remove();
+
+  const datos = migasDePieza(pieza);
+  if (!datos) return () => {};
+
+  const s = document.createElement('script');
+  s.id = id;
+  s.type = 'application/ld+json';
+  s.textContent = JSON.stringify(datos);
+  document.head.appendChild(s);
+
+  return () => document.getElementById(id)?.remove();
+}
