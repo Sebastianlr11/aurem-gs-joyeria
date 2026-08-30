@@ -35,10 +35,28 @@
 const URL_BASE = import.meta.env.VITE_SUPABASE_URL
 const CLAVE = import.meta.env.VITE_SUPABASE_ANON_KEY
 
+/* Sólo para los POST. Los GET NO las mandan, y es a propósito — ver `leer()`. */
 const cabeceras = {
   apikey: CLAVE,
   Authorization: `Bearer ${CLAVE}`,
 }
+
+/* La llave va en la URL y no en una cabecera.
+
+   Medido en producción el 30 de agosto de 2026: `apikey` y `Authorization`
+   no están en la lista de cabeceras que CORS considera inofensivas, así que
+   el navegador **preguntaba antes con un OPTIONS** y esperaba su respuesta
+   para recién entonces mandar el GET. En la portada eran 261 ms de preflight
+   delante de una consulta de 194 ms; en la ficha, un viaje de red entero
+   metido justo entre el HTML y la foto de la pieza, que es el LCP.
+
+   Sin cabeceras propias el GET es una petición «simple» y el preflight
+   desaparece. La llave anónima ya viaja dentro del bundle público —todo lo
+   que empieza por `VITE_` acaba ahí—, así que ponerla en la URL no la expone
+   más de lo que ya estaba; lo que decide qué se puede leer es RLS. Lo que sí
+   cambia es que ahora aparece en registros de servidor y en el historial del
+   navegador, y por eso esto vale para lecturas públicas y para nada más. */
+const conLlave = (consulta) => consulta + (consulta.includes('?') ? '&' : '?') + `apikey=${CLAVE}`
 
 /* Las columnas se nombran, nunca `select=*`.
 
@@ -68,7 +86,7 @@ export const COLUMNAS_DE_PIEZA =
  */
 async function leer(consulta) {
   try {
-    const res = await fetch(`${URL_BASE}/rest/v1/${consulta}`, { headers: cabeceras })
+    const res = await fetch(`${URL_BASE}/rest/v1/${conLlave(consulta)}`)
     if (!res.ok) {
       const cuerpo = await res.json().catch(() => null)
       return { data: null, error: { message: cuerpo?.message || `Supabase respondió ${res.status}` } }

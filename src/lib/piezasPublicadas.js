@@ -56,9 +56,12 @@ function traer() {
      que se quede abierta esperando novedades, y quien vuelva a ella desde el
      catálogo prefiere que no parpadee a que le enseñe la pieza que se subió
      hace treinta segundos. */
-  enCurso ??= fetch(`${URL_BASE}/rest/v1/products?${CONSULTA}`, {
-    headers: { apikey: CLAVE, Authorization: `Bearer ${CLAVE}` },
-  })
+  /* La llave en la URL y ni una cabecera propia: así el GET es una petición
+     «simple» y el navegador no manda el OPTIONS de preflight por delante.
+     Medido el 30 de agosto de 2026 en producción, ese preflight eran 261 ms
+     esperando permiso para recién entonces pedir el catálogo. Ver el
+     comentario largo en `apiPublica.js`. */
+  enCurso ??= fetch(`${URL_BASE}/rest/v1/products?${CONSULTA}&apikey=${CLAVE}`)
     .then((res) => {
       if (!res.ok) throw new Error(`Supabase respondió ${res.status}`)
       return res.json()
