@@ -1,0 +1,1258 @@
+/* ================================================================
+   La ficha de pieza — `/catalogo/:id`
+
+   Vivía en `src/index.css`, que bloquea el primer pintado en TODAS las rutas
+   —también en la portada, que no usa nada de esto—. PageSpeed lo cobraba: 300
+   ms de bloqueo de renderizado y 16 KiB de CSS sin usar. Esta pantalla ya se
+   carga aparte, así que ahora se trae su hoja con ella.
+
+   Se movió el 30 de agosto de 2026 sin tocar una sola declaración: los trozos
+   están en el mismo orden que tenían y con sus comentarios. Se comprobó
+   midiendo 8.930 elementos en nueve pantallas a cuatro anchos
+   (`scripts/huella-estilos.mjs`).
+
+   **Esta hoja se carga DESPUÉS de `index.css`**, así que a igual
+   especificidad gana lo de aquí. Es el mismo orden que tenían antes respecto
+   a todo lo que se quedó por encima; lo que estaba por debajo cambió de lado,
+   y por eso la comprobación de la huella no es opcional.
+   ================================================================ */
+
+/* ================================================================
+   PÁGINA DE PRODUCTO — "Ficha de pieza"
+   ================================================================ */
+.ficha {
+  background: var(--bg-marfil);
+  min-height: 100vh;
+  padding-bottom: 7rem;
+}
+
+
+.ficha-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 54fr) minmax(0, 46fr);
+  gap: 5rem;
+  align-items: start;
+}
+
+.ficha-galeria {
+  position: sticky;
+  top: 6.5rem;
+}
+
+.ficha-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.ficha-encabezado {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+}
+
+.ficha-ref {
+  font-size: 0.6875rem;
+  letter-spacing: 0.16em;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.ficha-nombre {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(2.25rem, 3.6vw, 3.25rem);
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  margin-top: 1.25rem;
+}
+
+.ficha-desc {
+  font-size: 1rem;
+  line-height: 1.65;
+  color: var(--text-secondary);
+  margin-top: 1.5rem;
+  max-width: 52ch;
+}
+
+.ficha-precio-bloque {
+  margin-top: 2.25rem;
+  padding: 1.75rem 0;
+  border-top: 1px solid var(--hairline);
+  border-bottom: 1px solid var(--hairline);
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.ficha-precio {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+}
+
+.ficha-precio-valor {
+  font-size: clamp(2.25rem, 4vw, 3rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.ficha-precio-moneda {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: var(--text-muted);
+}
+
+.ficha-precio-envio {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  text-align: right;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+
+/* Acciones */
+.ficha-acciones {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 2rem;
+}
+
+.ficha-btn-comprar {
+  width: 100%;
+  padding: 1.1875rem 2rem;
+  background: var(--ink);
+  color: var(--bg-color);
+  font-family: inherit;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  border: 0;
+  border-radius: 100px;
+  cursor: pointer;
+  transition: transform 0.3s var(--ease), background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.ficha-btn-comprar:hover {
+  background: var(--ink-soft);
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px rgba(28, 23, 20, 0.18);
+}
+
+.ficha-btn-wa {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 1.125rem 2rem;
+  background: transparent;
+  border: 1px solid var(--oro);
+  border-radius: 100px;
+  color: var(--oro-ink);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  transition: transform 0.3s var(--ease), background-color 0.3s ease;
+}
+
+.ficha-btn-wa:hover {
+  background: var(--bg-arena);
+  color: var(--oro-ink);
+  transform: translateY(-2px);
+}
+
+/* Relacionadas */
+.ficha-relacionadas {
+  border-top: 1px solid var(--hairline);
+}
+
+.ficha-relacionadas-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1.5rem;
+}
+
+.ficha-relacionadas-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--oro-ink);
+  white-space: nowrap;
+}
+
+.ficha-relacionadas-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 1.75rem;
+}
+
+@media (max-width: 968px) {
+  .ficha {
+    padding-top: 5rem;
+  }
+
+  .ficha-grid {
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+  }
+
+  .ficha-galeria {
+    position: static;
+  }
+
+  .ficha-precio-bloque {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .ficha-precio-envio {
+    text-align: left;
+  }
+
+  .ficha-relacionadas {
+    margin-top: 4rem;
+  }
+
+  .ficha-relacionadas-grid {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  }
+}
+
+/* ── Galería (reemplaza product-page-image-wrap) ── */
+.pg-gallery {
+  position: sticky;
+  top: 7rem;
+  height: 72vh;
+  min-height: 480px;
+  border-radius: 24px;
+  overflow: hidden;
+  background: linear-gradient(135deg, var(--bg-arena) 0%, var(--bg-arena) 100%);
+  display: flex;
+  flex-direction: column;
+}
+
+.pg-gallery-main {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+}
+
+.pg-gallery-main img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.8s cubic-bezier(0.16,1,0.3,1);
+}
+
+.pg-gallery:hover .pg-gallery-main img {
+  transform: scale(1.04);
+}
+
+/* Badges */
+.product-page-badges {
+  position: absolute;
+  top: 1.25rem;
+  left: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  z-index: 5;
+}
+
+/* Nav arrows */
+
+
+/* Thumbnail footer strip */
+
+.pg-gallery-thumbs {
+  display: flex;
+  gap: 0.45rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+  flex: 1;
+}
+.pg-gallery-thumbs::-webkit-scrollbar { display: none; }
+
+.pg-gallery-thumb {
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 2px solid rgba(255,255,255,0.2);
+  cursor: pointer;
+  padding: 0;
+  background: none;
+  transition: border-color 0.2s ease;
+}
+
+.pg-gallery-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.pg-gallery-thumb--active {
+  border-color: var(--accent-gold);
+}
+
+.pg-gallery-thumb:hover:not(.pg-gallery-thumb--active) {
+  border-color: rgba(255,255,255,0.5);
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .product-page-hero {
+    padding: 1.5rem 0 3rem;
+  }
+
+  .pg-gallery {
+    position: static;
+    aspect-ratio: 9 / 16;
+    height: auto;
+    min-height: unset;
+    max-height: 75vh;
+    border-radius: 16px;
+    margin: 0 auto;
+    width: 100%;
+    max-width: 400px;
+  }
+}
+
+/* ─── Ficha de producto: la banda oscura ─────────────────────────────
+   La pieza se ve sobre cacao y no sobre marfil. Una joya fotografiada sobre
+   fondo claro compite con el fondo; sobre cacao el metal y la piedra son lo
+   único que tiene luz, que es exactamente cómo se mira una pieza en un
+   mostrador. */
+.ficha { padding-top: 0; }
+
+.ficha-hero {
+  background: var(--ink);
+  color: var(--bg-color);
+  /* Este aire es el que despeja el navbar, que va fijo encima. Sin él la
+     banda oscura arranca debajo de la píldora de navegación y la pieza queda
+     estrangulada contra ella. */
+  padding-top: clamp(96px, 11vw, 132px);
+}
+.ficha-hero .eyebrow { color: var(--oro-luz); }
+.ficha-hero .eyebrow::before { background: var(--oro-luz); }
+.ficha-hero .ficha-ref { color: rgba(255, 255, 255, 0.45); }
+.ficha-hero .ficha-nombre { color: var(--bg-color); }
+.ficha-hero .ficha-nombre em { color: var(--oro-luz); }
+.ficha-hero .ficha-desc { color: rgba(255, 255, 255, 0.72); }
+.ficha-hero .ficha-precio-valor { color: var(--bg-color); }
+.ficha-hero .ficha-precio-moneda,
+.ficha-hero .ficha-precio-envio { color: rgba(255, 255, 255, 0.6); }
+.ficha-hero .ficha-precio-bloque{ border-color: rgba(255, 255, 255, 0.14); }
+
+.ficha-hero .ficha-btn-comprar { background: var(--bg-marfil); color: var(--ink); }
+.ficha-hero .ficha-btn-comprar:hover { background: var(--bg-color); }
+.ficha-hero .ficha-btn-wa { border-color: var(--oro-luz); color: var(--oro-luz); background: transparent; }
+.ficha-hero .ficha-btn-wa:hover { background: rgba(227, 201, 144, 0.08); }
+
+/* ─── La ficha del joyero ────────────────────────────────────────────
+   El documento que respalda la compra. Sale de la columna del precio, donde
+   se leía como letra chica pegada al botón, y pasa a ser una pieza de ancho
+   completo con su propio papel. */
+.joyero { background: var(--bg-marfil); padding: clamp(40px, 6vw, 80px) 0 clamp(24px, 3vw, 40px); }
+
+/* La ficha se apoya en el marfil. La tarjeta blanca con borde y sombra
+   encerraba un documento que ya se sostiene con sus propias líneas de pelo,
+   y el marco competía con el de la propia sección.
+   Sin tarjeta, el margen negativo de la franja de pagos ya no se mide contra
+   el relleno de la caja sino contra el del contenedor, que cambia con el
+   ancho. Va en variable y se declara en la sección para que la franja la
+   herede: si no resuelve, el atajo entero se invalida y los márgenes caen
+   a cero. */
+.joyero { --joyero-pad: 4rem; }
+
+/* Los cortes van aquí y no junto a los del contenedor: allí quedaban ocho mil
+   líneas por encima de la declaración base y perdían por orden, así que la
+   franja seguía saliéndose 44px por cada lado en el celular. */
+@media (max-width: 968px) { .joyero { --joyero-pad: 2rem; } }
+@media (max-width: 600px) { .joyero { --joyero-pad: 1.25rem; } }
+
+.joyero-cabeza {
+  display: flex;
+  flex-wrap: wrap;
+  /* Al pie y no a la línea base: el titular tiene dos renglones y los
+     punzones uno; alineados por la base, los punzones flotaban a media
+     altura del titular. */
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  padding-bottom: clamp(32px, 4vw, 56px);
+  margin-bottom: 0;
+}
+.joyero-cabeza h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+}
+.joyero-cabeza h2 em {
+  display: block;
+  font-style: normal;
+  font-size: 62%;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.joyero-lista {
+  display: grid;
+  /* Dos columnas exactas, no auto-fit: con minmax de 340px la rejilla armaba
+     tres columnas en una pantalla ancha y las ocho filas caían 3-3-2, con la
+     última fila coja y los datos en zigzag. Con dos, van cuatro y cuatro. */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: clamp(32px, 6vw, 96px);
+  margin: 0;
+  border-top: 1px solid var(--hairline);
+}
+.joyero-lista > div {
+  display: grid;
+  /* Columna fija para la etiqueta: con auto, cada fila medía distinto según
+     la palabra —"Metal" contra "Certificado"— y los valores quedaban en
+     zigzag entre las dos columnas. */
+  grid-template-columns: 116px 1fr;
+  gap: 8px 24px;
+  align-items: baseline;
+  padding: 17px 0;
+  border-bottom: 1px solid var(--hairline);
+}
+@media (max-width: 860px) {
+  .joyero-lista { grid-template-columns: minmax(0, 1fr); }
+}
+
+.joyero-lista dt {
+  font-family: var(--font-ui);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1.5;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.joyero-lista dd {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: 1rem;
+  line-height: 1.5;
+  /* A la izquierda, pegado a su etiqueta. Alineado a la derecha, el ojo
+     tenía que cruzar el vacío de la fila para emparejar dato y nombre. */
+  text-align: left;
+  color: var(--ink);
+}
+
+/* ─── Cómo pagas: el pie de la ficha del joyero ──────────────────────
+   Franja de arena a sangre, que cierra el documento. Antes era una etiqueta
+   pegada al borde izquierdo y los logos al derecho, con un vacío de un palmo
+   en medio y nada que explicara qué significaban. */
+.joyero-pagos {
+  margin: clamp(24px, 3vw, 30px) calc(var(--joyero-pad) * -1) 0;
+  padding: clamp(24px, 3vw, 30px) var(--joyero-pad) clamp(26px, 3.2vw, 32px);
+  background: var(--bg-arena);
+  border-top: 1px solid var(--hairline);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(20px, 2.4vw, 26px);
+}
+
+/* Filete de oro a los dos lados: el antetítulo va centrado y con uno solo
+   quedaría descolgado. */
+.joyero-pagos-titulo {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-family: var(--font-ui);
+  font-size: 0.68rem;
+  font-weight: 400;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--oro-ink);
+}
+.joyero-pagos-titulo::before,
+.joyero-pagos-titulo::after {
+  content: '';
+  width: 34px;
+  height: 1px;
+  background: var(--oro);
+  flex: none;
+}
+
+.joyero-formas {
+  display: grid;
+  grid-template-columns: 1fr 1px 1fr;
+  gap: 36px;
+  align-items: start;
+  width: 100%;
+  max-width: 860px;
+}
+
+.joyero-formas-linea { background: var(--hairline); align-self: stretch; }
+
+.joyero-forma {
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.joyero-forma-icono {
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--oro-hairline);
+  border-radius: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.joyero-forma-t {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  line-height: 1.2;
+  color: var(--ink);
+}
+
+.joyero-forma-s {
+  margin: 7px 0 0;
+  font-size: 0.86rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  text-wrap: pretty;
+}
+
+/* Fichas del mismo tamaño exacto. Sueltos y a su altura natural cada logo
+   pesaba distinto —Visa ancha, Nequi alta— y la fila se leía desordenada. */
+.joyero-logos {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+}
+
+.joyero-logo {
+  width: 62px;
+  height: 39px;
+  padding: 5px;
+  border: 1px solid var(--hairline);
+  border-radius: 2px;
+  background: var(--bg-color);
+  overflow: hidden;
+  box-sizing: border-box;
+  transition: border-color 0.3s var(--ease);
+}
+.joyero-logo:hover { border-color: var(--oro-hairline); }
+.joyero-logo img { width: 100%; height: 100%; object-fit: contain; display: block; }
+
+.joyero-seguro {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+@media (max-width: 768px) {
+  .joyero-pagos-titulo { font-size: 0.64rem; letter-spacing: 0.2em; gap: 12px; }
+  .joyero-pagos-titulo::before,
+  .joyero-pagos-titulo::after { width: 20px; }
+
+  /* En una columna la línea vertical no separa nada; separa el filete de
+     pelo debajo de la primera forma. */
+  .joyero-formas { grid-template-columns: 1fr; gap: 18px; }
+  .joyero-formas-linea { display: none; }
+  .joyero-forma:first-child {
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  .joyero-forma { grid-template-columns: 40px 1fr; gap: 14px; }
+  .joyero-forma-icono { width: 40px; height: 40px; }
+  .joyero-forma-t { font-size: 1.05rem; }
+  .joyero-forma-s { font-size: 0.82rem; }
+
+  /* Rejilla y no fila: con ocho fichas envueltas la última línea quedaba
+     coja y descentrada. */
+  .joyero-logos { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; width: 100%; }
+  .joyero-logo { width: auto; height: 44px; }
+
+  .joyero-seguro { font-size: 0.78rem; }
+}
+
+/* ─── La barra fija ──────────────────────────────────────────────────
+   En el móvil el botón de comprar queda arriba y se pierde apenas la persona
+   baja a leer la ficha. Sin esto hay que volver a subir, y mucha gente no
+   vuelve. */
+.ficha-barra {
+  /* Fija y no pegajosa. Con sticky, al llegar al final de su contenedor el
+     navegador la "despega" y la deja plantada en el flujo: quedaba a media
+     página, con los botones del riel cortados encima y un campo de marfil
+     vacío debajo. Fija vive siempre en el borde de la pantalla. */
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  background: var(--ink-soft);
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.ficha-barra-fila {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 24px;
+  padding-top: 14px;
+  padding-bottom: 14px;
+}
+.ficha-barra-precio { flex: 1 1 140px; min-width: 0; }
+.ficha-barra-precio > div { display: flex; align-items: baseline; gap: 6px; }
+.ficha-barra-precio span {
+  font-family: var(--font-ui);
+  font-size: 1.35rem;
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  color: var(--bg-color);
+  font-variant-numeric: tabular-nums;
+}
+.ficha-barra-precio small {
+  font-family: var(--font-ui);
+  font-size: 0.65rem;
+  letter-spacing: 0.14em;
+  color: rgba(255, 255, 255, 0.5);
+}
+.ficha-barra-nota {
+  display: block;
+  margin-top: 3px;
+  font-family: var(--font-ui);
+  font-size: 0.78rem !important;
+  font-weight: 400 !important;
+  line-height: 1.3;
+  letter-spacing: 0 !important;
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+
+.ficha-barra-acciones { display: flex; gap: 10px; flex: 1 1 260px; }
+.ficha-barra-comprar {
+  flex: 1;
+  height: 52px;
+  border: none;
+  border-radius: 100px;
+  background: var(--bg-marfil);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+.ficha-barra-comprar:hover { background: var(--bg-color); transform: translateY(-2px); }
+.ficha-barra-wa {
+  flex: none;
+  width: 52px;
+  height: 52px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--oro-luz);
+  border-radius: 100px;
+  background: transparent;
+  transition: var(--transition-smooth);
+}
+.ficha-barra-wa:hover { background: rgba(227, 201, 144, 0.08); }
+
+@media (prefers-reduced-motion: reduce) {
+  .ficha-barra-comprar:hover { transform: none; }
+}
+
+/* ─── Qué incluye el precio ──────────────────────────────────────────
+   Contra la objeción que no se dice en voz alta: por qué esto cuesta lo que
+   cuesta. Cada columna nombra una cosa que está en la pieza y que no se ve en
+   una foto. */
+.incluye { margin-top: clamp(48px, 6vw, 96px); }
+.incluye .eyebrow { margin-bottom: clamp(28px, 3vw, 40px); }
+
+.incluye-grid {
+  display: grid;
+  /* 200 y no 230: al entrar la sección dentro de la tarjeta perdió los 80px
+     del relleno y con 230 los cuatro datos ya no cabían en una fila —el
+     cuarto caía solo debajo y dejaba de leerse como un conjunto. */
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+  gap: clamp(20px, 3vw, 32px);
+}
+.incluye-grid > div { padding-top: 24px; border-top: 1px solid var(--hairline); }
+
+/* Los títulos en la romana: son cuatro promesas, no cuatro etiquetas. */
+.incluye-t {
+  margin: 18px 0 8px;
+  font-family: var(--font-display);
+  font-size: 1.1875rem;
+  font-weight: 400;
+  line-height: 1.25;
+  color: var(--ink);
+}
+.incluye-s {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  text-wrap: pretty;
+}
+
+/* Lo que no incluye. Con la misma línea de pelo que separa lo demás, para
+   que se lea como una fila más de la ficha y no como letra chica. */
+.incluye-no {
+  margin: clamp(28px, 3vw, 40px) 0 0;
+  padding-top: 20px;
+  border-top: 1px solid var(--hairline);
+  font-family: var(--font-ui);
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+.incluye-no > span {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--oro-ink);
+  margin-right: 12px;
+}
+
+/* ─── Galería sobre cacao ────────────────────────────────────────────
+   La pieza a sangre, sin tarjeta ni esquinas redondeadas. La barra clara de
+   miniaturas que iba abajo partía el fondo oscuro en dos y le quitaba a la
+   joya el único sitio donde tiene toda la luz. */
+.ficha-hero .pg-gallery {
+  background: var(--ink);
+  /* Contra el alto de la pantalla y no contra el ancho: hay que descontar el
+     navbar de arriba y la barra de compra de abajo, o la pieza se sale por el
+     borde inferior y la primera impresión se pierde. */
+  height: clamp(360px, calc(100vh - 300px), 580px);
+  min-height: 0;
+}
+
+/* Hijo directo, no cualquier img: las miniaturas viven dentro de este mismo
+   contenedor, y este relleno de 48px sobre un cuadro de 58px no les dejaba
+   sitio para la imagen. Se veían vacías. */
+.ficha-hero .pg-gallery-main > img {
+  /* contain y no cover: recortar un anillo por los bordes es perder
+     justamente lo que la persona vino a mirar. */
+  object-fit: contain;
+  background: var(--ink);
+}
+.ficha-hero .pg-gallery-main:hover > img { transform: none; }
+
+/* Volver, arriba a la izquierda y encima de la foto. Estaba suelto sobre el
+   fondo, ocupando una franja entera para una sola línea. */
+.pg-volver {
+  position: absolute;
+  left: clamp(16px, 3vw, 32px);
+  top: clamp(16px, 3vw, 32px);
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 18px 11px 14px;
+  border-radius: 100px;
+  background: var(--ink-soft);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: var(--bg-color);
+  font-family: var(--font-ui);
+  font-size: 0.82rem;
+  line-height: 1;
+  text-decoration: none;
+  transition: var(--transition-smooth);
+}
+.pg-volver:hover { background: var(--ink); border-color: var(--oro-luz); color: var(--oro-luz); }
+
+/* Miniaturas verticales, arriba a la derecha. */
+.ficha-hero .pg-gallery-thumbs {
+  position: absolute;
+  z-index: 3;
+  display: flex;
+  gap: 10px;
+}
+.ficha-hero .pg-gallery-thumb {
+  width: 58px;
+  height: 58px;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 2px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: var(--ink);
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+.ficha-hero .pg-gallery-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ficha-hero .pg-gallery-thumb:hover { border-color: rgba(227, 201, 144, 0.6); }
+.ficha-hero .pg-gallery-thumb--active { border-color: var(--oro-luz); }
+
+/* Las insignias bajan: arriba chocaban con el botón de volver. */
+
+@media (max-width: 900px) {
+  .ficha-hero .pg-gallery { position: static; height: clamp(320px, 56vh, 460px); }
+  .ficha-hero .pg-gallery-thumbs { flex-direction: row; top: auto; bottom: 16px; right: 16px; }
+  .ficha-hero .pg-gallery-thumb { width: 48px; height: 48px; }
+  .ficha-hero .product-page-badges { bottom: auto; top: 76px; }
+}
+
+/* La descripción de venta, en la ficha del joyero. Arriba competía con el
+   precio y la talla; acá se lee con calma, que es cuando convence. */
+
+/* ─── La ficha a sangre ──────────────────────────────────────────────
+   La pieza ocupa media pantalla completa, sin marco ni márgenes. Encerrada en
+   una caja con aire alrededor se leía como una foto pegada en un documento;
+   a sangre es una vitrina. */
+.ficha-hero {
+  /* El aire de arriba se lo queda la columna de texto, no la banda: la foto
+     pasa por debajo del navbar a propósito. */
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.ficha-hero .ficha-grid {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0;
+  align-items: stretch;
+  /* Exactamente la pantalla. Con un piso menor sobraba sitio abajo y se
+     asomaba una franja marfil de la ficha del joyero: la primera pantalla
+     dejaba de ser una sola cosa. La siguiente sección empieza al hacer
+     scroll, no antes. */
+  min-height: 100vh;
+}
+
+.ficha-hero .ficha-galeria { position: relative; top: auto; display: block; }
+
+/* El marco cuadrado. Antes no tenía altura definida y el contenedor se
+   estiraba a la forma del archivo —9:16, cuadro de reel—, así que el cover
+   no recortaba nada: la joya salía con una franja negra encima, su propio
+   reflejo debajo, y la banda oscura crecía a 1500px de alto arrastrando una
+   columna de texto vacía al lado. */
+.ficha-hero .pg-gallery {
+  border: none;
+  border-radius: 0;
+  /* El diseño viejo capaba la galería a 400px y la centraba dentro de una
+     media query de 900px. Se anula aquí y no solo en la de móvil, porque
+     entre 769 y 900 —tablets— seguía aplicando y dejaba la misma franja. */
+  max-width: none;
+  margin: 0;
+  /* La foto sale del flujo y llena su columna. Con height:100% no bastaba:
+     la fila se dimensionaba por la foto y la foto por la fila —circular—, así
+     que el navegador dejaba mandar a la imagen y la banda crecía a 2400px.
+     Absoluta no aporta nada al alto de la fila, y la fila la fijan el
+     min-height de 100vh y la columna de texto. */
+  position: absolute;
+  inset: 0;
+  height: auto;
+  aspect-ratio: auto;
+  min-height: 0;
+  max-height: none;
+}
+
+/* cover y sin relleno: la foto llena su mitad. El contain con 48px de aire
+   dejaba la pieza pequeña en el centro de un cuadro vacío, y el recuadro se
+   veía como una foto pegada encima del fondo en vez de ser el fondo. */
+.ficha-hero .pg-gallery-main > img {
+  object-fit: cover;
+  /* 35% y no el centro. Las fotos vienen encuadradas para reel: la pieza
+     ocupa el tercio de arriba y el cuarto de abajo es el reflejo sobre la
+     mesa. Recortando por el centro entraba el reflejo y se iba parte de la
+     joya; subiendo la ventana, la pieza queda centrada en el cuadrado. */
+  object-position: center 35%;
+  padding: 0;
+}
+
+.ficha-hero .ficha-info {
+  /* 64px arriba, no 132: aquellos eran despeje del navbar, que ya no está. */
+  padding: clamp(40px, 5vw, 64px) clamp(24px, 4vw, 56px);
+}
+
+/* El nombre partido: el tipo de pieza en la romana y el nombre propio en
+   versalitas espaciadas debajo. Es el mismo gesto de los demás titulares. */
+.ficha-hero .ficha-nombre em {
+  display: block;
+  margin-top: 0.35em;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 0.62em;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 768px) {
+  .ficha-hero .ficha-grid { grid-template-columns: 1fr; }
+  /* En móvil el cuadrado ya lo da el ancho de la pantalla; solo hay que
+     evitar que se coma el viewport entero y deje los botones fuera. */
+
+  /* Volver y miniaturas pegados al borde de la foto. El despeje del navbar
+     en móvil lo da el aire de la página, así que los 84px de escritorio se
+     sumaban a ese aire y dejaban el botón flotando a media foto. */
+  .ficha-hero .pg-volver,
+  .ficha-hero .pg-gallery-thumbs { top: 16px; }
+}
+
+/* Las garantías sobre cacao. Se quedaron con el fondo marfil de cuando la
+   ficha era clara, y encima el texto se pasó a blanco: blanco sobre marfil,
+   invisible. Sobre oscuro el panel no necesita fondo — basta la retícula de
+   líneas de pelo en blanco tenue. */
+
+/* Volver y miniaturas despejan el navbar. Al ir la foto a sangre quedaron a
+   la misma altura que la píldora de navegación, peleando con ella. */
+.ficha-hero .pg-volver { top: clamp(16px, 2.5vw, 28px); }
+
+
+/* La etiqueta "Nuevo" sobre la foto. Se había quedado sin estilo —texto
+   blanco de 16px suelto encima del reflejo, que se lee como un descuido, no
+   como una etiqueta. Sobre cacao va con la misma cara que los punzones. */
+.ficha-hero .product-page-badges {
+  position: absolute;
+  z-index: 3;
+  display: flex;
+  gap: 8px;
+}
+
+/* La barra de compra entra y sale deslizándose. Está fuera de cuadro por
+   defecto y solo sube cuando el botón "Comprar ahora" de la ficha ya no se
+   ve; mientras el botón real está en pantalla, la barra sobra y además le
+   come una franja a la foto. */
+.ficha-barra {
+  transform: translateY(110%);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.45s var(--ease), opacity 0.3s ease;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ficha-barra { transform: none; transition: opacity 0.2s ease; }
+}
+
+/* ─── La ficha a pantalla completa ───────────────────────────────────
+   Sin navbar, la banda oscura es toda la primera pantalla. */
+
+/* Miniaturas en fila abajo a la izquierda, contador en la esquina opuesta.
+   Verticales arriba a la derecha se cruzaban con el arranque del texto. */
+.ficha-hero .pg-gallery-thumbs {
+  flex-direction: row;
+  top: auto;
+  right: auto;
+  bottom: clamp(16px, 2.5vw, 28px);
+  left: clamp(16px, 2.5vw, 28px);
+}
+
+.pg-gallery-contador {
+  position: absolute;
+  right: clamp(16px, 2.5vw, 28px);
+  bottom: clamp(22px, 3vw, 36px);
+  z-index: 3;
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.62);
+  font-variant-numeric: tabular-nums;
+}
+
+/* El sello "Nuevo" se pasa a la derecha: abajo a la izquierda ahora viven
+   las miniaturas. */
+.ficha-hero .product-page-badges {
+  left: auto;
+  right: clamp(16px, 3vw, 32px);
+  bottom: auto;
+  top: clamp(16px, 3vw, 32px);
+}
+
+/* Los dos botones a lo ancho, uno al lado del otro. Apilados a ancho completo
+   pesaban lo mismo, y solo uno es la acción principal. */
+.ficha-hero .ficha-acciones {
+  display: flex;
+  /* En fila y no en columna: el bloque base apila, y con flex:1 en dirección
+     columna los botones no se ensanchan sino que se estiran a lo alto. */
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.ficha-hero .ficha-btn-comprar,
+.ficha-hero .ficha-btn-wa {
+  flex: 1 1 180px;
+  width: auto;
+}
+
+/* Las promesas: una línea de datos separados por punto medio. */
+.ficha-promesas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 0;
+  margin: clamp(20px, 2.6vw, 30px) 0 0;
+  padding: clamp(18px, 2.2vw, 24px) 0 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  list-style: none;
+  font-family: var(--font-ui);
+  font-size: 0.8125rem;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.ficha-promesas li + li::before {
+  content: '·';
+  margin: 0 0.7em;
+  color: rgba(227, 201, 144, 0.5);
+}
+
+@media (max-width: 768px) {
+  /* Ya no hay navbar que despejar. */
+  .ficha { padding-top: 0; }
+
+  /* La foto vuelve al flujo. En escritorio va absoluta para no arrastrar el
+     alto de la fila, pero en una sola columna su contenedor se queda sin
+     nada que lo mida y colapsa a cero: la imagen desaparece. */
+  .ficha-hero .pg-gallery {
+    position: relative;
+    inset: auto;
+    min-height: 0;
+    /* A sangre. El diseño viejo capaba la galería a 400px y la centraba, así
+       que en cualquier teléfono más ancho que eso —414, 428, 430— la foto
+       quedaba con una franja de cacao a cada lado. Y las esquinas redondeadas
+       remataban el efecto de marco. */
+    max-width: none;
+    margin: 0;
+    border-radius: 0;
+}
+
+  .ficha-hero .ficha-grid { min-height: 0; }
+}
+
+/* El antetítulo de la ficha va sin el filete de oro: al lado del nombre en
+   romana, dos elementos dorados en la misma esquina se estorban. */
+.ficha-hero .ficha-encabezado .eyebrow::before { display: none; }
+.ficha-hero .ficha-encabezado .eyebrow { padding-left: 0; }
+
+/* Portátiles de pantalla baja. Con el ritmo de escritorio la columna mide
+   853px contra 778 de pantalla, y lo que queda debajo del pliegue son las
+   miniaturas y el contador: justo lo que dice que hay más de una foto.
+   Se aprieta el aire, no el contenido. */
+@media (min-width: 769px) and (max-height: 860px) {
+  .ficha-hero .ficha-info { padding-top: 36px; padding-bottom: 36px; }
+  .ficha-hero .ficha-nombre { margin-top: 14px; }
+  .ficha-hero .ficha-desc { margin-top: 18px; }
+  .ficha-hero .ficha-precio-bloque { margin-top: 24px; padding-top: 20px; }
+  .ficha-hero .ficha-tallas { margin-top: 22px; }
+  .ficha-hero .ficha-acciones { margin-top: 22px; }
+  .ficha-promesas { margin-top: 20px; padding-top: 16px; }
+}
+
+/* El texto centrado en su mitad. Ahora que el aire de arriba y el de abajo
+   son iguales, repartir la sobra se lee como margen y no como texto pegado
+   al techo con un hueco debajo. "safe" para que en una pantalla más baja que
+   el contenido se desborde hacia abajo y no se coma el antetítulo. */
+.ficha-hero .ficha-info { justify-content: safe center; }
+
+/* ─── Puntos, referencia y línea compacta ────────────────────────────
+   Piezas que solo existen en el celular; en escritorio se apagan abajo. */
+.pg-gallery-puntos {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 16px;
+  z-index: 3;
+  display: none;
+  justify-content: center;
+  /* 18px y no 7px: con el área de toque en 24px, un hueco menor haría que los
+     objetivos de dos puntos vecinos se solaparan, y un toque ambiguo es peor
+     que uno pequeño. Con 18px los centros quedan a 24px y se tocan sin
+     pisarse. */
+  gap: 18px;
+}
+
+.pg-gallery-punto {
+  width: 6px;
+  height: 6px;
+  padding: 0;
+  border: none;
+  /* El punto se ve de 6px y se toca de 24. Sin esto el objetivo real medía
+     6x6 —muy por debajo del mínimo de 24x24— y fallaba para cualquiera con
+     el pulso menos fino. El ::after es transparente: nada cambia en pantalla. */
+  position: relative;
+  border-radius: 100px;
+  background: rgba(255, 255, 255, 0.32);
+  cursor: pointer;
+  transition: width 0.3s var(--ease), background 0.3s ease;
+}
+.pg-gallery-punto::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 24px;
+  height: 24px;
+}
+.pg-gallery-punto--on { width: 18px; background: var(--oro-luz); }
+
+.pg-gallery-ref {
+  position: absolute;
+  right: 20px;
+  top: 26px;
+  z-index: 3;
+  display: none;
+  font-family: var(--font-ui);
+  font-size: 0.65rem;
+  font-weight: 400;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.ficha-resumen-corto { display: none; }
+
+@media (max-width: 768px) {
+  .ficha-hero .pg-gallery {
+    /* 470px de alto como el diseño, con techo por si el teléfono es bajo. */
+    aspect-ratio: auto;
+    height: min(470px, 56vh);
+    max-height: none;
+  }
+
+  /* Volver pasa a ser un círculo: en 390px de ancho la píldora con texto se
+     comía un tercio del borde de la foto. */
+  .ficha-hero .pg-volver {
+    top: 16px;
+    left: 20px;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    justify-content: center;
+    gap: 0;
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(28px);
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+  .ficha-hero .pg-volver-txt,
+  .ficha-hero .pg-gallery-thumbs,
+  .ficha-hero .pg-gallery-contador,
+  .ficha-hero .product-page-badges,
+  .ficha-hero .ficha-ref,
+  .ficha-hero .ficha-precio-envio { display: none; }
+
+  .pg-gallery-puntos,
+  .pg-gallery-ref { display: flex; }
+
+  .ficha-hero .ficha-info { padding: 8px 22px 24px; }
+
+  /* El precio sube por encima de la descripción: en el celular es el dato
+     que decide y con la descripción delante caía fuera de la pantalla. */
+  .ficha-hero .ficha-encabezado { order: 1; }
+  .ficha-hero .ficha-nombre { order: 2; margin-top: 12px; }
+  .ficha-hero .ficha-precio-bloque {
+    order: 3; margin-top: 18px;
+    /* Sin filetes: al reordenar, el de abajo quedaba entre el precio y la
+       línea de datos, partiendo en dos lo que es un solo bloque. */
+    padding: 0; border: none;
+  }
+  .ficha-hero .ficha-resumen-corto { order: 4; display: block; }
+  .ficha-hero .ficha-oferta { order: 5; }
+  .ficha-hero .ficha-desc { order: 6; }
+  .ficha-hero .ficha-tallas { order: 7; }
+  .ficha-hero .ficha-acciones { order: 8; }
+  .ficha-hero .ficha-promesas { order: 9; }
+
+  .ficha-resumen-corto {
+    margin: 10px 0 0;
+    font-family: var(--font-ui);
+    font-size: 0.82rem;
+    line-height: 1.5;
+    color: rgba(255, 255, 255, 0.66);
+  }
+
+  .ficha-hero .ficha-desc { margin-top: 26px; }
+
+  /* La barra de compra: los dos botones y nada más. El precio ya está a un
+     palmo arriba y repetirlo solo quita ancho al botón. */
+  .ficha-barra-precio { display: none; }
+  .ficha-barra-acciones { flex: 1; }
+  .ficha-barra {
+    background: rgba(42, 35, 30, 0.92);
+    backdrop-filter: blur(28px) saturate(1.2);
+  }
+}
+
+/* El navegador se queda con los gestos verticales (bajar la página) y nos
+   deja los horizontales, que son los de pasar foto. Sin esto el gesto
+   compite con el scroll y a veces no llega ninguno de los dos. */
+.pg-gallery-main { touch-action: pan-y; }
+.pg-gallery-punto { touch-action: manipulation; }
+
+/* ─── "Otras piezas" en la ficha ─────────────────────────────────────
+   Usa la misma tarjeta sin caja que el catálogo; aquí solo se ajusta el
+   encuadre. El bloque se capa a 1000px: a ancho completo la sección medía
+   904px en una pantalla de 900, más alta que el viewport entero para ser lo
+   último de la página. */
+.ficha-relacionadas {
+  max-width: 1000px;
+  margin-inline: auto;
+  margin-top: 3.5rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--hairline);
+}
+
+.ficha-relacionadas-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 2rem;
+}
+
+@media (max-width: 900px) {
+  /* Carril: la siguiente pieza asoma por el borde y eso dice que hay más,
+     sin gastar una pantalla entera en apilarlas. */
+  .ficha-relacionadas { max-width: none; }
+
+  /* El antetítulo y el enlace dejan de compartir renglón: en 390px el
+     antetítulo se partía en dos y chocaba con "Ver el catálogo". */
+  .ficha-relacionadas-head { flex-wrap: wrap; gap: 10px 1.5rem; }
+
+  .ficha-relacionadas-grid {
+    display: flex;
+    gap: 20px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+  .ficha-relacionadas-grid::-webkit-scrollbar { display: none; }
+
+  .ficha-relacionadas .pieza { flex: none; width: 258px; scroll-snap-align: start; }
+  .ficha-relacionadas .pieza-nombre { font-size: 1.25rem; }
+  .ficha-relacionadas .pieza-precio { font-size: 1.0625rem; }
+  /* La línea de metal y piedra se cae: en 258px de ancho parte el nombre del
+     precio y el carril deja de leerse de un vistazo. */
+  .ficha-relacionadas .pieza-ficha { display: none; }
+  .ficha-relacionadas .pieza-btn,
+  .ficha-relacionadas .pieza-wa { height: 48px; }
+  .ficha-relacionadas .pieza-wa { width: 48px; }
+}
+
+/* Al ser fija, la barra deja de ocupar sitio en el flujo y taparía el final
+   del pie de página. El hueco se lo reserva el pie, que en esta ruta es el
+   hermano que sigue a la ficha. */
+.ficha ~ .footer .footer-cierre {
+  padding-bottom: calc(1.75rem + 96px + env(safe-area-inset-bottom));
+}

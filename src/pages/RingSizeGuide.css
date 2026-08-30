@@ -1,0 +1,539 @@
+/* ================================================================
+   La guía de tallas — `/guia-de-tallas`
+
+   Vivía en `src/index.css`, que bloquea el primer pintado en TODAS las rutas
+   —también en la portada, que no usa nada de esto—. PageSpeed lo cobraba: 300
+   ms de bloqueo de renderizado y 16 KiB de CSS sin usar. Esta pantalla ya se
+   carga aparte, así que ahora se trae su hoja con ella.
+
+   Se movió el 30 de agosto de 2026 sin tocar una sola declaración: los trozos
+   están en el mismo orden que tenían y con sus comentarios. Se comprobó
+   midiendo 8.930 elementos en nueve pantallas a cuatro anchos
+   (`scripts/huella-estilos.mjs`).
+
+   **Esta hoja se carga DESPUÉS de `index.css`**, así que a igual
+   especificidad gana lo de aquí. Es el mismo orden que tenían antes respecto
+   a todo lo que se quedó por encima; lo que estaba por debajo cambió de lado,
+   y por eso la comprobación de la huella no es opcional.
+   ================================================================ */
+
+/* ================================================================
+   CATALOG — mobile
+   ================================================================ */
+
+/* ================================================================
+   RING SIZE GUIDE
+   ================================================================ */
+/* ================================================================
+   GUÍA DE TALLAS
+   ================================================================ */
+.talla {
+  background: var(--bg-marfil);
+  color: var(--ink);
+  min-height: 100vh;
+}
+
+/* Encabezado sobre cacao */
+.talla-head {
+  background: var(--ink);
+  padding: 8.5rem 4rem 9.5rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.talla-head-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.talla-head-eyebrow p {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--oro-luz);
+}
+
+.talla-rule {
+  display: block;
+  width: 32px;
+  height: 1px;
+  background: var(--oro);
+  opacity: 0.65;
+}
+
+.talla-titulo {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(2.5rem, 5.6vw, 4.5rem);
+  line-height: 1.04;
+  color: var(--bg-color);
+  max-width: 20ch;
+}
+
+.talla-titulo em {
+  display: block;
+  font-style: normal;
+  font-size: 0.62em;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--oro-luz);
+  margin-top: 0.35em;
+}
+
+.talla-lead {
+  max-width: 560px;
+  font-size: 1rem;
+  line-height: 1.65;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.talla-punzones {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.625rem;
+}
+
+/* Calculadora montada sobre el borde del encabezado */
+.talla-calc {
+  padding: 0 4rem;
+  margin-top: -6rem;
+}
+
+.talla-calc-card {
+  max-width: 920px;
+  margin: 0 auto;
+  background: var(--bg-color);
+  border: 1px solid var(--hairline);
+  border-radius: 2px;
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+}
+
+.talla-calc-medida {
+  padding: 2.5rem 2.5rem 2.75rem;
+}
+
+.talla-calc-input {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+.talla-calc-input input {
+  width: 150px;
+  padding: 0 0 0.625rem;
+  font-family: var(--font-ui);
+  font-size: 2.25rem;
+  font-weight: 300;
+  color: var(--ink);
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--oro-hairline);
+  border-radius: 0;
+  outline: none;
+  transition: border-color 0.3s ease;
+}
+
+.talla-calc-input input:focus {
+  border-bottom-color: var(--oro);
+}
+
+.talla-calc-input span {
+  font-size: 1rem;
+  color: var(--text-secondary);
+}
+
+.talla-calc-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+}
+
+.talla-chip {
+  display: inline-flex;
+  align-items: center;
+  height: 40px;
+  padding: 0 1.125rem;
+  border-radius: 100px;
+  font-family: var(--font-ui);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--hairline);
+  cursor: pointer;
+  transition: all 0.3s var(--ease);
+}
+
+.talla-chip:hover {
+  border-color: var(--oro);
+}
+
+.talla-chip--on {
+  background: var(--ink);
+  color: var(--bg-color);
+  border-color: var(--ink);
+}
+
+.talla-calc-nota {
+  margin-top: 1.5rem;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.talla-calc-resultado {
+  padding: 2.5rem;
+  border-left: 1px solid var(--hairline);
+  background: var(--bg-marfil);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 0.875rem;
+}
+
+.talla-calc-valor {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 3.5rem;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.talla-calc-detalle {
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+/* Títulos de sección */
+.talla-h2 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(2.25rem, 4vw, 3.5rem);
+  line-height: 1.06;
+  color: var(--ink);
+}
+
+.talla-h2 em {
+  display: block;
+  font-style: normal;
+  font-size: 0.62em;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--oro-ink);
+  margin-top: 0.35em;
+}
+
+/* Pasos */
+.talla-pasos-seccion {
+  padding: 7rem 4rem 6rem;
+  max-width: 1104px;
+  margin: 0 auto;
+}
+
+.talla-pasos {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3rem;
+  margin-top: 3rem;
+}
+
+.talla-paso {
+  border-top: 1px solid var(--oro-hairline);
+  padding-top: 1.25rem;
+}
+
+.talla-paso-n {
+  font-family: var(--font-display);
+  font-size: 1.875rem;
+  line-height: 1;
+  color: var(--oro-ink);
+  margin-bottom: 0.75rem;
+}
+
+.talla-paso-titulo {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.375rem;
+  line-height: 1.2;
+  color: var(--ink);
+  margin-bottom: 0.5rem;
+}
+
+.talla-paso-texto {
+  font-size: 0.9375rem;
+  line-height: 1.65;
+  color: var(--text-secondary);
+}
+
+/* Tablas */
+.talla-tablas-seccion {
+  padding: 0 4rem 7rem;
+  max-width: 1104px;
+  margin: 0 auto;
+}
+
+.talla-tablas-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 2rem;
+}
+
+.talla-tablas-nota {
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  max-width: 300px;
+}
+
+.talla-tablas {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.talla-tabla {
+  background: var(--bg-color);
+  border: 1px solid var(--hairline);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.talla-tabla-head {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr 1.2fr;
+  background: var(--ink);
+  padding: 0.875rem 1.25rem;
+}
+
+.talla-tabla-head span {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.7);
+  text-align: right;
+}
+
+.talla-tabla-head span:first-child {
+  color: var(--oro-luz);
+  text-align: left;
+}
+
+.talla-fila {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr 1.2fr;
+  align-items: center;
+  padding: 0.8125rem 1.25rem;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.talla-fila:last-child {
+  border-bottom: 0;
+}
+
+.talla-fila--alt {
+  background: var(--bg-marfil);
+}
+
+.talla-fila-n {
+  font-weight: 700;
+  font-size: 0.9375rem;
+  color: var(--ink);
+}
+
+.talla-fila-v {
+  text-align: right;
+  font-size: 0.9375rem;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Preguntas */
+.talla-faqs-seccion {
+  padding: 0 4rem 7rem;
+  max-width: 864px;
+  margin: 0 auto;
+}
+
+.talla-faqs {
+  margin-top: 2.5rem;
+}
+
+.talla-faq {
+  border-bottom: 1px solid var(--hairline);
+}
+
+.talla-faq:first-child {
+  border-top: 1px solid var(--hairline);
+}
+
+.talla-faq-q {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 1.5rem 0;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-display);
+  font-size: 1.375rem;
+  font-weight: 400;
+  line-height: 1.25;
+  color: var(--ink);
+  transition: color 0.3s ease;
+}
+
+.talla-faq-q:hover {
+  color: var(--oro-ink);
+}
+
+.talla-faq-icono {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border: 1px solid var(--hairline);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-ui);
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  transition: all 0.3s ease;
+}
+
+.talla-faq--on .talla-faq-icono {
+  background: var(--oro);
+  border-color: var(--oro);
+  color: var(--bg-color);
+}
+
+.talla-faq-a {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.45s var(--ease);
+}
+
+.talla-faq--on .talla-faq-a {
+  grid-template-rows: 1fr;
+}
+
+.talla-faq-a > div {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.talla-faq-a p {
+  font-size: 1rem;
+  line-height: 1.7;
+  color: var(--text-secondary);
+  padding-bottom: 1.5rem;
+  max-width: 62ch;
+}
+
+/* Contacto */
+.talla-contacto {
+  background: var(--bg-arena);
+  border-top: 1px solid var(--hairline);
+  padding: 6rem 4rem;
+}
+
+.talla-contacto-inner {
+  max-width: 1104px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 4rem;
+  align-items: center;
+}
+
+.talla-contacto-lead {
+  margin-top: 1rem;
+  max-width: 460px;
+  font-size: 1rem;
+  line-height: 1.65;
+  color: var(--text-secondary);
+}
+
+.talla-contacto-acciones {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.talla-contacto-botones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.talla-contacto .talla-punzones {
+  justify-content: flex-start;
+}
+
+@media (max-width: 900px) {
+  .talla-head {
+    padding: 5rem 1.5rem 8rem;
+  }
+
+  .talla-calc {
+    padding: 0 1.5rem;
+    margin-top: -5rem;
+  }
+
+  .talla-calc-card {
+    grid-template-columns: 1fr;
+  }
+
+  .talla-calc-medida,
+  .talla-calc-resultado {
+    padding: 1.75rem 1.5rem;
+  }
+
+  .talla-calc-resultado {
+    border-left: 0;
+    border-top: 1px solid var(--hairline);
+  }
+
+  .talla-pasos-seccion {
+    padding: 4rem 1.5rem 3.5rem;
+  }
+
+  .talla-pasos,
+  .talla-tablas,
+  .talla-contacto-inner {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  .talla-tablas-seccion,
+  .talla-faqs-seccion {
+    padding: 0 1.5rem 4rem;
+  }
+
+  .talla-tablas-head {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .talla-contacto {
+    padding: 4rem 1.5rem;
+  }
+}
