@@ -138,7 +138,7 @@ npm run imagenes     # Convierte las fotos estáticas a WebP
 npm run css:pisadas  # Detecta reglas CSS que otras pisan
 npm run prerenderizar # Pinta la portada en Node y la mete en dist/index.html
 npm run sitemap      # Regenera public/sitemap.xml
-npm test             # Vitest, una pasada (292 pruebas)
+npm test             # Vitest, una pasada (303 pruebas)
 npm run test:mirar   # Vitest en marcha, repitiendo al guardar
 ```
 

@@ -1,7 +1,7 @@
 # Ficha de producto
 
 > **Estado:** en producción
-> **Última revisión:** 2026-08-23
+> **Última revisión:** 2026-08-30
 > **Ruta:** `/catalogo/:id` · `src/pages/ProductPage.jsx` (1.543 líneas)
 
 ## Qué resuelve
@@ -53,6 +53,38 @@ sitio a la pieza sin ofrecer nada necesario. La vuelta es el botón sobre la fot
 
 `VITE_MP_PUBLIC_KEY` — `initMercadoPago` se ejecuta **al importar esta página**
 (`:13`), no en `App`.
+
+### La foto es el LCP, y se pide antes de que exista el `<img>`
+
+Medido con PageSpeed el 30 de agosto de 2026: **LCP 2,9 s**, con el aviso «la solicitud no
+se puede descubrir en el documento inicial». El adelanto del `<head>` ya traía los **datos**
+de la pieza a los 225 ms, pero el navegador no sabía que había una foto hasta bajar el
+bundle, bajar el trozo de la ficha, ejecutarlo y pintar el `<img>` — sobre el segundo 1,5.
+Ahí recién empezaba a bajar los 57,8 KB de la foto, y terminaba a los 2,9 s. La cuenta
+cuadraba con lo que se veía: FCP 1,6 s, LCP 2,9 s.
+
+Ahora ese mismo `<script>` inyecta un `<link rel="preload" as="image">` en cuanto llega el
+JSON. Medido en el navegador con 4× de CPU: la foto pasa de pedirse a los **1.861 ms** a
+pedirse a los **835**, y el LCP deja de ir 1,3 s detrás del FCP para ir 16 ms detrás.
+
+**Es una tercera copia de la misma regla** —`fotoProducto()`, el `sizes` del `<img>` y el
+HTML— y ahí está el peligro: si dejan de coincidir, el navegador precarga un archivo y
+pinta otro, o sea que **la foto se baja dos veces sin que nada falle**.
+`src/lib/fotoProducto.test.js` saca la función del HTML y la corre contra la de verdad; el
+`sizes` vive una sola vez, en `TAMANOS_FICHA`.
+
+La precarga va **sin `href`**: con `imagesrcset` el navegador que lo entiende elige de ahí,
+y el que no —Safari viejo— usaría el `href` y se bajaría un archivo que el `<img>` no va a
+pintar. Sin `href`, ése simplemente ignora la precarga.
+
+### El botón de volver estaba mudo en celular
+
+`.pg-volver` lleva el texto «Volver al catálogo», pero en el celular
+`.ficha-hero .pg-volver-txt` lo apaga con `display: none` y el enlace se queda siendo un
+círculo con una flecha. Para un lector de pantalla y para un agente eso es «enlace, sin
+nombre»: era el único fallo de accesibilidad de la pantalla (96/100) y también el de
+«Navegación con agentes» (1/2). Se arregla con `aria-label`, que sobrevive a que el CSS
+esconda el texto.
 
 ## Decisiones tomadas y por qué
 

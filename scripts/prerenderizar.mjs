@@ -84,8 +84,48 @@ if (!html.includes(HUECO)) {
   )
 }
 
-/* El comodín primero: es una copia literal del cascarón, antes de tocarlo. */
-await writeFile(COMODIN, html)
+/* ── El comodín, sin la foto de la portada ───────────────────────────────
+ *
+ * `app.html` sirve la ficha, el catálogo, la guía de tallas, las legales y el
+ * panel. **Ninguna enseña la foto del hero**, y el `<head>` la precargaba en
+ * todas con `fetchpriority="high"`: 20 KB a máxima prioridad compitiendo
+ * justo con la foto que sí es el LCP de esa pantalla. Venía de cuando había
+ * un solo HTML y no se podía distinguir; ahora sí.
+ *
+ * Se busca por el nombre del archivo y no por la etiqueta entera para que
+ * sobreviva a un cambio de anchos o de `sizes`. Si algún día deja de estar,
+ * el build se planta: es una precarga que se creía puesta.
+ */
+const PRECARGA_HERO = /\s*<link rel="preload" as="image"[^>]*pen-hero[^>]*>/
+
+if (!PRECARGA_HERO.test(html)) {
+  throw new Error(
+    'No encontré la precarga de pen-hero en dist/index.html. O se quitó del <head> ' +
+    '—y entonces la portada perdió su adelanto de LCP sin que nadie lo notara— o ' +
+    'cambió de forma y esta regla hay que actualizarla.'
+  )
+}
+
+await writeFile(COMODIN, html.replace(PRECARGA_HERO, ''))
+
+/* ── Y al revés: `index.html` no necesita el adelanto de la pieza ─────────
+ *
+ * Ese `<script>` sólo hace algo en `/catalogo/<uuid>`; en la portada se sale
+ * en la primera línea. Pero son ~1,2 KB comprimidos que la portada se baja
+ * igual, dentro del HTML que bloquea su primer pintado, para no usarlos.
+ *
+ * Con esto cada archivo carga sólo lo suyo: `index.html` la foto del hero y
+ * `app.html` el adelanto de la pieza.
+ */
+const ADELANTO_PIEZA = /\s*<!-- La pieza, preguntada desde aquí[\s\S]*?<\/script>/
+
+if (!ADELANTO_PIEZA.test(html)) {
+  throw new Error(
+    'No encontré el bloque del adelanto de la pieza en dist/index.html. Si cambió de ' +
+    'forma hay que actualizar esta regla; si se quitó, la ficha perdió su adelanto de ' +
+    'LCP y eso no se ve en ninguna prueba.'
+  )
+}
 
 const { pintar } = await import(pathToFileURL(SERVIDOR).href)
 const portada = pintar('/')
@@ -97,7 +137,9 @@ if (!portada.includes('hero-frame')) {
   )
 }
 
-const conPortada = html.replace(HUECO, `<div id="root">${portada}</div>`)
+let conPortada = html.replace(HUECO, `<div id="root">${portada}</div>`)
+
+conPortada = conPortada.replace(ADELANTO_PIEZA, '')
 
 /* ── Y la hoja de estilos, adentro ────────────────────────────────────────
  *
