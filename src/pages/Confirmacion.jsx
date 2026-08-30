@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
-import { supabase } from '../lib/supabase'
+import { traerPedidoPublico } from '../lib/apiPublica'
 import { waUrl } from '../lib/whatsapp'
 import { pixelCompra } from '../lib/pixeles'
 
@@ -72,10 +72,7 @@ const Confirmacion = () => {
      más. El id es un uuid v4 y llega en la URL de vuelta de Mercado Pago. */
   useEffect(() => {
     if (!externalRef) return
-    supabase
-      .rpc('pedido_publico', { p_id: externalRef })
-      .maybeSingle()
-      .then(({ data }) => setPedido(data ?? null))
+    traerPedidoPublico(externalRef).then(({ data }) => setPedido(data ?? null))
   }, [externalRef])
 
   /* El píxel del navegador, con el mismo event_id que manda el servidor: las
