@@ -18,6 +18,11 @@
  *   node scripts/huella-estilos.mjs tomar despues.json
  *   node scripts/huella-estilos.mjs comparar antes.json despues.json
  *
+ * Con `--estados` mide además las pantallas abiertas —el visor, el modal de
+ * compra, el panel de filtros—, que no existen en el DOM hasta que alguien
+ * hace clic y que de otro modo quedan sin vigilar. Las dos tomas tienen que
+ * llevar la misma opción; si no, `comparar` se planta y lo dice.
+ *
  * Necesita `npm run build` hecho y `npx vite preview` corriendo en :4173.
  *
  * Sin dependencias a propósito: habla con Chrome por su propio protocolo, que
@@ -45,6 +50,36 @@ const PANTALLAS = [
   ['tallas', '/guia-de-tallas'],
   ['no-encontrado', '/una-ruta-que-no-existe'],
 ]
+
+/* ─── Los estados que no se ven al cargar ─────────────────────────────────
+ *
+ * Una parte grande del CSS de la tienda gobierna cosas que **no existen en el
+ * DOM hasta que alguien hace clic**: el visor de fotos, el modal de compra, el
+ * panel de filtros. Medir sólo la página recién cargada deja esas reglas sin
+ * vigilar — y son justo las de la pantalla donde se paga.
+ *
+ * Con `--estados`, cada pantalla que tenga estados se mide también abierta.
+ * Cuesta unas cuantas cargas más, así que no va por defecto: se pide cuando se
+ * toca CSS que pueda afectarlos.
+ *
+ * `esperaA` no es decorado: si el estado no se abrió —cambió el botón, cambió
+ * la clase—, medir daría la página cerrada y la comparación diría «no cambió
+ * nada» con toda la confianza del mundo. Sin ese selector en pantalla, no se
+ * mide y se avisa a gritos.
+ *
+ * El modal de compra se abre por la URL y no con un clic porque la ficha ya lo
+ * hace así: `?buy=1` es el camino por el que vuelve quien iba a pagar. */
+const ESTADOS = {
+  ficha: [
+    { nombre: 'visor', abrir: `document.querySelector('.pg-gallery-main')?.click()`, esperaA: '.pg-lightbox' },
+    { nombre: 'compra', ruta: '?buy=1', esperaA: '.buy-modal-box' },
+  ],
+  catalogo: [
+    { nombre: 'filtros', abrir: `document.querySelector('.catalogo-filtros-btn')?.click()`, esperaA: '.catalogo-panel' },
+  ],
+}
+
+const CON_ESTADOS = process.argv.includes('--estados')
 
 /* Cuatro anchos y no uno. 390 no basta —está escrito en CLAUDE.md y costó
    descubrirlo—: los saltos de este CSS están en 768 y en 968, así que un
@@ -108,6 +143,17 @@ const CONGELAR = `(async () => {
   await document.fonts.ready;
   await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
   return document.querySelectorAll('*').length;
+})()`
+
+/* Espera a que el estado esté de verdad en pantalla. Dos segundos de tope:
+   con las animaciones apagadas por CONGELAR, un modal que no apareció en ese
+   tiempo es que no se abrió. */
+const ESPERAR = (sel) => `(async () => {
+  for (let i = 0; i < 40; i++) {
+    if (document.querySelector(${JSON.stringify(sel)})) return true;
+    await new Promise((r) => setTimeout(r, 50));
+  }
+  return false;
 })()`
 
 // ─── Lo mínimo del protocolo de Chrome ──────────────────────────────────────
@@ -193,7 +239,7 @@ async function tomar(destino) {
   await ses('Page.enable')
   await ses('Runtime.enable')
 
-  const huella = { base: BASE, tomada: new Date().toISOString(), propiedades: PROPIEDADES, pantallas: {} }
+  const huella = { base: BASE, tomada: new Date().toISOString(), propiedades: PROPIEDADES, estados: CON_ESTADOS, pantallas: {} }
 
   /* La ficha de pieza no se puede escribir a mano: su ruta lleva el uuid de un
      producto, y el que hoy es el primero mañana puede no estar. Se le pregunta
@@ -237,6 +283,31 @@ async function tomar(destino) {
       const datos = JSON.parse(r.result.value)
       huella.pantallas[`${nombre}@${ancho}`] = datos
       process.stdout.write(`  ${nombre} @${ancho}: ${datos.length} elementos\n`)
+
+      /* Cada estado se mide desde una carga limpia y no encadenando clics
+         sobre la anterior: abrir el visor y después los filtros dejaría el
+         visor abierto debajo, y lo medido no sería ninguno de los dos. */
+      for (const est of (CON_ESTADOS && ESTADOS[nombre]) || []) {
+        const cargadaEst = cx.unaVez('Page.loadEventFired')
+        await ses('Page.navigate', { url: BASE + ruta + (est.ruta || '') })
+        await cargadaEst
+        await new Promise((r) => setTimeout(r, 1500))
+        await ses('Runtime.evaluate', { expression: CONGELAR, awaitPromise: true })
+        if (est.abrir) await ses('Runtime.evaluate', { expression: est.abrir })
+
+        const abierto = await ses('Runtime.evaluate', {
+          expression: ESPERAR(est.esperaA), awaitPromise: true, returnByValue: true,
+        })
+        if (!abierto.result.value) {
+          console.log(`  ⚠ ${nombre}:${est.nombre} @${ancho}: no se abrió (falta ${est.esperaA}) — SIN MEDIR`)
+          continue
+        }
+
+        const re = await ses('Runtime.evaluate', { expression: RECOLECTOR(PROPIEDADES), returnByValue: true })
+        const datosEst = JSON.parse(re.result.value)
+        huella.pantallas[`${nombre}:${est.nombre}@${ancho}`] = datosEst
+        process.stdout.write(`  ${nombre}:${est.nombre} @${ancho}: ${datosEst.length} elementos\n`)
+      }
     }
   }
 
@@ -263,6 +334,19 @@ function comparar(rutaA, rutaB) {
 
   if (A.propiedades.join() !== B.propiedades.join()) {
     console.error('Las dos huellas miran propiedades distintas: no son comparables.')
+    process.exit(1)
+  }
+
+  /* Una huella con estados y otra sin ellos no son comparables de verdad: la
+     mitad de las pantallas no tendría con qué compararse, y el informe diría
+     «sin cambios» de lo que ni siquiera miró. */
+  const soloEnA = Object.keys(A.pantallas).filter((k) => !B.pantallas[k])
+  const soloEnB = Object.keys(B.pantallas).filter((k) => !A.pantallas[k])
+  if (soloEnA.length || soloEnB.length) {
+    console.error('Las dos huellas no cubren las mismas pantallas.')
+    if (soloEnA.length) console.error(`  sólo en ${rutaA}: ${soloEnA.join(', ')}`)
+    if (soloEnB.length) console.error(`  sólo en ${rutaB}: ${soloEnB.join(', ')}`)
+    console.error('Vuelve a tomarlas con las mismas opciones (¿faltó --estados en una?).')
     process.exit(1)
   }
 
@@ -313,10 +397,20 @@ function comparar(rutaA, rutaB) {
 
 // ─── ─────────────────────────────────────────────────────────────────────────
 
-const [orden, ...args] = process.argv.slice(2)
+/* Las opciones se apartan antes de leer los archivos: `tomar --estados h.json`
+   y `tomar h.json --estados` tienen que hacer lo mismo, y sobre todo ninguna
+   de las dos puede acabar escribiendo un archivo llamado «--estados». */
+const [orden, ...args] = process.argv.slice(2).filter((a) => !a.startsWith('--'))
 if (orden === 'tomar' && args[0]) await tomar(args[0])
 else if (orden === 'comparar' && args[1]) comparar(args[0], args[1])
 else {
-  console.error('uso:\n  node scripts/huella-estilos.mjs tomar <archivo.json>\n  node scripts/huella-estilos.mjs comparar <antes.json> <despues.json>')
+  console.error(
+    'uso:\n' +
+    '  node scripts/huella-estilos.mjs tomar <archivo.json> [--estados]\n' +
+    '  node scripts/huella-estilos.mjs comparar <antes.json> <despues.json>\n\n' +
+    '  --estados  mide además el visor, el modal de compra y el panel de filtros,\n' +
+    '             que no existen hasta que alguien hace clic. Las dos tomas tienen\n' +
+    '             que llevarlo, o comparar se planta.'
+  )
   process.exit(1)
 }

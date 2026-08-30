@@ -275,6 +275,70 @@ clave `_comentario` con la explicación de arriba, y Vercel **rechazó el despli
 antes de compilar** — sin logs de build, porque nunca llegó a haber build. Es JSON estricto
 con un esquema cerrado: lo que haya que explicar, se explica aquí.
 
+## La mudanza pendiente del CSS
+
+**Preparada y medida el 30 de agosto de 2026; no aplicada todavía.**
+
+`index.css` son 4.276 líneas y **bloquean el primer pintado en todas las rutas**. De ellas,
+1.268 pertenecen en exclusiva a tres pantallas que ya cargan su propia hoja: la ficha (1.108),
+el catálogo (94) y confirmación (66). No las había encontrado `css-de-quien-es.mjs` porque
+son estados que no existen hasta que alguien hace clic — el visor de fotos, el modal de
+compra, el panel de filtros, la cuenta del abono.
+
+Medido sobre una copia limpia de `main`, con la mudanza aplicada y recompilando:
+
+| Hoja | Antes | Después |
+|---|---|---|
+| `index.css` — bloqueante, en todas las rutas | 12,89 KB gz | **8,87 KB gz** |
+| `ProductPage.css` | 4,23 | 7,72 |
+| `Catalog.css` | 2,41 | 2,81 |
+| `Confirmacion.css` | 0,69 | 0,99 |
+
+Los bytes no desaparecen: cambian de archivo. Lo que se gana es que la portada y el catálogo
+dejen de bajar el CSS de la ficha para no usarlo.
+
+### Cómo se decide de quién es una regla
+
+No por el nombre de la clase — ya se intentó con prefijos y `.joyero`, que es la ficha, acabó
+clasificada como panel y rompió la ficha. `scripts/css-mudanza.mjs` lo decide por **quién
+nombra la clase en el código**, y resuelve qué pantalla carga a cada archivo **siguiendo las
+importaciones** desde cada página, no adivinando por la ruta: `src/components/Foto.jsx` lo
+usan la ficha y el catálogo, y eso sólo lo sabe el grafo. Un bloque se mueve sólo si *todas*
+sus clases las nombra código de una única pantalla.
+
+Cortar y pegar líneas no vale: 129 de esos bloques viven dentro de un `@media` y sacar sus
+renglones descuadra las llaves — probado, postcss tumba el build. El script parsea de verdad
+y, si de un `@media` se va la mitad, escribe un `@media` nuevo en el destino con esa mitad.
+
+### Lo que ya cazó, antes de aplicarse
+
+El primer intento **rompió el panel de filtros** y nadie lo habría visto: `.catalogo-panel`
+aterrizó en `Catalog.css` después del `@media` que ya lo ajustaba allí, así que la regla base
+pasó a ganarle al ajuste de escritorio y el panel se ensanchó de 510 a 1.326 px a partir de
+1024. No sale en ninguna prueba, no sale en el build y no sale en la página cargada: el panel
+sólo existe tras un clic.
+
+Lo cazó `huella-estilos.mjs --estados`, que se añadió para esto: abre el visor, el modal de
+compra y el panel de filtros antes de medir, y **se niega a medir un estado que no se abrió**
+en vez de anotar la página cerrada y decir que no cambió nada. El script veta ahora ese caso
+solo —cuatro selectores se quedan en `index.css` por precaución— y la comparación de las
+48 pantallas resultantes, 12.560 elementos y 54 propiedades cada uno, dice «ni una
+diferencia».
+
+### Cuando se aplique
+
+1. `node scripts/huella-estilos.mjs tomar antes.json --estados` con el árbol limpio y
+   compilado.
+2. `node scripts/css-mudanza.mjs` para ver el reparto, y `--de-verdad` para moverlo.
+3. Recompilar, `tomar despues.json --estados`, `comparar`.
+4. `npm run css:pisadas`, que sigue mirando dentro de cada archivo.
+
+Está sin aplicar porque el reparto se apoya en qué clase nombra cada componente, y en esa
+fecha se estaban reescribiendo `ProductPage.jsx`, `Catalog.jsx`, `ProductCard.jsx` y
+`Confirmacion.jsx`. Con las clases moviéndose, una regla puede quedarse sin dueño y dejar de
+aplicarse en silencio. Se hace cuando eso aterrice, y se vuelve a correr el reparto entonces
+— no se reutiliza el de hoy.
+
 ## Accesibilidad
 
 Lighthouse daba 91 en la portada el 30 de agosto de 2026, con tres fallos. Los tres eran de

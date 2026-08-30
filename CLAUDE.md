@@ -51,6 +51,8 @@ npm run css:pisadas  # Diagnóstico: reglas CSS que otras pisan
 node scripts/huella-estilos.mjs tomar h.json   # Huella de estilos: qué se ve, medido
 node scripts/css-de-quien-es.mjs               # De qué ruta es cada bloque de index.css
 node scripts/refrescar-cache-fotos.mjs         # Una vez: resube las fotos del bucket con caché de un año
+node scripts/css-mudanza.mjs                   # Qué reglas de index.css son de una sola pantalla (--de-verdad las mueve)
+node scripts/huella-estilos.mjs tomar h.json --estados   # …midiendo también el visor, el modal y los filtros
 ```
 
 Tres advertencias sobre el build:
@@ -692,6 +694,20 @@ Cosas que ya costaron un incidente. Léelas antes de tocar lo que describen.
   Cambiarlo en las que ya están no se puede sin volver a subirlas —no hay «actualizar
   cabeceras» en la API—: para eso está `scripts/refrescar-cache-fotos.mjs`, que reescribe
   **la misma ruta** y nunca renombra.
+- **Una regla que se muda a una hoja de ruta aterriza al final de ella, y eso cambia quién
+  gana.** Las hojas de ruta se cargan después de `index.css`, así que a igual especificidad
+  gana la movida. Si el selector **ya existe** en el destino —aunque sea dentro de un
+  `@media`—, la nueva copia queda debajo y le gana a la que mandaba. Pasó al probar la
+  mudanza: `.catalogo-panel` cayó después del `@media` que lo ajustaba en `Catalog.css` y el
+  panel de filtros se ensanchó de 510 a 1.326 px. `css-mudanza.mjs` veta ese caso solo, pero
+  si mueves una regla a mano, el selector del destino hay que mirarlo **incluyendo los
+  `@media`**.
+- **La huella sólo ve la página recién cargada, salvo que le pidas `--estados`.** El visor de
+  fotos, el modal de compra y el panel de filtros no existen en el DOM hasta que alguien hace
+  clic, así que su CSS quedaba sin vigilar — y es el de la pantalla donde se paga. Con
+  `--estados` los abre y los mide; sin él, una regresión ahí pasa con un «ni una diferencia»
+  perfectamente creíble. Las dos tomas tienen que llevar la misma opción o `comparar` se
+  planta.
 - **390px no basta para probar móvil.** El iframe es la única forma de medir de verdad
   el comportamiento en pantallas reales en esta sesión.
 - **Hay dos píxeles de Meta con el mismo nombre y sólo uno recibe eventos.** Verifica el
