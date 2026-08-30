@@ -1,39 +1,39 @@
-import React from 'react';
-import Foto from './Foto'
-import { useAparecer, useAparecerGrupo } from '../lib/aparecer';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { fotoProducto } from '../lib/fotoProducto';
+import { coleccionesDe } from '../lib/colecciones';
+import { useAparecer, useAparecerGrupo } from '../lib/aparecer';
 
+/* Cuántas caben en la rejilla: `repeat(3, 1fr)` en escritorio. Si el catálogo
+   sólo da para dos, se pintan dos — la rejilla no las estira. */
+const CUANTAS = 3;
 
+/* Se pregunta por el catálogo con un `fetch` pelado y NO con el cliente de
+   Supabase, que es lo que usa el resto del sitio. La razón son 46 KB
+   comprimidos: hasta hoy la portada no cargaba ese paquete —sólo lo cargan el
+   catálogo, la ficha y el panel—, y traerlo entero para leer tres fotos es
+   exactamente lo que se hizo al revés cuando se sacó Framer Motion. La llave
+   anónima y la URL ya viajan dentro del bundle público de todos modos, y esta
+   consulta es la misma lectura pública que hace el catálogo.
 
-const collectionsData = [
-    {
-        id: 1,
-        title: 'Anillos',
-        category: 'Anillos',
-        description: 'Diamantes finos y engastes perfectos diseñados para durar toda una vida.',
-        metal: 'Oro 18k',
-        image: 'pen-anillos',
-        cta: 'Ver anillos',
-    },
-    {
-        id: 2,
-        title: 'Collares',
-        category: 'Collares',
-        description: 'Cadenas finas y dijes únicos que elevan cualquier look al instante.',
-        metal: 'Platino',
-        image: 'pen-collares',
-        cta: 'Ver collares',
-    },
-    {
-        id: 3,
-        title: 'Pulseras',
-        category: 'Pulseras',
-        description: 'Eslabones que capturan la luz con cada movimiento de tu muñeca.',
-        metal: 'Oro rosa',
-        image: 'pen-pulseras',
-        cta: 'Ver pulseras',
-    }
-];
+   Sólo las seis columnas que la tarjeta usa: no se baja el catálogo entero con
+   descripciones para enseñar tres fotos. */
+const URL_BASE = import.meta.env.VITE_SUPABASE_URL;
+const CLAVE = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const CONSULTA = 'select=name,category,metal,image_url,stock,created_at&order=created_at.desc';
+
+/* Lo único que sigue escrito a mano, porque es voz y no dato. Cada frase
+   describe lo que el taller sí hace en esa categoría: nada de platino ni de
+   diamantes, que es lo que decía la versión anterior y no es verdad. */
+const DESCRIPCION = {
+    Anillos: 'Solitarios, argollas de matrimonio y anillos de caballero.',
+    Collares: 'Cadenas y gargantillas, con la piedra que escojas.',
+    Aretes: 'De gota y de argolla, en plata 925 y en oro.',
+    Topos: 'Pequeños, para llevar todos los días.',
+    Pulseras: 'Tejidas y de eslabón, en oro y en plata 925.',
+    Dijes: 'Para colgar de tu cadena: esmeralda en bruto, filigrana, figuras.',
+    Juegos: 'Dije y aretes de la misma familia, para llevarlos juntos.',
+};
 
 const Arrow = () => (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -44,7 +44,34 @@ const Arrow = () => (
 
 const Collections = () => {
     const cabecera = useAparecer();
-    const rejilla = useAparecerGrupo(0.12);
+
+    /* `null` mientras carga y `[]` si falló o no hay nada. La diferencia no se
+       usa para pintar —en los dos casos no hay tarjetas— pero sí para no
+       animar una rejilla vacía. */
+    const [colecciones, setColecciones] = useState(null);
+    const rejilla = useAparecerGrupo(0.12, colecciones?.length ?? 0);
+
+    useEffect(() => {
+        let vivo = true;
+
+        (async () => {
+            try {
+                const res = await fetch(`${URL_BASE}/rest/v1/products?${CONSULTA}`, {
+                    headers: { apikey: CLAVE, Authorization: `Bearer ${CLAVE}` },
+                });
+                if (!res.ok) throw new Error(`Supabase respondió ${res.status}`);
+                const piezas = await res.json();
+                if (vivo) setColecciones(coleccionesDe(piezas, CUANTAS));
+            } catch {
+                /* Que falle la red no pinta un error en la portada: la sección
+                   se queda con su titular y su botón al catálogo, que es el
+                   camino que de todos modos importa. */
+                if (vivo) setColecciones([]);
+            }
+        })();
+
+        return () => { vivo = false; };
+    }, []);
 
     return (
         <section id="colecciones" className="collections-section">
@@ -64,26 +91,25 @@ const Collections = () => {
                 <div
                     className="collections-grid" ref={rejilla}
                 >
-                    {collectionsData.map(item => (
-                        <article key={item.id} className="collection-card">
+                    {(colecciones || []).map(c => (
+                        <article key={c.categoria} className="collection-card">
 
-                            <Link to={`/catalogo?categoria=${item.category}`} className="collection-card-image" aria-label={item.cta}>
-                                <Foto
-                                    nombre={item.image}
-                                    anchos={[768, 928]}
-                                    tamanos="(max-width: 768px) 92vw, 30vw"
-                                    alt={`${item.title} de Aurem Gs Joyería`}
+                            <Link to={`/catalogo?categoria=${c.categoria}`} className="collection-card-image" aria-label={`Ver ${c.categoria.toLowerCase()}`}>
+                                <img
+                                    {...fotoProducto(c.foto)}
+                                    sizes="(max-width: 768px) 92vw, 30vw"
+                                    alt={c.alt}
                                     loading="lazy"
                                     decoding="async"
                                 />
-                                <span className="punzon collection-card-mark">{item.metal}</span>
+                                {c.metal && <span className="punzon collection-card-mark">{c.metal}</span>}
                             </Link>
 
                             <div className="collection-card-body">
-                                <h3 className="collection-card-title">{item.title}</h3>
-                                <p className="collection-card-desc">{item.description}</p>
-                                <Link to={`/catalogo?categoria=${item.category}`} className="link-action">
-                                    {item.cta} <Arrow />
+                                <h3 className="collection-card-title">{c.categoria}</h3>
+                                <p className="collection-card-desc">{DESCRIPCION[c.categoria]}</p>
+                                <Link to={`/catalogo?categoria=${c.categoria}`} className="link-action">
+                                    Ver {c.categoria.toLowerCase()} <Arrow />
                                 </Link>
                             </div>
 

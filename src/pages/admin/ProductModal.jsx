@@ -23,8 +23,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '../../lib/supabase';
 import { borrarFotos } from '../../lib/fotosEnStorage';
 import { versionesDeFoto } from '../../lib/optimizarFoto';
+import { CATEGORIAS as CATEGORIES } from '../../lib/categorias';
 
-const CATEGORIES = ['Anillos', 'Collares', 'Aretes', 'Topos', 'Pulseras', 'Dijes', 'Juegos'];
 const METALES = ['Plata 925', 'Oro 18k', 'Oro blanco 18k', 'Oro rosa 18k', 'Platino PT950'];
 const MAX_DESC = 600;
 

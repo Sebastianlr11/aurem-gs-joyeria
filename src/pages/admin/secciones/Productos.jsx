@@ -10,8 +10,7 @@ import { refDe } from '../../../lib/referencia';
 import ProductModal from '../ProductModal';
 import EliminarPieza from '../EliminarPieza';
 import { fmt } from './comunes';
-
-const CATEGORIES = ['Anillos', 'Collares', 'Aretes', 'Topos', 'Pulseras', 'Dijes', 'Juegos'];
+import { CATEGORIAS as CATEGORIES } from '../../../lib/categorias';
 
 const ORDENES = {
     recientes: { label: 'Más recientes', fn: null },
