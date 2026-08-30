@@ -2,7 +2,7 @@
 
 > **Estado:** en producción
 > **Última revisión:** 2026-08-23
-> **Ruta:** `/catalogo/:id` · `src/pages/ProductPage.jsx` (1.475 líneas)
+> **Ruta:** `/catalogo/:id` · `src/pages/ProductPage.jsx` (1.543 líneas)
 
 ## Qué resuelve
 

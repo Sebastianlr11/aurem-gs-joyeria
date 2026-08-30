@@ -313,7 +313,33 @@ oro del monograma, y se ajustaron para cumplir AA.
 | Oro tinta | `tertiary-ink` | `#7A5F26` | **Todo texto dorado sobre fondo claro** |
 | Oro luz | `tertiary-light` | `#E3C990` | Oro sobre cacao: titulares de contacto, puntaje de reseñas, botón de envío |
 | Humo | `text-muted` | `#6B615A` | Texto secundario. Es un gris **cálido**; uno frío junto al marfil se ve sucio |
+| Humo claro | — | `#766D66` | El escalón de menos peso: metadatos, notas al pie de un campo. Aclarado desde `#9C938B`, que daba 3,1:1 y no pasaba AA |
 | Pelo | `hairline` | `#E6DED3` | Todas las separaciones del sistema |
+
+**Los nombres de aquí y los de `:root` no coinciden uno a uno, y eso ya confundió
+a alguien.** La correspondencia, para leer el CSS con este documento al lado:
+
+| Aquí | En `src/index.css` |
+|---|---|
+| `primary` | `--ink` · `--text-primary` |
+| `primary-soft` | `--ink-soft` |
+| `secondary` | `--bg-marfil` |
+| `surface-sand` | `--bg-arena` |
+| `tertiary` | `--oro` · `--accent-gold` |
+| `tertiary-ink` | `--oro-ink` |
+| `tertiary-light` | `--oro-luz` |
+| `text-muted` | **`--text-secondary`** |
+| Humo claro | **`--text-muted`** |
+| `hairline` | `--hairline` · `--border-color` |
+
+Las dos filas en negrita son la trampa: **`text-muted` de este documento es
+`--text-secondary` en el CSS**, y `--text-muted` es el escalón siguiente.
+
+**Los estados de error no usan rojo de marca, porque no hay.** Se pintan con
+tres tonos de la misma familia cálida, definidos en `:root` y fuera de esta
+paleta a propósito —son interfaz, no identidad—: `--error-ink: #8C2F1E` para el
+texto, `--error-fuerte: #5E2114` para el énfasis y `--error-fondo: #FBEDE9`
+para el fondo del aviso.
 
 **El oro está partido en dos tokens y no son intercambiables.** `tertiary` da
 **3,3:1** sobre marfil: no llega al 4,5:1 de WCAG 1.4.3 y por eso **no lleva

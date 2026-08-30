@@ -1,6 +1,6 @@
 # Diseño y frontend
 
-> **Estado:** en producción · la deuda de CSS, de 143 bloques pisados a 4
+> **Estado:** en producción · la deuda de CSS, de 143 bloques pisados a 3
 > **Última revisión:** 2026-08-24
 
 ## Qué resuelve
@@ -115,13 +115,40 @@ agosto de 2026: hereda los tokens y cambia lo que la densidad obliga —cuerpo p
 1rem, escala de 4px, estado por punto y no por color—. Se corresponden con los dos archivos
 de CSS: `src/index.css` y `src/panel.css`.
 
-## El CSS: 6.842 + 7.549 líneas en dos archivos
+## El CSS: 15.243 líneas en diez archivos
 
-Sin `@layer`, sin CSS modules, sin preprocesador. Un solo `@import './fuentes.css'`.
+Sin `@layer`, sin CSS modules, sin preprocesador. Un solo `@import`, el de `fuentes.css`,
+al principio de `index.css`.
 
-**Quién importa cada uno.** `index.css` lo importa `main.tsx`, así que va en todas partes.
-`panel.css` no: lo importa **cada pantalla del panel que lo necesita** — `Dashboard.jsx`,
-`ChatPanel.jsx`, `Login.jsx` y `ResetPassword.jsx`.
+Eran dos archivos hasta el 30 de agosto de 2026, cuando `index.css` se partió en dos tandas
+—ver «La segunda mudanza del CSS», más abajo—. Hoy:
+
+| Archivo | Líneas | Quién lo carga |
+|---|---|---|
+| `src/panel.css` | 7.885 | `Dashboard`, `ChatPanel`, `Login`, `ResetPassword` |
+| `src/index.css` | 2.899 | `main.tsx` — va en todas partes |
+| `src/pages/ProductPage.css` | 2.562 | la ficha |
+| `src/pages/Catalog.css` | 862 | `/catalogo` |
+| `src/pages/RingSizeGuide.css` | 538 | la guía de tallas |
+| `src/pages/Confirmacion.css` | 199 | la pantalla de gracias |
+| `src/components/TiltedCarousel.css` | 132 | el carrusel de la portada |
+| `src/pages/legales.css` | 102 | las tres legales |
+| `src/pages/NoEncontrado.css` | 64 | la 404 |
+| `src/fuentes.css` | 58 | vía `index.css` |
+
+**Reparto: ~7.400 líneas de tienda contra 7.885 de panel.** El panel sigue pesando más que
+la tienda entera, y no lo ve ningún cliente.
+
+**Las hojas de ruta se cargan DESPUÉS de `index.css`**, así que a igual especificidad ganan
+ellas. Eso importa al mover una regla: ver la trampa del final de esta sección.
+
+**Y `index.css` viaja dentro de `dist/index.html`**, no como archivo, desde que la portada se
+prerenderiza. Es la misma hoja y en el mismo sitio del documento; sólo cambia cómo llega.
+Las hojas de ruta siguen siendo archivos.
+
+**Quién importa el panel.** `panel.css` no lo importa un layout: lo importa **cada pantalla
+del panel que lo necesita** — `Dashboard.jsx`, `ChatPanel.jsx`, `Login.jsx` y
+`ResetPassword.jsx`.
 
 Las dos últimas se añadieron el 24 de agosto de 2026, después de un mes pintándose crudas.
 Sus 69 reglas `.admin-login*` viven en `panel.css` y ninguna de las dos lo importaba, así
@@ -133,18 +160,6 @@ primera vez que intentó entrar.
 
 La regla que queda: **si a una pantalla del panel se puede llegar por la URL sin pasar por
 otra, importa su CSS ella misma.**
-
-| Rango | Contenido | Ámbito |
-|---|---|---|
-| 1-373 | `:root` con tokens + reset | global |
-| 375-3794 | Hero, confianza, colecciones, reseñas, FAQ, contacto, pie, navegación, catálogo, ficha | **público** |
-| 3795-6926 | Admin: acceso, layout, rediseño | admin |
-| 6927-8683 | Modales, Mercado Pago, confirmación, legales, WhatsApp, responsive, guía de tallas | **público** |
-| 8684-13558 | Chat, panel, informes, pedidos | admin |
-| 13559-16320 | Catálogo móvil, modal de pago, ficha a sangre, galería, `.aparece`/`.monta` | **público** |
-| 16323-17562 | Pauta, dashboard, ProductModal, eliminar pieza, chat | admin |
-
-**Reparto: ~8.300 líneas de tienda, ~9.250 de panel.** El panel pesa más que la tienda.
 
 ### El repo trae su propia herramienta
 
@@ -532,7 +547,7 @@ estilos calculados en la página servida: un solo `<main>`, con las ocho seccion
 ## Cómo probarlo
 
 ```bash
-npm run css:pisadas     # hoy: 4 bloques · acepta una ruta y un filtro
+npm run css:pisadas     # hoy: 3 bloques · acepta una ruta y un filtro
 npm run dev
 ```
 

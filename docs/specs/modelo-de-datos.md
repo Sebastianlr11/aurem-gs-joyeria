@@ -15,8 +15,8 @@ Este documento es el mapa de la base. Y su hallazgo principal es incómodo:
 
 ### Qué está y qué no está versionado
 
-Reconciliado con producción el 23 de agosto de 2026: la base tiene 16 tablas y una vista,
-y **las 17 se crean desde el repositorio**.
+Reconciliado con producción el 30 de agosto de 2026: la base tiene 17 tablas y una vista,
+y **las 18 se crean desde el repositorio**.
 
 | Tabla / objeto | ¿En el repo? | Dónde |
 |---|---|---|
@@ -25,6 +25,7 @@ y **las 17 se crean desde el repositorio**.
 | `taller_conocimiento` | ✅ | `20260818_taller_conocimiento.sql` |
 | `plantillas_enviadas` | ✅ | `20260819_plantillas_programadas.sql` |
 | `pagos` | ✅ | `20260822_libro_de_caja.sql` — el libro de movimientos de `caja.js`, llenado por el trigger `registrar_pago` |
+| `ciudades_envio` | ✅ | `20260824_las_ciudades_de_colombia.sql` — los 1.273 municipios con su código DANE, que es lo que pide 99envios |
 | `chats_sin_responder`, `conversaciones_purgables` | ✅ | migraciones del 22-ago |
 | `revenue_por_fuente`, `embudo_whatsapp` | ✅ | `20260824_los_informes_cuentan_lo_que_entro.sql` |
 | RLS, políticas y el inventario de funciones | ✅ | `20260823_superficie_de_seguridad.sql` (875 líneas, volcado de producción) |
@@ -47,7 +48,11 @@ el md5 de lo generado contra el de la base.
 | `order_items` | `order_id`, `product_id`, `nombre`, `precio`, `cantidad`, `talla`, `creado_en` — **precios congelados** |
 | `customers` | Datos del cliente + `no_escribir` |
 
-`status` ∈ `pendiente | pagado | procesando | enviado | entregado | cancelado`
+`status` ∈ `pendiente | confirmado | pagado | procesando | enviado | entregado | devuelto |
+cancelado` — ocho desde `20260824_confirmado_y_devuelto.sql`. **La columna es texto sin
+restricción**: acepta cualquier cosa, así que el vocabulario lo sostienen el código y esta
+línea, no la base. Cuánto se cobra en cada estado está en `CLAUDE.md` §8, y el vigía compara
+cada hora que la regla de la base diga lo mismo.
 
 **Conversaciones**
 
@@ -69,6 +74,8 @@ el md5 de lo generado contra el de la base.
 | `ajustes_internos` | Clave/valor: `cron_secreto`, `clave_anon`, `url_funciones`, `telefonos_avisos`, `contactos_equipo` |
 | `vigilancia_ultima` | Fila id=1 con `hallazgos[]` y `corrida_en` |
 | `notes` | Anotaciones internas con prioridad |
+| `pagos` | El libro de movimientos que lee `src/lib/caja.js`, llenado por el trigger `registrar_pago`: cuándo entró cada peso |
+| `ciudades_envio` | Los 1.273 municipios con su código DANE. `codigo_dane()` traduce la ciudad escrita a mano, y calla si es ambigua |
 | `envio_publico` (vista) | Expone **sólo** `abono_envio` y `tope_contraentrega` |
 
 ### RPC
@@ -114,6 +121,24 @@ el md5 de lo generado contra el de la base.
 | `20260823_fuera_las_tablas_muertas.sql` | 🔒 Borra las 3 tablas de la era n8n y el cuarto respaldo de chats |
 | `20260823_las_rpc_estaban_abiertas.sql` | 🔒 Cierra a `anon` las RPC `SECURITY DEFINER` y borra 4 muertas |
 | `20260823_un_cliente_por_persona.sql` | La unicidad de `customers.phone` pasa a ser por los últimos 10 dígitos |
+| `20260823_clientes_del_equipo.sql` | Los contactos del equipo también se marcan de prueba, no sólo sus pedidos |
+| `20260823_avisar_cancelaciones.sql` | El candado de `PedidoCancelado` hacia Meta y TikTok |
+| `20260823_plazos_de_verdad.sql` | Los plazos que promete Valentina, ajustados a cómo trabaja el taller |
+| `20260823_tener_sesion_no_es_ser_del_equipo.sql` | 🔒 Las 20 políticas del panel exigen `es_del_equipo()`, no sólo tener sesión |
+| `20260823_storage_tambien_pide_ser_del_equipo.sql` | 🔒 Lo mismo para las fotos: subir y borrar pide rol de equipo |
+| `20260823_el_vigia_mira_el_candado.sql` | `politicas_flojas()`: el vigía avisa si una política deja de exigir `es_del_equipo()` |
+| `20260823_a_quien_se_le_puede_escribir.sql` | 🔒 `puede_recibir_plantillas()`: el «no me escriban» se comprobaba con la cadena cruda y fallaba en 10 de 18 pedidos |
+| `20260824_confirmado_y_devuelto.sql` | Dos estados nuevos en el circuito, y el guardián que compara la regla del dinero de la base con la del panel |
+| `20260824_lo_que_llega_a_la_cuenta.sql` | `neto_recibido_de`: el abono se cobra por Mercado Pago y los informes lo sumaban en bruto |
+| `20260824_el_embudo_se_ensanchaba.sql` | El embudo dibujaba 0 → 1 → 0: sus peldaños no eran subconjuntos |
+| `20260824_cancelar_el_duplicado_no_el_pedido_de_ayer.sql` | El disparador de duplicados no veía el mismo teléfono en otro formato, y mataba pedidos legítimos de días atrás |
+| `20260824_el_vigia_cuadra_la_caja.sql` | `caja_cuadra_con_la_regla()`: que el libro de pagos le haga caso a `recibido_de` |
+| `20260824_las_ciudades_de_colombia.sql` | Los 1.273 municipios con su código DANE, que es lo que pide 99envios |
+| `20260824_de_lo_que_escribe_la_clienta_al_codigo_dane.sql` | `codigo_dane()`: traduce la ciudad escrita a mano, y calla si es ambigua |
+| `20260830_topos_y_juegos.sql` | Dos categorías nuevas en el `CHECK` de `products`: los topos y los combos de dije con aretes |
+
+**Son 44 archivos.** La lista completa y en orden de aplicación está en `CLAUDE.md` §6; ésta
+trae las que cambian la forma de los datos o el acceso.
 
 ### Los fallos de acceso público, cerrados
 
