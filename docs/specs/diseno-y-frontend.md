@@ -194,7 +194,7 @@ Cinco cambios, cada uno aislado y reversible por separado:
 |---|---|---|
 | Caché de los assets | `vercel.json` | 160 KiB revalidados en cada visita — abajo |
 | `ProtectedRoute` a `lazy()` | `src/App.jsx` | ~120 KiB: el cliente de Supabase entero |
-| Los píxeles, después de pintar | `src/lib/pixeles.js` | 284,6 KiB de terceros fuera de la ruta crítica |
+| Los píxeles, al primer gesto | `src/lib/pixeles.js` | 284,6 KiB de terceros fuera de la ruta crítica **y del bloqueo** |
 | Precargar la foto del hero | `index.html` | Deja de esperar a que React la descubra |
 | `build.target: 'es2022'` | `vite.config.ts` | 22 KiB de transpilación para navegadores que esta tienda no recibe |
 
@@ -202,26 +202,103 @@ Cinco cambios, cada uno aislado y reversible por separado:
 visitante de la portada se bajaba auth, realtime y storage de Supabase para no usarlos. El
 bundle de entrada pasó de **419 KB a 246 KB**. El `<Suspense>` de las rutas ya lo cubría.
 
-**Los píxeles se cargan ahora tras el evento `load`**, con `requestIdleCallback` y un
-respaldo por `setTimeout` porque Safari no lo trae. Lo delicado no era diferirlos sino **no
+**Los píxeles se cargaron primero tras el evento `load`**, con `requestIdleCallback`, y desde
+el 30 de agosto de 2026 **esperan al primer gesto de la persona**: `load` llegaba a los
+435 ms y los 284 KiB seguían ejecutándose dentro de la ventana que mide el bloqueo — eran los
+153 ms de los 137 de TBT de la portada, o sea todo. Lo delicado nunca fue diferirlos sino **no
 perder eventos por el camino**: `meta()` y `tiktok()` descartaban en silencio cualquier
 evento disparado antes de que el píxel existiera, así que diferir habría tirado el `PageView`
-de cada carga. Por eso `pixeles.js` guarda una cola —`pendientes`, tope de 50— y la vacía en
-cuanto `window.fbq` o `window.ttq` aparecen. Se prueba en `src/lib/pixeles.test.js`.
+de cada carga. Por eso `pixeles.js` guarda una cola —`pendientes`, tope de 50—, la vacía en
+cuanto `window.fbq` o `window.ttq` aparecen, fuerza la carga en los eventos que valen plata y
+manda una baliza si la visita se va sin tocar nada. El detalle, con lo que cuesta, está en
+[`atribucion-y-pixeles.md`](atribucion-y-pixeles.md). Se prueba en `src/lib/pixeles.test.js`.
 
 **Y el navbar pinta antes que la ruta.** El `<Suspense>` envolvía el layout entero, así que
 hasta que no llegaba el JS de la página no había ni navegación ni pie. Se movió dentro
 (`ConNavbar`), y el marco aparece de inmediato. Se hizo con cuidado por el CLS: navbar y pie
 tienen altura propia, así que el contenido no salta cuando la ruta entra.
 
-**El elemento LCP es el logo del navbar, que es texto en Marcellus** — no la foto. Está
-escrito arriba y con medición, y aun así se optimizó dos veces contra la foto del hero antes
-de releerlo. La foto sí se precarga, pero por el FCP, no por el LCP.
+**El elemento LCP era el logo del navbar, que es texto en Marcellus** — no la foto. Lo fue
+mientras las fuentes venían de Google: lo que la gente esperaba era un archivo de otro
+dominio al final de una cadena de cuatro pasos. Con las fuentes propias y la foto precargada
+**el LCP pasó a ser el `<img>` del hero**, medido contra producción el 30 de agosto de 2026.
+Lo que no cambia es la costumbre: mirar `largest-contentful-paint-element` antes de tocar
+nada, porque este sitio ya se optimizó dos veces contra el elemento equivocado.
 
 Lo que **no** se tocó, a propósito: partir el CSS en crítico y diferido (el premio son
 16 KiB y este proyecto tiene historial de regresiones de CSS — para eso existe
 `css:pisadas`), y la región del servidor (el HTML se sirve desde Washington, pero antes de
 mover nada hay que medir el TTFB real desde Colombia).
+
+## La portada se pinta en el build, no en el celular
+
+Medido con Lighthouse móvil sobre producción el 30 de agosto de 2026, con el sitio **ya**
+optimizado —fuentes propias, foto precargada, píxeles diferidos, CSS partido en ocho hojas—:
+**95 de rendimiento, LCP 2,6 s**. El desglose del LCP dice dónde estaba:
+
+| Fase | Tiempo | % |
+|---|---|---|
+| TTFB | 680 ms | 11 % |
+| Load Delay | 0 ms | 0 % |
+| Load Time | 337 ms | 6 % |
+| **Render Delay** | **4.936 ms** | **83 %** |
+
+La foto del hero estaba entera en el primer segundo —el `preload` de `index.html` funciona— y
+se pintaba dos segundos después. No esperaba a la red: **esperaba a que React montara.**
+`#root` venía vacío, así que hasta bajar, parsear y ejecutar el bundle no había nada que
+pintar. `observedFirstPaint` y `observedLargestContentfulPaint` caían en el mismo
+milisegundo: la portada aparecía entera, de golpe, tarde.
+
+Y no se arreglaba adelgazando el bundle. Atribuyendo sus 275 KB por sourcemap:
+
+```
+176,4 KB  66,2 %  react-dom
+ 37,3 KB  14,0 %  react-router
+  8,0 KB   3,0 %  react
+  3,6 KB   1,4 %  scheduler
+  ~40 KB    ~15 %  TODO el código de la portada
+```
+
+El 83 % es el framework. Así que la portada dejó de necesitarlo para pintarse: la pinta
+`scripts/prerenderizar.mjs` en el build, con `react-dom/server`, y el navegador la recibe
+hecha. Medido en local con la misma máquina, el mismo bundle y el mismo estrangulamiento
+(4× de CPU, 1,6 Mbps, 150 ms de ida y vuelta):
+
+| | FCP | LCP |
+|---|---|---|
+| Cascarón vacío | 2.332 ms | 2.332 ms |
+| Prerenderizada | **1.184 ms** | **1.184 ms** |
+
+### Los dos HTML
+
+`vercel.json` reescribe todas las rutas al mismo archivo, así que meter la portada en
+`index.html` habría hecho que quien abre el enlace de Valentina y cae en `/catalogo/<uuid>`
+**viera la portada** antes de que React lo corrigiera. Por eso el build deja dos:
+
+- `dist/index.html` — la portada pintada dentro de `#root`. Sólo la sirve `/`.
+- `dist/app.html` — el mismo archivo con el `#root` vacío. Lo sirve el comodín.
+
+Vercel mira el sistema de archivos antes que las reescrituras, y el `source` del comodín
+termina en `.+` para que la raíz no pueda caer ahí ni por accidente.
+
+`src/main.tsx` decide por lo que hay en el contenedor y no por la ruta: `hydrateRoot` si
+`#root` trae algo, `createRoot` si no. Así, si el prerenderizado fallara, el sitio se monta
+en el navegador como antes en vez de quedarse en blanco.
+
+### Lo único delicado: que los dos renders coincidan
+
+Si el HTML del build y el primer render del navegador no dicen lo mismo, React tira lo
+pintado y reconstruye el árbol entero — deshace exactamente lo que se vino a ganar, y **sin
+que se vea**. Lo que hubo que arreglar:
+
+| Qué | Por qué | Cómo |
+|---|---|---|
+| El enlace de WhatsApp | `isMobile()` mira `navigator` y la marca `[ref:]` sale de `localStorage`; en Node no hay ninguno de los dos | `useWaUrl()` pinta el mensaje de escritorio sin marca —lo mismo que el build— y lo cambia por el bueno al montar |
+| Las animaciones | `useLayoutEffect` avisa por consola en cada build | `useEfectoDeDiseno`, que es `useEffect` en Node |
+| El año del pie | El build lo escribe una vez y el 1 de enero deja de coincidir | `suppressHydrationWarning` |
+
+**La regla, para lo que venga: nada que se pinte puede depender de `navigator`,
+`localStorage`, la fecha o el azar en el primer render.**
 
 ## La caché de los assets
 
@@ -401,3 +478,15 @@ npm run dev
    reales.
 7. **CSS muerto:** antes de borrar una regla, comprueba con `grep -r "clase" src/` que de
    verdad no la usa ningún JSX.
+8. **El prerenderizado, en la consola:** abre la portada del build con la consola abierta.
+   **No puede haber ni un aviso de hidratación.** Si React se queja, tiró el HTML pintado y
+   volvió a construir la página entera: se ve idéntica y no sirvió de nada.
+9. **Que la portada llegue pintada:** `curl -s <url>/ | grep -c hero-frame` tiene que dar 1.
+   Y `curl -s <url>/catalogo/<uuid> | grep -c hero-frame` tiene que dar 0 — si da 1, el
+   comodín de `vercel.json` volvió a apuntar a `index.html` y las fichas parpadean con la
+   portada.
+
+**Ojo con `npm run preview` para lo segundo:** `vite preview` manda cualquier ruta a
+`index.html`, así que ahí `/catalogo` sí enseña la portada. No es un fallo del sitio, es que
+Vercel sirve `app.html` y `vite preview` no sabe de esa regla. Para probar el enrutado de
+verdad hace falta el despliegue de vista previa de Vercel.

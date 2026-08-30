@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { waUrl } from '../lib/whatsapp';
+import { useWaUrl } from '../lib/whatsapp';
 
 const WhatsAppButton = () => {
   const { pathname } = useLocation();
   const [visible, setVisible] = useState(false);
+  const waAsesoria = useWaUrl({
+    mobile: 'Hola! 👋 Estoy viendo el catálogo de *Aurem Gs Joyería* y me encanta. Me pueden asesorar? ✨',
+    desktop: 'Hola! Estoy viendo el catálogo de *Aurem Gs Joyería* y me encanta. Me pueden asesorar?'
+  });
 
   // Aparece suavemente al cargar
   useEffect(() => {
@@ -35,7 +39,7 @@ const WhatsAppButton = () => {
 
   return (
     <a
-      href={waUrl({ mobile: 'Hola! 👋 Estoy viendo el catálogo de *Aurem Gs Joyería* y me encanta. Me pueden asesorar? ✨', desktop: 'Hola! Estoy viendo el catálogo de *Aurem Gs Joyería* y me encanta. Me pueden asesorar?' })}
+      href={waAsesoria}
       target="_blank"
       rel="noopener noreferrer"
       className={`wa-float${visible ? ' wa-float--visible' : ''}`}

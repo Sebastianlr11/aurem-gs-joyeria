@@ -1,5 +1,13 @@
 import { useEffect, useLayoutEffect, useRef } from 'react'
 
+/* En el servidor no hay diseño que medir y React avisa por consola cada vez
+   que se usa `useLayoutEffect` — una línea por componente animado, en cada
+   build, desde que `scripts/prerenderizar.mjs` pinta la portada en Node. Es
+   el mismo hook en el navegador; en Node no hace nada, que es lo correcto:
+   el estado oculto lo pone el efecto, y el HTML del build tiene que salir
+   con el contenido visible. */
+const useEfectoDeDiseno = typeof window === 'undefined' ? useEffect : useLayoutEffect
+
 /* Cuánto antes de entrar en pantalla empieza la animación. Sin esto el
    movimiento arranca cuando la sección ya lleva medio segundo a la vista y
    se siente tarde. */
@@ -49,7 +57,7 @@ function observarUnaVez(el, alEntrar) {
 export function useAparecer(direccion = 'y') {
   const ref = useRef(null)
 
-  useLayoutEffect(() => {
+  useEfectoDeDiseno(() => {
     const el = ref.current
     if (!el || noAnimar()) return
     el.classList.add('aparece', `aparece--${direccion}`)
@@ -81,7 +89,7 @@ export function useAparecer(direccion = 'y') {
 export function useAparecerGrupo(paso = 0.12, llave = null) {
   const ref = useRef(null)
 
-  useLayoutEffect(() => {
+  useEfectoDeDiseno(() => {
     const el = ref.current
     if (!el || noAnimar()) return
     Array.from(el.children).forEach((hijo, i) => {

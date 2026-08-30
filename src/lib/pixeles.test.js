@@ -14,7 +14,7 @@
  * están en Vercel a propósito, para no ensuciar la medición— así que esta
  * prueba es la única forma de saberlo antes de desplegar.
  */
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 /* Los IDs se leen al importar el módulo, así que hay que ponerlos antes y
    recargarlo en cada caso. */
@@ -30,6 +30,12 @@ describe('los píxeles diferidos', () => {
         delete window.fbq;
         delete window.ttq;
         vi.unstubAllEnvs();
+        /* El fragmento de Meta se cuelga del primer <script> de la página.
+           En un navegador siempre hay uno —el del bundle—; en jsdom hay que
+           ponerlo, o `cargarMeta()` revienta en la prueba y no en la vida. */
+        if (!document.querySelector('script')) {
+            document.head.appendChild(document.createElement('script'));
+        }
     });
 
     /* El caso que motivó la cola. */
@@ -92,5 +98,124 @@ describe('los píxeles diferidos', () => {
         iniciarPixeles();
 
         expect(track).not.toHaveBeenCalled();
+    });
+});
+
+/**
+ * Cuándo arrancan, que es lo que decide el bloqueo del hilo principal.
+ *
+ * Los 284 KiB de Meta y TikTok eran **todo** el TBT de la portada (153 ms de
+ * 137 medidos, el 30 de agosto de 2026), así que ahora esperan al primer
+ * gesto de la persona. Eso abre dos formas nuevas de equivocarse, y las dos
+ * son invisibles: cargarlos igual de pronto —y no ganar nada— o no cargarlos
+ * nunca —y dejar de medir la pauta—. Ninguna de las dos da error en pantalla.
+ */
+describe('cuándo arrancan los píxeles', () => {
+    /* Cada caso recarga el módulo con `vi.resetModules()`, pero la ventana de
+       jsdom es la misma para todo el archivo: sin esto los oyentes de un caso
+       siguen colgados en el siguiente y una sola baliza se cuenta cinco
+       veces. En un navegador hay UN módulo y el problema no existe. */
+    const suscritos = [];
+
+    beforeEach(() => {
+        delete window.fbq;
+        delete window.ttq;
+        vi.unstubAllEnvs();
+        if (!document.querySelector('script')) {
+            document.head.appendChild(document.createElement('script'));
+        }
+
+        for (const donde of [window, document]) {
+            const original = donde.addEventListener.bind(donde);
+            vi.spyOn(donde, 'addEventListener').mockImplementation((tipo, fn, opciones) => {
+                suscritos.push([donde, tipo, fn]);
+                original(tipo, fn, opciones);
+            });
+        }
+    });
+
+    afterEach(() => {
+        vi.restoreAllMocks();
+        for (const [donde, tipo, fn] of suscritos.splice(0)) donde.removeEventListener(tipo, fn);
+    });
+
+    it('no baja nada hasta que la persona da señales de vida', async () => {
+        const { iniciarPixeles, pixelPagina } = await cargarModulo();
+
+        iniciarPixeles();
+        pixelPagina();   // el PageView de la visita, que se guarda en la cola
+
+        expect(window.fbq).toBeUndefined();
+        expect(window.ttq).toBeUndefined();
+    });
+
+    it('un desplazamiento los carga', async () => {
+        const { iniciarPixeles } = await cargarModulo();
+        iniciarPixeles();
+
+        window.dispatchEvent(new Event('scroll'));
+
+        expect(window.fbq).toBeDefined();
+        expect(window.ttq).toBeDefined();
+    });
+
+    it('ocultar la pestaña también los carga', async () => {
+        const { iniciarPixeles } = await cargarModulo();
+        iniciarPixeles();
+
+        vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
+        document.dispatchEvent(new Event('visibilitychange'));
+
+        expect(window.fbq).toBeDefined();
+    });
+
+    /* El caso que costaría dinero: a la pantalla de gracias se llega volviendo
+       de Mercado Pago y se puede cerrar sin tocar nada. Si la venta esperara a
+       un gesto, no se contaría ninguna. */
+    it('una compra no espera a ningún gesto', async () => {
+        const { iniciarPixeles, pixelCompra } = await cargarModulo();
+        iniciarPixeles();
+
+        pixelCompra({ pedidoId: 'PED-1', valor: 550000, piezaId: 'x', piezaNombre: 'Anillo' });
+
+        expect(window.fbq).toBeDefined();
+        expect(window.ttq).toBeDefined();
+    });
+
+    /* Y el que se pierde si nadie lo vigila: quien entra, no toca nada y se
+       va. El fragmento nunca llegó a estar vivo, así que la visita se cuenta
+       con el píxel de imagen o no se cuenta. */
+    it('irse sin tocar nada manda la baliza de Meta', async () => {
+        const { iniciarPixeles } = await cargarModulo();
+        const llamadas = [];
+        vi.stubGlobal('fetch', (url, opciones) => {
+            llamadas.push({ url, opciones });
+            return Promise.resolve();
+        });
+
+        iniciarPixeles();
+        window.dispatchEvent(new Event('pagehide'));
+
+        expect(llamadas).toHaveLength(1);
+        expect(llamadas[0].url).toContain('facebook.com/tr/');
+        expect(llamadas[0].url).toContain('ev=PageView');
+        /* Sin `keepalive` el navegador cancela la petición al cerrar la
+           página, que es justo el momento en el que se manda. */
+        expect(llamadas[0].opciones.keepalive).toBe(true);
+        vi.unstubAllGlobals();
+    });
+
+    it('si el fragmento ya está vivo, la baliza no duplica la visita', async () => {
+        const { iniciarPixeles } = await cargarModulo();
+        const llamadas = [];
+        vi.stubGlobal('fetch', (url) => { llamadas.push(url); return Promise.resolve(); });
+
+        iniciarPixeles();
+        /* `callMethod` es lo que pone fbevents.js cuando de verdad cargó. */
+        window.fbq = Object.assign(vi.fn(), { callMethod: vi.fn() });
+        window.dispatchEvent(new Event('pagehide'));
+
+        expect(llamadas).toHaveLength(0);
+        vi.unstubAllGlobals();
     });
 });

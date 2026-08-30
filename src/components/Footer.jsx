@@ -1,8 +1,13 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { waUrl } from '../lib/whatsapp';
+import { useWaUrl } from '../lib/whatsapp';
 
 const Footer = () => {
+    const waInfo = useWaUrl({
+        mobile: 'Hola! 👋 Vengo de la página de *Aurem Gs Joyería* y quiero más información ✨',
+        desktop: 'Hola! Vengo de la página de *Aurem Gs Joyería* y quiero más información.'
+    });
+
     return (
         <footer className="footer">
             <div className="container">
@@ -43,10 +48,7 @@ const Footer = () => {
                                 </li>
                                 <li>
                                     <a
-                                        href={waUrl({
-                                            mobile: 'Hola! 👋 Vengo de la página de *Aurem Gs Joyería* y quiero más información ✨',
-                                            desktop: 'Hola! Vengo de la página de *Aurem Gs Joyería* y quiero más información.'
-                                        })}
+                                        href={waInfo}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                     >
@@ -69,7 +71,14 @@ const Footer = () => {
                     <span className="footer-brand-text">AUREM GS JOYERÍA</span>
                     <span className="footer-cierre-filete" />
                     <div className="footer-bottom">
-                        <p>© {new Date().getFullYear()} Aurem Gs Joyería. Todos los derechos reservados.</p>
+                        {/* El año lo pone el build, y el 1 de enero deja de
+                            coincidir con el del navegador hasta el siguiente
+                            despliegue. `suppressHydrationWarning` es para
+                            exactamente esto: React se queda con el del
+                            navegador y no da por rota la hidratación —que
+                            costaría volver a construir la página entera por
+                            cuatro dígitos—. */}
+                        <p suppressHydrationWarning>© {new Date().getFullYear()} Aurem Gs Joyería. Todos los derechos reservados.</p>
                         <p className="footer-credit">
                             Web hecha por{' '}
                             <a href="https://www.selffcode.com" target="_blank" rel="noopener noreferrer">

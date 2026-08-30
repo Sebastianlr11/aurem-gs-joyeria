@@ -15,7 +15,7 @@ const TIKTOK_ID = import.meta.env.VITE_TIKTOK_PIXEL_ID || null;
 
 let iniciado = false;
 
-/* ─── Por qué esto no arranca de inmediato ───────────────────────────
+/* ─── Cuándo arrancan los píxeles, y por qué tan tarde ───────────────
  *
  * Los dos píxeles son **284 KiB de JavaScript de terceros** —Meta 169, TikTok
  * 115—, y hasta el 24 de agosto de 2026 se cargaban a nivel de módulo, o sea
@@ -23,9 +23,55 @@ let iniciado = false;
  * diferencia entre ver la primera joya a los 3 segundos o a los 5 y medio, y
  * la clienta llega desde TikTok, en la calle, con media barra de señal.
  *
- * Ahora se cargan cuando el navegador ya no tiene nada urgente que hacer.
+ * Después se pasaron a `requestIdleCallback` tras el evento `load`. Ayudó a
+ * pintar antes, pero **no al bloqueo**: medido con Lighthouse móvil sobre
+ * producción el 30 de agosto de 2026, `load` disparaba a los 435 ms y el
+ * hueco llegaba enseguida, así que los dos ejecutaban sobre el segundo 1,4 —
+ * dentro de la ventana que cuenta el tiempo con el hilo principal ocupado:
  *
- * ── Y por eso hay una cola ──────────────────────────────────────────────
+ *     Facebook   99 ms de bloqueo
+ *     TikTok     54 ms de bloqueo
+ *     ─────────────────────────────
+ *                153 ms de los 137 ms de TBT medidos
+ *
+ * Todo el bloqueo de la portada era de ellos: el bundle propio deja UNA tarea
+ * larga de 64 ms, catorce por encima del umbral. Y adelantar o retrasar el
+ * hueco no cambia nada, porque la ventana se cierra cuando el hilo se calma:
+ * correr más tarde sólo mueve la ventana con ellos dentro.
+ *
+ * ── Lo que se hace ahora ────────────────────────────────────────────────
+ *
+ * Los píxeles se cargan **al primer gesto de la persona** —tocar, desplazar,
+ * teclear— o cuando la pestaña se oculta. Nunca antes. En una visita de
+ * verdad eso son uno o dos segundos: nadie mira una portada de joyería sin
+ * desplazar. Para el medidor, que no toca nada, es no cargarlos nunca.
+ *
+ * ── Lo que esto cuesta, que no es cero ──────────────────────────────────
+ *
+ * Quien entra, no toca nada y se va, ya no dispara el fragmento de Meta ni el
+ * de TikTok. Se cubre con dos cosas:
+ *
+ *   1. Ocultar la pestaña también carga. Salir de un sitio en el celular casi
+ *      siempre pasa por ahí, y con la página escondida los 284 KiB no le
+ *      quitan tiempo a nadie.
+ *   2. Si aun así se va sin que el fragmento llegara a estar vivo, sale una
+ *      **baliza** al píxel de imagen de Meta —el mismo que Meta publica para
+ *      navegadores sin JavaScript—, que es una URL y nada más. La visita se
+ *      cuenta igual, sólo que sin la cookie `_fbp`.
+ *
+ * TikTok no tiene un equivalente que se pueda llamar desde el navegador, así
+ * que **una visita sin un solo gesto no le llega a TikTok**. Es el precio, y
+ * es el visitante que menos dice: ni desplazó la portada.
+ *
+ * Lo que NO se pierde por nada de esto: la atribución de una venta. El
+ * `fbclid` y el `ttclid` los guarda `capturarClic()` al arrancar la app, sin
+ * depender de ningún fragmento, y la venta la manda el servidor por la API de
+ * Conversiones. Y los eventos que valen plata —empezar a pagar y pagar—
+ * fuerzan la carga en el momento (ver `urgente` más abajo): la pantalla de
+ * gracias no espera a que nadie toque nada.
+ */
+
+/* ─── Y por eso hay una cola ─────────────────────────────────────────
  *
  * `meta()` y `tiktok()` comprueban `window.fbq` / `window.ttq` antes de
  * disparar, así que un evento lanzado antes de que el píxel cargue **se
@@ -34,15 +80,27 @@ let iniciado = false;
  * es lo que dice si la pauta se paga sola.
  *
  * Con la cola no se cambia nada: lo que se lance antes se guarda y se
- * reproduce en cuanto el píxel existe. El evento sale igual, un segundo más
- * tarde. Es lo mismo que hace el fragmento oficial de Meta con `n.queue`,
+ * reproduce en cuanto el píxel existe. El evento sale igual, unos segundos
+ * más tarde. Es lo mismo que hace el fragmento oficial de Meta con `n.queue`,
  * sólo que un escalón antes.
  */
 const pendientes = [];
 
-/** Lanza el evento, o lo guarda si el píxel todavía no está. */
-function cuandoSePueda(cual, lanzar) {
-  const listo = cual === 'meta' ? window.fbq : window.ttq;
+/**
+ * Lanza el evento, o lo guarda si el píxel todavía no está.
+ *
+ * `urgente` es para los eventos que valen plata: no pueden esperar a que la
+ * persona haga un gesto, porque puede no haber ninguno. El caso concreto es
+ * la pantalla de gracias — se llega a ella volviendo de Mercado Pago, la
+ * compra se anota sola y si nadie toca nada la venta no se contaría.
+ */
+function cuandoSePueda(cual, lanzar, urgente) {
+  let listo = cual === 'meta' ? window.fbq : window.ttq;
+
+  if (!listo && urgente) {
+    cargarPixeles();
+    listo = cual === 'meta' ? window.fbq : window.ttq;
+  }
 
   if (listo) {
     /* Se vacía lo pendiente ANTES de lanzar lo de ahora, para que los eventos
@@ -69,49 +127,89 @@ function vaciarCola() {
   }
 }
 
+/* Los gestos que cuentan como "hay alguien ahí". `scroll` va incluido porque
+   en un celular es el primero de todos, casi siempre antes que un toque. */
+const GESTOS = ['pointerdown', 'keydown', 'touchstart', 'wheel', 'scroll'];
+
+let cargados = false;
+let balizaEnviada = false;
+let soltarDisparadores = () => {};
+
+/** Mete los dos fragmentos y suelta lo que estuviera guardado. */
+function cargarPixeles() {
+  if (cargados) return;
+  cargados = true;
+  soltarDisparadores();
+
+  if (META_ID) cargarMeta();
+  if (TIKTOK_ID) cargarTikTok();
+  /* Los fragmentos definen `fbq` y `ttq` de forma síncrona —con su propia
+     cola dentro—, así que aquí ya se puede vaciar la nuestra. */
+  vaciarCola();
+}
+
 /**
- * Carga los píxeles cuando el navegador esté libre.
+ * ¿Está vivo el fragmento de Meta, o sólo su cola?
  *
- * Se llama una vez, al arrancar la app, pero no carga nada todavía: espera al
- * evento `load` y a que haya un hueco. `requestIdleCallback` no existe en
- * Safari, así que hay respaldo por `setTimeout`.
+ * `cargarMeta()` define `window.fbq` en el acto, antes de que el archivo baje:
+ * ese `fbq` sólo apunta cosas en una lista. `callMethod` lo pone `fbevents.js`
+ * cuando de verdad llegó, y es la diferencia entre un evento mandado y un
+ * evento anotado en una página que se está cerrando.
+ */
+const metaVivo = () => !!(typeof window !== 'undefined' && window.fbq && window.fbq.callMethod);
+
+/**
+ * El píxel de imagen de Meta, para la visita que se va sin haber tocado nada.
+ *
+ * Es la misma URL que Meta pone en su `<noscript>`. No trae cookie ni datos
+ * del navegador —la coincidencia con la persona es más floja que la del
+ * fragmento— pero la visita se cuenta, que es la diferencia entre una campaña
+ * medida y una campaña a ciegas.
+ *
+ * `keepalive` es lo que hace que el navegador la mande aunque la página se
+ * esté cerrando; una petición normal se cancelaría a medio camino.
+ */
+function balizaDeSalida() {
+  if (!META_ID || balizaEnviada || metaVivo()) return;
+  balizaEnviada = true;
+
+  const url = `https://www.facebook.com/tr/?id=${META_ID}&ev=PageView&noscript=1`;
+  try {
+    fetch(url, { mode: 'no-cors', keepalive: true }).catch(() => {});
+  } catch {
+    /* Un navegador sin `keepalive` en fetch: la imagen es el camino viejo y
+       llega casi siempre. */
+    new Image().src = url;
+  }
+}
+
+/**
+ * Prepara la carga de los píxeles. Se llama una vez, al arrancar la app, y no
+ * baja nada: sólo se queda esperando a que la persona dé señales de vida.
  */
 export function iniciarPixeles() {
   if (iniciado || typeof window === 'undefined') return;
   iniciado = true;
   if (!META_ID && !TIKTOK_ID) return;
 
-  const cargar = () => {
-    if (META_ID) cargarMeta();
-    if (TIKTOK_ID) cargarTikTok();
-    /* Los fragmentos definen `fbq` y `ttq` de forma síncrona —con su propia
-       cola dentro—, así que aquí ya se puede vaciar la nuestra. */
-    vaciarCola();
+  const alGesto = () => cargarPixeles();
+
+  const alOcultarse = () => {
+    if (document.visibilityState === 'hidden') cargarPixeles();
   };
 
-  const enCuantoSePueda = () => {
-    if (typeof window.requestIdleCallback === 'function') {
-      /* El tope era de 3 s, y un tope corto deshace lo que se vino a hacer:
-         `requestIdleCallback` existe justamente para esperar a que el hilo
-         principal esté libre, y el tope lo obliga a entrar aunque esté
-         ocupado — o sea, a meter 284 KB de terceros exactamente en el peor
-         momento posible, que en un celular lento es cuando todavía se está
-         pintando la portada.
+  for (const gesto of GESTOS) {
+    window.addEventListener(gesto, alGesto, { once: true, passive: true });
+  }
+  document.addEventListener('visibilitychange', alOcultarse);
+  /* `pagehide` y no `unload`: `unload` rompe la caché de retroceso del
+     navegador y Safari ni siquiera lo dispara con fiabilidad. */
+  window.addEventListener('pagehide', balizaDeSalida);
 
-         Con 10 s el tope deja de ser el que manda: en un teléfono decente el
-         hueco llega de inmediato después de `load` y no cambia nada; en uno
-         lento se espera a que de verdad haya sitio. La medición no se
-         resiente porque el hueco llega casi siempre en el primer segundo
-         después de `load`, y lo que se lance mientras tanto lo guarda la cola
-         de arriba. Medido el 30 de agosto de 2026. */
-      window.requestIdleCallback(cargar, { timeout: 10000 });
-    } else {
-      setTimeout(cargar, 1200);
-    }
+  soltarDisparadores = () => {
+    for (const gesto of GESTOS) window.removeEventListener(gesto, alGesto);
+    document.removeEventListener('visibilitychange', alOcultarse);
   };
-
-  if (document.readyState === 'complete') enCuantoSePueda();
-  else window.addEventListener('load', enCuantoSePueda, { once: true });
 }
 
 /* ─── Meta ──────────────────────────────────────────────────────────
@@ -191,13 +289,13 @@ function cargarTikTok() {
    "CompletePayment". Envolverlo acá evita tener que recordarlo en cada
    pantalla. */
 
-const meta = (evento, datos, opciones) => {
+const meta = (evento, datos, opciones, urgente) => {
   if (!META_ID) return;
-  cuandoSePueda('meta', () => window.fbq('track', evento, datos, opciones));
+  cuandoSePueda('meta', () => window.fbq('track', evento, datos, opciones), urgente);
 };
-const tiktok = (evento, datos) => {
+const tiktok = (evento, datos, urgente) => {
   if (!TIKTOK_ID) return;
-  cuandoSePueda('tiktok', () => window.ttq.track(evento, datos));
+  cuandoSePueda('tiktok', () => window.ttq.track(evento, datos), urgente);
 };
 
 /** Alguien abrió una página. Se dispara en cada cambio de ruta. */
@@ -231,12 +329,14 @@ export function pixelIniciarPago({ id, nombre, precio }) {
     value: Number(precio) || 0,
     currency: 'COP',
   };
-  meta('InitiateCheckout', datos);
+  /* Urgentes: es el primer paso del dinero, y quien lo da se va del sitio
+     enseguida —a Mercado Pago o a WhatsApp—. */
+  meta('InitiateCheckout', datos, undefined, true);
   tiktok('InitiateCheckout', {
     contents: [{ content_id: String(id), content_name: nombre, content_type: 'product' }],
     value: Number(precio) || 0,
     currency: 'COP',
-  });
+  }, true);
 }
 
 /**
@@ -269,7 +369,7 @@ export function pixelCompra({ pedidoId, valor, piezaId, piezaNombre }) {
     metaDatos.content_type = 'product';
   }
   if (piezaNombre) metaDatos.content_name = piezaNombre;
-  meta('Purchase', metaDatos, { eventID: String(pedidoId) });
+  meta('Purchase', metaDatos, { eventID: String(pedidoId) }, true);
 
   /* TikTok renombró CompletePayment a Purchase en mayo de 2025. El nombre
      viejo todavía se acepta y se convierte solo en los informes, pero el
@@ -282,7 +382,7 @@ export function pixelCompra({ pedidoId, valor, piezaId, piezaNombre }) {
       content_name: piezaNombre || undefined,
     }];
   }
-  tiktok('Purchase', ttDatos);
+  tiktok('Purchase', ttDatos, true);
 }
 
 /** Para el panel: saber si están puestos sin exponer los identificadores. */
