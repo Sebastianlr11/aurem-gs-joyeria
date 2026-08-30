@@ -38,14 +38,23 @@ const Home = () => {
     return (
         <>
             <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }} />
-            <Hero />
-            <TrustBar />
-            <Collections />
-            <TiltedCarousel />
-            <WhyUs />
-            <Reviews />
-            <Faq />
-            <Contact />
+            {/* El <main> no es decorado: es el atajo con el que un lector de
+                pantalla se salta el navbar y empieza a leer la página. Sin él
+                —hasta el 30 de agosto de 2026— quien entra con NVDA o
+                VoiceOver tenía que oírse el menú entero en cada carga.
+
+                Las demás pantallas públicas ya lo tenían; la portada y la
+                ficha, que son las dos que reciben el tráfico, no. */}
+            <main>
+                <Hero />
+                <TrustBar />
+                <Collections />
+                <TiltedCarousel />
+                <WhyUs />
+                <Reviews />
+                <Faq />
+                <Contact />
+            </main>
         </>
     );
 };
