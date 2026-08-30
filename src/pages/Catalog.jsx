@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import ProductCard from '../components/catalog/ProductCard';
-import { supabase } from '../lib/supabase';
+import { useCatalogoPublico } from '../lib/piezasPublicadas';
 import { waUrl } from '../lib/whatsapp';
 import { ponerMeta } from '../lib/meta';
 import { CATEGORIAS as CATEGORIAS_DEL_CATALOGO } from '../lib/categorias';
@@ -83,12 +83,23 @@ const useColumnas = (rejilla) => {
 const Catalog = () => {
     const [searchParams] = useSearchParams();
 
-    const [products, setProducts] = useState([]);
-    const [loading, setLoading] = useState(true);
-    /* Que la consulta falle y que el taller no tenga piezas son cosas
-       distintas y la pantalla tiene que decirlo. Sin esto, un corte de red
-       le anuncia a la clienta que no hay inventario. */
-    const [fallo, setFallo] = useState(false);
+    /* El catálogo entero de una vez —es pequeño, y así los chips pueden decir
+       cuántas piezas hay en cada categoría—, de la MISMA consulta que ya hizo
+       la portada.
+
+       Antes esta pantalla preguntaba por su cuenta, con el cliente de
+       Supabase, y eso costaba tres cosas a la vez: una segunda consulta a
+       `products` en la misma carga —la portada va estática en `App.jsx`, así
+       que la suya sale en todas las rutas—, 46 KB del cliente de Supabase que
+       aquí sólo servían para un SELECT, y un escalón más de espera, porque la
+       consulta no empezaba hasta que bajara el chunk de esta página. Medido el
+       30 de agosto de 2026 en PageSpeed: la respuesta llegaba a los 1.205 ms.
+
+       `fallo` viene aparte de la lista porque que la consulta falle y que el
+       taller no tenga piezas son cosas distintas y la pantalla tiene que
+       decirlo. Sin eso, un corte de red le anuncia a la clienta que no hay
+       inventario. */
+    const { piezas, cargando, fallo } = useCatalogoPublico();
     const [categoria, setCategoria] = useState(searchParams.get('categoria') || 'Todos');
     const [busqueda, setBusqueda] = useState('');
     const [orden, setOrden] = useState('newest');
@@ -110,52 +121,31 @@ const Catalog = () => {
         ruta: '/catalogo',
     }), []);
 
-    /* Se traen todas las piezas de una vez: el catálogo es pequeño y así
-       los chips pueden mostrar cuántas hay en cada categoría. */
-    useEffect(() => {
-        const fetchProducts = async () => {
-            setLoading(true);
-            const { data, error } = await supabase
-                .from('products')
-                .select('*')
-                .order('created_at', { ascending: false });
-            if (error) {
-                console.error('No se pudo cargar el catálogo:', error.message);
-                setFallo(true);
-            } else {
-                setProducts(data || []);
-                setFallo(false);
-            }
-            setLoading(false);
-        };
-        fetchProducts();
-    }, []);
-
     /* Los materiales salen del catálogo, no de una lista fija: si el joyero
        carga una pieza en platino, el filtro aparece solo. Se agrupan por la
        primera palabra —"Oro blanco 18k" y "Oro 18k" son los dos oro— porque
        nadie filtra por el matiz del oro, filtra por oro. */
     const MATERIALES = useMemo(() => {
         const vistos = new Set();
-        products.forEach(p => {
+        piezas.forEach(p => {
             const raiz = (p.metal || '').trim().split(/\s+/)[0];
             if (raiz) vistos.add(raiz.charAt(0).toUpperCase() + raiz.slice(1).toLowerCase());
         });
         return ['Todos', ...[...vistos].sort()];
-    }, [products]);
+    }, [piezas]);
 
     const conteoPorCategoria = useMemo(() => {
-        const mapa = { Todos: products.length };
+        const mapa = { Todos: piezas.length };
         CATEGORIAS.slice(1).forEach(c => {
-            mapa[c] = products.filter(p => p.category === c).length;
+            mapa[c] = piezas.filter(p => p.category === c).length;
         });
         return mapa;
-    }, [products]);
+    }, [piezas]);
 
     const filtradas = useMemo(() => {
         const { min, max } = RANGOS[rango];
         const q = busqueda.trim().toLowerCase();
-        const result = products.filter(p => {
+        const result = piezas.filter(p => {
             const matchCat = categoria === 'Todos' || p.category === categoria;
             const matchBusqueda = !q ||
                 p.name.toLowerCase().includes(q) ||
@@ -170,7 +160,7 @@ const Catalog = () => {
         if (orden === 'price_desc') result.sort((a, b) => b.price - a.price);
 
         return result;
-    }, [products, categoria, busqueda, orden, rango, metal]);
+    }, [piezas, categoria, busqueda, orden, rango, metal]);
 
     /* Ref por estado y no por `useRef`: hace falta que el efecto de medida se
        vuelva a correr cuando la rejilla aparece, y un `useRef` no avisa. */
@@ -601,7 +591,7 @@ const Catalog = () => {
             )}
 
             <section className="container catalogo-cuerpo">
-                {loading ? (
+                {cargando ? (
                     <div className="catalogo-grid" ref={setRejilla}>
                         {[...Array(8)].map((_, i) => <div key={i} className="pieza-esqueleto" />)}
                     </div>
@@ -673,7 +663,7 @@ const Catalog = () => {
                         </div>
 
                         <div className="catalogo-grid">
-                            {visibles.map(p => <ProductCard key={p.id} product={p} />)}
+                            {visibles.map((p, i) => <ProductCard key={p.id} product={p} indice={i} />)}
                         </div>
 
                         {visibles.length < filtradas.length && (
