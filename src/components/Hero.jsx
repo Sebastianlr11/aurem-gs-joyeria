@@ -1,7 +1,7 @@
 import React from 'react'
 import Foto from './Foto'
 import { Link } from 'react-router-dom'
-import { waUrl } from '../lib/whatsapp';
+import { useWaUrl } from '../lib/whatsapp';
 import { isotipoPaths } from './isotipoPaths';
 
 const WhatsAppIcon = () => (
@@ -32,6 +32,13 @@ const Sello = () => (
 );
 
 const Hero = () => {
+    /* `useWaUrl` y no `waUrl`: el hero se pinta en el build y el enlace tiene
+       que salir igual en Node que en el primer render del navegador. */
+    const waAsesoria = useWaUrl({
+        mobile: 'Hola! 👋 Estoy interesada en las joyas de *Aurem Gs Joyería*. Me gustaría recibir asesoría ✨',
+        desktop: 'Hola! Estoy interesada en las joyas de *Aurem Gs Joyería*. Me gustaría recibir asesoría.'
+    });
+
     return (
         <section className="hero-section">
             <div className="container">
@@ -68,10 +75,7 @@ const Hero = () => {
                                 Ver el catálogo
                             </Link>
                             <a
-                                href={waUrl({
-                                    mobile: 'Hola! 👋 Estoy interesada en las joyas de *Aurem Gs Joyería*. Me gustaría recibir asesoría ✨',
-                                    desktop: 'Hola! Estoy interesada en las joyas de *Aurem Gs Joyería*. Me gustaría recibir asesoría.'
-                                })}
+                                href={waAsesoria}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="btn-pill light"

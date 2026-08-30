@@ -10,6 +10,9 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+# Intermedio del build: la compilación en Node que pinta la portada.
+# `scripts/prerenderizar.mjs` la borra al terminar; esto es por si se corta antes.
+dist-servidor
 *.local
 
 # Editor directories and files

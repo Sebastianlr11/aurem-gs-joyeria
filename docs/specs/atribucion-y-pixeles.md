@@ -110,14 +110,63 @@ navegación privada** — se prefiere un duplicado ocasional a perder la medici�
 problema de TikTok: no manda nada equivalente al `ctwa_clid` de Meta, así que **la única
 forma de saber de dónde viene un chat es anotarlo en el propio texto**.
 
-## Los píxeles cargan después de que la página se pinte
+## Los píxeles esperan al primer gesto de la persona
 
-Desde el 24 de agosto de 2026 `iniciarPixeles()` ya no corre a nivel de módulo: espera al
-evento `load` y a que el navegador tenga un hueco (`requestIdleCallback`, con respaldo por
-`setTimeout` porque Safari no lo trae). Eran **284,6 KiB de terceros por delante del primer
-pintado** en una tienda cuya clienta llega desde TikTok, en un celular y con datos.
+Los dos fragmentos son **284 KiB de terceros**. Hasta el 24 de agosto de 2026 corrían a nivel
+de módulo, antes de que se pintara nada. Ese día pasaron a esperar el evento `load` y un
+hueco (`requestIdleCallback`, con respaldo por `setTimeout` porque Safari no lo trae), y la
+página empezó a pintar mucho antes.
 
-**Lo delicado no era diferirlos, era no perder eventos.** `meta()` y `tiktok()` descartaban
+**Pero el bloqueo del hilo principal siguió igual.** Medido con Lighthouse móvil sobre
+producción el 30 de agosto de 2026: `load` disparaba a los 435 ms, el hueco llegaba enseguida
+y los dos ejecutaban sobre el segundo 1,4 — dentro de la ventana que se mide.
+
+| | Bloqueo |
+|---|---|
+| Facebook | 99 ms |
+| TikTok | 54 ms |
+| **Total de terceros** | **153 ms** |
+| TBT medido de la página | 137 ms |
+
+Era **todo** el bloqueo de la portada: el bundle propio deja una sola tarea larga, de 64 ms.
+Y mover el hueco no sirve, porque la ventana se cierra cuando el hilo se calma: correr más
+tarde la arrastra con ellos dentro.
+
+Desde el 30 de agosto de 2026 los píxeles se cargan **al primer gesto** —`pointerdown`,
+`keydown`, `touchstart`, `wheel`, `scroll`— o cuando la pestaña se oculta. Nunca antes. En
+una visita de verdad son uno o dos segundos: nadie mira una portada de joyería sin
+desplazar. Para un medidor automático, que no toca nada, es no cargarlos nunca.
+
+### Lo que esto cuesta, que no es cero
+
+Quien entra, no toca nada y se va ya no dispara ningún fragmento. Se cubre con tres cosas, y
+la tercera no cubre a TikTok:
+
+1. **Ocultar la pestaña también carga.** Irse de un sitio en el celular casi siempre pasa por
+   ahí, y con la página escondida los 284 KiB no le quitan tiempo a nadie.
+2. **Los eventos que valen plata fuerzan la carga** en el acto: `InitiateCheckout` y
+   `Purchase` llevan `urgente` en `cuandoSePueda()`. Importa por la pantalla de gracias — se
+   llega a ella volviendo de Mercado Pago y se puede cerrar sin tocar nada; si la venta
+   esperara un gesto no se contaría ninguna.
+3. **Al irse sin que el fragmento llegara a estar vivo sale una baliza** al píxel de imagen
+   de Meta, el mismo que Meta publica para navegadores sin JavaScript. Es una URL con
+   `keepalive`, sin cookie `_fbp`: la coincidencia con la persona es más floja, pero la
+   visita se cuenta. **TikTok no tiene un equivalente llamable desde el navegador, así que
+   una visita sin un solo gesto no le llega.** Es el precio, y es el visitante que menos
+   dice: ni desplazó la portada.
+
+Lo que **no** se pierde por nada de esto es la atribución de una venta: el `fbclid` y el
+`ttclid` los guarda `capturarClic()` al arrancar la app, sin depender de ningún fragmento, y
+la venta la manda el servidor por la API de Conversiones.
+
+`metaVivo()` es la que distingue un fragmento cargado de uno sólo anunciado: `cargarMeta()`
+define `window.fbq` en el acto —una cola y nada más—, y `callMethod` sólo aparece cuando
+`fbevents.js` de verdad llegó. Es la diferencia entre un evento mandado y un evento anotado
+en una página que se está cerrando.
+
+### Y por debajo, la cola
+
+**Lo delicado nunca fue diferirlos, fue no perder eventos.** `meta()` y `tiktok()` descartaban
 en silencio cualquier evento disparado antes de que el píxel existiera. Con la carga
 inmediata casi nunca pasaba; diferida, habría tirado el `PageView` de **cada** carga y la
 medición se habría desangrado sin que ningún error lo dijera.
@@ -127,9 +176,6 @@ La solución es una cola: si el píxel todavía no está, el evento se guarda en
 cuanto `window.fbq` o `window.ttq` aparecen. Se vacía **de forma oportunista**, en cada
 intento de disparo, no sólo al arrancar: la primera versión sólo drenaba desde
 `iniciarPixeles()` y una prueba lo cazó.
-
-El coste real de diferir es la gente que cierra la pestaña en los primeros dos segundos. Es
-una fracción pequeña, y a cambio la página aparece antes — que hace que menos gente cierre.
 
 ## Las pruebas no se le cuentan a nadie
 

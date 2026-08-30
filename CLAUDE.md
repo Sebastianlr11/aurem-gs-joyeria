@@ -39,7 +39,7 @@ npm run dev          # Vite en http://localhost:5173
 npm run build        # eslint && vitest && sitemap.mjs && correos.mjs && tsc -b && vite build
 npm run preview      # Sirve /dist
 npm run lint         # ESLint (sí corre en el build)
-npm test             # Vitest, una pasada (281 pruebas)
+npm test             # Vitest, una pasada (292 pruebas)
 npm run test:mirar   # Vitest en marcha, repitiendo al guardar
 
 npm run sitemap      # Regenera public/sitemap.xml desde Supabase
@@ -47,6 +47,7 @@ npm run correos      # esbuild: emails/_render.ts -> api/_plantillas.mjs
 npm run email        # Previsualizador de React Email en :3010
 npm run imagenes     # sharp: public/assets/*.jpg -> WebP multi-tamaño
 npm run css:pisadas  # Diagnóstico: reglas CSS que otras pisan
+npm run prerenderizar # Pinta la portada en Node y la mete en dist/index.html (lo corre el build)
 
 node scripts/huella-estilos.mjs tomar h.json   # Huella de estilos: qué se ve, medido
 node scripts/css-de-quien-es.mjs               # De qué ruta es cada bloque de index.css
@@ -55,7 +56,7 @@ node scripts/css-mudanza.mjs                   # Qué reglas de index.css son de
 node scripts/huella-estilos.mjs tomar h.json --estados   # …midiendo también el visor, el modal y los filtros
 ```
 
-Tres advertencias sobre el build:
+Cuatro advertencias sobre el build:
 
 1. **`api/_plantillas.mjs` es un artefacto generado** por `scripts/correos.mjs` y está
    en `.gitignore`. No lo edites a mano: se sobrescribe en cada build. Si `api/correo.js`
@@ -64,10 +65,14 @@ Tres advertencias sobre el build:
    que impide que entre código roto, porque no hay revisión de nadie más.
 3. `scripts/sitemap.mjs` nunca tumba el build: si le faltan las variables de Supabase,
    emite sólo las rutas fijas y sigue.
+4. **El build termina prerenderizando la portada** y deja **dos** HTML en `dist/`:
+   `index.html` con la portada ya pintada dentro de `#root`, y `app.html` vacío para todo
+   lo demás. `scripts/prerenderizar.mjs` se planta —y tumba el build— si no encuentra el
+   `#root` o si la portada sale sin el hero: desplegarla sin prerenderizar no se vería.
 
 ### Las pruebas
 
-Hay **281**, en veintiún archivos que viven al lado de lo que prueban:
+Hay **292**, en veintidós archivos que viven al lado de lo que prueban:
 
 | Archivo | Qué fija |
 |---|---|
@@ -82,7 +87,7 @@ Hay **281**, en veintiún archivos que viven al lado de lo que prueban:
 | `src/lib/envio.test.js` | La caja en la que viaja una pieza: `null` nunca viaja como cero |
 | `src/lib/nombre.test.js` | Partir un nombre para la guía, sin inventarse un apellido |
 | `src/lib/recogida.test.js` | Quién viene por el paquete y cuándo |
-| `src/lib/pixeles.test.js` | Que diferir los píxeles no pierda ni un evento |
+| `src/lib/pixeles.test.js` | Que diferir los píxeles no pierda ni un evento, y cuándo arrancan |
 | `src/lib/portada.test.js` | Qué saca la portada del catálogo, y que no ofrezca una vitrina vacía |
 | `src/lib/tituloPieza.test.js` | Que el `<title>` de una pieza quepa en lo que Google enseña |
 | `src/lib/meta.test.js` | Las migas de la ficha y que el `FAQPage` diga lo que se ve |
@@ -723,6 +728,20 @@ Cosas que ya costaron un incidente. Léelas antes de tocar lo que describen.
   conexión y TLS marcados como reusados —cero coste—, mientras que en esa misma carga el
   favicon, que no está precalentado, paga 171 ms de conexión y 142 de TLS. El aviso de
   «preconnect no utilizado» es un falso positivo aquí. **No los quites.**
+- **`dist/index.html` y `dist/app.html` NO son el mismo archivo.** El primero trae la
+  portada ya pintada; el segundo es el cascarón vacío al que `vercel.json` manda todo lo
+  demás. Si el comodín volviera a apuntar a `/index.html`, quien abre el enlace que Valentina
+  le mandó por WhatsApp **vería la portada** un instante antes de que React pusiera su pieza.
+  Por eso el `source` del comodín termina en `.+` y no en `.*`: la ruta raíz no puede caer
+  ahí ni por accidente.
+- **Nada que se pinte puede depender del navegador en el PRIMER render.** Desde que la
+  portada se prerenderiza, el HTML sale de Node: sin `navigator`, sin `localStorage`, sin la
+  fecha de hoy. Si el primer render del navegador no coincide con ese HTML, React tira lo que
+  ya estaba pintado y reconstruye el árbol entero — o sea, deshace el prerenderizado **sin
+  que se note en pantalla**. Ya pasó con el enlace de WhatsApp (`isMobile()` y la marca
+  `[ref:]`): para eso está `useWaUrl` en `src/lib/whatsapp.js`, que pinta lo mismo en los dos
+  lados y arregla el enlace después de montar. Lo mismo cubren `useEfectoDeDiseno` en
+  `aparecer.js` y el `suppressHydrationWarning` del año en el `Footer`.
 - **390px no basta para probar móvil.** El iframe es la única forma de medir de verdad
   el comportamiento en pantallas reales en esta sesión.
 - **Hay dos píxeles de Meta con el mismo nombre y sólo uno recibe eventos.** Verifica el
@@ -741,9 +760,17 @@ Cosas que ya costaron un incidente. Léelas antes de tocar lo que describen.
   de esa transportadora todavía no está generado —tarda uno o dos días hábiles— y que con
   ella no se pueden emitir guías. `cotizar-envio` lo trata como «no cotizó» por eso: si se
   colara como opción se ordenaría la primera por barata y la emisión fallaría después.
-- **El elemento LCP de la portada es el texto del logo, no la foto.** Está escrito aquí
-  desde el principio y aun así se optimizó dos veces contra la imagen. Antes de tocar
-  rendimiento, mirar qué dice `largest-contentful-paint-element` en el informe.
+- **El elemento LCP de la portada es la foto del hero — pero lo fue el texto del logo.**
+  Lo era mientras las fuentes venían de Google; con las fuentes propias y la foto precargada
+  pasó a ser el `<img>`, medido el 30 de agosto de 2026 contra producción. La costumbre sigue
+  siendo la misma y es la que importa: **mirar qué dice `largest-contentful-paint-element` en
+  el informe antes de tocar nada**, porque este sitio ya se optimizó dos veces contra el
+  elemento equivocado.
+- **Y lo que tarda no es bajar la foto, es pintarla.** El desglose del LCP el 30 de agosto de
+  2026: la foto entera a los 1,0 s y `Render Delay` de 4.936 ms —el 83 %—, porque `#root`
+  estaba vacío y no había nada que pintar hasta que React montaba. Por eso la portada se
+  prerenderiza. Si vuelves a ver un LCP alto, mira **la fase**: si es `Render Delay`, el
+  problema no es la red y precargar cosas no lo va a arreglar.
 
 ---
 

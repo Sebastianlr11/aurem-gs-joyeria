@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "eslint . && vitest run && node scripts/sitemap.mjs && node scripts/correos.mjs && tsc -b && vite build",
+    "build": "eslint . && vitest run && node scripts/sitemap.mjs && node scripts/correos.mjs && tsc -b && vite build && npm run prerenderizar",
+    "prerenderizar": "vite build --ssr src/entrada-servidor.jsx --outDir dist-servidor && node scripts/prerenderizar.mjs",
     "imagenes": "node scripts/imagenes.mjs",
     "css:pisadas": "node scripts/css-pisadas.mjs",
     "lint": "eslint .",

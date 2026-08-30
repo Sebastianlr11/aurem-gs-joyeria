@@ -17,12 +17,19 @@ Dos problemas distintos que se suelen confundir:
 ### Dos mecanismos, uno por problema
 
 ```
-Visitante normal          →  index.html + React  →  ponerMeta() actualiza el head
+Visitante en la portada   →  index.html, con la portada YA pintada dentro
+Visitante en otra ruta    →  app.html (el mismo head, #root vacío) + React
+                             →  ponerMeta() actualiza el head
 Crawler social            →  vercel.json detecta el user-agent
   (WhatsApp, Facebook,       →  /api/ficha?id=:id  →  HTML con OG tags ya puestos
    Instagram, TikTok…)
 Googlebot                 →  NO se desvía (a propósito)
 ```
+
+**Los dos HTML tienen el mismo `<head>`**: `app.html` es una copia literal de lo que dejó
+Vite, y a `index.html` sólo se le mete la portada dentro de `#root`. Cambiar una etiqueta en
+`index.html` (el archivo fuente, en la raíz) las cambia en los dos. Por qué son dos, en
+[`diseno-y-frontend.md`](diseno-y-frontend.md#la-portada-se-pinta-en-el-build-no-en-el-celular).
 
 ### Archivos clave
 
@@ -143,7 +150,10 @@ curl -A "WhatsApp/2.23" https://www.auremgsjoyeria.com/catalogo/<uuid> | grep 'o
 # debe traer og:title y og:image de LA PIEZA
 
 curl -A "Googlebot/2.1" https://www.auremgsjoyeria.com/catalogo/<uuid> | head -20
-# debe traer el index.html normal, NO la ficha pre-renderizada
+# debe traer app.html —el cascarón de React—, NO la ficha pre-renderizada de /api/ficha
+
+curl -s https://www.auremgsjoyeria.com/ | grep -c hero-frame
+# la portada llega pintada: debe dar 1, no 0
 ```
 
 1. **Robustez:** pide `/api/ficha?id=no-es-un-uuid` y `?id=<uuid inexistente>`. Ambos deben

@@ -1,5 +1,5 @@
 import React from 'react';
-import { waUrl } from '../lib/whatsapp';
+import { useWaUrl } from '../lib/whatsapp';
 
 /* Los testimonios sólo pueden decir cosas que la tienda cumple de verdad.
    Decían tres que no:
@@ -49,6 +49,11 @@ const StarIcon = ({ size = 18 }) => (
 );
 
 const Reviews = () => {
+    const waResena = useWaUrl({
+        mobile: 'Hola! 🌟 Quiero compartir mi experiencia con *Aurem Gs Joyería*. Estoy muy feliz con mi compra ✨',
+        desktop: 'Hola! Quiero compartir mi experiencia con *Aurem Gs Joyería*. Estoy muy feliz con mi compra.'
+    });
+
     return (
         <section id="resenas" className="reviews-section">
             <div className="container">
@@ -81,10 +86,7 @@ const Reviews = () => {
                             <p className="score-trust">Más de 500 piezas entregadas</p>
                             <p className="score-tagline">Confiado por +100 clientes en toda Colombia</p>
                             <a
-                                href={waUrl({
-                                    mobile: 'Hola! 🌟 Quiero compartir mi experiencia con *Aurem Gs Joyería*. Estoy muy feliz con mi compra ✨',
-                                    desktop: 'Hola! Quiero compartir mi experiencia con *Aurem Gs Joyería*. Estoy muy feliz con mi compra.'
-                                })}
+                                href={waResena}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="score-cta"
