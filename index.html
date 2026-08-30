@@ -15,6 +15,24 @@
     <link rel="preload" as="font" type="font/woff2" href="/assets/fuentes/marcellus-latin.woff2" crossorigin />
     <link rel="preload" as="font" type="font/woff2" href="/assets/fuentes/mulish-latin.woff2" crossorigin />
 
+    <!-- La conexión a Supabase, abierta desde el principio.
+
+         La portada le pregunta el catálogo para pintar «Lo que hacemos» y
+         «Piezas seleccionadas», y las fotos de esas dos secciones también
+         viven ahí. Es otro origen: DNS + TCP + TLS son tres viajes de ida y
+         vuelta —unos 450 ms en 4G lenta— que hasta el 30 de agosto de 2026 se
+         pagaban DESPUÉS de que React montara, con todo lo demás ya terminado.
+
+         Son dos líneas y no una a propósito: el navegador guarda por separado
+         la conexión anónima —las fotos, que van en un <img> normal— de la que
+         lleva credenciales —el fetch del catálogo, que manda cabeceras y por
+         tanto es CORS—. Con una sola, la otra abre su propia conexión desde
+         cero. Es el mismo motivo por el que Google Fonts pide dos.
+
+         Vite sustituye la variable al compilar. -->
+    <link rel="preconnect" href="%VITE_SUPABASE_URL%" />
+    <link rel="preconnect" href="%VITE_SUPABASE_URL%" crossorigin />
+
     <!-- La foto del hero, en paralelo con el JS.
 
          Es el elemento más grande del primer viewport y ya iba con

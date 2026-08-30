@@ -48,6 +48,21 @@ export function piezasPublicadas() {
   return enCurso
 }
 
+/* La pregunta sale al evaluar el módulo, no al montar el componente.
+
+   Es el mismo motivo por el que `capturarClic()` e `iniciarPixeles()` corren a
+   nivel de módulo en App.jsx. Dentro del efecto, la consulta esperaba a que
+   React montara el árbol entero de la portada; acá sale en cuanto corre el
+   bundle, y para cuando la portada esté pintada la respuesta ya viene en
+   camino. Con el preconnect de index.html, además, sin pagar el saludo.
+
+   `piezasPublicadas()` se guarda la promesa, así que el gancho de abajo se
+   cuelga de ésta y no dispara una segunda.
+
+   La guarda de `window` es para que importar este archivo desde Node —una
+   prueba, un script del build— no intente salir a la red. */
+if (typeof window !== 'undefined') piezasPublicadas()
+
 /**
  * @returns `null` mientras carga, y la lista —quizá vacía— cuando llega.
  */

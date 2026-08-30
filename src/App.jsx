@@ -43,7 +43,19 @@ import WhatsAppButton from './components/WhatsAppButton'
    120 KB para no usarlos, y la portada no consulta la base ni una vez. */
 const ProtectedRoute = lazy(() => import('./components/ProtectedRoute'))
 
-const Home          = lazy(() => import('./pages/Home'))
+/* La portada NO va perezosa, y es la única página que no lo va.
+
+   Medido el 30 de agosto de 2026: en 4G lenta la ruta `/` costaba un viaje de
+   red entero de más, y en serie —bajar el bundle, ejecutarlo, recién ahí pedir
+   `Home-*.js`, esperarlo, ejecutarlo, y sólo entonces pintar—. Son unos 250 ms
+   en los que la pantalla está en blanco, en la ruta que recibe casi todo el
+   tráfico y a la que se llega desde un anuncio.
+
+   El precio son 9,3 KB comprimidos que ahora se baja también quien entra
+   directo a /admin o al catálogo. Es un mal canje sólo para ellos, y ellos son
+   el joyero y una minoría; la portada es la puerta. */
+import Home from './pages/Home'
+
 const Catalog       = lazy(() => import('./pages/Catalog'))
 const ProductPage   = lazy(() => import('./pages/ProductPage'))
 const Confirmacion  = lazy(() => import('./pages/Confirmacion'))

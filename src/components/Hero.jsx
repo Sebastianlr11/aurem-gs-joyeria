@@ -44,15 +44,15 @@ const Hero = () => {
                         </p>
 
                         <h1 className="hero-h1">
-                            <span className="hero-line" style={{ '--line-delay': '0.1s' }}>
+                            <span className="hero-line" style={{ '--line-delay': '0.06s' }}>
                                 <span>Joyas que se heredan,</span>
                             </span>
-                            <span className="hero-line" style={{ '--line-delay': '0.28s' }}>
+                            <span className="hero-line" style={{ '--line-delay': '0.14s' }}>
                                 <span><em>no que se reemplazan.</em></span>
                             </span>
                         </h1>
 
-                        <p className="hero-subtitle hero-anim" style={{ '--hero-delay': '0.5s' }}>
+                        <p className="hero-subtitle hero-anim" style={{ '--hero-delay': '0.14s' }}>
                             {/* Lo que hay de verdad en el catálogo: 4 anillos y 1 dije, en oro
                                 18k, oro blanco 18k y plata 925. Decía "collares y pulseras" —no hay
                                 ninguno— y "platino" —ni una pieza—. Prometer surtido que no existe
@@ -63,7 +63,7 @@ const Hero = () => {
                             el metal. Lo que no esté en el catálogo, lo hacemos a medida.
                         </p>
 
-                        <div className="hero-btns hero-anim" style={{ '--hero-delay': '0.62s' }}>
+                        <div className="hero-btns hero-anim" style={{ '--hero-delay': '0.2s' }}>
                             <Link to="/catalogo" className="btn-pill black">
                                 Ver el catálogo
                             </Link>
@@ -82,7 +82,7 @@ const Hero = () => {
 
                         <div className="hero-rule" />
 
-                        <div className="hero-marks hero-anim" style={{ '--hero-delay': '0.82s' }}>
+                        <div className="hero-marks hero-anim" style={{ '--hero-delay': '0.28s' }}>
                             {/* Sin PT950: un punzón de platino junto a los otros dos dice que
                                 hay piezas de platino selladas, y no hay ninguna. Vuelve el día que
                                 se publique una. */}
@@ -95,7 +95,7 @@ const Hero = () => {
                     </div>
 
                     {/* Composición de imagen */}
-                    <div className="hero-media hero-anim" style={{ '--hero-delay': '0.3s' }}>
+                    <div className="hero-media hero-alza">
                         <figure className="hero-frame">
                             {/* Va con prioridad alta: es lo más grande del
                                 primer viewport y compite con todo lo demás
