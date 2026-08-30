@@ -745,15 +745,25 @@ Cosas que ya costaron un incidente. Léelas antes de tocar lo que describen.
   precargaban `pen-hero-768.webp` con `fetchpriority="high"` —20 KB a máxima prioridad
   compitiendo con la foto que sí era su LCP—. El script se planta si no encuentra alguno de
   los dos bloques: son recortes que se creen hechos.
-- **La hoja de estilos viaja DENTRO de los dos HTML, no colgando de un `<link>`.**
-  Por eso `index.html` pesa 44 KB en crudo y `app.html` 26. Es la hoja entera y en el sitio
-  donde estaba el `<link>` —no un recorte «crítico»—, justamente para que la cascada no
-  cambie; comprobado dos veces con `huella-estilos.mjs --estados`, «ni una diferencia» en
-  12.568 elementos. Tres consecuencias: **una `url()` relativa en `index.css` se rompería**
-  (en línea se resuelve contra `/` y no contra `/assets/`; el script lo veta), **no les
-  añadas un `preload` de la hoja**, que sería bajarla dos veces, y el archivo
-  `dist/assets/index-*.css` **queda sin que nadie lo pida** — no lo borres a mano, lo emite
-  Vite y no molesta.
+- **El HTML de una pantalla que NO se prerenderiza no puede pasar de ~14 KB comprimidos.**
+  Es la ventana inicial de congestión de TCP: lo que cabe ahí llega en un viaje de red, lo
+  que no, paga otro entero. Y en `app.html` el HTML es la raíz de la cadena —de él cuelgan
+  el bundle, el adelanto de la pieza y, a través de éste, la foto del LCP—, así que ese
+  viaje de más **se lo cobra a todo lo que viene detrás**. Medido con PageSpeed el 30 de
+  agosto de 2026 al meterle la hoja de estilos adentro: el HTML pasó de 4,45 KiB y 65 ms a
+  15,39 KiB y 368 ms, la consulta de la pieza de 225 a 919 ms, la ruta crítica de 371 a
+  1.246 ms, y la ficha de 95 a 93. Se revirtió.
+  **La portada es el caso contrario y por eso ahí sí conviene**: viene pintada, no cuelga
+  nada de ella, y el viaje de más se paga una vez en el FCP en lugar de multiplicarse.
+  Ojo con probar esto en local: el estrangulamiento de Chrome es un balde de fichas y **no
+  simula la ventana de congestión** — seis corridas locales dieron lo mismo con hoja
+  enlazada y en línea. Lo ve Lighthouse y no lo ve tu banco de pruebas.
+- **La hoja de estilos viaja DENTRO de `dist/index.html`, no colgando de un `<link>`.**
+  Por eso pesa 44 KB en crudo. Es la hoja entera y en el sitio donde estaba el `<link>` —no
+  un recorte «crítico»—, justamente para que la cascada no cambie; comprobado con
+  `huella-estilos.mjs --estados`. Dos consecuencias: **una `url()` relativa en `index.css`
+  se rompería** (en línea se resuelve contra `/` y no contra `/assets/`; el script lo veta),
+  y **no le añadas un `preload` de la hoja a `index.html`**, que sería bajarla dos veces.
 - **`dist/index.html` y `dist/app.html` NO son el mismo archivo.** El primero trae la
   portada ya pintada; el segundo es el cascarón vacío al que `vercel.json` manda todo lo
   demás. Si el comodín volviera a apuntar a `/index.html`, quien abre el enlace que Valentina

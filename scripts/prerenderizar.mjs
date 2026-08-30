@@ -106,6 +106,8 @@ if (!PRECARGA_HERO.test(html)) {
   )
 }
 
+await writeFile(COMODIN, html.replace(PRECARGA_HERO, ''))
+
 /* ── Y al revés: `index.html` no necesita el adelanto de la pieza ─────────
  *
  * Ese `<script>` sólo hace algo en `/catalogo/<uuid>`; en la portada se sale
@@ -139,23 +141,18 @@ let conPortada = html.replace(HUECO, `<div id="root">${portada}</div>`)
 
 conPortada = conPortada.replace(ADELANTO_PIEZA, '')
 
-/* ── Y la hoja de estilos, adentro. En los dos ───────────────────────────
+/* ── Y la hoja de estilos, adentro ────────────────────────────────────────
+ *
+ * Sólo en `index.html`. `app.html` se queda con el `<link>`, porque en las
+ * demás rutas el HTML no pinta nada por sí mismo y ahí la hoja sí conviene
+ * cacheada aparte.
  *
  * Con la portada ya pintada, el CSS pasó a ser **lo único** que quedaba entre
  * el HTML y la primera joya: un viaje de red entero, en serie, que Lighthouse
  * marcó las dos veces —el 30 de agosto de 2026— como «solicitud de bloqueo de
  * renderización, ahorro estimado de 300 ms», etiquetado a la vez para FCP y
- * para LCP.
- *
- * Empezó sólo en `index.html`, dejando el `<link>` en `app.html` para que las
- * demás rutas la cachearan aparte. Duró unas horas: en la ficha ese `<link>`
- * era el mismo bloqueo de 300 ms, y la ficha es la pantalla donde se compra.
- *
- * El canje, para tenerlo claro: `app.html` pasa de 5 a ~14 KB comprimidos y
- * quien navega a otra ruta con una recarga entera se baja la hoja otra vez en
- * vez de usar la cacheada. **Gana la primera visita y pierde la repetida**, y
- * acá la primera visita es la norma: la clienta llega desde WhatsApp o desde
- * un anuncio, directo a una pieza, y dentro del sitio navega sin recargar.
+ * para LCP. Metida acá, `/` no depende de ninguna petición para pintarse
+ * entera.
  *
  * Se mete **la hoja completa y en el sitio exacto donde estaba el `<link>`**,
  * no un "CSS crítico" recortado. Los mismos bytes en el mismo orden es lo
@@ -164,7 +161,7 @@ conPortada = conPortada.replace(ADELANTO_PIEZA, '')
  * son unos 9 KB comprimidos que la portada ya no cachea entre visitas; el
  * viaje de red que se ahorra vale más.
  */
-const enlaceHoja = html.match(/<link rel="stylesheet"[^>]*href="(\/assets\/[^"]+\.css)"[^>]*>/)
+const enlaceHoja = conPortada.match(/<link rel="stylesheet"[^>]*href="(\/assets\/[^"]+\.css)"[^>]*>/)
 
 if (!enlaceHoja) {
   throw new Error(
@@ -190,10 +187,7 @@ if (relativas.length) {
   )
 }
 
-const conHoja = (doc) => doc.replace(enlaceHoja[0], `<style>${hoja}</style>`)
-
-await writeFile(CASCARON, conHoja(conPortada))
-await writeFile(COMODIN, conHoja(html.replace(PRECARGA_HERO, '')))
+await writeFile(CASCARON, conPortada.replace(enlaceHoja[0], `<style>${hoja}</style>`))
 
 /* La compilación de servidor no se despliega: es un intermedio del build y en
    `dist/` sólo debe quedar lo que se sirve. */
@@ -201,5 +195,5 @@ await rm(resolve(raiz, 'dist-servidor'), { recursive: true, force: true })
 
 const kb = (t) => `${(Buffer.byteLength(t) / 1024).toFixed(1)} KB`
 console.log(`Portada prerenderizada: ${kb(portada)} de HTML dentro de #root.`)
-console.log(`Hoja de estilos en línea en los dos: ${kb(hoja)}, cero peticiones bloqueando el pintado.`)
-console.log('dist/app.html: el cascarón vacío para las demás rutas.')
+console.log(`Hoja de estilos en línea: ${kb(hoja)}, cero peticiones bloqueando el pintado.`)
+console.log(`dist/app.html: el cascarón vacío para las demás rutas (${kb(html)}).`)

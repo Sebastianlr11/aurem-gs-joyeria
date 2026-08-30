@@ -59,9 +59,8 @@ prefiere pagar solo.
 > Edge Functions en `supabase/functions/`.
 
 > **Y la portada no la pinta el navegador.** `npm run build` la deja hecha dentro de
-> `dist/index.html`; las demás rutas se sirven desde `dist/app.html`, que va vacío. Los dos
-> llevan la hoja de estilos adentro, así que ninguna pantalla espera una petición para
-> pintarse. Ver [`docs/specs/diseno-y-frontend.md`](docs/specs/diseno-y-frontend.md).
+> `dist/index.html`, con la hoja de estilos adentro; las demás rutas se sirven desde
+> `dist/app.html`, que va vacío. Ver [`docs/specs/diseno-y-frontend.md`](docs/specs/diseno-y-frontend.md).
 
 ---
 

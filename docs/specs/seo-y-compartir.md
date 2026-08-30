@@ -26,11 +26,9 @@ Crawler social            →  vercel.json detecta el user-agent
 Googlebot                 →  NO se desvía (a propósito)
 ```
 
-**Los dos HTML salen del mismo `<head>`**, el de `index.html` en la raíz del repo: cambiar
-una etiqueta ahí las cambia en los dos. Lo que el prerenderizador recorta después es sólo
-lo que cada uno no usa —`index.html` se queda sin el adelanto de la pieza y `app.html` sin
-la precarga de la foto del hero— y a los dos les mete la hoja de estilos adentro. **Las
-etiquetas de SEO y de compartir son idénticas en ambos.** Por qué son dos, en
+**Los dos HTML tienen el mismo `<head>`**: `app.html` es una copia literal de lo que dejó
+Vite, y a `index.html` sólo se le mete la portada dentro de `#root`. Cambiar una etiqueta en
+`index.html` (el archivo fuente, en la raíz) las cambia en los dos. Por qué son dos, en
 [`diseno-y-frontend.md`](diseno-y-frontend.md#la-portada-se-pinta-en-el-build-no-en-el-celular).
 
 ### Archivos clave
