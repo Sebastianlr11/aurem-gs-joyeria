@@ -83,6 +83,50 @@ error:
 Sólo el choque de nombres bloquea. Lo demás avisa: una pieza rara puede necesitar un
 nombre largo, y quien la sube tiene que poder decidirlo.
 
+### El botón ✦ Redactar
+
+Del 30 de agosto de 2026, y es el paso siguiente al de arriba: los guardarraíles te dicen
+si te saliste de la fórmula; esto la aplica por ti. Con las fotos ya subidas y el metal
+escrito, propone el nombre y la descripción **mirando la foto**.
+
+```
+Panel  →  redactar-pieza (edge function, JWT de admin)
+              ├─ lee las fotos del bucket público
+              ├─ le pasa al modelo el metal, la piedra y los nombres ocupados
+              └─ devuelve {nombre, descripcion, avisos[]}
+Panel  →  rellena los dos campos como BORRADOR. No guarda nada.
+```
+
+**La regla que hace que esto no sea peligroso:** el modelo describe la **forma** —la talla
+de la piedra, cómo va montada, si la banda es lisa o partida—; **los hechos los pone el
+joyero**. El metal y la piedra se le entregan ya escritos y se le prohíbe ampliarlos, y
+**sin metal la función se niega a redactar**: un modelo de visión dice «oro 18k» de una
+plata bañada sin pestañear, y eso acabaría en la ficha, en el dato estructurado que lee
+Google y en boca de Valentina. Es el mismo error que este proyecto lleva corrigiendo desde
+agosto —el platino, el certificado incluido, los plazos—.
+
+Los otros frenos: pide sesión de admin (cada llamada gasta modelo), acepta como mucho tres
+fotos, y **sólo URLs del bucket `product-images`** — cualquier otra convertiría esto en un
+lector de imágenes ajenas pagado con la llave de la casa. Nunca lanza hacia arriba: un
+fallo del modelo no puede tumbar el formulario a mitad de una pieza.
+
+Lo que devuelve pasa por la misma revisión que se le pide a una pieza escrita a mano, y los
+avisos —nombre largo, descripción que no le cabe a Valentina, choque de nombres— salen
+debajo del campo. **No corrige el borrador**: quien sube la pieza decide.
+
+La lógica que se puede probar sin Deno vive en `supabase/functions/_shared/redaccion.ts`,
+con sus 17 pruebas al lado; en `index.ts` sólo queda la sesión, la llamada y los frenos.
+
+**Para desplegarla** —hace falta una sola vez, y la corre quien tenga el token personal:
+
+```bash
+npx supabase functions deploy redactar-pieza
+```
+
+Usa `OPENROUTER_API_KEY` y `OPENROUTER_VISION_MODEL`, que ya son secretos del proyecto
+porque los usa Valentina para ver las fotos de las clientas: no hay nada nuevo que
+configurar.
+
 ## Decisiones tomadas y por qué
 
 **Cada foto se guarda dos veces** (`src/lib/optimizarFoto.js:34-42`, incidente del 21 de
