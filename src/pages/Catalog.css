@@ -1,0 +1,728 @@
+/* ================================================================
+   El catálogo — `/catalogo`
+
+   Vivía en `src/index.css`, que bloquea el primer pintado en TODAS las rutas
+   —también en la portada, que no usa nada de esto—. PageSpeed lo cobraba: 300
+   ms de bloqueo de renderizado y 16 KiB de CSS sin usar. Esta pantalla ya se
+   carga aparte, así que ahora se trae su hoja con ella.
+
+   Se movió el 30 de agosto de 2026 sin tocar una sola declaración: los trozos
+   están en el mismo orden que tenían y con sus comentarios. Se comprobó
+   midiendo 8.930 elementos en nueve pantallas a cuatro anchos
+   (`scripts/huella-estilos.mjs`).
+
+   **Esta hoja se carga DESPUÉS de `index.css`**, así que a igual
+   especificidad gana lo de aquí. Es el mismo orden que tenían antes respecto
+   a todo lo que se quedó por encima; lo que estaba por debajo cambió de lado,
+   y por eso la comprobación de la huella no es opcional.
+   ================================================================ */
+
+/* ================================================================
+   CATÁLOGO — "Nuestras piezas"
+   ================================================================ */
+.catalogo {
+  --catalogo-fuga: 4rem;
+  background: var(--bg-marfil);
+  min-height: 100vh;
+  padding-bottom: 6rem;
+}
+
+/* Encabezado */
+.catalogo-head {
+  padding-top: 9rem;
+  padding-bottom: 3rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  gap: 4rem;
+  align-items: end;
+}
+
+.catalogo-titulo {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(3rem, 6vw, 4.5rem);
+  line-height: 1.02;
+  color: var(--ink);
+}
+
+.catalogo-titulo em {
+  display: block;
+  font-style: normal;
+  font-size: 62%;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-top: 0.35em;
+}
+
+.catalogo-lead {
+  margin-top: 1.5rem;
+  max-width: 46ch;
+  font-size: 1rem;
+  line-height: 1.65;
+  color: var(--text-secondary);
+}
+
+.catalogo-promesas {
+  border-top: 1px solid var(--hairline);
+}
+
+.catalogo-promesa {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.125rem 0;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.catalogo-promesa-titulo {
+  font-size: 0.63rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--oro-ink);
+}
+
+.catalogo-promesa-valor {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--ink);
+  text-align: right;
+}
+
+/* Barra de filtros */
+.catalogo-filtros {
+  position: sticky;
+  top: var(--navbar-espacio);
+  z-index: 20;
+  background: rgba(251, 247, 242, 0.92);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-top: 1px solid var(--hairline);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.catalogo-filtros-fila {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem 1.5rem;
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}
+
+.catalogo-herramientas {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-left: auto;
+}
+
+.catalogo-buscar {
+  display: flex;
+  align-items: center;
+  gap: 0.5625rem;
+  /* 44px de alto mínimo: es el objetivo táctil, y el <label> hace que toda
+     la cápsula —no sólo la banda del input— sea tocable. */
+  min-height: 44px;
+  cursor: text;
+  padding: 0.625rem 1.125rem;
+  background: var(--bg-color);
+  border: 1px solid var(--hairline);
+  border-radius: 100px;
+  color: var(--text-secondary);
+  transition: border-color 0.3s ease;
+}
+
+.catalogo-buscar:focus-within {
+  border-color: var(--oro);
+}
+
+.catalogo-buscar input {
+  border: 0;
+  outline: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 0.875rem;
+  color: var(--ink);
+  width: 150px;
+}
+
+.catalogo-buscar input::placeholder {
+  color: var(--text-muted);
+}
+
+/* Rejilla */
+.catalogo-cuerpo {
+  padding-top: 3rem;
+}
+
+.catalogo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(272px, 1fr));
+  gap: 1.5rem;
+}
+
+.catalogo-mas {
+  display: flex;
+  justify-content: center;
+  padding-top: 4rem;
+}
+
+.catalogo-mas-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 0.9375rem 2.125rem;
+  background: transparent;
+  border: 1px solid var(--oro);
+  color: var(--ink);
+  border-radius: 100px;
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s var(--ease);
+}
+
+.catalogo-mas-btn:hover {
+  background: var(--bg-arena);
+  transform: translateY(-2px);
+}
+
+.catalogo-mas-progreso {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: var(--oro-ink);
+}
+
+@media (max-width: 968px) {
+  .catalogo-head {
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+    padding-top: 7rem;
+    padding-bottom: 2rem;
+  }
+
+  .catalogo-herramientas {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .catalogo-buscar {
+    flex: 1;
+  }
+
+  .catalogo-buscar input {
+    width: 100%;
+  }
+
+  .catalogo-grid {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  /* La barra de filtros ocupaba 337px de los 812 de un móvil —el 41%—, así
+     que al bajar dejaba 412px para ver piezas y se sentía encima todo el
+     rato. En móvil se desplaza con la página. En escritorio sigue pegada,
+     que allí es una sola franja y hay altura de sobra. */
+
+  /* En 375px el valor de cada promesa llegaba pegado al borde. Se apilan
+     bajo su rótulo, que además es como se leen en el resto del sitio. */
+  .catalogo-promesa {
+    flex-direction: column;
+    align-items: flex-start;
+}
+  .catalogo-promesa-valor { text-align: left; }
+
+  /* El buscador se quedaba en un tercio del ancho, sin sitio ni para
+     "Buscar pieza". Ocupa su propia línea. */
+  .catalogo-herramientas { flex-wrap: wrap; }
+  .catalogo-buscar { flex: 1 1 100%; }
+  .catalogo-buscar input { width: 100%; }
+}
+
+/* ================================================================
+   CATÁLOGO · panel de filtros en móvil
+   La franja pegada volvía a ocupar media pantalla. Ahora en móvil sólo
+   se queda el riel de categorías —el filtro que más se usa— y lo demás
+   se guarda tras un botón.
+   ================================================================ */
+.catalogo-filtros-btn { display: none; }
+
+@media (max-width: 768px) {
+  /* Vuelve a estar pegada, pero ya sólo es una franja. */
+  .catalogo-filtros {
+    position: sticky;
+    top: var(--navbar-espacio);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+}
+
+  .catalogo-filtros-fila {
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 0.625rem;
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+  }
+
+  /* El buscador se queda fuera también en el celular: es el único filtro
+     que se usa sin haber decidido antes que se quiere filtrar —se escribe lo
+     que se busca y ya—, y esconderlo detrás de un botón le cobra dos toques
+     a la acción más directa de la pantalla. Lo demás sí vive en el panel. */
+  .catalogo-herramientas { width: 100%; }
+
+  .catalogo-filtros-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-shrink: 0;
+    min-height: 44px;
+    padding: 0 1rem;
+    border-radius: 100px;
+    border: 1px solid var(--hairline);
+    background: var(--bg-color);
+    font-family: inherit;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--ink);
+    cursor: pointer;
+    transition: all 0.3s var(--ease);
+  }
+  .catalogo-filtros-btn:active { background: var(--bg-arena); }
+
+  .catalogo-filtros-n {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 100px;
+    background: var(--ink);
+    color: var(--bg-marfil);
+    font-size: 0.66rem;
+    font-weight: 800;
+  }
+}
+
+/* ─── Franja de filtros: la segunda fila ─────────────────────────────
+   Lo que en el celular vive dentro del panel, en escritorio se ve y se toca
+   en el sitio: no hay nada que abrir. */
+
+/* Conteo sobre la rejilla. Antes vivía al final de la fila de precio, donde
+   se leía como un filtro más en vez de como el resultado de los filtros. */
+.catalogo-resumen {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 1rem;
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+.catalogo-resumen > span:first-child {
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.catalogo-resumen > div {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  color: var(--text-muted);
+}
+
+
+.catalogo-filtros-flotante { display: none; }
+
+@media (max-width: 768px) {
+  /* Las promesas en tres columnas y no en tres filas: apiladas se comían la
+     primera pantalla entera con seis renglones para decir tres datos. */
+  .catalogo-promesas {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    background: var(--bg-color);
+    border-top: 1px solid var(--hairline);
+    border-bottom: 1px solid var(--hairline);
+    margin-inline: calc(var(--catalogo-fuga, 1.25rem) * -1);
+  }
+  .catalogo-promesa {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+    border-bottom: none;
+}
+  .catalogo-promesa + .catalogo-promesa { border-left: 1px solid var(--hairline); }
+  .catalogo-promesa-titulo { font-size: 0.6rem; letter-spacing: 0.14em; }
+  .catalogo-promesa-valor { line-height: 1.3; text-align: left;
+}
+
+  /* Todo lo de abajo persigue una sola cosa: que en el primer viewport se vea
+     una joya.
+
+     Medido antes: la primera foto empezaba en el píxel 605 de 844. El 72% de
+     la primera pantalla era cabecera, párrafo, barra de confianza y filtros,
+     y de la tarjeta asomaban 239px —un tercio—. La clienta llega de un anuncio,
+     en celular, con medio segundo de atención, y lo primero que ve no es
+     producto. Es el error más caro de esta pantalla.
+
+     No se quita nada: se recorta el aire, se acorta el párrafo y la barra de
+     confianza deja de necesitar dos renglones por dato. */
+
+  /* El navbar mide 72px y ocupa la esquina superior; 7rem dejaba 40px de aire
+     muerto encima del antetítulo. */
+  .catalogo-head { padding-top: 5.5rem; padding-bottom: 0; gap: 1rem; }
+
+  /* La primera frase del párrafo vive sólo en escritorio: ver el JSX. */
+  .catalogo-lead-larga { display: none; }
+  .catalogo-lead { margin-top: 0.5rem; }
+
+  .catalogo-promesa { padding: 9px 10px; }
+  .catalogo-promesa-valor { font-size: 0.7rem; }
+
+  /* El riel de categorías se queda pegado arriba: es el filtro que más se
+     usa y con el scroll se perdía a los dos segundos. */
+  .catalogo-filtros {
+    position: sticky;
+    /* Debajo del navbar, no en el borde: el navbar va fijo y a top:0 el riel
+       se metía por debajo de la píldora. */
+    top: var(--navbar-espacio);
+    z-index: 20;
+    background: var(--bg-marfil);
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  /* El buscador se queda visible; ver la nota del corte de 768px. */
+  .catalogo-herramientas { width: 100%; margin-left: 0; }
+
+  .catalogo-chips {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 12px;
+    scrollbar-width: none;
+  }
+  .catalogo-chips::-webkit-scrollbar { display: none; }
+
+  .catalogo-chip {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 32px;
+    padding: 0 8px 0 12px;
+    border-radius: 100px;
+    border: 1px solid var(--oro-hairline);
+    background: var(--bg-arena);
+    color: var(--oro-ink);
+    font-family: var(--font-ui);
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .catalogo-chip > span:last-child { font-size: 0.875rem; line-height: 1; opacity: 0.7; }
+
+  .catalogo-resumen { padding-bottom: 10px; }
+
+  /* Dos columnas: en una sola cabía pieza y media por pantalla y recorrer el
+     catálogo era un viaje. */
+  .catalogo-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+
+  /* La tarjeta se compacta, pero el botón se queda.
+     Antes se escondía aquí, con la excusa de que a 170px no cabía al lado del
+     círculo de WhatsApp. Medido: la tarjeta da 167px, el círculo ocupa 46 y
+     el texto 79 —sobran 29—. Cabía. Y la regla tapaba el botón hasta en
+     tablets de 768px, donde la tarjeta mide 344px. El resultado era una
+     rejilla cuya única acción visible era irse a WhatsApp: la foto seguía
+     siendo enlace, pero eso no se ve, y lo que no se ve no se toca. */
+  .catalogo-grid .pieza { gap: 10px; }
+  .catalogo-grid .pieza-nombre { font-size: 1rem; }
+  .catalogo-grid .pieza-ficha { font-size: 0.75rem; line-height: 1.35; }
+  .catalogo-grid .pieza-linea { flex-direction: column; align-items: flex-start; gap: 4px; }
+  .catalogo-grid .pieza-precio { font-size: 0.9375rem; }
+  .catalogo-grid .pieza-acciones {
+    padding-top: 0;
+    margin-top: auto;
+    gap: 8px;
+  }
+  .catalogo-grid .pieza-sello { left: 8px; bottom: 8px; }
+
+  /* El botón de filtros, siempre a un pulgar. El degradado lo despega de la
+     rejilla sin taparla con una barra opaca. */
+  .catalogo-filtros-flotante {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 30;
+    display: flex;
+    justify-content: center;
+    padding: 12px 20px calc(16px + env(safe-area-inset-bottom));
+    background: linear-gradient(to top, rgba(251, 247, 242, 0.96) 55%, rgba(251, 247, 242, 0));
+    pointer-events: none;
+  }
+  .catalogo-filtros-flotante .catalogo-filtros-btn { pointer-events: auto; }
+
+  /* Para que el flotante no tape la última fila. */
+  .catalogo-cuerpo { padding-bottom: calc(84px + env(safe-area-inset-bottom)); }
+}
+
+/* Por debajo de 400px la tarjeta baja de 152px y "Ver la pieza" empezaba a
+   partirse en dos renglones dentro de un botón de altura fija. Un punto menos
+   de letra y 44px —el mínimo táctil, no menos— lo devuelven a un solo
+   renglón hasta los 320px, que es el celular más angosto que queda en uso. */
+@media (max-width: 400px) {
+  .catalogo-grid .pieza-btn {
+    height: 44px;
+    font-size: 0.72rem;
+    letter-spacing: 0.03em;
+  }
+  .catalogo-grid .pieza-wa { width: 44px; height: 44px; }
+}
+
+/* La franja de promesas sale del contenedor en el celular; su margen negativo
+   tiene que seguir al relleno de .container en cada corte. Va al final para
+   ganar por orden a la declaración base. */
+@media (max-width: 968px) { .catalogo { --catalogo-fuga: 2rem; } }
+@media (max-width: 600px) { .catalogo { --catalogo-fuga: 1.25rem; } }
+
+
+/* La cabecera se queda como estaba: el recorte que le hice salió de leer mal
+   la petición —lo que había que reducir eran las tarjetas—. Aquí solo queda
+   el aire de la rejilla y del conteo. */
+@media (min-width: 769px) {
+  .catalogo-grid { gap: 1.25rem; }
+}
+
+/* Un escalón más. El despeje del navbar queda justo en lo que ocupa —92px—
+   y el titular baja a 56: sigue mandando en la página sin empujar la primera
+   fila de fotos fuera del primer vistazo. */
+@media (min-width: 769px) {
+  .catalogo-resumen {
+}
+}
+
+/* Último recorte. El relleno de arriba se queda en 92px: el navbar termina
+   en 88 y por debajo de eso empezaría a tapar el antetítulo. Lo que baja es
+   el titular y el aire de dentro. */
+@media (min-width: 769px) {
+  .catalogo-filtros-fila { padding-top: 0.375rem; padding-bottom: 0.375rem; }
+  .catalogo-resumen { padding-bottom: 0.5rem; }
+}
+
+/* La tarjeta del catálogo, más contenida. En una rejilla de cuatro el nombre
+   a 1.375rem partía en dos renglones y el precio competía con él; entre eso
+   y un botón de 46px, cada tarjeta pedía media pantalla. La foto no se toca:
+   es lo que se vino a ver. */
+@media (min-width: 769px) {
+  .catalogo-grid .pieza { gap: 12px; }
+  .catalogo-grid .pieza-cuerpo { gap: 8px; }
+  .catalogo-grid .pieza-nombre { font-size: 1.125rem; }
+  .catalogo-grid .pieza-precio { font-size: 1rem; }
+  .catalogo-grid .pieza-moneda { font-size: 0.62rem; }
+  .catalogo-grid .pieza-ficha { font-size: 0.8rem; line-height: 1.5; }
+  .catalogo-grid .pieza-acciones { gap: 10px; padding-top: 2px; }
+  .catalogo-grid .pieza-btn { height: 40px; font-size: 0.75rem; }
+  .catalogo-grid .pieza-wa { width: 40px; height: 40px; }
+  .catalogo-grid .pieza-sello { left: 12px; bottom: 12px; }
+}
+
+/* La franja, con el orden arriba. Estaba en la segunda fila junto a precio y
+   material, y ahí no cabía: se descolgaba a un tercer renglón y yo lo tapaba
+   apretando las píldoras hasta 28px. Subirlo al primer renglón —donde sobra
+   sitio al lado de las categorías— arregla la causa, no el síntoma. */
+@media (min-width: 769px) {
+
+  /* La fila no envuelve: con wrap, flexbox parte la línea antes de encoger
+     nada, así que por debajo de 1200 el buscador se caía a un segundo
+     renglón y la franja pasaba de 102 a 158 por 40px de campo de texto.
+     Sin wrap, lo que sobra se lo reparten el riel de categorías —que ya
+     sabe desplazarse— y el buscador. */
+  .catalogo-filtros-fila > .riel { min-width: 0; flex: 0 1 auto; }
+  .catalogo-herramientas { flex: 0 1 230px; min-width: 0; }
+  .catalogo-buscar { width: 100%; min-width: 0; }
+
+  /* La segunda fila se queda con precio y material, y ya puede envolver sin
+     que la franja crezca de golpe. */
+}
+
+/* ─── Cinco por fila en pantallas anchas ─────────────────────────────
+   Con cuatro, cada tarjeta medía 313 y la foto 391: una fila y media por
+   pantalla. Con cinco la tarjeta baja a 246 y la foto a 308, así que entra
+   la fila entera y se ve más catálogo de un vistazo, que es de lo que vive
+   una rejilla. Explícito y no auto-fill: con minmax el número de columnas
+   cambia solo y no hay forma de garantizar cinco. */
+@media (min-width: 1320px) {
+  .catalogo-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+
+  /* A 246px de ancho el nombre y el precio ya no caben en el mismo renglón
+     —"Anillo Esencia Imperial" contra "$4.500.000"—, así que el precio baja
+     debajo del nombre en vez de estrangularlo. */
+  .catalogo-grid .pieza-linea { flex-direction: column; align-items: flex-start; gap: 4px; }
+  .catalogo-grid .pieza-nombre { font-size: 1.0625rem; }
+  .catalogo-grid .pieza-ficha { font-size: 0.76rem; }
+  .catalogo-grid .pieza-btn { font-size: 0.72rem; letter-spacing: 0.04em; }
+}
+
+/* El escalón intermedio. Sin esto, entre 1199 y 1200 la rejilla saltaba de
+   tres columnas a cinco: el auto-fill con minmax de 272 solo daba para tres
+   en 1052px de contenido, y el salto se veía como si la página cambiara de
+   diseño al mover la ventana. El corte de las cinco está en 1320 y no en
+   1200 porque ahí abajo la tarjeta caía a 198px y el botón de comprar se
+   quedaba sin sitio. */
+@media (min-width: 900px) and (max-width: 1319px) {
+  .catalogo-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+/* ─── La franja deja de perseguirte ──────────────────────────────────
+   Pegada arriba tenía sentido mientras se veía, pero al bajar se quedaba
+   ahí ocupando dos filas de píldoras sobre las fotos —y con el riel de
+   categorías cortando "Dijes" por la mitad contra el borde—. Ahora vive
+   donde nace y, cuando sale de pantalla, la sustituye un botón. */
+@media (min-width: 769px) {
+  .catalogo-filtros { position: static; }
+
+  /* El riel ya no recorta: sin la franja pegada hay sitio para envolver, y
+     media píldora cortada contra el borde se lee como un fallo. */
+  .catalogo-filtros-fila { flex-wrap: wrap; }
+  .catalogo-filtros .riel { flex-wrap: wrap; overflow: visible; }
+
+  .catalogo-filtros-flotante {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 30;
+    justify-content: center;
+    padding: 16px 24px 24px;
+    background: linear-gradient(to top, rgba(251, 247, 242, 0.94) 55%, rgba(251, 247, 242, 0));
+    pointer-events: none;
+    /* Fuera de cuadro hasta que la franja se va. */
+    opacity: 0;
+    transform: translateY(120%);
+    transition: transform 0.45s var(--ease), opacity 0.3s ease;
+}
+  .catalogo-filtros-flotante--visible { opacity: 1; transform: none; }
+  .catalogo-filtros-flotante .catalogo-filtros-btn {
+    pointer-events: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 48px;
+    padding: 0 24px;
+    border: none;
+    border-radius: 100px;
+    background: var(--ink);
+    color: var(--bg-color);
+    font-family: var(--font-ui);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 14px 30px rgba(28, 23, 20, 0.18);
+    transition: all 0.3s var(--ease);
+  }
+  .catalogo-filtros-flotante .catalogo-filtros-btn:hover {
+    background: var(--ink-soft);
+    transform: translateY(-2px);
+  }
+  .catalogo-filtros-flotante .catalogo-filtros-n {
+    min-width: 20px;
+    height: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 100px;
+    background: var(--oro-luz);
+    color: var(--ink);
+    font-size: 0.7rem;
+    font-weight: 700;
+  }
+
+  /* El panel, centrado y no como cajón de abajo: en escritorio un panel que
+     sube desde el borde inferior se lee como una notificación del sistema.
+
+     El `display: flex` no es redundante: más arriba, en otro bloque de este
+     mismo ancho, el velo se apaga con `display: none` —de cuando el panel era
+     sólo para móvil—. Sin reanularlo aquí el botón flotante abre la nada. */
+  .catalogo-panel-velo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px;
+  }
+  .catalogo-panel {
+    width: min(560px, 100%);
+    max-height: min(80vh, 720px);
+    border: 1px solid var(--hairline);
+    border-radius: 2px;
+    animation: panelEntra 0.3s var(--ease);
+  }
+  @keyframes panelEntra {
+    from { opacity: 0; transform: translateY(12px) }
+    to   { opacity: 1; transform: none }
+  }
+
+  /* Y dentro del panel, buscar y ordenar vuelven a hacer falta. */
+  .catalogo-panel .catalogo-herramientas{ display: flex; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .catalogo-filtros-flotante { transform: none; transition: opacity 0.2s ease; }
+}
+
+
+/* ─── El botón de filtros tiene dos casas ────────────────────────────
+   En celular flota, a un pulgar del borde inferior. En escritorio vive en la
+   fila del buscador: flotando se quedaba encima de la tercera foto de forma
+   permanente —ya no se asoma sólo al bajar— y dejaba esa banda con el
+   buscador solo a un lado.
+
+   Va al final del archivo a propósito: las reglas del flotante viven dentro
+   de un @media de escritorio y hay que ganarles por orden, no subiendo la
+   especificidad. */
+.catalogo-filtros-btn-fila { display: none; }
+
+@media (min-width: 769px) {
+  .catalogo-filtros-flotante { display: none; }
+
+  .catalogo-filtros-btn-fila { display: flex; margin-right: auto; }
+  .catalogo-filtros-btn-fila .catalogo-filtros-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 40px;
+    padding: 0 18px;
+    border: 1px solid var(--hairline);
+    border-radius: 100px;
+    background: var(--bg-color);
+    color: var(--ink);
+    font-family: var(--font-ui);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+  }
+  /* Sin sombra ni elevación: aquí no flota sobre nada, es un control más de
+     la fila y competir con la píldora oscura del navbar sería ruido. */
+  .catalogo-filtros-btn-fila .catalogo-filtros-btn:hover {
+    background: var(--bg-arena);
+    border-color: rgba(168, 134, 63, 0.32);
+  }
+  .catalogo-filtros-btn-fila .catalogo-filtros-n {
+    min-width: 18px;
+    height: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 100px;
+    background: var(--ink);
+    color: var(--bg-color);
+    font-size: 0.65rem;
+    font-weight: 700;
+  }
+}

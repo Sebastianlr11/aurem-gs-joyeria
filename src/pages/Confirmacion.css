@@ -1,0 +1,113 @@
+/* ================================================================
+   La pantalla de confirmación — `/confirmacion`
+
+   Vivía en `src/index.css`, que bloquea el primer pintado en TODAS las rutas
+   —también en la portada, que no usa nada de esto—. PageSpeed lo cobraba: 300
+   ms de bloqueo de renderizado y 16 KiB de CSS sin usar. Esta pantalla ya se
+   carga aparte, así que ahora se trae su hoja con ella.
+
+   Se movió el 30 de agosto de 2026 sin tocar una sola declaración: los trozos
+   están en el mismo orden que tenían y con sus comentarios. Se comprobó
+   midiendo 8.930 elementos en nueve pantallas a cuatro anchos
+   (`scripts/huella-estilos.mjs`).
+
+   **Esta hoja se carga DESPUÉS de `index.css`**, así que a igual
+   especificidad gana lo de aquí. Es el mismo orden que tenían antes respecto
+   a todo lo que se quedó por encima; lo que estaba por debajo cambió de lado,
+   y por eso la comprobación de la huella no es opcional.
+   ================================================================ */
+
+/* ─── Confirmación del pago ──────────────────────────────────────────
+   Una sola tarjeta centrada, con los tres estados —aprobado, en proceso y
+   fallido— compartiendo estructura. El anterior usaba verde, ámbar y rojo de
+   semáforo, que en una joyería se leen como una alerta del sistema; aquí el
+   estado lo dice el texto y el único color es el oro de siempre. */
+.conf {
+  min-height: 100vh;
+  background: var(--bg-marfil);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(88px, 12vh, 120px) 24px 64px;
+  box-sizing: border-box;
+}
+
+.conf-caja {
+  width: 100%;
+  max-width: 540px;
+  background: var(--bg-color);
+  border: 1px solid var(--hairline);
+  border-radius: 2px;
+  padding: clamp(36px, 6vw, 56px) clamp(24px, 6vw, 48px);
+  box-sizing: border-box;
+  animation: confSube 0.4s var(--ease) both;
+}
+
+.conf-cabeza {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  text-align: center;
+}
+
+.conf-marca {
+  width: 58px;
+  height: 58px;
+  border: 1px solid var(--oro-hairline);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.conf-cabeza .eyebrow { margin: 0; }
+.conf-cabeza .eyebrow::before { display: none; }
+
+.conf-titulo {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(1.875rem, 6vw, 2.5rem);
+  line-height: 1.12;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  text-wrap: pretty;
+}
+.conf-titulo em {
+  display: block;
+  margin-top: 6px;
+  font-style: normal;
+  font-size: 0.62em;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--oro-ink);
+}
+
+.conf-lead {
+  margin: 0;
+  max-width: 40ch;
+  font-size: 1rem;
+  line-height: 1.65;
+  color: var(--text-secondary);
+  text-wrap: pretty;
+}
+
+.conf-punzones { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.conf-punzones:empty { display: none; }
+
+.conf-acciones { margin-top: 32px; display: flex; flex-direction: column; gap: 12px; }
+.conf-acciones .btn-pill { width: 100%; justify-content: center; min-height: 52px; }
+.conf-wa { display: inline-flex; align-items: center; justify-content: center; gap: 10px; }
+
+.conf-cod {
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px solid var(--hairline);
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+.conf-cod svg { flex: none; margin-top: 2px; }
+.conf-cod p { margin: 0; font-size: 0.9375rem; line-height: 1.6; color: var(--text-secondary); }
+.conf-cod strong { color: var(--ink); font-weight: 700; }

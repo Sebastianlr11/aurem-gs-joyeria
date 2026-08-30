@@ -19,6 +19,15 @@ import { tituloDePieza } from '../lib/tituloPieza'
 import { refDe } from '../lib/referencia'
 import { datosDeAtribucion } from '../lib/atribucion';
 
+/* Su propia hoja, y no `index.css`.
+
+   `index.css` bloquea el primer pintado en todas las rutas, así que cada
+   regla que vive ahí la paga también quien sólo abre la portada. Esta página
+   ya se carga aparte —va perezosa en `App.jsx`— y desde el 30 de agosto de
+   2026 se trae su CSS con ella. Se carga después de `index.css`: a igual
+   especificidad, gana lo de aquí. */
+import './ProductPage.css'
+
 /* ── Countdown hook: 24 h rolling, persiste en localStorage ───────
    Se reinicia solo a otras 24 h cuando llega a cero, y eso es DELIBERADO
    —confirmado el 23 de agosto de 2026—. Se revisó justamente porque parece

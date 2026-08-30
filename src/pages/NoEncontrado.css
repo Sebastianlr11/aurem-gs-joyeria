@@ -1,0 +1,65 @@
+/* ================================================================
+   La página que no existe — la ruta `*`
+
+   Vivía en `src/index.css`, que bloquea el primer pintado en TODAS las rutas
+   —también en la portada, que no usa nada de esto—. PageSpeed lo cobraba: 300
+   ms de bloqueo de renderizado y 16 KiB de CSS sin usar. Esta pantalla ya se
+   carga aparte, así que ahora se trae su hoja con ella.
+
+   Se movió el 30 de agosto de 2026 sin tocar una sola declaración: los trozos
+   están en el mismo orden que tenían y con sus comentarios. Se comprobó
+   midiendo 8.930 elementos en nueve pantallas a cuatro anchos
+   (`scripts/huella-estilos.mjs`).
+
+   **Esta hoja se carga DESPUÉS de `index.css`**, así que a igual
+   especificidad gana lo de aquí. Es el mismo orden que tenían antes respecto
+   a todo lo que se quedó por encima; lo que estaba por debajo cambió de lado,
+   y por eso la comprobación de la huella no es opcional.
+   ================================================================ */
+
+/* Vacío y paginación */
+.catalogo-vacio {
+  padding: 6rem 1.5rem;
+  text-align: center;
+  border: 1px solid var(--hairline);
+  background: var(--bg-color);
+  border-radius: 2px;
+}
+
+.catalogo-vacio-icono {
+  font-size: 1.5rem;
+  color: var(--oro);
+}
+
+.catalogo-vacio-titulo {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  margin: 1rem 0 0.5rem;
+  color: var(--ink);
+}
+
+.catalogo-vacio-texto {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  /* El texto no se estira a lo ancho de la rejilla: a 1440px la frase se
+     leería de un borde al otro y en un bloque centrado eso se pierde. */
+  max-width: 42ch;
+  margin: 0 auto;
+  line-height: 1.65;
+}
+
+.catalogo-vacio-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 2rem;
+}
+
+@media (max-width: 480px) {
+  /* Apilados y a lo ancho: dos píldoras lado a lado en 390px dejan el texto
+     de cada una partido en dos renglones. */
+  .catalogo-vacio { padding: 4rem 1.25rem; }
+  .catalogo-vacio-acciones { flex-direction: column; }
+  .catalogo-vacio-acciones .btn-pill { justify-content: center; }
+}

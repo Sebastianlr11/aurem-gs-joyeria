@@ -1,0 +1,103 @@
+/* ================================================================
+   Las tres páginas legales
+
+   Vivía en `src/index.css`, que bloquea el primer pintado en TODAS las rutas
+   —también en la portada, que no usa nada de esto—. PageSpeed lo cobraba: 300
+   ms de bloqueo de renderizado y 16 KiB de CSS sin usar. Esta pantalla ya se
+   carga aparte, así que ahora se trae su hoja con ella.
+
+   Se movió el 30 de agosto de 2026 sin tocar una sola declaración: los trozos
+   están en el mismo orden que tenían y con sus comentarios. Se comprobó
+   midiendo 8.930 elementos en nueve pantallas a cuatro anchos
+   (`scripts/huella-estilos.mjs`).
+
+   **Esta hoja se carga DESPUÉS de `index.css`**, así que a igual
+   especificidad gana lo de aquí. Es el mismo orden que tenían antes respecto
+   a todo lo que se quedó por encima; lo que estaba por debajo cambió de lado,
+   y por eso la comprobación de la huella no es opcional.
+   ================================================================ */
+
+.section-label::after{
+  display: none;
+}
+
+/* ============================================================
+   CONFIRMACION page
+   ============================================================ */
+
+/* ============================================================
+   LEGAL PAGES
+   ============================================================ */
+.legal-page {
+  min-height: 60vh;
+  padding: 4rem 0 6rem;
+}
+
+.legal-header {
+  margin-bottom: 3rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid var(--bg-arena);
+}
+.legal-header h1 {
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--text-primary);
+  margin: 0.5rem 0 0.4rem;
+}
+.legal-header p {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.legal-body {
+  max-width: 760px;
+}
+
+.legal-section {
+  margin-bottom: 2.5rem;
+}
+.legal-section h2 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.75rem;
+  letter-spacing: -0.01em;
+}
+.legal-section p {
+  font-size: 0.92rem;
+  color: var(--text-secondary);
+  line-height: 1.75;
+  margin-bottom: 0.6rem;
+}
+.legal-section ul,
+.legal-section ol {
+  padding-left: 1.4rem;
+  margin: 0.4rem 0 0.6rem;
+}
+.legal-section li {
+  font-size: 0.92rem;
+  color: var(--text-secondary);
+  line-height: 1.75;
+  margin-bottom: 0.25rem;
+}
+.legal-section strong { color: var(--text-primary); }
+/* ================================================================
+   PRODUCT PAGE — mobile reorder (category+name above gallery)
+   ================================================================ */
+
+/* ================================================================
+   PRODUCT PAGE — mobile
+   ================================================================ */
+
+/* ================================================================
+   TiltedCarousel — hide on mobile
+   ================================================================ */
+
+/* ================================================================
+   LEGAL PAGES — mobile
+   ================================================================ */
+@media (max-width: 768px) {
+  .legal-page { padding: 3rem 0 4rem; }
+}

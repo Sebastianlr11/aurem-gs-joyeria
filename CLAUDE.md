@@ -47,6 +47,9 @@ npm run correos      # esbuild: emails/_render.ts -> api/_plantillas.mjs
 npm run email        # Previsualizador de React Email en :3010
 npm run imagenes     # sharp: public/assets/*.jpg -> WebP multi-tamaño
 npm run css:pisadas  # Diagnóstico: reglas CSS que otras pisan
+
+node scripts/huella-estilos.mjs tomar h.json   # Huella de estilos: qué se ve, medido
+node scripts/css-de-quien-es.mjs               # De qué ruta es cada bloque de index.css
 ```
 
 Tres advertencias sobre el build:
@@ -632,12 +635,30 @@ Cosas que ya costaron un incidente. Léelas antes de tocar lo que describen.
   esto, es de plan Pro y en este proyecto responde 403.
 - **Gmail borra los `<style>` externos.** Por eso `emails/_marca.tsx` duplica los tokens
   en línea y usa Georgia en vez de Marcellus.
-- **El CSS son DOS archivos desde el 23-ago:** `src/index.css` (tienda y compartido,
-  6.854 líneas) y `src/panel.css` (el panel, 7.862). **`panel.css` se carga después, así
-  que ante igual especificidad gana.** Lo importan **cuatro** pantallas: `Dashboard.jsx`,
-  `ChatPanel.jsx`, `Login.jsx` y `ResetPassword.jsx`.
-  Si mueves una regla de un archivo al otro, compruébalo: se hizo midiendo 24 propiedades
-  calculadas de 3.691 elementos en once pantallas.
+- **El CSS ya no son dos archivos: son ocho.** `src/index.css` (4.270 líneas — el sistema
+  de diseño, la portada y todo lo compartido), `src/panel.css` (el panel), y **seis hojas de
+  ruta** que se cargan sólo con su pantalla: `src/pages/ProductPage.css`, `Catalog.css`,
+  `RingSizeGuide.css`, `Confirmacion.css`, `NoEncontrado.css` y `legales.css` —esta última
+  la comparten las tres legales—, más `src/components/TiltedCarousel.css`.
+  **Todas se cargan DESPUÉS de `index.css`, así que a igual especificidad ganan ellas.**
+  `panel.css` lo importan **cuatro** pantallas: `Dashboard.jsx`, `ChatPanel.jsx`,
+  `Login.jsx` y `ResetPassword.jsx`.
+
+  El corte se hizo el 30 de agosto de 2026 porque `index.css` bloqueaba el primer pintado
+  **entera y en todas las rutas**: la portada se bajaba el CSS de la ficha, del catálogo y
+  de la guía de tallas para no usarlos. El CSS bloqueante bajó de 19,3 a 12,9 KB
+  comprimidos.
+
+- **Mover una regla de una hoja a otra cambia quién gana la cascada, y eso no lo ve ninguna
+  prueba.** Hay dos herramientas para eso, y las dos hacen falta:
+  - `node scripts/huella-estilos.mjs tomar antes.json` → se toca el CSS → `tomar
+    despues.json` → `comparar`. Abre las nueve pantallas públicas a cuatro anchos en Chrome
+    sin cabeza y compara 54 propiedades calculadas de 8.930 elementos. Es lo único que
+    responde «¿cambió lo que se ve?».
+  - `node scripts/css-de-quien-es.mjs` dice de qué ruta es cada bloque **preguntándoselo al
+    navegador**, no adivinando por el nombre de la clase. Sólo mira pantallas públicas: lo
+    que use `/admin` hay que comprobarlo aparte —así se coló `.punzon--dark` en la hoja de
+    la guía de tallas, y lo usan Portada y Reportes del panel—.
 - **Una pantalla del panel a la que se llega por la URL tiene que importar `panel.css`
   ella misma.** Del 23 al 24 de agosto de 2026, `/admin/login` y `/admin/reset-password` se
   pintaron **crudas** —enlaces azules, el isotipo a tamaño natural, cursivas donde van
@@ -650,8 +671,11 @@ Cosas que ya costaron un incidente. Léelas antes de tocar lo que describen.
 - **Qué es "del panel" no se decide por el nombre de la clase.** Se intentó por prefijos y
   `.joyero` —que es la ficha de producto— acabó en el panel y rompió la ficha. El criterio
   es dónde se usa: sólo en `src/pages/admin/` y en ningún otro sitio.
-- **Antes de dar por bueno un cambio de CSS, corre `npm run css:pisadas`.** Mira los dos
-  archivos y hoy reporta **4** bloques con declaraciones pisadas, desde los 143 que había.
+- **Antes de dar por bueno un cambio de CSS, corre `npm run css:pisadas`.** Mira las ocho
+  hojas —las busca en disco— y hoy reporta **3** bloques con declaraciones pisadas, desde
+  los 143 que había. **Sólo compara dentro de un mismo archivo**: desde que hay hojas de
+  ruta, un par cuyo perdedor está en `index.css` y cuyo ganador está en una hoja de ruta le
+  es invisible. Para eso está la huella.
   Lee la primera línea de su salida, no cuentes los bloques impresos: sólo enseña los 25
   peores. Acepta una ruta (`node scripts/css-pisadas.mjs src/panel.css`) y un filtro de
   selector.

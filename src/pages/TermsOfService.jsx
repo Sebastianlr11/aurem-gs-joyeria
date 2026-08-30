@@ -2,6 +2,15 @@ import React from 'react';
 import Meta from '../components/Meta';
 import { Link } from 'react-router-dom';
 
+/* Su propia hoja, y no `index.css`.
+
+   `index.css` bloquea el primer pintado en todas las rutas, así que cada
+   regla que vive ahí la paga también quien sólo abre la portada. Esta página
+   ya se carga aparte —va perezosa en `App.jsx`— y desde el 30 de agosto de
+   2026 se trae su CSS con ella. Se carga después de `index.css`: a igual
+   especificidad, gana lo de aquí. */
+import './legales.css'
+
 const Section = ({ title, children }) => (
   <div className="legal-section">
     <h2>{title}</h2>

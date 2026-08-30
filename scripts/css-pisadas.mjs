@@ -19,10 +19,24 @@
  */
 import fs from 'node:fs'
 
-/* Desde que el CSS son dos archivos —la tienda y el panel— hay que poder
-   apuntar a cualquiera de los dos. Sin argumento, los mira los dos. */
+/* Sin argumento mira todas las hojas del proyecto. Eran dos —la tienda y el
+   panel— hasta el 30 de agosto de 2026, cuando la de la tienda se partió y
+   cada ruta perezosa se llevó la suya. Se buscan en disco y no a mano: una
+   lista escrita queda desactualizada el día que alguien añade una hoja, y un
+   diagnóstico que no mira un archivo dice «ninguna regla pisada» con la misma
+   confianza que si lo hubiera mirado.
+
+   **Ojo con lo que este informe NO puede ver desde que hay varias hojas**: sólo
+   compara dentro de un archivo. Un par en el que el perdedor está en
+   `index.css` y el ganador en una hoja de ruta —que se carga después— es
+   invisible aquí. Para eso está `scripts/huella-estilos.mjs`, que mide lo que
+   se ve en vez de leer lo que está escrito. */
 const RUTAS = process.argv.filter((a) => a.endsWith('.css'))
-const ARCHIVOS = RUTAS.length ? RUTAS : ['src/index.css', 'src/panel.css']
+const ARCHIVOS = RUTAS.length ? RUTAS : [
+  'src/index.css',
+  'src/panel.css',
+  ...fs.globSync('src/{pages,components}/**/*.css').sort(),
+]
 
 /* Los comentarios se reemplazan por sus mismos saltos de línea. Quitarlos
    correría la numeración, y un informe que apunta a la línea equivocada es
