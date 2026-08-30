@@ -103,7 +103,22 @@ const Hero = () => {
                         <figure className="hero-frame">
                             {/* Va con prioridad alta: es lo más grande del
                                 primer viewport y compite con todo lo demás
-                                por el ancho de banda. */}
+                                por el ancho de banda.
+
+                                Y va SIN `decoding="async"`, que es lo que
+                                tenía. Esa palabra le dice al navegador que
+                                puede pintar la página sin esperar a
+                                descodificar la foto, y descodificarla cuando
+                                le quede un hueco — pero el hueco, en un
+                                celular lento, se lo está comiendo la
+                                hidratación de React. Medido con PageSpeed el
+                                30 de agosto de 2026: la foto estaba bajada
+                                desde el primer momento y aun así el LCP salía
+                                1,7 s en dos corridas y 2,5-2,7 s en otras
+                                tres, con el mismo Speed Index bailando con
+                                él. En el elemento LCP no se difiere la
+                                descodificación: es justo lo que se está
+                                esperando. */}
                             <Foto
                                 nombre="pen-hero"
                                 anchos={[768, 928]}
@@ -112,7 +127,6 @@ const Hero = () => {
                                 width="928"
                                 height="1152"
                                 fetchPriority="high"
-                                decoding="async"
                             />
                         </figure>
                         <Sello />
