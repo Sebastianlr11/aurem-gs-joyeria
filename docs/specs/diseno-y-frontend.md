@@ -142,9 +142,9 @@ la tienda entera, y no lo ve ningún cliente.
 **Las hojas de ruta se cargan DESPUÉS de `index.css`**, así que a igual especificidad ganan
 ellas. Eso importa al mover una regla: ver la trampa del final de esta sección.
 
-**Y `index.css` viaja dentro de los dos HTML del build**, no como archivo. Es la misma hoja
-y en el mismo sitio del documento; sólo cambia cómo llega. Las hojas de ruta siguen siendo
-archivos, y `dist/assets/index-*.css` se emite igual aunque ya nadie lo pida.
+**Y `index.css` viaja dentro de `dist/index.html`**, no como archivo, desde que la portada se
+prerenderiza. Es la misma hoja y en el mismo sitio del documento; sólo cambia cómo llega.
+Las hojas de ruta siguen siendo archivos.
 
 **Quién importa el panel.** `panel.css` no lo importa un layout: lo importa **cada pantalla
 del panel que lo necesita** — `Dashboard.jsx`, `ChatPanel.jsx`, `Login.jsx` y
@@ -306,16 +306,9 @@ el HTML y la primera joya**: un viaje de red entero, en serie. Lighthouse lo mar
 veces —antes y después de prerenderizar— como «solicitud de bloqueo de renderización,
 ahorro estimado de 300 ms», etiquetado a la vez para FCP y para LCP.
 
-Así que los dos HTML la llevan **adentro**, en un `<style>`. Empezó sólo en `index.html`,
-dejando el `<link>` en `app.html` para que las demás rutas la cachearan aparte; duró unas
-horas, porque en la ficha ese `<link>` era el mismo bloqueo de 300 ms y la ficha es la
-pantalla donde se compra.
-
-**El canje, para tenerlo escrito:** `app.html` pasa de 5 a 14 KB comprimidos, y quien
-navega a otra ruta con una recarga entera se baja la hoja otra vez en vez de usar la
-cacheada. Gana la primera visita y pierde la repetida — y acá la primera visita es la
-norma: la clienta llega desde WhatsApp o desde un anuncio, directo a una pieza, y dentro
-del sitio navega sin recargar.
+Así que `index.html` la lleva **adentro**, en un `<style>`. Sólo `index.html`: `app.html`
+conserva el `<link>`, porque en las demás rutas el HTML no pinta nada por sí mismo y ahí
+vale más tenerla cacheada aparte.
 
 **Se mete la hoja completa, en el sitio exacto donde estaba el `<link>`** — no un "CSS
 crítico" recortado. Los mismos bytes en el mismo orden es lo único que garantiza que la
@@ -323,12 +316,40 @@ cascada no cambie, y en este proyecto una regla que cambia de sitio cambia quié
 que lo vea ninguna prueba. Comprobado con `huella-estilos.mjs --estados`: **ni una
 diferencia** en 12.568 elementos de 48 pantallas.
 
-Medido en el navegador, con 4× de CPU: en la portada, **FCP de 1.208 a 416 ms**; en la
-ficha, la foto del producto pasa de pedirse a los 835 ms a pedirse a los 466.
+El precio son ~9 KB comprimidos que la portada ya no cachea entre visitas —`index.html` pasa
+de 12 a 20 KB—; el viaje de red que ahorra vale más. Medido en el navegador, con 4× de CPU:
+**FCP de 1.208 a 416 ms.**
 
 El script se niega a hacerlo si la hoja trae una `url()` relativa: colgando del `<link>` se
 resolvían contra `/assets/` y en línea lo harían contra `/`. Hoy las cuatro que hay son las
 fuentes, absolutas.
+
+### Lo que NO funcionó: meterla también en `app.html`
+
+Se probó el 30 de agosto de 2026, con el mismo argumento —en la ficha ese `<link>` es el
+mismo bloqueo de 300 ms— y **salió peor**: la ficha bajó de 95 a 93.
+
+El motivo no era el CSS sino el tamaño del HTML. `app.html` pasó de 5 a 14 KB comprimidos y
+cruzó la **ventana inicial de congestión de TCP** (~14 KB): lo que cabe ahí llega en un
+viaje de red, lo que no, paga otro entero. Y a diferencia de la portada, en la ficha **el
+HTML es la raíz de la cadena** —de él cuelga el bundle, y el adelanto de la pieza, y de éste
+la foto del LCP—, así que ese viaje de más se lo cobra a todo lo que viene detrás:
+
+| | Con `<link>` (95) | En línea (93) |
+|---|---|---|
+| HTML | 4,45 KiB · 65 ms | 15,39 KiB · 368 ms |
+| `index.js` | 150 ms | 787 ms |
+| El JSON de la pieza | 225 ms | 919 ms |
+| Ruta crítica máxima | 371 ms | 1.246 ms |
+
+**La portada es el caso contrario**, y por eso ahí sigue en línea: viene pintada, no cuelga
+nada de ella, y el viaje de más se paga una vez en el FCP en vez de multiplicarse por cada
+eslabón.
+
+Y una advertencia sobre cómo se probó: **el banco de pruebas local no puede ver esto**. El
+estrangulamiento de Chrome es un balde de fichas y no simula la ventana de congestión; seis
+corridas locales dieron lo mismo con la hoja enlazada y en línea (mediana 1.692 contra
+1.696 ms). Lo vio Lighthouse, que sí la modela.
 
 ### Y la foto del hero dejó de decir `decoding="async"`
 
