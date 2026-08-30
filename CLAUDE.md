@@ -298,9 +298,13 @@ vocabulario lo sostienen el código y esta tabla, no la base.
 `enviado_por` (`ia` | `humano`), `delivery_status`, `error_wa`, `wa_phone_id`, `referral`,
 `created_at`.
 
-**`products`** — base + `images[]`, `stock`, `metal`, `piedra`, `engaste`, `talla_rango`,
+**`products`** — base + `images[]`, `stock`, `metal`, `piedra`, `talla_rango`,
 `compare_price`. (`costo` y `costo_provisional` siguen en la tabla pero están **muertas**
-desde el 23-ago: el costo vive en el pedido.)
+desde el 23-ago: el costo vive en el pedido; `engaste` lo está desde el 30-ago: el taller
+nunca lo llenó.)
+
+`category` ∈ `Anillos | Collares | Aretes | Topos | Pulseras | Dijes | Juegos`, y **aquí sí
+hay `CHECK`** —al revés que `orders.status`—: una categoría nueva pide migración.
 
 ### RPC
 
@@ -376,6 +380,7 @@ nombre es el identificador que la base ya tiene anotado.
 | `20260824_el_vigia_cuadra_la_caja.sql` | `caja_cuadra_con_la_regla()`: que el libro de pagos le haga caso a `recibido_de` |
 | `20260824_las_ciudades_de_colombia.sql` | Los 1.273 municipios con su código DANE, que es lo que pide 99envios |
 | `20260824_de_lo_que_escribe_la_clienta_al_codigo_dane.sql` | `codigo_dane()`: traduce la ciudad escrita a mano, y calla si es ambigua |
+| `20260830_topos_y_juegos.sql` | Dos categorías nuevas en el `CHECK` de `products`: los topos y los combos de dije con aretes |
 
 `20260822_cerrar_conversaciones_a_anon.sql` cerró el fallo más grave de todos:
 `whatsapp_conversaciones` y `chat_takeover` tenían políticas

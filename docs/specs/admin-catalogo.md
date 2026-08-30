@@ -27,8 +27,11 @@ sitios donde se usan**: la web y WhatsApp — que no aceptan el mismo formato.
 ### Tablas y Storage
 
 - **`products`** — `name`, `description`, `price`, `compare_price`, `category`, `metal`,
-  `piedra`, `engaste`, `talla_rango`, `images[]`, `image_url`, `stock`, `is_new`,
-  `is_featured`. **`costo` y `costo_provisional` ya no se usan**: desde el 23 de agosto de
+  `piedra`, `talla_rango`, `images[]`, `image_url`, `stock`, `is_new`,
+  `is_featured`. **`engaste` ya no se usa**: el campo salió del formulario el 30 de agosto
+  de 2026 porque el taller no lo llenaba —tres piezas de las primeras y ninguna más—, así
+  que la ficha lo enseñaba en unas y lo callaba en las otras. La columna se queda con lo
+  anotado. **`costo` y `costo_provisional` tampoco se usan**: desde el 23 de agosto de
   2026 el costo se anota en el pedido (`orders.costo_taller`). Las columnas siguen ahí para
   no perder lo anotado, pero nada las lee.
 - **Storage `product-images`** — bucket **público**.

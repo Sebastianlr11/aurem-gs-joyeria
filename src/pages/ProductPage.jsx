@@ -1094,7 +1094,6 @@ const ProductPage = () => {
     const ficha = [
         product.metal ? ['Metal', product.metal + (punzonLey ? ' con punzón de ley' : '')] : null,
         product.piedra ? ['Piedra', product.piedra] : null,
-        product.engaste ? ['Engaste', product.engaste] : null,
         esAnillo ? ['Talla', `${product.talla_rango || '5 a 12'} · ajuste en taller sin costo`] : null,
         ['Entrega', 'Bogotá en 3 a 4 días · resto del país, 4 a 6'],
         /* Una línea, no un párrafo: el detalle de las dos formas de pagar se
@@ -1112,8 +1111,8 @@ const ProductPage = () => {
             : null,
     ].filter(Boolean);
 
-    /* Qué incluye el precio. Antes describía la pieza —piedra, metal,
-       engaste— repitiendo lo que la tabla de arriba ya dice con más
+    /* Qué incluye el precio. Antes describía la pieza —piedra, metal—
+       repitiendo lo que la tabla de arriba ya dice con más
        precisión. Ahora describe la compra: qué recibes además de la joya.
        Cada frase se queda en lo que el taller sí hace: nada de "envío
        asegurado" ni plazos que no hemos confirmado. */

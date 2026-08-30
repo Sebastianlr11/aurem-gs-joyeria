@@ -24,7 +24,7 @@ import { supabase } from '../../lib/supabase';
 import { borrarFotos } from '../../lib/fotosEnStorage';
 import { versionesDeFoto } from '../../lib/optimizarFoto';
 
-const CATEGORIES = ['Anillos', 'Collares', 'Aretes', 'Pulseras', 'Dijes'];
+const CATEGORIES = ['Anillos', 'Collares', 'Aretes', 'Topos', 'Pulseras', 'Dijes', 'Juegos'];
 const METALES = ['Plata 925', 'Oro 18k', 'Oro blanco 18k', 'Oro rosa 18k', 'Platino PT950'];
 const MAX_DESC = 600;
 
@@ -57,7 +57,7 @@ const SECCIONES = [
 const VACIO = {
     name: '', category: 'Anillos', price: '', compare_price: '',
     description: '', image_url: '', is_new: false,
-    is_featured: false, stock: '', metal: '', piedra: '', engaste: '', talla_rango: '',
+    is_featured: false, stock: '', metal: '', piedra: '', talla_rango: '',
 };
 
 /** Un interruptor. Se usa dentro de un botón, así que es un span, no un input. */
@@ -307,7 +307,6 @@ export default function ProductModal({ product, onClose, onSaved }) {
             is_featured: !!form.is_featured,
             metal: texto(form.metal) || null,
             piedra: texto(form.piedra) || null,
-            engaste: texto(form.engaste) || null,
             talla_rango: texto(form.talla_rango) || null,
             // Vacío = sin control de inventario (null). 0 = agotado.
             stock: form.stock === '' || form.stock === null || form.stock === undefined
@@ -505,15 +504,11 @@ export default function ProductModal({ product, onClose, onSaved }) {
                                         placeholder="Vacío si no lleva piedra"
                                     />
                                 </div>
-                                <div className="pm-campo">
-                                    <label className="pm-label">Engaste</label>
-                                    <input
-                                        className="pm-input"
-                                        value={form.engaste || ''}
-                                        onChange={e => set('engaste', e.target.value)}
-                                        placeholder="Bisel, diseño en línea"
-                                    />
-                                </div>
+                                {/* Aquí vivía «Engaste». Se quitó el 30 de agosto de 2026: el
+                                    taller no lo llenaba nunca —tres piezas de las primeras y
+                                    ninguna más—, así que la ficha de la pieza enseñaba el dato
+                                    en unas y lo callaba en las otras. La columna sigue en
+                                    `products`, muerta, como `costo`. */}
                                 <div className="pm-campo">
                                     <label className="pm-label">Tallas</label>
                                     <input

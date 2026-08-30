@@ -42,7 +42,7 @@ el md5 de lo generado contra el de la base.
 
 | Tabla | Columnas destacadas |
 |---|---|
-| `products` | `name`, `description`, `price`, `compare_price`, `category`, `metal`, `piedra`, `engaste`, `talla_rango`, `images[]`, `image_url`, `stock`, `is_new`, `is_featured`, y `costo`/`costo_provisional` **muertas** desde el 23-ago |
+| `products` | `name`, `description`, `price`, `compare_price`, `category` (con `CHECK`: `Anillos`, `Collares`, `Aretes`, `Topos`, `Pulseras`, `Dijes`, `Juegos`), `metal`, `piedra`, `talla_rango`, `images[]`, `image_url`, `stock`, `is_new`, `is_featured`, y `costo`/`costo_provisional` **muertas** desde el 23-ago, `engaste` desde el 30-ago |
 | `orders` | `customer_name/email/phone`, `product_id`, `product_name`, `amount`, `status`, `payment_method`, `order_source`, `notes`, `carrier`, `tracking_number`, `mp_preference_id`, `mp_payment_id`, `mp_status`, `status_updated_at`, `es_prueba`, `shipping_address/city/department`, `abono_monto`, `abono_pagado_en`, `conversion_enviada_en`, `costo_taller`, `costo_envio`, `costo_anotado_en` + atribución |
 | `order_items` | `order_id`, `product_id`, `nombre`, `precio`, `cantidad`, `talla`, `creado_en` — **precios congelados** |
 | `customers` | Datos del cliente + `no_escribir` |

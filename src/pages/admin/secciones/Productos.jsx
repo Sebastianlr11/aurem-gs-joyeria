@@ -11,7 +11,7 @@ import ProductModal from '../ProductModal';
 import EliminarPieza from '../EliminarPieza';
 import { fmt } from './comunes';
 
-const CATEGORIES = ['Anillos', 'Collares', 'Aretes', 'Pulseras', 'Dijes'];
+const CATEGORIES = ['Anillos', 'Collares', 'Aretes', 'Topos', 'Pulseras', 'Dijes', 'Juegos'];
 
 const ORDENES = {
     recientes: { label: 'Más recientes', fn: null },
