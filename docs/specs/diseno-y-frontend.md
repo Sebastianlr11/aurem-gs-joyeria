@@ -142,9 +142,9 @@ la tienda entera, y no lo ve ningún cliente.
 **Las hojas de ruta se cargan DESPUÉS de `index.css`**, así que a igual especificidad ganan
 ellas. Eso importa al mover una regla: ver la trampa del final de esta sección.
 
-**Y `index.css` viaja dentro de `dist/index.html`**, no como archivo, desde que la portada se
-prerenderiza. Es la misma hoja y en el mismo sitio del documento; sólo cambia cómo llega.
-Las hojas de ruta siguen siendo archivos.
+**Y `index.css` viaja dentro de los dos HTML del build**, no como archivo. Es la misma hoja
+y en el mismo sitio del documento; sólo cambia cómo llega. Las hojas de ruta siguen siendo
+archivos, y `dist/assets/index-*.css` se emite igual aunque ya nadie lo pida.
 
 **Quién importa el panel.** `panel.css` no lo importa un layout: lo importa **cada pantalla
 del panel que lo necesita** — `Dashboard.jsx`, `ChatPanel.jsx`, `Login.jsx` y
@@ -306,9 +306,16 @@ el HTML y la primera joya**: un viaje de red entero, en serie. Lighthouse lo mar
 veces —antes y después de prerenderizar— como «solicitud de bloqueo de renderización,
 ahorro estimado de 300 ms», etiquetado a la vez para FCP y para LCP.
 
-Así que `index.html` la lleva **adentro**, en un `<style>`. Sólo `index.html`: `app.html`
-conserva el `<link>`, porque en las demás rutas el HTML no pinta nada por sí mismo y ahí
-vale más tenerla cacheada aparte.
+Así que los dos HTML la llevan **adentro**, en un `<style>`. Empezó sólo en `index.html`,
+dejando el `<link>` en `app.html` para que las demás rutas la cachearan aparte; duró unas
+horas, porque en la ficha ese `<link>` era el mismo bloqueo de 300 ms y la ficha es la
+pantalla donde se compra.
+
+**El canje, para tenerlo escrito:** `app.html` pasa de 5 a 14 KB comprimidos, y quien
+navega a otra ruta con una recarga entera se baja la hoja otra vez en vez de usar la
+cacheada. Gana la primera visita y pierde la repetida — y acá la primera visita es la
+norma: la clienta llega desde WhatsApp o desde un anuncio, directo a una pieza, y dentro
+del sitio navega sin recargar.
 
 **Se mete la hoja completa, en el sitio exacto donde estaba el `<link>`** — no un "CSS
 crítico" recortado. Los mismos bytes en el mismo orden es lo único que garantiza que la
@@ -316,9 +323,8 @@ cascada no cambie, y en este proyecto una regla que cambia de sitio cambia quié
 que lo vea ninguna prueba. Comprobado con `huella-estilos.mjs --estados`: **ni una
 diferencia** en 12.568 elementos de 48 pantallas.
 
-El precio son ~9 KB comprimidos que la portada ya no cachea entre visitas —`index.html` pasa
-de 12 a 20 KB—; el viaje de red que ahorra vale más. Medido en el navegador, con 4× de CPU:
-**FCP de 1.208 a 416 ms.**
+Medido en el navegador, con 4× de CPU: en la portada, **FCP de 1.208 a 416 ms**; en la
+ficha, la foto del producto pasa de pedirse a los 835 ms a pedirse a los 466.
 
 El script se niega a hacerlo si la hoja trae una `url()` relativa: colgando del `<link>` se
 resolvían contra `/assets/` y en línea lo harían contra `/`. Hoy las cuatro que hay son las
