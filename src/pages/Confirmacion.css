@@ -111,3 +111,89 @@
 .conf-cod svg { flex: none; margin-top: 2px; }
 .conf-cod p { margin: 0; font-size: 0.9375rem; line-height: 1.6; color: var(--text-secondary); }
 .conf-cod strong { color: var(--ink); font-weight: 700; }
+
+/* ─── Traído de index.css ──────────────────────────────────────────
+   Reglas que sólo usa esta pantalla y que bloqueaban el primer pintado
+   de todas las demás. Movidas por scripts/css-mudanza.mjs. */
+
+/* El resumen del pedido, con la retícula de líneas de pelo de la ficha. */
+.conf-resumen{
+  margin-top: 36px;
+  border: 1px solid var(--hairline);
+  border-radius: 2px;
+  background: var(--bg-marfil);
+}
+
+.conf-numero{
+  padding: 24px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.conf-numero-label{
+  font-family: var(--font-ui);
+  font-size: 0.68rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--oro-ink);
+}
+
+.conf-numero-valor{
+  font-family: var(--font-ui);
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--ink);
+  /* Cifras de ancho fijo: es un número que la clienta va a leer en voz alta
+     por teléfono, y así no baila. */
+  font-variant-numeric: tabular-nums;
+}
+
+.conf-copiar{
+  margin-top: 2px;
+  background: none;
+  border: 0;
+  padding: 4px 0;
+  font-family: var(--font-ui);
+  font-size: 0.8125rem;
+  color: var(--oro-ink);
+  cursor: pointer;
+}
+
+.conf-copiar:hover{ color: var(--ink); }
+
+.conf-fila{
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.conf-fila:last-child{ border-bottom: none; }
+
+.conf-fila > span:first-child{ font-size: 0.8125rem; color: var(--text-secondary); flex: none; }
+
+.conf-fila > span:last-child{
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--ink);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.conf-fila small{ font-size: 0.75rem; font-weight: 400; color: var(--text-muted); }
+
+.conf-pasos{ margin-top: 32px; display: flex; flex-direction: column; gap: 18px; }
+
+.conf-pasos > div{ display: flex; gap: 14px; align-items: flex-start; }
+
+.conf-pasos svg{ flex: none; margin-top: 2px; }
+
+.conf-pasos p{ margin: 0; font-size: 0.9375rem; line-height: 1.6; color: var(--text-secondary); }
+
+.conf-pasos strong{ color: var(--ink); font-weight: 700; }

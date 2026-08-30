@@ -638,7 +638,7 @@ Cosas que ya costaron un incidente. Léelas antes de tocar lo que describen.
   esto, es de plan Pro y en este proyecto responde 403.
 - **Gmail borra los `<style>` externos.** Por eso `emails/_marca.tsx` duplica los tokens
   en línea y usa Georgia en vez de Marcellus.
-- **El CSS ya no son dos archivos: son ocho.** `src/index.css` (4.270 líneas — el sistema
+- **El CSS ya no son dos archivos: son ocho.** `src/index.css` (2.900 líneas — el sistema
   de diseño, la portada y todo lo compartido), `src/panel.css` (el panel), y **seis hojas de
   ruta** que se cargan sólo con su pantalla: `src/pages/ProductPage.css`, `Catalog.css`,
   `RingSizeGuide.css`, `Confirmacion.css`, `NoEncontrado.css` y `legales.css` —esta última
@@ -650,7 +650,9 @@ Cosas que ya costaron un incidente. Léelas antes de tocar lo que describen.
   El corte se hizo el 30 de agosto de 2026 porque `index.css` bloqueaba el primer pintado
   **entera y en todas las rutas**: la portada se bajaba el CSS de la ficha, del catálogo y
   de la guía de tallas para no usarlos. El CSS bloqueante bajó de 19,3 a 12,9 KB
-  comprimidos.
+  comprimidos, y ese mismo día, con la segunda tanda —237 bloques que sólo usan la ficha, el
+  catálogo y confirmación, y que la primera no vio porque son estados que no existen hasta
+  que alguien hace clic—, **a 8,87 KB**. La movió `scripts/css-mudanza.mjs`.
 
 - **Mover una regla de una hoja a otra cambia quién gana la cascada, y eso no lo ve ninguna
   prueba.** Hay dos herramientas para eso, y las dos hacen falta:
