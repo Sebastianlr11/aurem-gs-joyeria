@@ -4,11 +4,12 @@ import ProductCard from '../components/catalog/ProductCard';
 import { supabase } from '../lib/supabase';
 import { waUrl } from '../lib/whatsapp';
 import { ponerMeta } from '../lib/meta';
+import { CATEGORIAS as CATEGORIAS_DEL_CATALOGO } from '../lib/categorias';
 
-/* «Topos» va aparte de «Aretes» aunque sea un arete: es como los pide la
-   clienta y como los nombra el taller. Y «Juegos» son los combos —dije con
-   topos, dije con aretes—, que hasta ahora entraban donde cupieran. */
-const CATEGORIAS = ['Todos', 'Anillos', 'Collares', 'Aretes', 'Topos', 'Pulseras', 'Dijes', 'Juegos'];
+/* «Todos» es de esta pantalla —es un filtro, no una categoría—; las siete de
+   verdad viven en `src/lib/categorias.js`, que es lo que también leen el panel,
+   el formulario de contacto y las colecciones de la portada. */
+const CATEGORIAS = ['Todos', ...CATEGORIAS_DEL_CATALOGO];
 
 const RANGOS = [
     { label: 'Todos', min: 0, max: Infinity },

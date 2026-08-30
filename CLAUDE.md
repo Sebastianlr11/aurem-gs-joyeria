@@ -39,7 +39,7 @@ npm run dev          # Vite en http://localhost:5173
 npm run build        # eslint && vitest && sitemap.mjs && correos.mjs && tsc -b && vite build
 npm run preview      # Sirve /dist
 npm run lint         # ESLint (sí corre en el build)
-npm test             # Vitest, una pasada (219 pruebas)
+npm test             # Vitest, una pasada (233 pruebas)
 npm run test:mirar   # Vitest en marcha, repitiendo al guardar
 
 npm run sitemap      # Regenera public/sitemap.xml desde Supabase
@@ -61,7 +61,7 @@ Tres advertencias sobre el build:
 
 ### Las pruebas
 
-Hay **219**, en dieciséis archivos que viven al lado de lo que prueban:
+Hay **233**, en diecisiete archivos que viven al lado de lo que prueban:
 
 | Archivo | Qué fija |
 |---|---|
@@ -76,6 +76,7 @@ Hay **219**, en dieciséis archivos que viven al lado de lo que prueban:
 | `src/lib/nombre.test.js` | Partir un nombre para la guía, sin inventarse un apellido |
 | `src/lib/recogida.test.js` | Quién viene por el paquete y cuándo |
 | `src/lib/pixeles.test.js` | Que diferir los píxeles no pierda ni un evento |
+| `src/lib/colecciones.test.js` | Que la portada no ofrezca una colección vacía |
 
 **Una de ellas no comprueba código, compara dos copias.** La talla de anillo está
 implementada dos veces —`src/lib/talla.js` para la guía del sitio y

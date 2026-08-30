@@ -29,7 +29,9 @@ reseñas, contacto, pie), entra al catálogo, o se va. No hay carrito ni cuenta 
 | `src/components/Navbar.jsx` | Píldora de navegación, sensible al scroll |
 | `src/components/Hero.jsx` | Titular, CTAs y foto principal; sistema de retardos propio (`--hero-delay`, `--line-delay`) |
 | `src/components/TrustBar.jsx` | Señales de confianza (`:41-45` — el certificado cuesta $50.000 aparte) |
-| `src/components/Collections.jsx` | Tres categorías con animación de aparición |
+| `src/components/Collections.jsx` | Tres colecciones **sacadas del catálogo**, con animación de aparición |
+| `src/lib/colecciones.js` | Cuáles son esas tres y con qué foto — probado en `colecciones.test.js` |
+| `src/lib/categorias.js` | La lista única de categorías, compartida con el catálogo, el panel y el contacto |
 | `src/components/TiltedCarousel.jsx` + `.css` | Carrusel infinito, −2° de inclinación, 40 s de bucle |
 | `src/components/WhyUs.jsx` | Por qué comprar aquí (`:38`) |
 | `src/components/Reviews.jsx` | Testimonios — **hardcodeados** (`:4-29`, `:51-58`) |
@@ -43,14 +45,47 @@ reseñas, contacto, pie), entra al catálogo, o se va. No hay carrito ni cuenta 
 
 ### Tablas y columnas
 
-**Ninguna.** La portada es 100% estática — no consulta Supabase. Es la razón de que cargue
-rápido y de que siga en pie aunque la base esté caída.
+**`products`**, y sólo desde el 30 de agosto de 2026. Hasta ese día la portada era 100%
+estática y eso era una virtud declarada: cargaba rápido y seguía en pie con la base caída.
+Lo que la rompió fue que la sección de colecciones llevaba tres categorías escritas a mano
+—Anillos, Collares y Pulseras— y **«Collares» no tiene ni una pieza**: el clic llevaba a una
+vitrina vacía. Una lista escrita a mano no puede saber qué hay en el catálogo.
+
+La consulta pide seis columnas (`name`, `category`, `metal`, `image_url`, `stock`,
+`created_at`), va en un `useEffect` —no bloquea el pintado— y la sección está bajo el
+pliegue con las fotos en `lazy`. **Si falla, la sección conserva su titular y su botón al
+catálogo**: lo que desaparece son las tarjetas, no el camino.
+
+Y se pregunta con un `fetch` pelado al REST de Supabase, **no con el cliente de la
+librería**, que es lo que usa el resto del sitio. Son 46 KB comprimidos: hasta ese día la
+portada no cargaba ese paquete —lo cargan el catálogo, la ficha y el panel— y traerlo
+entero para leer tres fotos sería deshacer lo que se ganó sacando Framer Motion. La llave
+anónima y la URL ya viajan en el bundle público, y es la misma lectura pública que hace el
+catálogo. Comprobado en el build: `Home` pasó de 9,08 a 9,22 KB comprimidos y el trozo de
+`supabase` no entra en la portada.
 
 ### Variables de entorno
 
 Ninguna propia. Los píxeles se inicializan en `App.jsx`, no aquí.
 
 ## Decisiones tomadas y por qué
+
+**Las colecciones salen del catálogo, no de una lista** (`src/lib/colecciones.js`, 30 de
+agosto de 2026). Tres reglas, y cada una es un fallo que ya se vio:
+
+| Regla | Por qué |
+|---|---|
+| Sólo categorías **con una foto que enseñar** | Una tarjeta sin foto es un rectángulo gris del alto de una tarjeta |
+| Manda **cuántas piezas hay**; los empates los rompe el orden del riel | Que la portada y el catálogo no se contradigan |
+| La foto es **la pieza más reciente**, y las agotadas van al final | La portada no invita a una vitrina cuya cara está vendida |
+
+El sello de metal se calcula igual de despacio: un solo metal se dice entero, varios de la
+misma familia suben a la familia, y **si ninguna pieza lo tiene anotado no se pinta sello**
+—nueve de los veinte anillos lo tienen vacío—. Inventarlo sería repetir lo del JSON-LD, que
+prometía platino.
+
+Las frases de cada tarjeta siguen escritas a mano, en el componente: son voz, no dato. Las
+anteriores hablaban de diamantes y de platino, que el taller no vende.
 
 **El formulario de contacto no tiene backend.** `Contact.jsx:70` valida, arma un mensaje
 formateado y hace `window.open(waUrl(lines))`. Un formulario que manda correo habría

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAparecer } from '../lib/aparecer';
 import { WA_NUMBER, waUrl, isMobile } from '../lib/whatsapp';
+import { CATEGORIAS } from '../lib/categorias';
 
 
 const MailIcon = () => (
@@ -18,15 +19,12 @@ const WhatsAppIcon = () => (
 
 const EMAIL = 'hola@auremgsjoyeria.com';
 
-/* Las siete categorías del catálogo, en el mismo orden del riel, y
-   «Personalizado» al final porque no es una categoría sino la otra
-   conversación. Hasta el 30 de agosto de 2026 eran cuatro: quien entraba
+/* Las categorías del catálogo y, al final, «Personalizado», que no es una
+   categoría sino la otra conversación. Hasta el 30 de agosto de 2026 esta
+   lista estaba escrita a mano y ofrecía cuatro de las siete: quien entraba
    buscando unos aretes, unos topos, un dije o un juego marcaba
-   «personalizado» o no marcaba nada, y esa era la mitad del catálogo.
-   Si se añade una categoría allá, se añade aquí. */
-const interestOptions = [
-    'Anillos', 'Collares', 'Aretes', 'Topos', 'Pulseras', 'Dijes', 'Juegos', 'Personalizado',
-];
+   «personalizado» o no marcaba nada, y esa era la mitad del catálogo. */
+const interestOptions = [...CATEGORIAS, 'Personalizado'];
 
 const Contact = () => {
     const encabezado = useAparecer();

@@ -70,8 +70,15 @@ export function useAparecer(direccion = 'y') {
  * El contenedor no se mueve —igual que el `stagger` de antes, que sólo
  * orquestaba— y las clases se las pone a los hijos el propio hook, por la
  * misma razón de arriba. `paso` es el retraso entre uno y el siguiente.
+ *
+ * `llave` es para las rejillas cuyos hijos llegan después, de una consulta:
+ * los efectos corren al montar, y los hijos que aparecen más tarde no pasarían
+ * por aquí —se verían, sin animar, que es el fallo tolerable, pero se verían
+ * distinto que el resto de la portada—. Pasando algo que cambie cuando cambien
+ * los hijos, se les pone la clase a ellos también. Las rejillas fijas no lo
+ * pasan y se comportan igual que siempre.
  */
-export function useAparecerGrupo(paso = 0.12) {
+export function useAparecerGrupo(paso = 0.12, llave = null) {
   const ref = useRef(null)
 
   useLayoutEffect(() => {
@@ -82,7 +89,7 @@ export function useAparecerGrupo(paso = 0.12) {
       hijo.style.setProperty('--i', String(i))
       hijo.style.setProperty('--paso', `${paso}s`)
     })
-  }, [paso])
+  }, [paso, llave])
 
   useEffect(() => {
     const el = ref.current
@@ -90,7 +97,7 @@ export function useAparecerGrupo(paso = 0.12) {
     return observarUnaVez(el, () => {
       for (const hijo of el.children) hijo.classList.add('aparece--visible')
     })
-  }, [])
+  }, [llave])
 
   return ref
 }
