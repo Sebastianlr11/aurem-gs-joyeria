@@ -275,23 +275,23 @@ clave `_comentario` con la explicación de arriba, y Vercel **rechazó el despli
 antes de compilar** — sin logs de build, porque nunca llegó a haber build. Es JSON estricto
 con un esquema cerrado: lo que haya que explicar, se explica aquí.
 
-## La mudanza pendiente del CSS
+## La segunda mudanza del CSS
 
-**Preparada y medida el 30 de agosto de 2026; no aplicada todavía.**
+**Aplicada el 30 de agosto de 2026.**
 
-`index.css` son 4.276 líneas y **bloquean el primer pintado en todas las rutas**. De ellas,
-1.268 pertenecen en exclusiva a tres pantallas que ya cargan su propia hoja: la ficha (1.108),
-el catálogo (94) y confirmación (66). No las había encontrado `css-de-quien-es.mjs` porque
-son estados que no existen hasta que alguien hace clic — el visor de fotos, el modal de
-compra, el panel de filtros, la cuenta del abono.
+`index.css` eran 4.299 líneas y **bloqueaban el primer pintado en todas las rutas**. De
+ellas, 1.290 pertenecían en exclusiva a tres pantallas que ya cargan su propia hoja: la ficha
+(1.108), el catálogo (116) y confirmación (66). No las había encontrado `css-de-quien-es.mjs`
+porque son estados que no existen hasta que alguien hace clic — el visor de fotos, el modal
+de compra, el panel de filtros, la cuenta del abono.
 
-Medido sobre una copia limpia de `main`, con la mudanza aplicada y recompilando:
+Quedó en 2.900 líneas. Medido antes y después, recompilando:
 
 | Hoja | Antes | Después |
 |---|---|---|
-| `index.css` — bloqueante, en todas las rutas | 12,89 KB gz | **8,87 KB gz** |
+| `index.css` — bloqueante, en todas las rutas | 12,94 KB gz | **8,87 KB gz** |
 | `ProductPage.css` | 4,23 | 7,72 |
-| `Catalog.css` | 2,41 | 2,81 |
+| `Catalog.css` | 2,45 | 2,87 |
 | `Confirmacion.css` | 0,69 | 0,99 |
 
 Los bytes no desaparecen: cambian de archivo. Lo que se gana es que la portada y el catálogo
@@ -333,11 +333,14 @@ diferencia».
 3. Recompilar, `tomar despues.json --estados`, `comparar`.
 4. `npm run css:pisadas`, que sigue mirando dentro de cada archivo.
 
-Está sin aplicar porque el reparto se apoya en qué clase nombra cada componente, y en esa
-fecha se estaban reescribiendo `ProductPage.jsx`, `Catalog.jsx`, `ProductCard.jsx` y
-`Confirmacion.jsx`. Con las clases moviéndose, una regla puede quedarse sin dueño y dejar de
-aplicarse en silencio. Se hace cuando eso aterrice, y se vuelve a correr el reparto entonces
-— no se reutiliza el de hoy.
+Se esperó a que aterrizara el refactor del catálogo y de la ficha antes de aplicarla, y el
+reparto **se volvió a correr entonces**: se apoya en qué clase nombra cada componente, y con
+las clases moviéndose una regla puede quedarse sin dueño y dejar de aplicarse en silencio. El
+reparto de la víspera daba 1.268 líneas; el de después, 1.290. Por eso no se reutiliza un
+reparto viejo.
+
+La comparación final, sobre el repositorio de verdad: 48 pantallas, 12.568 elementos,
+«ni una diferencia». `css:pisadas` sigue en los mismos tres bloques de siempre.
 
 ## Accesibilidad
 
