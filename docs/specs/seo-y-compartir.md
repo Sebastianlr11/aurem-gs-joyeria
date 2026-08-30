@@ -30,6 +30,7 @@ Googlebot                 →  NO se desvía (a propósito)
 |---|---|
 | `index.html:14-15` | Precarga de las dos woff2 propias |
 | `index.html:38-59` | Title, description, canonical, OG y Twitter |
+| `src/lib/tituloPieza.js` | El `<title>` de una pieza: por debajo de 60, sin precio |
 | `src/lib/meta.js:19-32` | Guarda los valores originales una sola vez |
 | `src/lib/meta.js:57-84` | `ponerMeta()` — **devuelve la función de limpieza** |
 | `src/lib/meta.js:91-144` | `ponerProductoJsonLd()` — `schema.org/Product` |
