@@ -77,6 +77,34 @@ La precarga va **sin `href`**: con `imagesrcset` el navegador que lo entiende el
 y el que no —Safari viejo— usaría el `href` y se bajaría un archivo que el `<img>` no va a
 pintar. Sin `href`, ése simplemente ignora la precarga.
 
+### La foto NO está sobredimensionada, aunque Lighthouse lo diga
+
+«Mejora la entrega de imágenes — ahorro estimado de 36 KiB»: el archivo (717×800) sería más
+grande de lo necesario para sus dimensiones de visualización (461×461). **Es un falso
+positivo**, y la trampa está en las unidades: 717 y 800 son 412 y 461 multiplicados por el
+1,75 de densidad del Moto G que Lighthouse emula. Compara píxeles de pantalla contra
+píxeles CSS, así que con cualquier densidad mayor que 1 el archivo siempre parece grande.
+
+Medido con la caja real en cuatro aparatos, contando el recorte de `object-fit: cover` —que
+en una foto cuadrada hace mandar el lado **mayor** de la caja, no el ancho—:
+
+| Aparato | Caja CSS · densidad | Necesita | Baja | |
+|---|---|---|---|---|
+| Moto G Power (Lighthouse) | 412×461 · 1,75 | 807 px | 800 (56,4 KB) | falta 1 % |
+| iPhone 14/15 | 390×470 · 3 | 1.410 px | 1.254 (106,8 KB) | falta 11 % |
+| Galaxy A típico | 412×470 · 2,625 | 1.234 px | 1.254 | sobra 2 % |
+| Escritorio 1440 | 720×900 · 2 | 1.800 px | 1.254 | falta 30 % |
+
+La escalera `[400, 800]` más el original está bien calibrada; si algo le pasa es que **se
+queda corta arriba**. Un peldaño de 600 no lo pediría ningún aparato —el Moto G necesita
+807 y seguiría eligiendo el de 800— y resubir las fotos por este aviso sería trabajo para
+nada.
+
+Dos apuntes para quien vuelva a medirlo: `img.naturalWidth` **no sirve**, porque con
+descriptores `w` el navegador le aplica la corrección de densidad y devuelve el tamaño a
+1×; el tamaño real está en el nombre del archivo. Y hay que emular la densidad de verdad
+(`Emulation.setDeviceMetricsOverride` con `deviceScaleFactor`), no sólo el ancho.
+
 ### El botón de volver estaba mudo en celular
 
 `.pg-volver` lleva el texto «Volver al catálogo», pero en el celular
