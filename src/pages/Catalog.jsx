@@ -662,6 +662,19 @@ const Catalog = () => {
                             </div>
                         </div>
 
+                        {/* El encabezado de la rejilla, que se oye y no se ve.
+
+                            Mirándola sobra: debajo del titular y de la fila de
+                            filtros, una rejilla de fotos con nombre y precio no
+                            necesita que le digan que son las piezas. Pero cada
+                            tarjeta abre un `h3`, y sin este `h2` la página iba
+                            del `h1` del titular al `h3` de la primera pieza:
+                            quien recorre la página saltando de encabezado —que
+                            es como se navega con un lector de pantalla— se
+                            encontraba un nivel que no existe y las piezas
+                            colgando de nada. */}
+                        <h2 className="solo-lectores">Piezas del catálogo</h2>
+
                         <div className="catalogo-grid">
                             {visibles.map((p, i) => <ProductCard key={p.id} product={p} indice={i} />)}
                         </div>

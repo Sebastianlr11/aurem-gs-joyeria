@@ -127,6 +127,29 @@ textarea:focus-visible {
   padding-right: 4rem;
 }
 
+/* Lo que sólo se oye.
+
+   Para los encabezados que la pantalla no necesita —una rejilla de fotos con
+   nombre y precio debajo de un titular se entiende mirándola— pero que un
+   lector de pantalla sí, porque va saltando de encabezado en encabezado y sin
+   ellos la página se salta niveles.
+
+   `clip-path` y no `display: none` ni `visibility: hidden`: esos dos lo
+   esconden también del lector, que es exactamente lo contrario de lo que se
+   busca. El pixel con `overflow: hidden` lo saca de la vista sin sacarlo del
+   árbol de accesibilidad. */
+.solo-lectores {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
 /* Sin rieles laterales: la página se articula con bandas y líneas de pelo */
 
 /* --- Antetítulo --- */
