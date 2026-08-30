@@ -18,7 +18,10 @@ const WhatsAppIcon = () => (
 
 const EMAIL = 'hola@auremgsjoyeria.com';
 
-const interestOptions = ['Anillos', 'Collares', 'Pulseras', 'Personalizado'];
+/* Mismo orden que el riel del catálogo, y «Personalizado» siempre al final
+   porque no es una categoría sino la otra conversación. Topos y Juegos entran
+   el 30 de agosto de 2026, con las categorías nuevas. */
+const interestOptions = ['Anillos', 'Collares', 'Topos', 'Pulseras', 'Juegos', 'Personalizado'];
 
 const Contact = () => {
     const encabezado = useAparecer();
