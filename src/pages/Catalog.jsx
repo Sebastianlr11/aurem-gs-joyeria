@@ -383,25 +383,31 @@ const Catalog = () => {
         </div>
     );
 
-    /* En el panel el orden va como lista con palomita, no como <select>: un
-       desplegable dentro de un panel deslizante abre un segundo overlay del
-       sistema encima, y en el celular eso se siente como perder el sitio. */
-    const listaOrden = () => (
-        <div className="catalogo-orden-lista" role="group" aria-label="Ordenar por">
+    /* El orden nunca es un <select>: un desplegable dentro de un panel
+       deslizante abre un segundo overlay del sistema encima, y en el celular
+       eso se siente como perder el sitio.
+
+       Fue una lista con palomita hasta el 30 de agosto de 2026, y era el único
+       grupo del panel que no se veía como los otros tres: filetes de ancho
+       completo y renglones de 52px, 156px para decir tres cosas cortas. En un
+       iPhone eso dejaba dos de las tres opciones por debajo del pie, sin nada
+       que dijera que había más — con el panel entero cabiendo, si no fuera por
+       este grupo. Ahora es un riel como los demás y no hay que desplazar nada.
+
+       Van las etiquetas cortas —las mismas de los chips de filtro activo—
+       porque "Precio: menor a mayor" no cabe en una píldora. Bajo el rótulo
+       "Ordenar por", "Menor precio" no se confunde con un filtro de precio. */
+    const rielOrden = () => (
+        <div className="riel" role="group" aria-label="Ordenar por">
             {ORDENES.map(o => (
                 <button
                     key={o.v}
                     type="button"
-                    className={`catalogo-orden-op ${orden === o.v ? 'catalogo-orden-op--on' : ''}`}
+                    className={`riel-btn ${orden === o.v ? 'riel-btn--on' : ''}`}
                     aria-pressed={orden === o.v}
                     onClick={() => setOrden(o.v)}
                 >
-                    <span>{o.label}</span>
-                    {orden === o.v && (
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--oro-ink)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-                            <polyline points="4 12 9 17 20 6" />
-                        </svg>
-                    )}
+                    <span>{o.corto}</span>
                 </button>
             ))}
         </div>
@@ -569,7 +575,7 @@ const Catalog = () => {
                             </div>
                             <div className="catalogo-panel-grupo">
                                 <span className="catalogo-precio-label">Ordenar por</span>
-                                {listaOrden()}
+                                {rielOrden()}
                             </div>
                         </div>
 
