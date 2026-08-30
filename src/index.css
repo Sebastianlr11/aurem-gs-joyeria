@@ -4426,7 +4426,9 @@ textarea:focus-visible {
 
 .catalogo-panel {
   width: 100%;
-  max-height: 85vh;
+  /* 90vh y no 85: con siete categorías, cuatro rangos y tres órdenes, los
+     40px que faltaban eran justo la última píldora de "Ordenar por". */
+  max-height: 90vh;
   display: flex;
   flex-direction: column;
   background: var(--bg-color);
@@ -4440,7 +4442,7 @@ textarea:focus-visible {
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  padding: 1.25rem 1.25rem 1rem;
+  padding: 1.5rem 1.5rem 1rem;
   border-bottom: 1px solid var(--hairline);
 }
 
@@ -4469,26 +4471,64 @@ textarea:focus-visible {
 .catalogo-panel-cuerpo {
   flex: 1;
   overflow-y: auto;
-  padding: 1.25rem;
+  padding: 1.5rem;
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1rem;
+
+  /* Sombra de desplazamiento: aparece sola por el lado que tiene contenido
+     fuera de vista y desaparece al llegar al final. Son cuatro capas —dos
+     tapas del color del panel, que viajan con el contenido porque van en
+     `local`, y dos sombras fijas que quedan debajo—; la tapa cubre la sombra
+     mientras no hay nada que anunciar.
+
+     Hace falta porque el cuerpo desplaza poco y sin señal: en un iPhone la
+     última píldora de "Ordenar por" asomaba media bajo el pie y se leía como
+     un fallo de recorte, no como "sigue". Y no se arregla apretando el
+     espaciado hasta que quepa: con una categoría más vuelve a no caber.
+
+     Es la excepción a "separar con filete, nunca con sombra" de DESIGN.md —
+     esa regla habla de separar bandas y tarjetas. Esto no separa nada: dice
+     que hay más. Por eso va al 8 % y no lleva filete. */
+  background:
+    linear-gradient(var(--bg-color) 30%, rgba(255, 255, 255, 0)) top / 100% 20px no-repeat local,
+    linear-gradient(rgba(255, 255, 255, 0), var(--bg-color) 70%) bottom / 100% 20px no-repeat local,
+    radial-gradient(farthest-side at 50% 0, rgba(28, 23, 20, 0.10), rgba(28, 23, 20, 0)) top / 100% 10px no-repeat scroll,
+    radial-gradient(farthest-side at 50% 100%, rgba(28, 23, 20, 0.10), rgba(28, 23, 20, 0)) bottom / 100% 10px no-repeat scroll;
 }
 
-.catalogo-panel-grupo { display: flex; flex-direction: column; gap: 0.625rem; }
+.catalogo-panel-grupo { display: flex; flex-direction: column; gap: 0.5rem; }
 .catalogo-panel-grupo .catalogo-buscar{ width: 100%; }
 .catalogo-panel-grupo .catalogo-buscar input { width: 100%; }
 .catalogo-panel-grupo .riel { max-width: 100%; }
 
 .catalogo-panel-pie {
   display: flex;
-  gap: 0.625rem;
-  padding: 1rem 1.25rem;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
   padding-bottom: max(1rem, env(safe-area-inset-bottom));
   border-top: 1px solid var(--hairline);
 }
-.catalogo-panel-pie .btn-pill { flex: 1; justify-content: center; }
-.catalogo-panel-pie .btn-pill:disabled { opacity: 0.4; }
+/* «Limpiar» no pesa lo mismo que «Ver N piezas». Repartidos al 50 % los dos
+   botones se leían como una disyuntiva —¿limpio o veo?— cuando uno es la
+   salida del panel y el otro un deshacer. La principal se queda con el ancho
+   que sobra. */
+.catalogo-panel-pie .btn-pill { justify-content: center; }
+.catalogo-panel-pie .btn-pill.light { flex: 0 0 auto; }
+.catalogo-panel-pie .btn-pill.black { flex: 1; }
+
+/* Sin filtros que limpiar el botón se apaga, no se rompe: a 0.4 de opacidad
+   el filete de oro se veía descolorido y parecía un fallo de pintado. Se dice
+   con los tonos que ya significan «inactivo». */
+.catalogo-panel-pie .btn-pill:disabled {
+  color: var(--text-muted);
+  border-color: var(--hairline);
+  cursor: default;
+}
+.catalogo-panel-pie .btn-pill:disabled:hover {
+  background-color: transparent;
+  transform: none;
+}
 
 
 /* ─── Abono del contraentrega ────────────────────────────────────────
@@ -6167,27 +6207,6 @@ textarea:focus-visible {
 
 .catalogo-chips { display: none; }
 
-/* El orden como lista con palomita: un <select> dentro del panel abre un
-   segundo overlay del sistema encima y se siente como perder el sitio. */
-.catalogo-orden-lista { display: flex; flex-direction: column; }
-
-.catalogo-orden-op {
-  min-height: 52px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 0;
-  background: none;
-  border: none;
-  border-bottom: 1px solid var(--hairline);
-  cursor: pointer;
-  font-family: var(--font-ui);
-  font-size: 0.9375rem;
-  text-align: left;
-  color: var(--text-secondary);
-}
-.catalogo-orden-op--on { color: var(--ink); font-weight: 600; }
 
 .catalogo-filtros-flotante { display: none; }
 
@@ -6793,12 +6812,55 @@ textarea:focus-visible {
 /* Dentro del panel los rieles se envuelven en vez de desplazarse. En la
    franja el desplazamiento tenía sentido —el ancho era el recurso escaso—;
    aquí sobra alto y falta ancho, y con seis categorías en 560px "Dijes"
-   quedaba cortado contra el borde sin nada que dijera que había más. */
+   quedaba cortado contra el borde sin nada que dijera que había más.
+
+   Y al envolverse, la cápsula deja de servir. El riel es arena con filete y
+   radio de 100px: en una fila se lee como lo que es, un control segmentado.
+   En dos filas se convierte en una mancha de 190px de alto con las curvas de
+   un estadio, y el hueco a la derecha del último chip queda como arena muerta
+   —con «Todos · Oro · Plata» eran 600px de fondo vacío—, porque el riel es
+   `inline-flex` dentro de una columna flex y se estira aunque no tenga qué
+   poner ahí. Se vio el 30 de agosto de 2026, con siete categorías.
+
+   Así que aquí la cápsula se cae y cada chip se sostiene solo, con su propio
+   filete. El grupo pasa a ser sólo lo que los deja envolverse. */
 .catalogo-panel .riel {
+  display: flex;
   flex-wrap: wrap;
-  overflow-x: visible;
+  gap: 8px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  overflow: visible;
   height: auto;
 }
+
+.catalogo-panel .riel-btn {
+  gap: 6px;
+  padding: 0 14px;
+  background: var(--bg-color);
+  border-color: var(--hairline);
+}
+
+/* El elegido va en arena con filete de oro, no en cacao. Al abrir el panel sin
+   haber filtrado nada hay tres «Todos» activos, y tres píldoras oscuras
+   anuncian filtros puestos que nadie puso. */
+.catalogo-panel .riel-btn--on,
+.catalogo-panel .riel-btn--on:hover {
+  background: var(--bg-arena);
+  border-color: rgba(168, 134, 63, 0.45);
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.catalogo-panel .riel-btn:hover:not(.riel-btn--on) {
+  border-color: rgba(168, 134, 63, 0.32);
+  color: var(--ink);
+}
+
+.catalogo-panel .riel-n { color: var(--text-muted); }
+.catalogo-panel .riel-btn--on .riel-n { color: var(--oro-ink); }
 
 /* Por qué esta pieza no se puede pagar contra entrega. Va en gris cálido y
    pequeña: es una aclaración, no una advertencia, y pintarla como error
