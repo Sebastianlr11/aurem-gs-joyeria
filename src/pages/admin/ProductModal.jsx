@@ -195,6 +195,19 @@ export default function ProductModal({ product, onClose, onSaved }) {
 
     /* ── Fotos ────────────────────────────────────────────────────── */
 
+    /* Un año, y no la hora que pone Supabase por defecto.
+
+       Medido el 30 de agosto de 2026: las tres fotos de la portada salían con
+       `max-age=3600`, así que quien volvía al día siguiente se las bajaba
+       otra vez —110 KiB— por nada. La ruta de una foto lleva la fecha y un
+       identificador al azar (`${Date.now()}-${random}`), así que **nunca se
+       reescribe**: una vez subida, ese archivo es ese archivo para siempre.
+       Cambiar la foto de una pieza sube una ruta nueva.
+
+       Va en las tres subidas —las copias chicas, la grande y la gemela JPEG
+       de WhatsApp—, porque las tres las pide un navegador. */
+    const CACHE_UN_ANO = '31536000';
+
     const subirArchivo = async (original) => {
         /* Se achica y se convierte ANTES de subir. Las fotos salen del
            celular con 1536×2752 y varios megas, y se guardaban tal cual: eso
@@ -214,7 +227,7 @@ export default function ProductModal({ product, onClose, onSaved }) {
         if (conVariantes) {
             const idas = await Promise.all(variantes.map(v => supabase.storage
                 .from('product-images')
-                .upload(`${base}-w${v.ancho}.webp`, v.archivo, { upsert: false })));
+                .upload(`${base}-w${v.ancho}.webp`, v.archivo, { upsert: false, cacheControl: CACHE_UN_ANO })));
             const falla = idas.find(r => r.error);
             if (falla) {
                 console.error('No se pudieron subir los tamaños chicos:', falla.error.message);
@@ -229,7 +242,7 @@ export default function ProductModal({ product, onClose, onSaved }) {
         const ruta = (f) => `${base}${sufijo}.${f.name.split('.').pop()}`;
 
         const { error: upErr } = await supabase.storage
-            .from('product-images').upload(ruta(principal), principal, { upsert: false });
+            .from('product-images').upload(ruta(principal), principal, { upsert: false, cacheControl: CACHE_UN_ANO });
         if (upErr) throw upErr;
 
         if (gemela) {
@@ -237,7 +250,7 @@ export default function ProductModal({ product, onClose, onSaved }) {
                es que Valentina pueda mandarla por WhatsApp. No vale tumbar la
                subida por eso, pero sí dejarlo dicho. */
             const { error: errGemela } = await supabase.storage
-                .from('product-images').upload(ruta(gemela), gemela, { upsert: false });
+                .from('product-images').upload(ruta(gemela), gemela, { upsert: false, cacheControl: CACHE_UN_ANO });
             if (errGemela) console.error('No se pudo subir la versión JPEG:', errGemela.message);
         }
 
