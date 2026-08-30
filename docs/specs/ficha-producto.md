@@ -114,6 +114,33 @@ nombre»: era el único fallo de accesibilidad de la pantalla (96/100) y tambié
 «Navegación con agentes» (1/2). Se arregla con `aria-label`, que sobrevive a que el CSS
 esconda el texto.
 
+### Dónde quedó
+
+**De 95 a 96–97 en PageSpeed móvil**, el 30 de agosto de 2026, y **accesibilidad de 96 a
+100** con «Navegación con agentes» de 1/2 a 2/2 — esas dos las subió el mismo `aria-label`.
+
+Lo que valió cada cosa, para no repetir el intento equivocado:
+
+| | |
+|---|---|
+| Precargar la foto desde el `<head>` | La foto pasa de pedirse a los 1.861 ms a pedirse a los 730, y el LCP deja de ir medio segundo detrás del FCP |
+| Quitar de `app.html` la precarga del hero | 20 KB a máxima prioridad que competían con la foto que sí era el LCP, en todas las rutas que no son la portada |
+| `aria-label` en el botón de volver | Accesibilidad y agentes, de un tirón |
+| ~~Meter la hoja de estilos en el HTML~~ | **Se revirtió**: bajó a 93. Ver «Lo que NO funcionó» en [`diseno-y-frontend.md`](diseno-y-frontend.md) |
+
+**Y por qué esta pantalla no llega al 100 como la portada:** la portada se prerenderiza y no
+depende de nada para pintarse. La ficha no puede —su contenido es distinto por pieza—, así
+que su HTML es la raíz de una cadena: HTML → JSON de la pieza → foto → pintado. El adelanto
+del `<head>` acorta esa cadena todo lo que se puede sin cambiar cómo se sirve la página, y
+lo que queda es el tiempo de bajar y ejecutar React.
+
+Lo que **no** hay que seguir intentando, con su porqué escrito arriba: resubir las fotos por
+el aviso de «entrega de imágenes» (falso positivo de unidades) y meter el CSS en el HTML
+(empuja la ficha fuera de un solo viaje de red). Si algún día se vuelve a atacar el LCP de
+aquí, lo que queda en pie es servir la ficha ya pintada desde una función de Vercel — y eso
+mete una función en el camino de cada visita a una pieza, cuando hoy ese HTML sale del CDN
+en 65 ms.
+
 ## Decisiones tomadas y por qué
 
 **Mercado Pago se inicializa aquí y no en `App`** (razón en `:7-12`): cargarlo en la
