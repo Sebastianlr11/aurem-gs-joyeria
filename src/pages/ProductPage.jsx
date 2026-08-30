@@ -801,12 +801,18 @@ const Gallery = ({ images, badges, volver, referencia }) => {
                         casi siempre el LCP: va con prioridad alta y NUNCA
                         con loading="lazy", que la retrasaría justo aquí.
                         `sizes` sigue a .ficha-hero: la mitad ancha del
-                        partido en escritorio, todo el ancho en el celular. */}
+                        partido en escritorio, todo el ancho en el celular.
+
+                        Y tampoco con `decoding="async"`, por lo mismo: eso
+                        deja la descodificación para cuando el navegador tenga
+                        un hueco, y el hueco se lo come el montaje de React.
+                        En lo que ES el LCP no se difiere nada. Lo mismo se
+                        quitó del hero de la portada el 30 de agosto de 2026,
+                        donde costaba hasta un segundo de LCP. */}
                     <img
                         {...fotoProducto(images[activeIdx])}
                         sizes="(max-width: 900px) 100vw, 55vw"
                         fetchPriority="high"
-                        decoding="async"
                         alt={`Imagen ${activeIdx + 1}`}
                         style={{ opacity: fading ? 0 : 1, transition: 'opacity 0.22s ease' }}
                     />

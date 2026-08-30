@@ -225,10 +225,9 @@ dominio al final de una cadena de cuatro pasos. Con las fuentes propias y la fot
 Lo que no cambia es la costumbre: mirar `largest-contentful-paint-element` antes de tocar
 nada, porque este sitio ya se optimizó dos veces contra el elemento equivocado.
 
-Lo que **no** se tocó, a propósito: partir el CSS en crítico y diferido (el premio son
-16 KiB y este proyecto tiene historial de regresiones de CSS — para eso existe
-`css:pisadas`), y la región del servidor (el HTML se sirve desde Washington, pero antes de
-mover nada hay que medir el TTFB real desde Colombia).
+Lo que **no** se tocó entonces: partir el CSS en crítico y diferido (se resolvió después de
+otra forma — ver abajo), y la región del servidor (el HTML se sirve desde Washington, pero
+antes de mover nada hay que medir el TTFB real desde Colombia).
 
 ## La portada se pinta en el build, no en el celular
 
@@ -284,6 +283,40 @@ termina en `.+` para que la raíz no pueda caer ahí ni por accidente.
 `src/main.tsx` decide por lo que hay en el contenedor y no por la ruta: `hydrateRoot` si
 `#root` trae algo, `createRoot` si no. Así, si el prerenderizado fallara, el sitio se monta
 en el navegador como antes en vez de quedarse en blanco.
+
+### Y con la portada pintada, el CSS pasó a ser lo que sobraba
+
+Quitado el JavaScript de en medio, **la hoja de estilos quedó como la única petición entre
+el HTML y la primera joya**: un viaje de red entero, en serie. Lighthouse lo marcó las dos
+veces —antes y después de prerenderizar— como «solicitud de bloqueo de renderización,
+ahorro estimado de 300 ms», etiquetado a la vez para FCP y para LCP.
+
+Así que `index.html` la lleva **adentro**, en un `<style>`. Sólo `index.html`: `app.html`
+conserva el `<link>`, porque en las demás rutas el HTML no pinta nada por sí mismo y ahí
+vale más tenerla cacheada aparte.
+
+**Se mete la hoja completa, en el sitio exacto donde estaba el `<link>`** — no un "CSS
+crítico" recortado. Los mismos bytes en el mismo orden es lo único que garantiza que la
+cascada no cambie, y en este proyecto una regla que cambia de sitio cambia quién gana sin
+que lo vea ninguna prueba. Comprobado con `huella-estilos.mjs --estados`: **ni una
+diferencia** en 12.568 elementos de 48 pantallas.
+
+El precio son ~9 KB comprimidos que la portada ya no cachea entre visitas —`index.html` pasa
+de 12 a 20 KB—; el viaje de red que ahorra vale más. Medido en el navegador, con 4× de CPU:
+**FCP de 1.208 a 416 ms.**
+
+El script se niega a hacerlo si la hoja trae una `url()` relativa: colgando del `<link>` se
+resolvían contra `/assets/` y en línea lo harían contra `/`. Hoy las cuatro que hay son las
+fuentes, absolutas.
+
+### Y la foto del hero dejó de decir `decoding="async"`
+
+Esa palabra le dice al navegador que puede pintar sin esperar a descodificar la foto, y
+descodificarla cuando le quede un hueco. En el elemento LCP eso es exactamente lo contrario
+de lo que se quiere: el hueco, en un celular lento, se lo come la hidratación de React. Se
+vio en cinco corridas de PageSpeed el 30 de agosto de 2026, con la foto bajada desde el
+primer momento y el LCP saltando entre 1,7 s y 2,7 s — con el Speed Index bailando con él,
+que es la pista de que era una sola causa y no dos.
 
 ### Lo único delicado: que los dos renders coincidan
 

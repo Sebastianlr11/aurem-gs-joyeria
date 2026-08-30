@@ -62,7 +62,7 @@
  * salir del primer render.**
  */
 import { readFile, writeFile, rm } from 'node:fs/promises'
-import { resolve } from 'node:path'
+import { resolve, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
 const raiz = resolve(import.meta.dirname, '..')
@@ -97,7 +97,55 @@ if (!portada.includes('hero-frame')) {
   )
 }
 
-await writeFile(CASCARON, html.replace(HUECO, `<div id="root">${portada}</div>`))
+const conPortada = html.replace(HUECO, `<div id="root">${portada}</div>`)
+
+/* ── Y la hoja de estilos, adentro ────────────────────────────────────────
+ *
+ * Sólo en `index.html`. `app.html` se queda con el `<link>`, porque en las
+ * demás rutas el HTML no pinta nada por sí mismo y ahí la hoja sí conviene
+ * cacheada aparte.
+ *
+ * Con la portada ya pintada, el CSS pasó a ser **lo único** que quedaba entre
+ * el HTML y la primera joya: un viaje de red entero, en serie, que Lighthouse
+ * marcó las dos veces —el 30 de agosto de 2026— como «solicitud de bloqueo de
+ * renderización, ahorro estimado de 300 ms», etiquetado a la vez para FCP y
+ * para LCP. Metida acá, `/` no depende de ninguna petición para pintarse
+ * entera.
+ *
+ * Se mete **la hoja completa y en el sitio exacto donde estaba el `<link>`**,
+ * no un "CSS crítico" recortado. Los mismos bytes en el mismo orden es lo
+ * único que garantiza que la cascada no cambie — y en este proyecto una regla
+ * que cambia de sitio cambia quién gana y no lo ve ninguna prueba. El precio
+ * son unos 9 KB comprimidos que la portada ya no cachea entre visitas; el
+ * viaje de red que se ahorra vale más.
+ */
+const enlaceHoja = conPortada.match(/<link rel="stylesheet"[^>]*href="(\/assets\/[^"]+\.css)"[^>]*>/)
+
+if (!enlaceHoja) {
+  throw new Error(
+    'No encontré el <link> de la hoja de estilos en dist/index.html. Si Vite cambió ' +
+    'cómo la inyecta, hay que cambiarlo acá: sin esto la portada vuelve a esperar un ' +
+    'viaje de red para pintarse, y eso no se ve.'
+  )
+}
+
+const hoja = await readFile(join(resolve(raiz, 'dist'), enlaceHoja[1]), 'utf8')
+
+/* Una `url()` relativa dentro de la hoja se resolvía contra `/assets/`, que es
+   donde vivía el archivo; metida en línea se resuelve contra `/`, y apuntaría a
+   otro sitio. Hoy las cuatro que hay son absolutas —las fuentes—, y esto se
+   asegura de que siga siendo así: un 404 de una fuente no tumba nada, sólo
+   cambia la letra de toda la portada. */
+const relativas = (hoja.match(/url\(\s*(?!["']?(?:\/|data:|https?:|#))[^)]+\)/g) || [])
+
+if (relativas.length) {
+  throw new Error(
+    `La hoja trae ${relativas.length} url() relativa(s) —${relativas.slice(0, 3).join(', ')}—. ` +
+    'En línea se resuelven contra / y no contra /assets/. Hazlas absolutas antes de seguir.'
+  )
+}
+
+await writeFile(CASCARON, conPortada.replace(enlaceHoja[0], `<style>${hoja}</style>`))
 
 /* La compilación de servidor no se despliega: es un intermedio del build y en
    `dist/` sólo debe quedar lo que se sirve. */
@@ -105,4 +153,5 @@ await rm(resolve(raiz, 'dist-servidor'), { recursive: true, force: true })
 
 const kb = (t) => `${(Buffer.byteLength(t) / 1024).toFixed(1)} KB`
 console.log(`Portada prerenderizada: ${kb(portada)} de HTML dentro de #root.`)
+console.log(`Hoja de estilos en línea: ${kb(hoja)}, cero peticiones bloqueando el pintado.`)
 console.log(`dist/app.html: el cascarón vacío para las demás rutas (${kb(html)}).`)

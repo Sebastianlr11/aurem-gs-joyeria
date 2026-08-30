@@ -66,9 +66,11 @@ Cuatro advertencias sobre el build:
 3. `scripts/sitemap.mjs` nunca tumba el build: si le faltan las variables de Supabase,
    emite sólo las rutas fijas y sigue.
 4. **El build termina prerenderizando la portada** y deja **dos** HTML en `dist/`:
-   `index.html` con la portada ya pintada dentro de `#root`, y `app.html` vacío para todo
-   lo demás. `scripts/prerenderizar.mjs` se planta —y tumba el build— si no encuentra el
-   `#root` o si la portada sale sin el hero: desplegarla sin prerenderizar no se vería.
+   `index.html` con la portada ya pintada dentro de `#root` **y la hoja de estilos en un
+   `<style>`**, y `app.html` vacío y con el `<link>` de siempre para todo lo demás.
+   `scripts/prerenderizar.mjs` se planta —y tumba el build— si no encuentra el `#root`, si
+   la portada sale sin el hero, si no ve el `<link>` de la hoja o si la hoja trae una
+   `url()` relativa: desplegar cualquiera de esas cosas mal no se vería.
 
 ### Las pruebas
 
@@ -728,6 +730,12 @@ Cosas que ya costaron un incidente. Léelas antes de tocar lo que describen.
   conexión y TLS marcados como reusados —cero coste—, mientras que en esa misma carga el
   favicon, que no está precalentado, paga 171 ms de conexión y 142 de TLS. El aviso de
   «preconnect no utilizado» es un falso positivo aquí. **No los quites.**
+- **La hoja de estilos viaja DENTRO de `dist/index.html`, no colgando de un `<link>`.**
+  Por eso pesa 44 KB en crudo. Es la hoja entera y en el sitio donde estaba el `<link>` —no
+  un recorte «crítico»—, justamente para que la cascada no cambie; comprobado con
+  `huella-estilos.mjs --estados`. Dos consecuencias: **una `url()` relativa en `index.css`
+  se rompería** (en línea se resuelve contra `/` y no contra `/assets/`; el script lo veta),
+  y **no le añadas un `preload` de la hoja a `index.html`**, que sería bajarla dos veces.
 - **`dist/index.html` y `dist/app.html` NO son el mismo archivo.** El primero trae la
   portada ya pintada; el segundo es el cascarón vacío al que `vercel.json` manda todo lo
   demás. Si el comodín volviera a apuntar a `/index.html`, quien abre el enlace que Valentina
@@ -766,6 +774,12 @@ Cosas que ya costaron un incidente. Léelas antes de tocar lo que describen.
   siendo la misma y es la que importa: **mirar qué dice `largest-contentful-paint-element` en
   el informe antes de tocar nada**, porque este sitio ya se optimizó dos veces contra el
   elemento equivocado.
+- **`decoding="async"` en el elemento LCP es un tiro en el pie.** Le dice al navegador que
+  pinte sin esperar a descodificar la imagen y que la descodifique cuando pueda — y ese
+  «cuando pueda», en un celular lento, es después de hidratar React. La foto del hero lo
+  llevaba: con ella bajada desde el primer momento, el LCP saltaba entre 1,7 y 2,7 s de una
+  corrida a otra. Se quitó el 30 de agosto de 2026. Vale para el hero y para la foto de la
+  ficha: **en lo que es el LCP no se difiere nada**.
 - **Y lo que tarda no es bajar la foto, es pintarla.** El desglose del LCP el 30 de agosto de
   2026: la foto entera a los 1,0 s y `Render Delay` de 4.936 ms —el 83 %—, porque `#root`
   estaba vacío y no había nada que pintar hasta que React montaba. Por eso la portada se
