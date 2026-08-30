@@ -275,6 +275,30 @@ clave `_comentario` con la explicación de arriba, y Vercel **rechazó el despli
 antes de compilar** — sin logs de build, porque nunca llegó a haber build. Es JSON estricto
 con un esquema cerrado: lo que haya que explicar, se explica aquí.
 
+## Accesibilidad
+
+Lighthouse daba 91 en la portada el 30 de agosto de 2026, con tres fallos. Los tres eran de
+marcado, no de diseño, y los tres estaban en la portada — la pantalla que recibe el tráfico:
+
+- **No había `<main>`.** Es el atajo con el que un lector de pantalla se salta la navegación y
+  empieza a leer. Las demás pantallas públicas ya lo tenían; la portada y la ficha no, así que
+  quien entra con NVDA o VoiceOver se oía el menú entero en cada carga. La ficha pasó de
+  `<div className="ficha">` a `<main className="ficha">`: la clase no cambia, así que no cambia
+  nada de lo que se ve, y **ninguna regla de CSS dice `div.ficha`** — se comprobó antes.
+- **`aria-label` en un `<div>` sin rol**, en las cinco estrellas de la nota. Es un atributo
+  prohibido: un `<div>` no tiene nada que etiquetar. Se resolvió con `aria-hidden` y no con
+  `role="img"` porque la nota **ya está escrita en texto** justo encima (`4.9/5`): las
+  estrellas son la misma frase dibujada, y etiquetarlas la haría sonar dos veces.
+- **El enlace del pie sólo se distinguía por el color.** El crédito de autoría llevaba
+  `border-bottom: 1px solid transparent` y sólo se pintaba al pasar el ratón — que en un
+  celular no pasa nunca. Ahora el filete va puesto, al 45% de opacidad: se ve que hay un
+  enlace sin que el crédito compita con la marca.
+
+**La huella de estilos no sirve para verificar esto** y es el caso que su propio comentario
+anticipa: su clave es el camino de índices desde `<body>`, así que meter un `<main>` corre
+todos los índices y la comparación marca la página entera. Se comprobó midiendo el DOM y los
+estilos calculados en la página servida: un solo `<main>`, con las ocho secciones dentro.
+
 ## Límites conocidos y pendientes
 
 - ~~**El titular de la portada sale en negrita sintética**~~ — corregido el 23 de agosto de

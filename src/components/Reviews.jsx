@@ -63,7 +63,17 @@ const Reviews = () => {
                     <div className="reviews-score-card">
                         <div className="score-inner">
                             <p className="score-number">4.9/5</p>
-                            <div className="score-stars" aria-label="4.9 de 5 estrellas">
+                            {/* Escondidas del lector de pantalla, no
+                                etiquetadas. Un `aria-label` en un <div> sin
+                                rol es un atributo prohibido —el <div> no
+                                tiene nada que etiquetar— y Lighthouse lo
+                                marcaba en rojo. Poner `role="img"` lo
+                                arreglaría, pero haría que se leyera dos
+                                veces: la nota ya está escrita en texto
+                                justo arriba, en `score-number`. Cinco
+                                estrellas dibujadas son la misma frase otra
+                                vez. */}
+                            <div className="score-stars" aria-hidden="true">
                                 {[1, 2, 3, 4, 5].map(i => (
                                     <span key={i} className="score-star"><StarIcon /></span>
                                 ))}

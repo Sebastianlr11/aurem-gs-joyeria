@@ -1137,8 +1137,11 @@ const ProductPage = () => {
         ['garantia', 'Garantía de por vida', 'Pulido y reparación por defectos del metal, sin vencimiento.'],
     ];
 
+    /* <main> y no <div>: es por donde un lector de pantalla se salta la
+       navegación y empieza a leer. La clase no cambia, así que no cambia
+       nada de lo que se ve. */
     return (
-        <div className="ficha">
+        <main className="ficha">
             {showBuyModal && <BuyModal product={product} onClose={() => setShowBuyModal(false)} />}
 
             <section className="ficha-hero">
@@ -1482,7 +1485,7 @@ const ProductPage = () => {
                     </div>
                 </div>
             </div>
-        </div>
+        </main>
     );
 };
 

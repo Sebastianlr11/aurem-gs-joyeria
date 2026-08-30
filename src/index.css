@@ -1667,9 +1667,15 @@ textarea:focus-visible {
 /* Crédito de autoría: discreto, nunca compite con la marca */
 .footer-credit { color: rgba(251, 247, 242, 0.65); }
 
+/* El filete va puesto, no en transparente esperando el hover. Era lo único
+   que distinguía este enlace del texto que lo rodea aparte del color, y quien
+   no separa bien el oro del blanco al 65% no veía que hubiera un enlace.
+   Encima el hover no existe en un celular. Corregido el 30 de agosto de 2026;
+   al 45% de opacidad se ve que está sin gritar, que era el motivo por el que
+   se dejó invisible. */
 .footer-credit a {
   color: var(--oro-luz);
-  border-bottom: 1px solid transparent;
+  border-bottom: 1px solid rgba(227, 201, 144, 0.45);
   transition: border-color 0.3s ease;
 }
 
