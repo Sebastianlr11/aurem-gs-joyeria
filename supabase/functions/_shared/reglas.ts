@@ -167,6 +167,54 @@ export function origen(r: any | null): string {
     : `Esta persona llegó desde ${tipo}.`
 }
 
+/**
+ * Qué pieza vio en el anuncio quien acaba de escribir.
+ *
+ * Meta manda en el `referral` el identificador del anuncio, su titular y su
+ * cuerpo — pero no qué joya se estaba enseñando. Así que el bot sabía que
+ * alguien venía "del anuncio del taller" y le respondía con el catálogo
+ * entero, y la clienta tenía que volver a explicar lo que ya había visto.
+ * Conversación real del 31 de agosto de 2026: llegó por el anuncio del Anillo
+ * solitario sencillo y terminó eligiendo entre cinco opciones.
+ *
+ * El puente es una tabla `id de anuncio → id de pieza` que **vive en
+ * `ajustes_internos`, no acá**. No es pereza: Meta no deja editar el enlace de
+ * un creativo publicado, así que cambiar un anuncio obliga a crear otro con
+ * identificador nuevo — y las campañas cambian cada semana. En el código, cada
+ * anuncio nuevo sería un despliegue de una edge function.
+ *
+ * **Guarda el uuid de la pieza, no su nombre ni su precio.** El nombre lo
+ * puede cambiar el joyero desde el panel y el precio cambia cuando sube el
+ * oro; los dos se leen del catálogo en el momento. Una tabla con el precio
+ * escrito dentro es una tabla que un día le promete a una clienta un precio
+ * que ya no existe.
+ *
+ * @param r     el `referral` de Meta, tal como llegó
+ * @param mapa  el valor de `ajustes_internos.anuncios_piezas` — texto JSON u objeto
+ * @returns el uuid de la pieza, o `null` si no hay forma de saberlo
+ */
+export function piezaDelAnuncio(r: any | null, mapa: unknown): string | null {
+  const id = r?.source_id
+  if (!id) return null
+
+  let tabla: any = mapa
+  if (typeof mapa === 'string') {
+    /* Si alguien deja el ajuste a medio escribir, esto NO puede tumbar la
+       conversación: se cae al flujo de siempre, que es preguntar. */
+    try { tabla = JSON.parse(mapa) } catch { return null }
+  }
+  if (!tabla || typeof tabla !== 'object') return null
+
+  const pieza = tabla[String(id)]
+  if (typeof pieza !== 'string') return null
+
+  /* Se comprueba la forma del uuid antes de salir a buscarlo. Un identificador
+     mal copiado tiene que caer al flujo genérico, no viajar a la base. */
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pieza.trim())
+    ? pieza.trim().toLowerCase()
+    : null
+}
+
 /** Cómo anotarlo en el pedido, para poder medir qué creativo vende. */
 export function anuncioDe(r: any | null): string | null {
   if (!r) return null

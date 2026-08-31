@@ -13,7 +13,7 @@ import { describe, it, expect } from 'vitest'
 import {
   TALLAS, calcularTalla, cotizarOro, origen, anuncioDe, atribucionDe, refDelTexto,
   DIAS_PARA_AVISAR, DIAS_PARA_NO_COTIZAR, diezUltimos, mismoTelefono, aNumeroDeWhatsApp,
-  cantidadPedida, piezasDelPedido, esContraentrega,
+  cantidadPedida, piezasDelPedido, esContraentrega, piezaDelAnuncio,
 } from './reglas.ts'
 
 describe('la tabla de tallas', () => {
@@ -321,5 +321,63 @@ describe('contraentrega o pago en línea', () => {
   it('ante un valor que no reconoce se va al pago en línea, nunca al contraentrega', () => {
     for (const v of ['COD', 'efectivo', 'transferencia', 'Nequi', '', null, undefined, 42, {}])
       expect(esContraentrega(v), String(v)).toBe(false)
+  })
+})
+
+/**
+ * De qué joya viene el lead.
+ *
+ * Se prueba porque el fallo es caro y silencioso en las dos direcciones: si no
+ * resuelve la pieza, la clienta que pagó un clic tiene que volver a explicar
+ * lo que ya vio —y eso es fricción sobre algo que costó plata—; y si resuelve
+ * la equivocada, Valentina abre nombrando una joya que esa persona no miró
+ * nunca, que es peor que no saber nada.
+ */
+describe('la pieza del anuncio', () => {
+  const MAPA = {
+    '120251419397950566': 'adac2d70-e50f-44a5-afe3-5059833c5944',
+    '120251419398080566': '91c55f65-27e2-4985-9654-1edb8ccc6ebe',
+  }
+
+  it('resuelve el anuncio que está en la tabla', () => {
+    expect(piezaDelAnuncio({ source_type: 'ad', source_id: '120251419398080566' }, MAPA))
+      .toBe('91c55f65-27e2-4985-9654-1edb8ccc6ebe')
+  })
+
+  it('lee la tabla igual si viene como texto, que es como la guarda ajustes_internos', () => {
+    expect(piezaDelAnuncio({ source_id: '120251419397950566' }, JSON.stringify(MAPA)))
+      .toBe('adac2d70-e50f-44a5-afe3-5059833c5944')
+  })
+
+  /* El caso de todos los días: se publica un creativo nuevo —Meta obliga a
+     crear otro anuncio con id nuevo por cada cambio— y nadie actualizó la
+     tabla todavía. */
+  it('un anuncio que no está en la tabla no resuelve nada', () => {
+    expect(piezaDelAnuncio({ source_type: 'ad', source_id: '999999999999' }, MAPA)).toBe(null)
+  })
+
+  it('sin referral no hay pieza: es tráfico orgánico', () => {
+    expect(piezaDelAnuncio(null, MAPA)).toBe(null)
+    expect(piezaDelAnuncio({}, MAPA)).toBe(null)
+  })
+
+  /* Nunca inventar una pieza es la regla número uno de Valentina, y acá
+     empieza: un uuid mal copiado en el ajuste no puede salir a la base. */
+  it('un valor que no es un uuid se descarta, no se consulta', () => {
+    for (const malo of ['Anillo solitario sencillo', '91c55f65', '', '   ', 123, null, {}])
+      expect(piezaDelAnuncio({ source_id: 'x' }, { x: malo }), String(malo)).toBe(null)
+  })
+
+  /* Si alguien deja el ajuste a medio escribir, la conversación NO se cae:
+     Valentina pregunta como siempre. */
+  it('un JSON roto no tumba la conversación', () => {
+    expect(piezaDelAnuncio({ source_id: 'x' }, '{esto no es json')).toBe(null)
+    expect(piezaDelAnuncio({ source_id: 'x' }, null)).toBe(null)
+    expect(piezaDelAnuncio({ source_id: 'x' }, 42)).toBe(null)
+  })
+
+  it('acepta el uuid en mayúsculas y lo devuelve en minúsculas', () => {
+    expect(piezaDelAnuncio({ source_id: 'x' }, { x: 'ADAC2D70-E50F-44A5-AFE3-5059833C5944' }))
+      .toBe('adac2d70-e50f-44a5-afe3-5059833c5944')
   })
 })
