@@ -14,8 +14,22 @@ import { transcribir, verYGuardarImagen } from '../_shared/medios.ts'
 /* Cuánto se espera antes de contestar. La gente reparte una idea en tres o
    cuatro mensajes seguidos: si se responde al primero, Valentina interrumpe,
    se atropella y cuesta una llamada al modelo por cada uno. Se espera a que
-   termine, y el indicador de "escribiendo" hace que la pausa se lea natural. */
-const ESPERA_A_QUE_TERMINE_MS = 8_000
+   termine, y el indicador de "escribiendo" hace que la pausa se lea natural.
+
+   Eran 8 segundos y se subió a 15 el 31 de agosto de 2026: en la primera
+   conversación de una clienta de verdad, los dos casos que se atropellaron
+   venían con **12 segundos** de diferencia —"¡Hola! Quiero más información" y
+   "Buenos días, precio"; "Por favor" y "Los del video"—. Ocho segundos es lo
+   que tarda alguien escribiendo en un teclado de escritorio, no en un celular
+   a las cinco de la mañana. */
+const ESPERA_A_QUE_TERMINE_MS = 15_000
+
+/* Cuántas veces puede volver a responder una misma corrida sin soltar el
+   turno. Va atado al plazo del candado (90 s en `tomar_turno`): dos vueltas
+   son a lo sumo unos 70 segundos, así que el candado no caduca debajo de
+   nuestros propios pies y no aparece una segunda Valentina. Subirlo sin subir
+   el plazo trae de vuelta justo lo que esto viene a arreglar. */
+const VUELTAS_MAX = 2
 
 const ok = (cuerpo: unknown = { ok: true }) =>
   new Response(JSON.stringify(cuerpo), { status: 200, headers: { 'Content-Type': 'application/json' } })
@@ -296,20 +310,66 @@ Deno.serve(async (req: Request) => {
          último es la que va a responder, con todo el contexto junto. */
       await new Promise((r) => setTimeout(r, ESPERA_A_QUE_TERMINE_MS))
 
-      const { data: masNuevos } = await db.from('whatsapp_conversaciones')
-        .select('wa_message_id')
-        .eq('phone_number', telefono)
-        .eq('role', 'user')
-        .gt('created_at', guardado!.created_at)
-        .limit(1)
+      /** El último mensaje suyo posterior a `desde`, o null si no escribió más. */
+      const escribioDespuesDe = async (desde: string): Promise<string | null> => {
+        const { data } = await db.from('whatsapp_conversaciones')
+          .select('created_at')
+          .eq('phone_number', telefono)
+          .eq('role', 'user')
+          .gt('created_at', desde)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+        return data?.created_at ?? null
+      }
 
-      if (masNuevos?.length) {
+      if (await escribioDespuesDe(guardado!.created_at)) {
         console.log('Siguió escribiendo; responde la siguiente invocación')
         return
       }
 
-      const respuesta = await responder(telefono, numeroPropio)
-      if (respuesta) await enviarTextoNatural(telefono, respuesta, 'ia', numeroPropio, mensaje.id)
+      /* El candado.
+       *
+       * La espera de arriba protege el ARRANQUE, pero una corrida tarda diez o
+       * veinte segundos entre el modelo y las fotos, y un mensaje que entre en
+       * ese rato arranca otra que pasa su propio chequeo. El 31 de agosto de
+       * 2026 eso le mandó a una clienta la misma foto dos veces y dos cierres
+       * que se contradecían —"te muestro dos opciones" y "te muestro tres"— en
+       * once segundos. Quien tiene el turno responde; el resto se retira. */
+      const { data: turno, error: errorTurno } = await db.rpc('tomar_turno', { p_telefono: telefono })
+
+      if (errorTurno) {
+        /* Si el candado falla, se responde igual: quedarse callado con una
+           clienta esperando es peor que arriesgar un mensaje repetido. */
+        console.error('No se pudo tomar el turno, se responde igual:', errorTurno.message)
+      } else if (turno !== true) {
+        console.log('Valentina ya le está respondiendo; esta invocación se retira')
+        return
+      }
+
+      try {
+        let ultimoAtendido = guardado!.created_at
+
+        for (let vuelta = 0; vuelta < VUELTAS_MAX; vuelta++) {
+          const respuesta = await responder(telefono, numeroPropio)
+          if (respuesta) await enviarTextoNatural(telefono, respuesta, 'ia', numeroPropio, mensaje.id)
+
+          /* ¿Escribió mientras Valentina trabajaba? Esa invocación se retiró al
+             ver el candado, así que si esta corrida no la atiende, su última
+             palabra se queda sin respuesta y nadie se entera. */
+          const nuevo = await escribioDespuesDe(ultimoAtendido)
+          if (!nuevo) break
+
+          ultimoAtendido = nuevo
+          console.log('Escribió mientras respondía; va otra vuelta')
+          await new Promise((r) => setTimeout(r, ESPERA_A_QUE_TERMINE_MS))
+        }
+      } finally {
+        /* Pase lo que pase. Un candado que se queda puesto deja a esa persona
+           sin respuesta hasta que caduque. */
+        const { error } = await db.rpc('soltar_turno', { p_telefono: telefono })
+        if (error) console.error('No se pudo soltar el turno:', error.message)
+      }
     } catch (e) {
       console.error('Valentina falló:', e instanceof Error ? e.message : e)
     } finally {
