@@ -5,7 +5,7 @@
  */
 import { admin, enviarImagen, enviarPlantilla, enviarTexto } from './wa.ts'
 import {
-  anuncioDe, atribucionDe, calcularTalla, cotizarOro, esContraentrega,
+  anuncioDe, atribucionDe, calcularTalla, cotizarOro, esContraentrega, piezaDelAnuncio,
   origen, piezasDelPedido, refDelTexto,
 } from './reglas.ts'
 import { correrElBucle } from './bucle.ts'
@@ -111,6 +111,47 @@ async function referralDe(telefono: string): Promise<any | null> {
   return data?.referral ?? null
 }
 
+/**
+ * La joya que esa persona vio en el anuncio, si se sabe cuál es.
+ *
+ * El `referral` de Meta trae el identificador del anuncio, no la pieza. El
+ * puente es `ajustes_internos.anuncios_piezas`, una tabla de `id de anuncio →
+ * uuid de pieza` que vive en la base y no en el código: Meta no deja editar el
+ * enlace de un creativo publicado, así que cada cambio de anuncio trae un
+ * identificador nuevo, y con esto puesto acá cada campaña nueva sería un
+ * despliegue.
+ *
+ * Devuelve la fila del catálogo, no lo que diga la tabla: **el nombre y el
+ * precio se leen del catálogo en el momento**. Una tabla con el precio escrito
+ * dentro es una tabla que un día le promete a alguien un precio que ya no
+ * existe.
+ *
+ * Y si la pieza está agotada devuelve `null` a propósito: abrir nombrando algo
+ * que no se puede vender es peor que abrir preguntando.
+ */
+async function piezaQueVioEnElAnuncio(referral: any | null) {
+  if (!referral) return null
+
+  const { data: ajuste } = await admin()
+    .from('ajustes_internos').select('valor').eq('clave', 'anuncios_piezas').maybeSingle()
+
+  const id = piezaDelAnuncio(referral, ajuste?.valor)
+  if (!id) {
+    /* Que quede en el registro: es la única forma de enterarse de que se
+       publicó un anuncio nuevo y nadie actualizó la tabla. */
+    if (referral?.source_id) console.log('Anuncio sin pieza en la tabla · source_id:', referral.source_id)
+    return null
+  }
+
+  const { data: pieza } = await admin()
+    .from('products').select(CAMPOS_PIEZA).eq('id', id).maybeSingle()
+
+  if (!pieza) { console.log('La tabla de anuncios apunta a una pieza que no existe:', id); return null }
+  if (pieza.stock === 0) { console.log('La pieza del anuncio está agotada:', pieza.name); return null }
+
+  return pieza
+}
+
 /** Cómo contárselo al modelo, para que abra reconociendo lo que vio. */
 async function refDeMensajes(telefono: string): Promise<string | null> {
   const { data } = await admin()
@@ -125,7 +166,7 @@ async function refDeMensajes(telefono: string): Promise<string | null> {
   return refDelTexto(data?.content)
 }
 
-function instrucciones(piezas: string, politicas: string, deDonde: string, cod: { tope: number | null; abono: number | null }): string {
+function instrucciones(piezas: string, politicas: string, deDonde: string, cod: { tope: number | null; abono: number | null }, delAnuncio: { name: string; price: number } | null): string {
   return `Eres Valentina, la asesora de Aurem Gs Joyería, una joyería colombiana.
 Escribes por WhatsApp a clientes reales. Hablas en español de Colombia, con
 cercanía y sin adular. Mensajes cortos: dos o tres frases, salvo que estés
@@ -136,7 +177,7 @@ ${piezas}
 
 CÓMO FUNCIONA EL NEGOCIO (es lo único que puedes afirmar sin consultar):
 ${politicas}
-${deDonde ? `\nDE DÓNDE VIENE\n${deDonde}\nAbre reconociendo eso, con naturalidad — "vi que te interesó…" — y sigue por ahí.\nNO recites el anuncio ni repitas su texto: sólo demuestra que sabes qué vio.\nSi el anuncio prometía algo que no está en las políticas de arriba, NO lo\nconfirmes: dilo con calma y escala.\n` : ''}
+${deDonde ? `\nDE DÓNDE VIENE\n${deDonde}\nAbre reconociendo eso, con naturalidad — "vi que te interesó…" — y sigue por ahí.\nNO recites el anuncio ni repitas su texto: sólo demuestra que sabes qué vio.\nSi el anuncio prometía algo que no está en las políticas de arriba, NO lo\nconfirmes: dilo con calma y escala.\n` : ''}${delAnuncio ? `\nLA JOYA QUE VIO\nEl anuncio por el que escribió enseñaba esta pieza del catálogo de arriba:\n${delAnuncio.name} — ${enPesos(Number(delAnuncio.price))} COP.\n\nEsto cambia tu primer mensaje, y es lo más importante de esta conversación:\n- ABRE NOMBRÁNDOLA y llama a mostrar_pieza con "${delAnuncio.name}" en ese mismo\n  primer turno. Ya sabes qué quiere ver: enseñárselo.\n- NO preguntes qué busca, ni si quiere plata u oro, ni para quién es. Esa\n  persona ya eligió y ya pagamos por su clic; cada pregunta de más antes de\n  ver la joya es una razón para irse.\n- El nombre y los demás datos se piden DESPUÉS, cuando ya haya interés.\n- Si escribe pidiendo otra cosa, cambia de pieza con normalidad: ésta es el\n  punto de partida, no una jaula.\n` : ''}
 
 REGLAS QUE NO SE ROMPEN
 1. Nunca inventes una pieza, un precio, un material, un quilataje ni un plazo.
@@ -958,9 +999,12 @@ export async function responder(
     catalogo(), conocimiento(), referralDe(telefono), cifrasContraentrega(),
   ])
   const deDonde = origen(referral)
+  /* Va después y no en el Promise.all porque depende del referral. Cuesta dos
+     consultas más, y sólo en las conversaciones que vienen de un anuncio. */
+  const delAnuncio = await piezaQueVioEnElAnuncio(referral)
 
   const mensajes: any[] = [
-    { role: 'system', content: instrucciones(piezas, politicas, deDonde, cod) },
+    { role: 'system', content: instrucciones(piezas, politicas, deDonde, cod, delAnuncio) },
     ...conversacion,
   ]
 

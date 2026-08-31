@@ -39,7 +39,7 @@ npm run dev          # Vite en http://localhost:5173
 npm run build        # eslint && vitest && sitemap.mjs && correos.mjs && tsc -b && vite build
 npm run preview      # Sirve /dist
 npm run lint         # ESLint (sí corre en el build)
-npm test             # Vitest, una pasada (303 pruebas)
+npm test             # Vitest, una pasada (310 pruebas)
 npm run test:mirar   # Vitest en marcha, repitiendo al guardar
 
 npm run sitemap      # Regenera public/sitemap.xml desde Supabase
@@ -74,7 +74,7 @@ Cuatro advertencias sobre el build:
 
 ### Las pruebas
 
-Hay **303**, en veintitrés archivos que viven al lado de lo que prueban:
+Hay **310**, en veintitrés archivos que viven al lado de lo que prueban:
 
 | Archivo | Qué fija |
 |---|---|
@@ -295,7 +295,7 @@ Todas se crean en `20260228_esquema_base.sql` salvo donde se diga.
 | `taller_precios` | Fila única: oro, recargo, abono, tope, IVA de pauta (`20260818_taller_precios.sql`) |
 | `taller_conocimiento` | Base de conocimiento editable de Valentina (`20260818_taller_conocimiento.sql`) |
 | `plantillas_enviadas` | Candado anti-duplicado de plantillas de WhatsApp (`20260819_plantillas_programadas.sql`) |
-| `ajustes_internos` | Clave/valor: `cron_secreto`, `clave_anon`, `url_funciones`, `telefonos_avisos`, `contactos_equipo` |
+| `ajustes_internos` | Clave/valor: `cron_secreto`, `clave_anon`, `url_funciones`, `telefonos_avisos`, `contactos_equipo`, `anuncios_piezas` |
 | `vigilancia_ultima` | Fila id=1 con el último informe del vigía |
 | `envio_publico` | **Es una vista.** Expone sólo `abono_envio` y `tope_contraentrega` |
 | `pagos` | El libro de movimientos que lee `src/lib/caja.js`, llenado por el trigger `registrar_pago` (`20260822_libro_de_caja.sql`) |
@@ -410,6 +410,7 @@ nombre es el identificador que la base ya tiene anotado.
 | `20260824_las_ciudades_de_colombia.sql` | Los 1.273 municipios con su código DANE, que es lo que pide 99envios |
 | `20260824_de_lo_que_escribe_la_clienta_al_codigo_dane.sql` | `codigo_dane()`: traduce la ciudad escrita a mano, y calla si es ambigua |
 | `20260830_topos_y_juegos.sql` | Dos categorías nuevas en el `CHECK` de `products`: los topos y los combos de dije con aretes |
+| `20260831_de_que_joya_viene_el_lead.sql` | `ajustes_internos.anuncios_piezas`: de qué pieza es cada anuncio, para que Valentina abra nombrándola |
 
 `20260822_cerrar_conversaciones_a_anon.sql` cerró el fallo más grave de todos:
 `whatsapp_conversaciones` y `chat_takeover` tenían políticas
@@ -784,6 +785,15 @@ Cosas que ya costaron un incidente. Léelas antes de tocar lo que describen.
   ID antes de concluir que la medición está rota.
 - **Meta descarta eventos server-side sin `user-agent`.** Por eso `client_ua` se guarda
   en `orders` y viaja en la atribución.
+- **Valentina sabe de qué anuncio viene alguien, pero la pieza se la dice una tabla.** El
+  `referral` de Meta trae el id del anuncio, su titular y su cuerpo — nunca la joya. El
+  puente es `ajustes_internos.anuncios_piezas` (`source_id` → uuid de pieza), y **vive en la
+  base a propósito**: Meta no deja editar el enlace de un creativo publicado, así que cada
+  cambio de anuncio trae un id nuevo, y en el código cada campaña sería un despliegue.
+  Guarda el uuid y no el nombre ni el precio: los dos se leen del catálogo al responder. Un
+  id que no esté en la tabla no rompe nada —se cae al flujo de preguntar— pero **deja el
+  `source_id` en el registro de `wa-webhook`**, que es la única forma de enterarse de que
+  falta una fila.
 - **La ventana de WhatsApp se cierra a las 24 h.** Pasado ese plazo sólo se puede
   escribir con plantillas aprobadas por Meta.
 - **El modo prueba puede quemar plantillas.** Un pedido `es_prueba` que dispara una
