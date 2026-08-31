@@ -300,6 +300,7 @@ Todas se crean en `20260228_esquema_base.sql` salvo donde se diga.
 | `envio_publico` | **Es una vista.** Expone sólo `abono_envio` y `tope_contraentrega` |
 | `pagos` | El libro de movimientos que lee `src/lib/caja.js`, llenado por el trigger `registrar_pago` (`20260822_libro_de_caja.sql`) |
 | `ciudades_envio` | Los 1.273 municipios con su código DANE, para 99envios (`20260824_las_ciudades_de_colombia.sql`) |
+| `bot_respondiendo` | El candado de turno: quién le está respondiendo a quién ahora mismo (`20260831_una_valentina_a_la_vez.sql`) |
 
 **Ya no existen** `message_history`, `whatsapp_dedup`, `conversaciones` ni
 `whatsapp_conversaciones_respaldo`: borradas el 23-ago
@@ -411,6 +412,7 @@ nombre es el identificador que la base ya tiene anotado.
 | `20260824_de_lo_que_escribe_la_clienta_al_codigo_dane.sql` | `codigo_dane()`: traduce la ciudad escrita a mano, y calla si es ambigua |
 | `20260830_topos_y_juegos.sql` | Dos categorías nuevas en el `CHECK` de `products`: los topos y los combos de dije con aretes |
 | `20260831_de_que_joya_viene_el_lead.sql` | `ajustes_internos.anuncios_piezas`: de qué pieza es cada anuncio, para que Valentina abra nombrándola |
+| `20260831_una_valentina_a_la_vez.sql` | `tomar_turno`/`soltar_turno`: dos corridas del bot le contestaban a la vez a la misma persona |
 
 `20260822_cerrar_conversaciones_a_anon.sql` cerró el fallo más grave de todos:
 `whatsapp_conversaciones` y `chat_takeover` tenían políticas
@@ -794,6 +796,15 @@ Cosas que ya costaron un incidente. Léelas antes de tocar lo que describen.
   id que no esté en la tabla no rompe nada —se cae al flujo de preguntar— pero **deja el
   `source_id` en el registro de `wa-webhook`**, que es la única forma de enterarse de que
   falta una fila.
+- **Dos mensajes seguidos de la misma persona pueden arrancar dos Valentinas.** `wa-webhook`
+  espera 15 s para agruparlos, pero esa espera sólo protege el **arranque**: una corrida
+  tarda diez o veinte segundos entre el modelo y las fotos, y lo que entre en ese rato
+  arranca otra que pasa su propio chequeo. El 31 de agosto de 2026 eso mandó la misma foto
+  dos veces y dos cierres contradictorios —«te muestro dos opciones» y «te muestro tres»— en
+  once segundos, a la primera clienta que llegó por pauta. Lo cierra el candado
+  `tomar_turno`/`soltar_turno`. **Si tocas ese bucle, mira las dos constantes juntas**:
+  `VUELTAS_MAX` está atado al plazo de caducidad del candado (90 s), y subir una sin la otra
+  hace que el candado caduque debajo de la corrida que lo tiene.
 - **La ventana de WhatsApp se cierra a las 24 h.** Pasado ese plazo sólo se puede
   escribir con plantillas aprobadas por Meta.
 - **El modo prueba puede quemar plantillas.** Un pedido `es_prueba` que dispara una
