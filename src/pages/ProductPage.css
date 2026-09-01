@@ -1713,6 +1713,38 @@
   animation: spin 0.7s linear infinite;
 }
 
+/* El cierre de un contraentrega sin abono. Misma caja que el error —centrada,
+   con su icono y su botón— porque es la misma situación de interfaz: la última
+   pantalla del modal, con una sola cosa que decir. Lo que cambia es el tono:
+   acá el icono va en oro y no en el rojo de los errores. */
+.buy-modal-listo{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 2rem 1rem;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.buy-modal-listo svg{ color: var(--oro-ink); }
+
+.buy-modal-listo-lead{
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  color: var(--text-primary);
+}
+
+.buy-modal-listo-detalle{ font-size: 0.95rem; }
+.buy-modal-listo-detalle strong{ color: var(--text-primary); }
+
+.buy-modal-listo-nota{
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.buy-modal-listo .buy-modal-retry{ margin-top: 0.5rem; }
+
 .buy-modal-error{
   display: flex;
   flex-direction: column;

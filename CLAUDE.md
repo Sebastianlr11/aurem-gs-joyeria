@@ -39,7 +39,7 @@ npm run dev          # Vite en http://localhost:5173
 npm run build        # eslint && vitest && sitemap.mjs && correos.mjs && tsc -b && vite build
 npm run preview      # Sirve /dist
 npm run lint         # ESLint (sí corre en el build)
-npm test             # Vitest, una pasada (321 pruebas)
+npm test             # Vitest, una pasada (332 pruebas)
 npm run test:mirar   # Vitest en marcha, repitiendo al guardar
 
 npm run sitemap      # Regenera public/sitemap.xml desde Supabase
@@ -74,7 +74,7 @@ Cuatro advertencias sobre el build:
 
 ### Las pruebas
 
-Hay **321**, en veintitrés archivos que viven al lado de lo que prueban:
+Hay **332**, en veintitrés archivos que viven al lado de lo que prueban:
 
 | Archivo | Qué fija |
 |---|---|
@@ -418,6 +418,7 @@ nombre es el identificador que la base ya tiene anotado.
 | `20260831_una_valentina_a_la_vez.sql` | `tomar_turno`/`soltar_turno`: dos corridas del bot le contestaban a la vez a la misma persona |
 | `20260901_no_todo_el_que_escribe_trae_numero.sql` | `customers.wa_id`: Meta manda contactos sin teléfono y se estaban guardando como si lo fueran |
 | `20260901_lo_que_valentina_no_sabia_contestar.sql` | Dónde estamos y crédito: dos preguntas del primer día de pauta que escalaban sin necesidad |
+| `20260901_el_contraentrega_ya_no_pide_abono.sql` | El abono a cero: en Bogotá se paga todo al recibir, y el pedido nace confirmado |
 
 `20260822_cerrar_conversaciones_a_anon.sql` cerró el fallo más grave de todos:
 `whatsapp_conversaciones` y `chat_takeover` tenían políticas
@@ -467,11 +468,26 @@ y un token personal. Nunca transcribiendo el código a mano en el dashboard.
 
 ## 8. Reglas de negocio que el código no explica solo
 
-### Contraentrega con abono
+### Contraentrega — sin abono desde el 1 de septiembre de 2026
 
-El cliente **abona el envío** (por defecto $20.000, en `taller_precios.abono_envio`) para
-confirmar el pedido, y paga el resto **en efectivo cuando el domiciliario llega**.
+En Bogotá el cliente **no paga nada por adelantado**: paga el precio publicado, completo y
+en efectivo, cuando recibe la pieza. Fuera de Bogotá no hay contraentrega — se cobra por
+anticipado.
 
+Hasta ese día se abonaba el envío ($20.000) para confirmar el pedido. Se quitó porque con la
+pauta encendida se vio a la gente echarse atrás justo al ver que había que pagar algo antes,
+y porque **las entregas de Bogotá las hace el taller**: el abono cubría el viaje de ida y
+vuelta de un domiciliario que ya no se paga, y la pieza vuelve al inventario.
+
+- **`abono_envio = 0` es una decisión, no un dato que falte.** Así lo leen
+  `create-preference`, el prompt de Valentina y la ficha. `null` sigue significando «no lo
+  sé», y ahí nadie inventa una cifra. La maquinaria del abono se quedó entera: volver a
+  cobrarlo es un `UPDATE`.
+- **Sin abono el pedido nace `confirmado`**, no `pendiente`. No hay pago que esperar, y
+  `pendiente` **no cuenta como venta viva** —ni en el panel ni en `venta_viva()`—, así que
+  dejarlo pendiente sería tener pedidos reales e invisibles.
+- **El tope sigue siendo el freno del riesgo**, y ahora es el único: es la línea entre lo
+  que hay en stock y lo que se fabrica por encargo. Por eso no se movió de $500.000.
 - La opción sólo se ofrece si el precio de la pieza `<= taller_precios.tope_contraentrega`.
 - El frontend lee esos dos números de la vista `envio_publico`, no de `taller_precios`
   (que tiene RLS restringido: el recargo es el margen del negocio).
@@ -490,13 +506,18 @@ La regla que más se ha equivocado históricamente:
 | Estado | Se lee | Pago en línea | Contraentrega |
 |---|---|---|---|
 | `pendiente` | Pendiente | 0 | 0 |
-| `confirmado` | Confirmado | 0 | **el abono** |
+| `confirmado` | Confirmado | 0 | **el abono** (hoy 0) |
 | `pagado` | Pagado | total | total |
 | `procesando` | **Fabricando** | total | **sólo el abono** |
 | `enviado` | Enviado | total | **sólo el abono** |
 | `entregado` | Entregado | total | total |
 | `devuelto` | Devuelto | 0 | **el abono se queda** |
 | `cancelado` | Cancelado | 0 | 0 |
+
+**Con el abono en cero, las tres casillas que decían «el abono» dan cero**, y el
+contraentrega sólo entra al `entregado`. La tabla no cambia: `abono_monto` es `null` y
+`recibidoDe` lo lee como 0, igual que `recibido_de()` en la base. Lo comprueba
+`dinero.test.js`, que tiene la tabla de arriba y también la de sin abono.
 
 **`procesando` se lee «Fabricando» en pantalla.** El valor de la base no se renombró a
 propósito: tocaría la base, cuatro edge functions, las RPC y los disparadores, con riesgo
