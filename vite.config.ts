@@ -31,6 +31,11 @@ export default defineConfig({
          justamente por eso — es la lógica de Valentina sin nada de Deno
          dentro, para que se pueda comprobar. */
       'supabase/functions/**/*.test.ts',
+      /* El asunto de los correos vive en `emails/_render.ts` y no en la
+         plantilla, que es justo donde nadie lo busca: el 1 de septiembre de
+         2026 se cambió la plantilla entera del contraentrega y el asunto se
+         quedó diciendo «recibimos tu pago» a quien iba a pagar en su puerta. */
+      'emails/**/*.test.ts',
     ],
   },
 })

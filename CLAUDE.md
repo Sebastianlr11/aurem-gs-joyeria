@@ -39,7 +39,7 @@ npm run dev          # Vite en http://localhost:5173
 npm run build        # eslint && vitest && sitemap.mjs && correos.mjs && tsc -b && vite build
 npm run preview      # Sirve /dist
 npm run lint         # ESLint (sí corre en el build)
-npm test             # Vitest, una pasada (335 pruebas)
+npm test             # Vitest, una pasada (342 pruebas)
 npm run test:mirar   # Vitest en marcha, repitiendo al guardar
 
 npm run sitemap      # Regenera public/sitemap.xml desde Supabase
@@ -74,7 +74,7 @@ Cuatro advertencias sobre el build:
 
 ### Las pruebas
 
-Hay **335**, en veintitrés archivos que viven al lado de lo que prueban:
+Hay **342**, en veinticuatro archivos que viven al lado de lo que prueban:
 
 | Archivo | Qué fija |
 |---|---|
@@ -95,6 +95,7 @@ Hay **335**, en veintitrés archivos que viven al lado de lo que prueban:
 | `src/lib/meta.test.js` | Las migas de la ficha y que el `FAQPage` diga lo que se ve |
 | `src/lib/nombreUnico.test.js` | Que dos nombres no se confundan y dejen a Valentina sin fotos |
 | `src/lib/fotoProducto.test.js` | Que la foto que se precarga sea la misma que se pinta |
+| `emails/_render.test.ts` | El asunto de cada correo, que no vive en la plantilla |
 
 **Una de ellas no comprueba código, compara dos copias.** La talla de anillo está
 implementada dos veces —`src/lib/talla.js` para la guía del sitio y
@@ -864,6 +865,11 @@ Cosas que ya costaron un incidente. Léelas antes de tocar lo que describen.
   puerta y no le quedaba nada por escrito. Lo manda `create-preference` al nacer el pedido,
   con `avisarPorCorreo()` de `_shared/correos.ts`. **Si añades otra forma de que nazca un
   pedido, mira quién avisa**: no es el que cobra, es el que confirma.
+- **El asunto de un correo NO vive en su plantilla**, vive en `emails/_render.ts`. Es justo
+  donde nadie lo busca: se reescribió la plantilla entera del contraentrega sin abono y el
+  asunto se quedó diciendo «Recibimos tu pago» a quien iba a pagar en su puerta — visible
+  desde la bandeja de entrada, sin abrir el correo. Lo cubre `emails/_render.test.ts`, y por
+  eso `vite.config.ts` incluye ahora `emails/**/*.test.ts`.
 - **La plantilla `pedido-confirmado` tiene TRES casos, no dos.** Abonó / no pagó nada y paga
   todo al recibir / pagó completo en línea. El del medio se añadió el 1 de septiembre de
   2026: sin él, el correo le decía «recibimos tu pago completo» a alguien que no había
