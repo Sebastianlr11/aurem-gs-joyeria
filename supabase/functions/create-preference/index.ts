@@ -1,6 +1,8 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { avisarVenta } from '../_shared/conversiones.ts'
+import { piezasDelPedido } from '../_shared/pedidos.ts'
+import { avisarPorCorreo } from '../_shared/correos.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -379,6 +381,36 @@ Deno.serve(async (req: Request) => {
        Se sale DESPUÉS del aviso de conversión de arriba, a propósito: la venta
        se le cuenta a Meta y a TikTok igual, que es de lo que vive la pauta. */
     if (sinAbono) {
+      /* La constancia.
+       *
+       * El correo de confirmación lo mandaba `mp-webhook` cuando entraba el
+       * pago. Sin abono no hay pago, así que no lo mandaba nadie: la clienta
+       * se comprometía a pagar en su puerta y no le quedaba nada por escrito.
+       * Este es el momento equivalente — el pedido acaba de quedar
+       * confirmado.
+       *
+       * Se lee el pedido de la base en vez de rearmarlo con lo que hay acá:
+       * así el correo enseña exactamente lo que el panel va a enseñar. */
+      const avisoCorreo = (async () => {
+        try {
+          const { data: orden } = await supabase
+            .from('orders').select('*').eq('id', orderId).maybeSingle()
+
+          if (!orden?.customer_email) return
+
+          const piezas = await piezasDelPedido(supabase, orderId, orden)
+          await avisarPorCorreo(orden, orderId, false, piezas)
+        } catch (e) {
+          /* Nunca tumba el pedido. La venta ya está tomada; que no salga el
+             correo es recuperable y perderla no. */
+          console.error('No se pudo mandar la confirmación:', e instanceof Error ? e.message : e)
+        }
+      })()
+
+      // @ts-expect-error EdgeRuntime existe en Supabase pero no en sus tipos
+      if (typeof EdgeRuntime !== 'undefined') EdgeRuntime.waitUntil(avisoCorreo)
+      else await avisoCorreo
+
       return new Response(
         JSON.stringify({
           orderId,

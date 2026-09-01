@@ -129,3 +129,36 @@ describe('queFalta — qué se lee en cada fila', () => {
         expect(queFalta({ status: 'lo que sea' })).toBe('');
     });
 });
+
+/**
+ * El contraentrega sin abono, que en Bogotá es el de todos los días desde el
+ * 1 de septiembre de 2026.
+ *
+ * Se prueba porque el fallo es de los que sólo ve el joyero y nunca reporta:
+ * el panel decía «el abono de $0 se queda», que no significa nada, en la
+ * pantalla donde decide si marca un pedido como devuelto.
+ */
+describe('un contraentrega que no abonó nada', () => {
+    const sinAbono = (status) =>
+        ({ status, amount: 250_000, payment_method: 'contraentrega', abono_monto: null });
+
+    it('al devolverse no habla de un abono que no existe', () => {
+        const { consecuencias } = loQuePasa(sinAbono('enviado'), 'devuelto');
+        const texto = consecuencias.join(' · ');
+        expect(texto).not.toMatch(/abono de \$0/);
+        expect(texto).toMatch(/no entró un peso/);
+    });
+
+    it('y la línea del pedido devuelto tampoco', () => {
+        const linea = queFalta(sinAbono('devuelto'));
+        expect(linea).not.toMatch(/abono de \$0/);
+        expect(linea).toMatch(/no se cobró nada/);
+    });
+
+    /* Con abono sigue diciendo lo de siempre: el día que se vuelva a cobrar,
+       esto tiene que seguir funcionando. */
+    it('con abono sigue contando que se queda', () => {
+        const conAbono = { status: 'devuelto', amount: 550_000, payment_method: 'contraentrega', abono_monto: 20_000 };
+        expect(queFalta(conAbono)).toMatch(/20\.000/);
+    });
+});

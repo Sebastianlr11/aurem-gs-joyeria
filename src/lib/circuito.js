@@ -92,8 +92,14 @@ export function loQuePasa(pedido, destino) {
             return {
                 titulo: 'La clienta no la recibió',
                 consecuencias: [
+                    /* Tres casos, no dos. Desde el 1 de septiembre de 2026 el
+                       contraentrega de Bogotá no pide abono, y sin este
+                       tercer caso el panel decía «el abono de $0 se queda»,
+                       que no significa nada. */
                     cod
-                        ? `El abono de ${pesos(recibidoDe(pedido))} se queda: para eso está, para cubrir el envío`
+                        ? (recibidoDe(pedido) > 0
+                            ? `El abono de ${pesos(recibidoDe(pedido))} se queda: para eso está, para cubrir el envío`
+                            : 'No había abono, así que no hay nada cobrado: la pieza vuelve y no entró un peso')
                         : 'Lo que pagó habrá que devolvérselo por fuera del panel',
                     `Los ${pesos(falta)} que faltaban dejan de estar por cobrar`,
                     /* Dicho así a propósito: el panel NO devuelve la pieza al
@@ -160,7 +166,9 @@ export function queFalta(pedido) {
 
         case 'devuelto':
             return cod
-                ? `Volvió sin entregarse · el abono de ${pesos(recibidoDe(pedido))} se quedó`
+                ? (recibidoDe(pedido) > 0
+                    ? `Volvió sin entregarse · el abono de ${pesos(recibidoDe(pedido))} se quedó`
+                    : 'Volvió sin entregarse · no se cobró nada')
                 : 'Volvió sin entregarse';
 
         case 'cancelado':

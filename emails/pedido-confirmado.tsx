@@ -19,8 +19,11 @@ export interface PedidoConfirmadoProps {
   pieza: string
   referencia: string
   total: number
-  /** Lo abonado. Sólo en contraentrega; si no viene, se pagó todo. */
+  /** Lo abonado. Sólo en contraentrega con abono. */
   abono?: number | null
+  /** Si el pedido se paga al recibir. Sin esto, un contraentrega sin abono
+      diría «recibimos tu pago» a alguien que no ha pagado nada. */
+  contraentrega?: boolean | null
   ciudad: string
   direccion: string
   /** Las piezas del pedido, que pueden ser varias. */
@@ -37,10 +40,18 @@ export interface PedidoConfirmadoProps {
 }
 
 export default function PedidoConfirmado({
-  nombre, pieza, referencia, total, abono, ciudad, direccion, piezas, fecha,
+  nombre, pieza, referencia, total, abono, ciudad, direccion, piezas, fecha, contraentrega,
 }: PedidoConfirmadoProps) {
+  /* Tres correos distintos con la misma plantilla:
+       - `esAbono`   → abonó el envío y paga el saldo en la puerta
+       - `alRecibir` → no pagó nada y paga TODO en la puerta (Bogotá, desde el
+                       1 de septiembre de 2026)
+       - ninguno     → pagó completo en línea
+     El del medio es el que faltaba, y sin él este correo le decía «recibimos
+     tu pago completo» a quien no había pagado un peso. */
   const esAbono = abono != null && abono > 0
-  const saldo = esAbono ? total - abono : 0
+  const alRecibir = !!contraentrega && !esAbono
+  const saldo = esAbono ? total - abono : total
   const primerNombre = String(nombre || '').trim().split(/\s+/)[0]
   const enBogota = /bogot/i.test(ciudad || '')
 
@@ -74,6 +85,8 @@ export default function PedidoConfirmado({
         <Preview>
           {esAbono
             ? `Recibimos tu abono de ${pesos(abono)}. Al recibir la pieza pagas ${pesos(saldo)}.`
+            : alRecibir
+            ? `Tu pedido quedó confirmado. Pagas ${pesos(total)} al recibir tu ${pieza}.`
             : `Recibimos tu pago. Ya estamos preparando tu ${pieza}.`}
         </Preview>
 
@@ -82,9 +95,9 @@ export default function PedidoConfirmado({
 
           <Section style={{ padding: '36px 32px 0' }}>
             <Titular
-              antetitulo={esAbono ? 'Pedido confirmado' : 'Pago recibido'}
-              primera={esAbono ? (varias ? 'Tus piezas entran' : 'Tu pieza entra') : 'Empezamos'}
-              segunda={esAbono ? 'al taller.' : varias ? 'tus piezas.' : 'tu pieza.'}
+              antetitulo={esAbono || alRecibir ? 'Pedido confirmado' : 'Pago recibido'}
+              primera={esAbono || alRecibir ? (varias ? 'Tus piezas entran' : 'Tu pieza entra') : 'Empezamos'}
+              segunda={esAbono || alRecibir ? 'al taller.' : varias ? 'tus piezas.' : 'tu pieza.'}
             />
             <p
               style={{
@@ -97,6 +110,8 @@ export default function PedidoConfirmado({
             >
               {primerNombre}, {esAbono
                 ? `recibimos tu abono de ${pesos(abono)} y tu pedido queda confirmado.`
+                : alRecibir
+                ? 'tu pedido queda confirmado y no pagas nada por adelantado: pagas cuando tengas la pieza en la mano.'
                 : 'recibimos tu pago completo y tu pedido queda confirmado.'}{' '}
               Te escribimos por WhatsApp apenas se despache, con el número de guía.
             </p>
@@ -132,14 +147,14 @@ export default function PedidoConfirmado({
                 <tr>
                   <td style={{ padding: '22px 24px', verticalAlign: 'middle' }}>
                     <div style={{ fontFamily: fuenteUI, fontSize: '10px', lineHeight: '14px', letterSpacing: '0.2em', fontWeight: 700, color: c.oroInk }}>
-                      {esAbono ? 'PAGAS AL RECIBIR' : 'TOTAL PAGADO'}
+                      {esAbono || alRecibir ? 'PAGAS AL RECIBIR' : 'TOTAL PAGADO'}
                     </div>
                     <div style={{ fontFamily: fuenteUI, fontSize: '13px', lineHeight: '20px', color: c.texto, paddingTop: '4px' }}>
-                      {esAbono ? 'En efectivo, al domiciliario' : 'Pago confirmado'}
+                      {esAbono || alRecibir ? 'En efectivo, al recibir' : 'Pago confirmado'}
                     </div>
                   </td>
                   <td align="right" style={{ padding: '22px 24px', verticalAlign: 'middle', fontFamily: fuenteUI, fontSize: '26px', lineHeight: '30px', fontWeight: 700, color: c.ink, whiteSpace: 'nowrap' }}>
-                    {pesos(esAbono ? saldo : total)}{' '}
+                    {pesos(esAbono || alRecibir ? saldo : total)}{' '}
                     <span style={{ fontSize: '14px', fontWeight: 400, color: c.texto }}>COP</span>
                   </td>
                 </tr>
@@ -147,10 +162,10 @@ export default function PedidoConfirmado({
             </table>
           </Section>
 
-          {esAbono && (
+          {(esAbono || alRecibir) && (
             <Nota>
               Ten listos <strong style={{ color: c.ink }}>{pesos(saldo)}</strong> en efectivo para el
-              momento de la entrega: el domiciliario no da cambio de billetes grandes.
+              momento de la entrega: quien te la lleva no da cambio de billetes grandes.
             </Nota>
           )}
 
