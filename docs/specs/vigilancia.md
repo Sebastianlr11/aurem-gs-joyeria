@@ -49,16 +49,26 @@ El Dashboard lee `vigilancia_ultima` y muestra las averías y el "Revisado hace 
 > borrara `MP_WEBHOOK_SECRET`, la función volvería a aceptar todo con 200 y esta prueba se
 > encendería — es lo único del sistema que cazaría esa regresión.
 
-Los plazos (`:160-172`) son concretos, no genéricos, y **miran el flujo de pago, no sólo el
-estado**:
+Los plazos son concretos, no genéricos, y **miran el flujo de pago, no sólo el estado**:
 
 | Id | Plazo | Aplica a | Qué señala |
 |---|---|---|---|
 | `pendiente` | 24 h | todos | sin confirmar |
+| `confirmado` | 24 h | todos | confirmados y sin alistar |
 | `pagado` | 48 h | **sólo prepago** | pagados y sin empezar |
 | `procesando` | 7 días | todos | en el taller |
 | `enviado` | 8 días | todos | en camino sin llegar |
 | `cobrar` | 48 h | **sólo contraentrega** | entregados sin marcar el cobro |
+
+**Por qué se añadió `confirmado`** (1 de septiembre de 2026). Ese día el contraentrega de
+Bogotá dejó de pedir abono, y los pedidos dejaron de nacer en `pendiente` —que sí se
+vigilaba— para nacer directamente en `confirmado`, que no. **El estado en el que ahora entra
+un pedido nuevo era justo el único punto ciego**: nadie cobra nada, no llega ningún aviso de
+pago, y si el joyero no lo ve en el panel el pedido puede quedarse quieto sin que salte
+nada. Es la clase de agujero que abre un cambio de flujo y que nadie relaciona con él.
+
+**Al cambiar cómo nace un pedido, mira siempre esta lista.** El vigía no vigila estados que
+no estén en `ESTADOS_VIGILADOS`, y un estado nuevo o recién estrenado entra ahí sin ruido.
 
 **Por qué la bifurcación:** `pagado` significa lo contrario en cada flujo. En prepago es un
 pedido cobrado que todavía no arranca —justo lo que hay que perseguir—; en contraentrega es

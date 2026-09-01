@@ -859,6 +859,11 @@ Cosas que ya costaron un incidente. Léelas antes de tocar lo que describen.
 - **`products.metal` es texto libre y hay cinco formas de decir «oro»** —`Oro`, `Oro 18k`,
   `Oro blanco 18k`, `Oro y plata 925`, `Plata 925 y oro`—. No es sólo estética: es lo que el
   bot lee para decidir qué ofrecer, y lo que agrupa el filtro del catálogo.
+- **Al cambiar cómo NACE un pedido, mira `ESTADOS_VIGILADOS` en `vigilancia`.** El vigía
+  sólo persigue los estados de esa lista, y al quitar el abono los pedidos dejaron de nacer
+  en `pendiente` —vigilado— para nacer en `confirmado`, que no lo estaba: el estado en el que
+  entra un pedido nuevo pasó a ser el único punto ciego, justo cuando nadie cobra nada por
+  adelantado y no llega ningún aviso de pago. Se corrigió el 1 de septiembre de 2026.
 - **Un contraentrega sin abono le cuenta la venta a Meta y TikTok AL NACER, no al
   entregarse.** Es una decisión del taller (1 de septiembre de 2026): entre pedir y recibir
   pasan días, y una conversión que llega tarde se le acredita peor al anuncio. Para todo lo
