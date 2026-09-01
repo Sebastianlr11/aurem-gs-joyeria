@@ -10,6 +10,7 @@ import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { admin, enModoManual, enviarTexto, enviarTextoNatural, idDestino, mantenerEscribiendo } from '../_shared/wa.ts'
 import { responder } from '../_shared/bot.ts'
 import { transcribir, verYGuardarImagen } from '../_shared/medios.ts'
+import { esTelefono } from '../_shared/reglas.ts'
 
 /* Cuánto se espera antes de contestar. La gente reparte una idea en tres o
    cuatro mensajes seguidos: si se responde al primero, Valentina interrumpe,
@@ -223,8 +224,14 @@ Deno.serve(async (req: Request) => {
   }
 
   if (nombre) {
+    /* El identificador NO siempre es un teléfono. Desde el 31 de agosto de
+       2026, con la pauta encendida, Meta manda `CO.1287538963396593` y
+       parecidos cuando el clic viene de Instagram o Facebook y no hay número.
+       Guardarlo en `phone` rompe la deduplicación por diez dígitos y en
+       silencio — ver 20260901_no_todo_el_que_escribe_trae_numero.sql. */
+    const columna = esTelefono(telefono) ? 'phone' : 'wa_id'
     await db.from('customers')
-      .upsert({ name: nombre, phone: telefono }, { onConflict: 'phone', ignoreDuplicates: true })
+      .upsert({ name: nombre, [columna]: telefono }, { onConflict: columna, ignoreDuplicates: true })
   }
 
   /* Un sticker, una ubicación, una encuesta, un video de una sola vista: nada

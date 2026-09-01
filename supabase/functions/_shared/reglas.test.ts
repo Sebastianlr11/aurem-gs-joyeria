@@ -13,7 +13,8 @@ import { describe, it, expect } from 'vitest'
 import {
   TALLAS, calcularTalla, cotizarOro, origen, anuncioDe, atribucionDe, refDelTexto,
   DIAS_PARA_AVISAR, DIAS_PARA_NO_COTIZAR, diezUltimos, mismoTelefono, aNumeroDeWhatsApp,
-  cantidadPedida, piezasDelPedido, esContraentrega, piezaDelAnuncio,
+  cantidadPedida, piezasDelPedido, esContraentrega, piezaDelAnuncio, esTelefono,
+  comoLoEscribeWhatsApp,
 } from './reglas.ts'
 
 describe('la tabla de tallas', () => {
@@ -379,5 +380,92 @@ describe('la pieza del anuncio', () => {
   it('acepta el uuid en mayúsculas y lo devuelve en minúsculas', () => {
     expect(piezaDelAnuncio({ source_id: 'x' }, { x: 'ADAC2D70-E50F-44A5-AFE3-5059833C5944' }))
       .toBe('adac2d70-e50f-44a5-afe3-5059833c5944')
+  })
+})
+
+/**
+ * Distinguir un teléfono de un identificador de Meta.
+ *
+ * Se prueba porque el fallo no se ve: un identificador guardado donde va un
+ * teléfono deduplica por sus últimos diez dígitos, y el día que uno de ellos
+ * empiece por 3 se funde con una clienta real. Y un pedido con eso adentro es
+ * un pedido que nadie puede llamar.
+ */
+describe('esTelefono', () => {
+  it('acepta un número como lo manda WhatsApp, y como lo escribe la gente', () => {
+    for (const bueno of ['573105599570', '3105599570', '+57 310 559 9570', '(310) 559-9570'])
+      expect(esTelefono(bueno), bueno).toBe(true)
+  })
+
+  it('rechaza los identificadores de alcance de negocio', () => {
+    for (const malo of ['CO.1287538963396593', 'CO.1570757771396735'])
+      expect(esTelefono(malo), malo).toBe(false)
+  })
+
+  it('rechaza lo que no es ni una cosa ni la otra', () => {
+    for (const malo of ['', '   ', null, undefined, {}, 'sin número', '3105'])
+      expect(esTelefono(malo), String(malo)).toBe(false)
+  })
+
+  /* Diez es un móvil colombiano sin indicativo; quince es el tope de E.164.
+     Fuera de ahí no es un teléfono al que se pueda llamar. */
+  it('respeta los dos extremos', () => {
+    expect(esTelefono('1234567890')).toBe(true)
+    expect(esTelefono('123456789')).toBe(false)
+    expect(esTelefono('123456789012345')).toBe(true)
+    expect(esTelefono('1234567890123456')).toBe(false)
+  })
+})
+
+/**
+ * Que las negritas se vean como negritas.
+ *
+ * WhatsApp usa UN asterisco y el modelo escribe DOS, que es lo normal en
+ * Markdown. El 31 de agosto de 2026 una clienta de pauta recibió literalmente
+ * «el **Anillo de esmeralda y diamantes**», con los asteriscos a la vista.
+ *
+ * Se prueba porque el saneador vive en el último sitio por donde pasa todo lo
+ * que se envía: si se pasa de listo y toca de más, deforma cada mensaje de la
+ * tienda a la vez.
+ */
+describe('cómo lo escribe WhatsApp', () => {
+  it('convierte la negrita de Markdown en la de WhatsApp', () => {
+    expect(comoLoEscribeWhatsApp('el **Anillo de esmeralda y diamantes**'))
+      .toBe('el *Anillo de esmeralda y diamantes*')
+  })
+
+  it('deja en paz la negrita que ya está bien', () => {
+    expect(comoLoEscribeWhatsApp('cuesta *$200.000* COP')).toBe('cuesta *$200.000* COP')
+  })
+
+  it('la cursiva de WhatsApp no se toca', () => {
+    expect(comoLoEscribeWhatsApp('es _plata 925_')).toBe('es _plata 925_')
+  })
+
+  it('negrita y cursiva a la vez', () => {
+    expect(comoLoEscribeWhatsApp('***urgente***')).toBe('*_urgente_*')
+  })
+
+  it('el subrayado doble de Markdown también es negrita allá', () => {
+    expect(comoLoEscribeWhatsApp('__importante__')).toBe('*importante*')
+  })
+
+  /* Lo que NO puede tocar: un asterisco suelto es un asterisco, y una lista
+     con viñetas de asterisco no es una negrita a medio escribir. */
+  it('no inventa negritas donde no las hay', () => {
+    for (const tal_cual of [
+      'el precio es 2 ** 3 en potencias',
+      '* uno\n* dos',
+      'de 5*4 metros',
+      '**',
+      '****',
+      'esto ** no cierra en la misma línea\ny sigue **',
+    ]) expect(comoLoEscribeWhatsApp(tal_cual), tal_cual).toBe(tal_cual)
+  })
+
+  it('aguanta lo que no es texto', () => {
+    expect(comoLoEscribeWhatsApp('')).toBe('')
+    expect(comoLoEscribeWhatsApp(null)).toBe('')
+    expect(comoLoEscribeWhatsApp(undefined)).toBe('')
   })
 })
