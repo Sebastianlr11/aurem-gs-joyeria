@@ -177,6 +177,34 @@ cuanto `window.fbq` o `window.ttq` aparecen. Se vacía **de forma oportunista**,
 intento de disparo, no sólo al arrancar: la primera versión sólo drenaba desde
 `iniciarPixeles()` y una prueba lo cazó.
 
+## Cuándo se cuenta una venta
+
+| Cómo se paga | Cuándo sale el `Purchase` | Quién lo manda |
+|---|---|---|
+| Mercado Pago | al confirmarse el pago | `mp-webhook` |
+| Contraentrega con abono | al entregarse, desde el panel | `conversion-pedido` |
+| **Contraentrega sin abono** | **al crearse el pedido** | `create-preference` |
+
+La tercera fila es del 1 de septiembre de 2026 y es una decisión del taller, no una regla
+técnica: entre que la clienta pide y recibe pasan días, y una conversión que llega tarde se
+le acredita peor al anuncio y le enseña al algoritmo lo de la semana pasada.
+
+**Lo que cuesta, escrito para que nadie lo descubra tarde:** Meta no tiene evento de
+reembolso —son 17 eventos y ninguno revierte un `Purchase`— así que **una venta contada no
+se puede descontar**. El pedido que no se concrete queda contado, y el algoritmo irá a
+buscar más gente como la que pide y no recibe. Con el abono en cero, pedir no le cuesta nada
+a nadie.
+
+**Cómo se vigila:** la proporción de contraentrega que acaban en `cancelado` o `devuelto`
+contra los que acaban en `entregado`. Mientras sea baja, la decisión fue buena. Si se
+dispara, esto es lo primero que hay que revertir — y revertirlo es mover el aviso de
+`create-preference` al panel, como en las otras dos filas.
+
+El candado es `conversion_enviada_en`, que se marca en el mismo `UPDATE` que lo lee. Por eso
+el botón de «entregado» del panel no cuenta la venta dos veces: le rebota. Y dejarlo marcado
+es lo que permite avisar después una cancelación, que exige que la venta se haya avisado
+antes.
+
 ## Las pruebas no se le cuentan a nadie
 
 Hasta el 23 de agosto de 2026 **sí se les contaban**. `conversion-pedido` y `mp-webhook`

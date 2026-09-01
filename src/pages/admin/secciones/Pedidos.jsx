@@ -256,6 +256,12 @@ const OrdersSection = ({ orders, products, loading, onRefresh }) => {
            veces: conversion-pedido marca conversion_enviada_en con un UPDATE
            condicionado a que esté en null, y si ya se mandó responde
            {ok:true, repetido:true} sin tocar Meta ni TikTok. */
+        /* Un contraentrega SIN abono ya se le contó a los anuncios al nacer
+           —decisión del 1 de septiembre de 2026, en create-preference—, así
+           que esta llamada le va a rebotar contra `conversion_enviada_en` y
+           no cuenta dos veces. Se deja igual y no se quita: los pedidos
+           pagados en línea y cualquier contraentrega que vuelva a pedir abono
+           siguen dependiendo de acá. */
         const entraLaPlata = newStatus === 'pagado' || (isCOD(order) && newStatus === 'entregado');
         /* Nunca desde un pedido de prueba. El candado de verdad está en
            `conversion-pedido`, que lo comprueba contra la base; esto sólo
