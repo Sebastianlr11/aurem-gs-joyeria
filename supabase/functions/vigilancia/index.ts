@@ -159,11 +159,23 @@ Deno.serve(async (req: Request) => {
      la plata entró al principio, y en contraentrega el mensajero entrega y trae
      el efectivo el mismo día, así que marcar entregado ya declara el cobro. Un
      pedido entregado no espera nada de nadie. */
-  const ESTADOS_VIGILADOS = ['pendiente', 'pagado', 'procesando', 'enviado']
+  const ESTADOS_VIGILADOS = ['pendiente', 'confirmado', 'pagado', 'procesando', 'enviado']
 
   const PLAZOS: Array<{ id: string; horas: number; que: string; aplica: (o: Pedido) => boolean }> = [
     { id: 'pendiente',  horas: 24,      que: 'sin confirmar',
       aplica: (o) => o.status === 'pendiente' },
+    /* 'confirmado' entró el 1 de septiembre de 2026, y no es un plazo más.
+       Ese día el contraentrega de Bogotá dejó de pedir abono, y con eso los
+       pedidos dejaron de nacer en 'pendiente' —que sí se vigilaba— para nacer
+       directamente en 'confirmado', que no. O sea que **el estado en el que
+       ahora entra un pedido nuevo era justo el único punto ciego**: nadie
+       cobra nada, nadie recibe un aviso de pago, y si el joyero no lo ve en el
+       panel puede quedarse quieto sin que salte nada.
+
+       Veinticuatro horas y grave: es una clienta esperando una pieza que dijo
+       que sí, y en Bogotá la entrega la hace el taller el mismo día. */
+    { id: 'confirmado', horas: 24,      que: 'confirmados y sin alistar',
+      aplica: (o) => o.status === 'confirmado' },
     { id: 'pagado',     horas: 48,      que: 'pagados y sin empezar',
       aplica: (o) => o.status === 'pagado' && !esCOD(o) },
     { id: 'procesando', horas: 24 * 7,  que: 'en el taller',
@@ -197,6 +209,9 @@ Deno.serve(async (req: Request) => {
           .join(' | '),
         // Que un pedido pagado no arranque es peor que uno sin confirmar: la
         // clienta ya puso la plata.
+        /* Un pedido sin confirmar todavía no es de nadie; los demás sí. El
+           confirmado cuenta como grave: la clienta ya dijo que sí y está
+           esperando. */
         grave: plazo.id !== 'pendiente',
       })
     }
