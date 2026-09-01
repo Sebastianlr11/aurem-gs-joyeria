@@ -55,10 +55,16 @@ export function asunto(plantilla: Plantilla, datos: Record<string, unknown>): st
   if (plantilla === 'pedido-despachado') {
     return `Tu ${pieza} va en camino`
   }
+  /* Los mismos tres casos que la plantilla, y por el mismo motivo: el asunto
+     es lo primero que se lee, muchas veces lo único. «Recibimos tu pago» en un
+     pedido que se paga en la puerta es falso desde la bandeja de entrada, sin
+     necesidad de abrirlo. */
   const abono = Number(datos.abono ?? 0)
-  return abono > 0
-    ? `Pedido confirmado — al recibir pagas ${pesos(Number(datos.total) - abono)}`
-    : `Recibimos tu pago — ${pieza}`
+  const alRecibir = !!datos.contraentrega && abono <= 0
+
+  if (abono > 0) return `Pedido confirmado — al recibir pagas ${pesos(Number(datos.total) - abono)}`
+  if (alRecibir) return `Pedido confirmado — al recibir pagas ${pesos(datos.total)}`
+  return `Recibimos tu pago — ${pieza}`
 }
 
 /** HTML y texto plano de una vez: los dos van en el mismo envío. */
