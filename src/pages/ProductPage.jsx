@@ -201,7 +201,12 @@ const BuyModal = ({ product, onClose }) => {
     traerEnvioPublico()
       .then(({ data }) => {
         if (!vivo || !data) return;
-        if (data.abono_envio) setAbonoEnvio(Number(data.abono_envio));
+        /* `!= null` y no un truthy: **cero es una respuesta**, no un dato
+           que falte. Desde el 1 de septiembre de 2026 el contraentrega de
+           Bogotá no cobra nada por adelantado, y con un truthy el cero se
+           leía como "todavía no llegó el dato" y la ficha se quedaba
+           esperando un abono que no existe. */
+        if (data.abono_envio != null) setAbonoEnvio(Number(data.abono_envio));
         if (data.tope_contraentrega) setTopeCod(Number(data.tope_contraentrega));
       });
     return () => { vivo = false; };
@@ -264,6 +269,15 @@ const BuyModal = ({ product, onClose }) => {
       });
 
       if (error || !data) throw new Error(data?.error || error?.message || 'Error desconocido');
+
+      /* Contraentrega sin abono: el pedido ya quedó confirmado y no hay
+         pasarela por la que pasar. Va ANTES del control de `preferenceId`,
+         que si no daría por fallido un pedido que salió perfecto. */
+      if (data.sinAbono) {
+        setAbono({ abono: 0, saldo: data.saldo });
+        setStep('listo');
+        return;
+      }
 
       if (!data.preferenceId) throw new Error(data?.error || 'Error desconocido');
       setInitPoint(data.initPoint);
@@ -364,7 +378,7 @@ const BuyModal = ({ product, onClose }) => {
                     <span className="pago-op-sub">
                       {abonoEnvio ? (
                         <>Abonas <strong>${fmt(abonoEnvio)}</strong> del envío hoy y pagas el resto al recibir</>
-                      ) : 'Pagas en efectivo al recibir'}
+                      ) : <>Pagas <strong>todo en efectivo</strong> cuando recibas — nada por adelantado</>}
                     </span>
                     <div className="pago-op-precio">
                       <span className="pago-op-valor">${fmt(product.price)}</span>
@@ -398,13 +412,20 @@ const BuyModal = ({ product, onClose }) => {
               </div>
             ) : (
               <div className="pago-cuenta">
+                {/* Sin abono la cuenta no es una cuenta: es una sola cifra, y
+                    partirla en «hoy» y «al recibir» con un cero arriba hace
+                    dudar justo donde queremos que no dude. */}
                 <div className="pago-cuenta-cabeza">
-                  <span className="pago-cuenta-l">Abonas hoy</span>
+                  <span className="pago-cuenta-l">{abonoEnvio ? 'Abonas hoy' : 'Pagas hoy'}</span>
                   <div className="pago-total-v">
                     <span>${fmt(abonoEnvio ?? 0)}</span>
                     <small>COP</small>
                   </div>
-                  <span className="pago-cuenta-porque">Es el envío — sin este abono no se despacha</span>
+                  <span className="pago-cuenta-porque">
+                    {abonoEnvio
+                      ? 'Es el envío — sin este abono no se despacha'
+                      : 'Nada por adelantado. Pagas cuando tengas la pieza en la mano'}
+                  </span>
                 </div>
                 <div className="pago-cuenta-fila">
                   <span>Pagas al recibir la pieza</span>
@@ -420,7 +441,7 @@ const BuyModal = ({ product, onClose }) => {
             <button type="button" className="pago-cta" onClick={() => selectMethod(paymentMethod)}>
               {paymentMethod === 'mp'
                 ? 'Pagar con Mercado Pago'
-                : abonoEnvio ? `Abonar $${fmt(abonoEnvio)} del envío` : 'Continuar'}
+                : abonoEnvio ? `Abonar $${fmt(abonoEnvio)} del envío` : 'Confirmar pedido contraentrega'}
             </button>
 
             {/* Lo que se promete acá se cumple SIEMPRE. El certificado no
@@ -564,7 +585,7 @@ const BuyModal = ({ product, onClose }) => {
 
             <button type="submit" className="buy-modal-submit">
               {paymentMethod === 'cod'
-                ? (abonoEnvio ? `Continuar y abonar $${fmt(abonoEnvio)}` : 'Continuar al abono')
+                ? (abonoEnvio ? `Continuar y abonar $${fmt(abonoEnvio)}` : 'Confirmar mi pedido')
                 : 'Continuar al pago'}
             </button>
           </form>
@@ -663,6 +684,26 @@ const BuyModal = ({ product, onClose }) => {
                 ))}
               </div>
             </footer>
+          </div>
+        )}
+
+        {/* Sin abono no hay pasarela, así que ésta es la última pantalla que
+            ve la clienta. Dice lo que pasa ahora y cuánto va a pagar: es todo
+            lo que necesita para quedarse tranquila. */}
+        {step === 'listo' && (
+          <div className="buy-modal-listo">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" /><polyline points="8 12.5 11 15.5 16 9.5" />
+            </svg>
+            <p className="buy-modal-listo-lead">Tu pedido quedó confirmado.</p>
+            <p className="buy-modal-listo-detalle">
+              No pagas nada ahora. Al recibir tu pieza pagas{' '}
+              <strong>${fmt(abono?.saldo ?? product.price)} COP</strong> en efectivo.
+            </p>
+            <p className="buy-modal-listo-nota">
+              Te escribimos por WhatsApp para coordinar la entrega.
+            </p>
+            <button className="buy-modal-retry" onClick={onClose}>Listo</button>
           </div>
         )}
 

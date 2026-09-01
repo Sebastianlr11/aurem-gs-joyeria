@@ -66,6 +66,62 @@ describe('recibidoDe — la tabla de CLAUDE.md §8', () => {
     });
 });
 
+/**
+ * El contraentrega SIN abono, que desde el 1 de septiembre de 2026 es el de
+ * Bogotá: la clienta no paga un peso hasta tener la pieza en la mano.
+ *
+ * Se prueba porque cambia la mitad de la tabla de arriba y ninguna de esas
+ * cifras se ve mal cuando está mal: un pedido confirmado sin abono tiene que
+ * dar CERO recibido, y si diera el precio entero el panel enseñaría como
+ * cobrada una venta que todavía está en el bolsillo de la clienta. Es
+ * exactamente el error que se corrigió una vez y por el que existe esta
+ * tabla.
+ */
+describe('recibidoDe — contraentrega sin abono', () => {
+    /* `null` es como lo guarda create-preference cuando no hubo abono: dice
+       "acá no hubo abono", no "se abonaron cero pesos". */
+    const sinAbono = (status) => contraentrega(status, null);
+
+    const TABLA_SIN_ABONO = [
+        ['pendiente',  0],
+        ['confirmado', 0],
+        ['pagado',     PRECIO],
+        ['procesando', 0],
+        ['enviado',    0],
+        ['entregado',  PRECIO],
+        ['devuelto',   0],
+        ['cancelado',  0],
+    ];
+
+    it.each(TABLA_SIN_ABONO)('%s: entran %i', (estado, esperado) => {
+        expect(recibidoDe(sinAbono(estado))).toBe(esperado);
+        /* Y con cero explícito, lo mismo: las dos formas de decir "no hubo
+           abono" tienen que dar la misma cuenta. */
+        expect(recibidoDe(contraentrega(estado, 0))).toBe(esperado);
+    });
+
+    it('un pedido confirmado sin abono no ha cobrado NADA', () => {
+        const pedido = sinAbono('confirmado');
+        expect(recibidoDe(pedido)).toBe(0);
+        expect(porCobrarDe(pedido)).toBe(PRECIO);
+        /* Y sigue contando como venta viva: es un pedido de verdad que hay
+           que entregar, aunque no haya entrado un peso. */
+        expect(estaVivo(pedido)).toBe(true);
+    });
+
+    it('sólo al entregarlo entra la plata, y entra completa', () => {
+        expect(recibidoDe(sinAbono('entregado'))).toBe(PRECIO);
+        expect(porCobrarDe(sinAbono('entregado'))).toBe(0);
+    });
+
+    /* Sin abono no pasó nada por Mercado Pago, así que no hay comisión que
+       descontar: lo que se entregó es lo que llega a la cuenta. */
+    it('no le descuenta comisión de pasarela a lo que se cobró en efectivo', () => {
+        const entregado = { ...sinAbono('entregado'), abono_pagado_en: null };
+        expect(netoRecibidoDe(entregado)).toBe(PRECIO);
+    });
+});
+
 describe('recibidoDe — los bordes', () => {
     it('sin pedido, cero', () => {
         expect(recibidoDe(null)).toBe(0);

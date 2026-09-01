@@ -8,13 +8,20 @@
 Cobrar. Dos caminos muy distintos:
 
 1. **Pago en línea** con Mercado Pago, con **2% de descuento**.
-2. **Contraentrega con abono** — el cliente abona el envío para confirmar el pedido y paga
-   el resto **en efectivo en la puerta**. Es la forma de pago principal del negocio: en
-   Colombia mucha gente no compra joyería por internet pagando por adelantado a una marca
-   que no conoce.
+2. **Contraentrega, sin abono** — el cliente **no paga nada por adelantado**: paga el
+   precio publicado, completo y en efectivo, cuando recibe la pieza. Sólo Bogotá. Es la
+   forma de pago principal del negocio: en Colombia mucha gente no compra joyería por
+   internet pagando por adelantado a una marca que no conoce.
 
 Todo lo raro de esta feature sale de la segunda. Contraentrega significa que **"pedido
-confirmado" y "plata recibida" son dos hechos separados por días**.
+confirmado" y "plata recibida" son dos hechos separados por días** — y desde el 1 de
+septiembre de 2026, separados por el total: hasta que no se entrega, no ha entrado un peso.
+
+**Hasta ese día se abonaba el envío** ($20.000) para confirmar. Se quitó al ver, con la
+pauta encendida, que la gente se echaba atrás justo al llegar a ese cobro; y se pudo quitar
+porque las entregas de Bogotá las hace el taller, así que el abono ya no estaba cubriendo el
+viaje de ida y vuelta de un domiciliario. **La maquinaria del abono sigue entera**: es
+`taller_precios.abono_envio = 0`, y volver a cobrarlo es un `UPDATE`.
 
 ## Cómo funciona hoy
 
@@ -29,10 +36,14 @@ BuyModal (navegador)
         ├── valida y calcula el total
         ├── si es contraentrega:
         │     ├── total > tope  → rechaza con mensaje
-        │     └── abono = taller_precios.abono_envio (por defecto 20.000)
-        ├── INSERT orders (status pendiente) + INSERT order_items (precios congelados)
+        │     └── abono = taller_precios.abono_envio · HOY ES 0
+        ├── INSERT orders + INSERT order_items (precios congelados)
+        │     · con abono → status 'pendiente' (lo confirma el pago)
+        │     · sin abono → status 'confirmado' (no hay nada que esperar)
         ├── avisarVenta({evento:'pedido'}) → Meta CAPI + TikTok como InitiateCheckout
-        └── crea la preferencia de Mercado Pago
+        ├── SIN ABONO TERMINA ACÁ → { orderId, isCod, sinAbono: true, saldo }
+        │     y el modal muestra la pantalla de pedido confirmado
+        └── con abono, crea la preferencia de Mercado Pago
               · en línea:       un renglón por pieza
               · contraentrega:  UN SOLO renglón, el abono
         ↓ devuelve { preferenceId, initPoint, isCod, abono, saldo }
@@ -73,7 +84,9 @@ mp-webhook (Edge Function)
 
 ### Tablas y columnas
 
-- **`orders`** — se crea con `status: 'pendiente'`; `abono_monto` sólo en contraentrega;
+- **`orders`** — `status: 'pendiente'`, o `'confirmado'` si es contraentrega sin abono;
+  `abono_monto` sólo en contraentrega **y sólo si hubo abono** (si no, `null`: dice «acá no
+  hubo abono» y no «se abonaron cero pesos»);
   `conversion_enviada_en` es el candado; toda la atribución se guarda aquí.
 - **`order_items`** — `order_id`, `product_id`, `nombre`, `precio`, `cantidad`, `talla`.
 - **`taller_precios`** — `abono_envio`, `tope_contraentrega`. RLS restringido.

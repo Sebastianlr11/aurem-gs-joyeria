@@ -185,12 +185,36 @@ Deno.serve(async (req: Request) => {
         }), { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
       }
 
-      abono = Number(precios?.abono_envio ?? 20000)
-      if (!(abono > 0) || abono >= totalAmount) {
-        console.error('Abono inválido:', abono, 'sobre un total de', totalAmount)
+      /* Cero es una DECISIÓN, no un dato malo.
+       *
+       * Hasta el 1 de septiembre de 2026 un cero caía en la rama de «abono
+       * inválido» y se corregía solo a 20.000. Ese día el taller lo quitó
+       * para Bogotá: la pauta traía gente a la ficha y se echaban atrás justo
+       * al ver que había que pagar algo por adelantado. Ahora entregan ellos
+       * mismos, así que un plantón cuesta el viaje y la pieza vuelve al
+       * inventario — el abono ya no está cubriendo un envío pagado a un
+       * tercero.
+       *
+       * Lo que sigue protegiendo el riesgo es el TOPE de arriba, que es la
+       * línea entre lo que hay en stock y lo que se fabrica por encargo.
+       *
+       * El respaldo a 20.000 se queda para el caso que sí es un error: un
+       * valor negativo, un texto, o un abono más grande que el pedido. */
+      const configurado = Number(precios?.abono_envio ?? 20000)
+
+      if (configurado === 0) {
+        abono = 0
+      } else if (!(configurado > 0) || configurado >= totalAmount) {
+        console.error('Abono inválido:', configurado, 'sobre un total de', totalAmount)
         abono = Math.min(20000, Math.floor(totalAmount / 2))
+      } else {
+        abono = configurado
       }
     }
+
+    /* Un contraentrega que no cobra nada por adelantado. No pasa por la
+       pasarela, así que no hay enlace de pago ni nada que esperar. */
+    const sinAbono = esContraEntrega && abono === 0
 
     // Cancelar pedidos pendientes duplicados del mismo cliente + producto
     // (ej: cliente cambia de MercadoPago a contraentrega)
@@ -222,7 +246,15 @@ Deno.serve(async (req: Request) => {
         product_id: firstProductId,
         product_name: combinedName,
         amount: totalAmount,
-        status: 'pendiente',
+        /* Sin abono no hay pago que esperar, así que el pedido nace
+           confirmado: es lo que le dice al taller que se puede alistar. Con
+           abono sigue naciendo pendiente y lo confirma `mp-webhook` cuando
+           entra el dinero.
+
+           Y esto no es cosmético: `pendiente` NO cuenta como venta viva —ni
+           en el panel ni en `venta_viva()`—, así que un pedido sin abono que
+           se quedara pendiente sería un pedido real e invisible. */
+        status: sinAbono ? 'confirmado' : 'pendiente',
         payment_method: paymentMethod === 'cod' ? 'contraentrega' : 'mercadopago',
         /* Por dónde entró la venta. Esta función la usan LOS DOS canales —el
            checkout del sitio y Valentina— y hasta ahora ninguno lo decía, así
@@ -259,7 +291,11 @@ Deno.serve(async (req: Request) => {
         anuncio_id: atribucion?.anuncio_id ?? null,
         utm_source: atribucion?.utm_source ?? null,
         utm_campaign: atribucion?.utm_campaign ?? null,
-        abono_monto: esContraEntrega ? abono : null,
+        /* `null` y no `0` cuando no hay abono: el cero diría «se abonaron
+           cero pesos» y `null` dice «acá no hubo abono». Las cuentas del
+           panel y `recibido_de()` en la base tratan los dos igual, pero el
+           que lee el pedido no. */
+        abono_monto: esContraEntrega && abono > 0 ? abono : null,
       })
       .select('id')
       .single()
@@ -336,10 +372,34 @@ Deno.serve(async (req: Request) => {
     // @ts-expect-error EdgeRuntime existe en el entorno de Supabase pero no en sus tipos
     if (typeof EdgeRuntime !== 'undefined') EdgeRuntime.waitUntil(avisoPedido)
 
-    /* El contraentrega también pasa por Mercado Pago, pero sólo por el abono.
-       Antes se confirmaba solo, y un pedido que no cuesta nada hacer es un
-       pedido que la mitad de las veces no se recibe: la devolución la paga el
-       negocio y, peor, le enseña a los anuncios que ese público compra. */
+    /* Sin abono no hay nada que cobrar hoy, así que acá se acaba: ni
+       preferencia de Mercado Pago, ni enlace, ni pantalla de pago. El pedido
+       ya quedó confirmado arriba y lo que sigue es entregarlo.
+
+       Se sale DESPUÉS del aviso de conversión de arriba, a propósito: la venta
+       se le cuenta a Meta y a TikTok igual, que es de lo que vive la pauta. */
+    if (sinAbono) {
+      return new Response(
+        JSON.stringify({
+          orderId,
+          isCod: true,
+          sinAbono: true,
+          preferenceId: null,
+          initPoint: null,
+          abono: 0,
+          /* Todo se paga al recibir. */
+          saldo: totalAmount,
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    /* El contraentrega con abono sí pasa por Mercado Pago, pero sólo por ese
+       abono. Se cobraba porque un pedido que no cuesta nada hacer es un pedido
+       que la mitad de las veces no se recibe, y la devolución la pagaba el
+       negocio; desde que las entregas de Bogotá las hace el taller, ese costo
+       cambió y el abono quedó en cero. La rama se queda entera: el día que se
+       vuelva a cobrar, o que se cobre fuera de Bogotá, funciona sola. */
     const mpAccessToken = Deno.env.get('MP_ACCESS_TOKEN')!
     const appUrl = (Deno.env.get('APP_URL') ?? 'https://auremgsjoyeria.vercel.app').replace(/\/$/, '')
 

@@ -96,7 +96,18 @@ async function cifrasContraentrega(): Promise<{ tope: number | null; abono: numb
     const n = Number(v)
     return Number.isFinite(n) && n > 0 ? n : null
   }
-  return { tope: valido(data?.tope_contraentrega), abono: valido(data?.abono_envio) }
+  /* El abono admite CERO, y el tope no.
+   *
+   * Cero abono es una decisión —desde el 1 de septiembre de 2026 el
+   * contraentrega de Bogotá no cobra nada por adelantado— y hay que poder
+   * distinguirla de «no tengo el dato». `null` sigue significando lo segundo,
+   * y ahí Valentina no inventa una cifra. Un tope en cero, en cambio, no
+   * significa nada útil: se trata como ausente y no se ofrece contraentrega. */
+  const abonoValido = (v: unknown) => {
+    const n = Number(v)
+    return Number.isFinite(n) && n >= 0 ? n : null
+  }
+  return { tope: valido(data?.tope_contraentrega), abono: abonoValido(data?.abono_envio) }
 }
 
 /**
@@ -212,10 +223,22 @@ REGLAS QUE NO SE ROMPEN
    entonces le llega todo por WhatsApp. NUNCA dejes un pedido sin cerrar por
    un correo — vale mucho más la venta que el dato.
 6. Cuando tengas todo, recapitula y usa la herramienta crear_pedido.
-6b. EL CONTRAENTREGA: ${cod.tope ? `hasta ${enPesos(cod.tope)}` : 'no lo ofrezcas, no tengo el tope a mano'}${cod.abono ? `, con un abono de ${enPesos(cod.abono)} que confirma el pedido y se descuenta del total` : ''}.
-   ESE ABONO ES ${cod.abono ? enPesos(cod.abono) : 'UN DATO QUE NO TIENES'} — no lo redondees, no digas "unos", no digas
-   "aproximadamente" y NUNCA des otra cifra. Si no lo tienes, di que lo
-   confirmas y no inventes un número.
+6b. EL CONTRAENTREGA: ${cod.tope ? `hasta ${enPesos(cod.tope)}` : 'no lo ofrezcas, no tengo el tope a mano'}.
+${cod.abono === 0
+  ? `   NO SE ABONA NADA. El contraentrega no pide un peso por adelantado: la
+   clienta paga el precio publicado, completo y en efectivo, cuando recibe la
+   pieza. Nada de envío aparte, nada de abono, nada de "para confirmar".
+   DILO COMO ARGUMENTO, no como un dato administrativo: es lo que la hace
+   confiar cuando es su primera compra y no nos conoce. "Pagas cuando la
+   tengas en la mano" vale más que cualquier explicación.
+   Si te pregunta por qué no cobramos nada antes, la respuesta es simple: en
+   Bogotá la entrega la hacemos nosotros. No prometas eso mismo fuera de
+   Bogotá, donde el pago va por anticipado.`
+  : cod.abono
+  ? `   Lleva un abono de ${enPesos(cod.abono)} que confirma el pedido y se descuenta del total.
+   ESE ABONO ES ${enPesos(cod.abono)} — no lo redondees, no digas "unos", no digas
+   "aproximadamente" y NUNCA des otra cifra.`
+  : `   NO TIENES EL DATO DEL ABONO. Di que lo confirmas y no inventes un número.`}
    Y el tope no tiene excepción. Por encima de eso la pieza se paga en
    línea, porque si la rechazan en la puerta el taller pierde el viaje de ida y vuelta de una
    joya cara. No lo ofrezcas para una pieza que pase el tope, ni lo prometas
@@ -846,6 +869,17 @@ async function ejecutarHerramienta(
 
     const total = items.reduce((suma, i) => suma + i.price * i.quantity, 0)
     const monto = enPesos(total)
+    /* Contraentrega sin abono: no hay enlace porque no hay nada que cobrar
+       hoy. El pedido ya quedó confirmado y lo único que falta es entregarlo.
+       Va ANTES del control del enlace, que si no lo trataría como un fallo. */
+    if (respuesta?.sinAbono) {
+      return `Pedido registrado por ${monto} COP contra entrega, y confirmado: no hay nada que ` +
+             `pagar por adelantado. Díselo así, que es la mejor parte — paga los ${monto} completos ` +
+             `en efectivo cuando reciba la pieza, y no le pedimos ni un peso antes. NO le mandes ` +
+             `ningún enlace ni le hables de abono: ya no existe. Recuérdale el plazo de entrega y ` +
+             `dile que le avisas cuando vaya en camino.`
+    }
+
     const enlace = respuesta?.initPoint
 
     if (!enlace) {
