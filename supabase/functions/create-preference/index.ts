@@ -391,25 +391,88 @@ Deno.serve(async (req: Request) => {
        *
        * Se lee el pedido de la base en vez de rearmarlo con lo que hay acá:
        * así el correo enseña exactamente lo que el panel va a enseñar. */
-      const avisoCorreo = (async () => {
-        try {
-          const { data: orden } = await supabase
-            .from('orders').select('*').eq('id', orderId).maybeSingle()
+      const alNacer = (async () => {
+        const { data: orden } = await supabase
+          .from('orders').select('*').eq('id', orderId).maybeSingle()
 
-          if (!orden?.customer_email) return
+        if (!orden) return
 
-          const piezas = await piezasDelPedido(supabase, orderId, orden)
-          await avisarPorCorreo(orden, orderId, false, piezas)
-        } catch (e) {
-          /* Nunca tumba el pedido. La venta ya está tomada; que no salga el
-             correo es recuperable y perderla no. */
-          console.error('No se pudo mandar la confirmación:', e instanceof Error ? e.message : e)
+        /* ── La constancia para la clienta ── */
+        if (orden.customer_email) {
+          try {
+            const piezas = await piezasDelPedido(supabase, orderId, orden)
+            await avisarPorCorreo(orden, orderId, false, piezas)
+          } catch (e) {
+            /* Nunca tumba el pedido. La venta ya está tomada; que no salga el
+               correo es recuperable y perderla no. */
+            console.error('No se pudo mandar la confirmación:', e instanceof Error ? e.message : e)
+          }
         }
+
+        /* ── Y la venta, contada ahora y no al entregar ──────────────────
+         *
+         * Decisión del taller, 1 de septiembre de 2026. Para el resto de los
+         * pedidos la compra se le cuenta a Meta y TikTok cuando entra el
+         * dinero; para el contraentrega sin abono se cuenta **al crearse**,
+         * que es cuando la clienta decidió comprar.
+         *
+         * El motivo es el retraso: entre que pide y recibe pasan días, y una
+         * conversión que llega tarde se le acredita peor al anuncio y le
+         * enseña al algoritmo lo que pasó la semana pasada.
+         *
+         * EL PRECIO, para que quede escrito: **un Purchase no se puede
+         * deshacer**. Meta no tiene evento de reembolso —ver NOMBRES en
+         * conversiones.ts— así que el pedido que después no se concrete queda
+         * contado para siempre, y el algoritmo irá a buscar más gente como la
+         * que pide y no recibe. Con el abono en cero, pedir no cuesta nada.
+         * La forma de saber si esto salió bien es mirar cuántos contraentrega
+         * acaban en `cancelado` o `devuelto` contra los que acaban en
+         * `entregado`. Si esa proporción se dispara, esto es lo primero que
+         * hay que revertir.
+         *
+         * Se marca `conversion_enviada_en` en el mismo UPDATE que lo lee: es
+         * el candado que impide contar la venta dos veces cuando el panel
+         * vuelva a intentarlo al marcar «entregado». Y dejarlo marcado es lo
+         * que permite después avisar la cancelación, que exige que la venta se
+         * haya avisado antes. */
+        if (orden.es_prueba) {
+          console.log('Pedido de prueba: no se le cuenta a los anuncios', orderId)
+          return
+        }
+
+        const { data: marcado } = await supabase
+          .from('orders')
+          .update({ conversion_enviada_en: new Date().toISOString() })
+          .eq('id', orderId)
+          .is('conversion_enviada_en', null)
+          .select('id')
+          .maybeSingle()
+
+        if (!marcado) return   // ya se contó por otra vía
+
+        await avisarVenta({
+          pedidoId: orderId,
+          monto: totalAmount,
+          evento: 'compra',
+          correo: buyer.email ?? null,
+          telefono: buyer.phone ?? null,
+          piezaId: firstProductId,
+          piezaIds: productItems.map((i) => i.id),
+          piezaNombre: combinedName,
+          ttclid: atribucion?.ttclid ?? null,
+          ttp: atribucion?.ttp ?? null,
+          fbc: atribucion?.fbc ?? null,
+          fbp: atribucion?.fbp ?? null,
+          ua: atribucion?.ua ?? null,
+          ip: (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || null,
+          ctwaClid: atribucion?.ctwa_clid ?? null,
+          url: 'https://www.auremgsjoyeria.com/',
+        })
       })()
 
       // @ts-expect-error EdgeRuntime existe en Supabase pero no en sus tipos
-      if (typeof EdgeRuntime !== 'undefined') EdgeRuntime.waitUntil(avisoCorreo)
-      else await avisoCorreo
+      if (typeof EdgeRuntime !== 'undefined') EdgeRuntime.waitUntil(alNacer)
+      else await alNacer
 
       return new Response(
         JSON.stringify({

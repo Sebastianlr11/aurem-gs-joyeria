@@ -859,6 +859,15 @@ Cosas que ya costaron un incidente. Léelas antes de tocar lo que describen.
 - **`products.metal` es texto libre y hay cinco formas de decir «oro»** —`Oro`, `Oro 18k`,
   `Oro blanco 18k`, `Oro y plata 925`, `Plata 925 y oro`—. No es sólo estética: es lo que el
   bot lee para decidir qué ofrecer, y lo que agrupa el filtro del catálogo.
+- **Un contraentrega sin abono le cuenta la venta a Meta y TikTok AL NACER, no al
+  entregarse.** Es una decisión del taller (1 de septiembre de 2026): entre pedir y recibir
+  pasan días, y una conversión que llega tarde se le acredita peor al anuncio. Para todo lo
+  demás la compra sigue saliendo cuando entra el dinero. **El precio está escrito y no tiene
+  vuelta: Meta no tiene evento de reembolso** —ver `NOMBRES` en `conversiones.ts`— así que
+  el pedido que no se concrete queda contado para siempre y el algoritmo irá a buscar más
+  gente igual. **La forma de saber si salió bien es la proporción de contraentrega que
+  acaban en `cancelado`/`devuelto` contra los que acaban en `entregado`.** Si se dispara,
+  esto es lo primero que hay que revertir.
 - **Un pedido sin pago no dispara `mp-webhook`, y ahí vivía el aviso a la clienta.** El
   correo de confirmación lo mandaba el webhook al entrar el dinero. Con el contraentrega sin
   abono no entra dinero, así que **nadie avisaba**: la clienta se comprometía a pagar en su
