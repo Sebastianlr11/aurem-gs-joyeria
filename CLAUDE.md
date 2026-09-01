@@ -39,7 +39,7 @@ npm run dev          # Vite en http://localhost:5173
 npm run build        # eslint && vitest && sitemap.mjs && correos.mjs && tsc -b && vite build
 npm run preview      # Sirve /dist
 npm run lint         # ESLint (sí corre en el build)
-npm test             # Vitest, una pasada (310 pruebas)
+npm test             # Vitest, una pasada (321 pruebas)
 npm run test:mirar   # Vitest en marcha, repitiendo al guardar
 
 npm run sitemap      # Regenera public/sitemap.xml desde Supabase
@@ -74,7 +74,7 @@ Cuatro advertencias sobre el build:
 
 ### Las pruebas
 
-Hay **310**, en veintitrés archivos que viven al lado de lo que prueban:
+Hay **321**, en veintitrés archivos que viven al lado de lo que prueban:
 
 | Archivo | Qué fija |
 |---|---|
@@ -328,6 +328,9 @@ vocabulario lo sostienen el código y esta tabla, no la base.
 `enviado_por` (`ia` | `humano`), `delivery_status`, `error_wa`, `wa_phone_id`, `referral`,
 `created_at`.
 
+**`customers`** — base + `wa_id`: el identificador de Meta cuando el contacto llega **sin
+teléfono**. `phone` se queda para números de verdad; ver la trampa de §11.
+
 **`products`** — base + `images[]`, `stock`, `metal`, `piedra`, `talla_rango`,
 `compare_price`. (`costo` y `costo_provisional` siguen en la tabla pero están **muertas**
 desde el 23-ago: el costo vive en el pedido; `engaste` lo está desde el 30-ago: el taller
@@ -413,6 +416,7 @@ nombre es el identificador que la base ya tiene anotado.
 | `20260830_topos_y_juegos.sql` | Dos categorías nuevas en el `CHECK` de `products`: los topos y los combos de dije con aretes |
 | `20260831_de_que_joya_viene_el_lead.sql` | `ajustes_internos.anuncios_piezas`: de qué pieza es cada anuncio, para que Valentina abra nombrándola |
 | `20260831_una_valentina_a_la_vez.sql` | `tomar_turno`/`soltar_turno`: dos corridas del bot le contestaban a la vez a la misma persona |
+| `20260901_no_todo_el_que_escribe_trae_numero.sql` | `customers.wa_id`: Meta manda contactos sin teléfono y se estaban guardando como si lo fueran |
 
 `20260822_cerrar_conversaciones_a_anon.sql` cerró el fallo más grave de todos:
 `whatsapp_conversaciones` y `chat_takeover` tenían políticas
@@ -805,6 +809,21 @@ Cosas que ya costaron un incidente. Léelas antes de tocar lo que describen.
   `tomar_turno`/`soltar_turno`. **Si tocas ese bucle, mira las dos constantes juntas**:
   `VUELTAS_MAX` está atado al plazo de caducidad del candado (90 s), y subir una sin la otra
   hace que el candado caduque debajo de la corrida que lo tiene.
+- **No todo el que escribe trae número de teléfono.** Desde el 31 de agosto de 2026, con la
+  pauta encendida, Meta manda `CO.1287538963396593` y parecidos cuando el clic viene de
+  Instagram o Facebook. Responderle ya funcionaba —`wa.ts` lo pone en `recipient` y no en
+  `to`—, pero guardarlo donde va un teléfono rompe cosas **en silencio**: los clientes se
+  deduplican por los últimos diez dígitos, así que ese identificador entra con la clave
+  `8963396593`. Hoy no choca con nadie porque los móviles colombianos empiezan por 3 y esa
+  clave no; **es suerte, no diseño**. Va en `customers.wa_id`, y `esTelefono()` decide.
+  Consecuencia: **un pedido no se puede cerrar sin un teléfono de verdad** —el domiciliario
+  se quedaría en la puerta sin poder marcar—, así que `crear_pedido` lo pide.
+- **WhatsApp escribe la negrita con UN asterisco, no con dos.** El modelo aprendió Markdown
+  de escritorio y manda `**así**`, que allá no se interpreta: la clienta ve los asteriscos.
+  Hay una regla en el prompt **y** un saneador —`comoLoEscribeWhatsApp()` en `reglas.ts`—
+  porque la regla se olvida y el saneador no. Se aplica antes de trocear y antes de enviar;
+  si tocas esa función, mira sus pruebas: lo que importa es lo que NO debe convertir (una
+  lista con viñetas de asterisco, `2 ** 3`, un asterisco suelto).
 - **La ventana de WhatsApp se cierra a las 24 h.** Pasado ese plazo sólo se puede
   escribir con plantillas aprobadas por Meta.
 - **El modo prueba puede quemar plantillas.** Un pedido `es_prueba` que dispara una

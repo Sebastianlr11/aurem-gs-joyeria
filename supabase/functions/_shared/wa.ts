@@ -4,6 +4,9 @@
  * tengan con qué casarse.
  */
 import { createClient, type SupabaseClient } from 'jsr:@supabase/supabase-js@2'
+/* Vive en reglas.ts —el módulo sin nada de Deno dentro— porque es una función
+   pura y ahí sí se puede probar sin desplegar. */
+import { comoLoEscribeWhatsApp } from './reglas.ts'
 
 export const GRAFO = 'https://graph.facebook.com/v21.0'
 
@@ -84,6 +87,7 @@ export async function enviarTexto(
   if (!token || !phoneId) return { ok: false, error: 'Faltan WA_TOKEN o WA_PHONE_NUMBER_ID' }
 
   const para = idDestino(telefono)
+  texto = comoLoEscribeWhatsApp(texto)
   const res = await fetch(`${GRAFO}/${phoneId}/messages`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -259,6 +263,9 @@ export async function enviarTextoNatural(
   desdeId?: string | null,
   mensajeIdEntrante?: string | null,
 ): Promise<{ ok: boolean; wamid?: string; error?: string }> {
+  /* Antes de trocear, no después: una negrita partida entre dos trozos ya no
+     la reconocería el saneador de `enviarTexto`. */
+  texto = comoLoEscribeWhatsApp(texto)
   const trozos = texto.split(/\n\s*\n/).map((t) => t.trim()).filter(Boolean)
 
   // Lo que pase del tope se pega al último trozo, para no perder texto.

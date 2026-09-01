@@ -5,7 +5,7 @@
  */
 import { admin, enviarImagen, enviarPlantilla, enviarTexto } from './wa.ts'
 import {
-  anuncioDe, atribucionDe, calcularTalla, cotizarOro, esContraentrega, piezaDelAnuncio,
+  anuncioDe, atribucionDe, calcularTalla, cotizarOro, esContraentrega, esTelefono, piezaDelAnuncio,
   origen, piezasDelPedido, refDelTexto,
 } from './reglas.ts'
 import { correrElBucle } from './bucle.ts'
@@ -238,6 +238,9 @@ REGLAS QUE NO SE ROMPEN
 10. TIENES FOTOS. Cuando pidan ver algo, cuando duden entre piezas o cuando
    una imagen ayude a decidir, usa mostrar_pieza. No describas una pieza
    pudiendo mostrarla. Nunca digas que no puedes mandar fotos.
+10b. CÓMO SE ESCRIBE EN WHATSAPP. La negrita lleva UN asterisco —*así*— y no
+   dos. Nada de Markdown de escritorio: ni **negritas**, ni ## títulos, ni
+   viñetas con guiones. Estás en un chat, no en un documento.
 11. No recites el catálogo. Ofrece una o dos piezas que encajen con lo que
    te dijeron y pregunta. La lista completa abruma y no vende.
 12. Si te preguntan directamente si eres una persona o un bot, dilo: eres
@@ -417,6 +420,12 @@ const HERRAMIENTAS = [
              instrucciones, que sí saben cuándo parar; el esquema sólo define
              qué es posible. */
           correo: { type: 'string', description: 'Correo del cliente. Se le pide, pero si no lo da el pedido se crea igual.' },
+          /* Casi nunca hace falta: la conversación ya va por su número. Pero
+             desde el 31 de agosto de 2026 hay contactos que llegan SIN número
+             —Meta manda un identificador cuando el clic viene de Instagram o
+             Facebook— y a ésos hay que pedírselo, o el pedido sale sin forma
+             de llamar a nadie para coordinar la entrega. */
+          telefono: { type: 'string', description: 'Sólo si el sistema te dijo que esta conversación no trae número. Es el celular que te dé el cliente para coordinar la entrega.' },
           metodo_pago: { type: 'string', enum: ['Mercado Pago', 'Contra entrega'] },
         },
         required: ['piezas', 'nombre', 'direccion', 'ciudad', 'metodo_pago'],
@@ -439,7 +448,13 @@ const HERRAMIENTAS = [
              cierra, justo cuando acaba de enseñar lo que quiere. */
           mensaje: {
             type: 'string',
-            description: 'Lo que se le dice al cliente, en tu voz. Reconoce primero lo que pidió —si mandó una foto, di qué viste en ella— y después que lo pasas con alguien del equipo. Dos frases cortas.',
+            /* «Reconoce lo que pidió» se escribió pensando en las fotos, y con
+               una pregunta de texto el modelo lo entendía como repetirla:
+               «Quieres saber dónde estamos ubicados. Te paso con alguien»,
+               «Preguntas si manejamos algún sistema de crédito. Te paso con
+               alguien». Suena a formulario justo donde hace falta que suene a
+               persona. Visto el 31 de agosto de 2026, dos veces en un día. */
+            description: 'Lo que se le dice al cliente, en tu voz. Dos frases cortas. NO le repitas su propia pregunta —ni con otras palabras—: eso se lee como un formulario. Da un paso hacia la respuesta con lo que sí sabes, y luego dile que lo pasas con alguien del equipo. Si mandó una foto, di qué viste en ella.',
           },
         },
         required: ['motivo', 'mensaje'],
@@ -689,6 +704,24 @@ async function ejecutarHerramienta(
              `Díselo, ofrécele lo que sí hay, y vuelve a crear el pedido cuando esté claro.`
     }
 
+    /* El número al que se le va a entregar.
+     *
+     * Normalmente es el de la conversación. Pero hay contactos que llegan sin
+     * teléfono —Meta manda `CO.1287538963396593` cuando el clic viene de
+     * Instagram o Facebook— y con eso en `customer_phone` el pedido sale sin
+     * forma de llamar a nadie: el domiciliario se queda en la puerta sin poder
+     * marcar. Antes de que existiera este freno, el asesor tuvo que pedir el
+     * número a mano, y le costó cuatro mensajes y veinte minutos. */
+    const telefonoDelPedido = esTelefono(telefono)
+      ? telefono
+      : (esTelefono(args?.telefono) ? String(args.telefono).trim() : null)
+
+    if (!telefonoDelPedido) {
+      return 'Esta conversación no trae número de celular, y sin él no se puede coordinar la entrega. ' +
+             'Pídeselo con naturalidad —"¿a qué número te podemos escribir para coordinar la entrega?"— ' +
+             'y vuelve a crear el pedido pasándolo en `telefono`. No inventes uno ni cierres sin él.'
+    }
+
     const contraEntrega = esContraentrega(args.metodo_pago)
 
     /* Se delega en create-preference en vez de insertar acá. Esa función ya
@@ -718,9 +751,10 @@ async function ejecutarHerramienta(
           items,
           buyer: {
             name: args.nombre,
-            phone: telefono,
+            phone: telefonoDelPedido,
             /* Sin correo el pedido sigue: create-preference sólo exige uno de
-               los dos, y por WhatsApp el teléfono siempre está. Lo que se
+               los dos, y el teléfono a estas alturas ya está garantizado —el
+               freno de arriba no deja llegar hasta acá sin uno—. Lo que se
                pierde es el comprobante de Mercado Pago, no la venta. */
             email: args.correo || null,
             address: args.direccion,
@@ -763,6 +797,26 @@ async function ejecutarHerramienta(
       }
 
       if (!res.ok) throw new Error(respuesta?.error || `HTTP ${res.status}`)
+
+      /* Una sola ficha por persona.
+       *
+       * Si la conversación llegó sin número, el cliente acaba de darlo. Se
+       * escribe en LA MISMA fila —la que Meta creó con su identificador— para
+       * que no queden dos: la del identificador, con su nombre y su historia,
+       * y otra que crearía el disparador del pedido con el teléfono suelto.
+       *
+       * El `is('phone', null)` evita pisar un número ya confirmado, y si ese
+       * teléfono ya existe en otra fila la unicidad rechaza el UPDATE: quedan
+       * dos fichas, que es raro y recuperable a mano. Fundirlas automáticamente
+       * sería decidir cuál de los dos nombres y direcciones gana, y eso no lo
+       * puede adivinar el bot. */
+      if (!esTelefono(telefono)) {
+        const { error } = await db.from('customers')
+          .update({ phone: telefonoDelPedido, updated_at: new Date().toISOString() })
+          .eq('wa_id', telefono)
+          .is('phone', null)
+        if (error) console.log('No se pudo enlazar el teléfono con el contacto:', error.message)
+      }
     } catch (e) {
       console.error('create-preference falló:', e instanceof Error ? e.message : e)
       return 'Hubo un problema al registrar el pedido. Discúlpate y usa escalar_a_humano.'

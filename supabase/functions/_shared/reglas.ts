@@ -251,7 +251,67 @@ export function refDelTexto(texto: unknown): string | null {
   return marca ? marca[1].toLowerCase() : null
 }
 
+/**
+ * WhatsApp no escribe negritas como el resto del mundo.
+ *
+ * Usa UN asterisco —`*así*`— y no dos. El modelo aprendió con Markdown de
+ * escritorio y manda `**así**`, que en WhatsApp no se interpreta: la clienta
+ * ve los asteriscos en pantalla. Pasó el 31 de agosto de 2026, en una
+ * conversación de pauta: «el **Anillo de esmeralda y diamantes**».
+ *
+ * Se sanea a la salida y no sólo con una regla en el prompt porque la regla se
+ * olvida y esto no: es el último sitio por donde pasa todo lo que se envía.
+ * Se hace en el orden inverso al de la longitud —primero `***`, luego `**`—
+ * para no dejar asteriscos sueltos.
+ */
+export function comoLoEscribeWhatsApp(texto: string): string {
+  return String(texto ?? '')
+    /* Negrita+cursiva y negrita, a lo que WhatsApp entiende. Sólo si hay algo
+       adentro y no hay salto de línea: un `**` suelto o una lista con
+       asteriscos no es una negrita a medio escribir. */
+    .replace(/\*\*\*(?=\S)([^\n*]+?)(?<=\S)\*\*\*/g, '*_$1_*')
+    .replace(/\*\*(?=\S)([^\n*]+?)(?<=\S)\*\*/g, '*$1*')
+    /* Markdown de subrayado: `__x__` es negrita en Markdown y nada en
+       WhatsApp; `_x_` sí es cursiva en los dos, así que se respeta. */
+    .replace(/__(?=\S)([^\n_]+?)(?<=\S)__/g, '*$1*')
+}
+
 /* ── Teléfonos ───────────────────────────────────────────────────────── */
+
+/**
+ * ¿Esto es un teléfono, o un identificador opaco de Meta?
+ *
+ * Desde el 31 de agosto de 2026 no todo el que escribe llega con número.
+ * Cuando el clic viene de Instagram o de Facebook, Meta manda a veces un
+ * **identificador de alcance de negocio** en vez del teléfono:
+ *
+ *     573105599570          ← teléfono
+ *     CO.1287538963396593   ← identificador, y no hay número por ningún lado
+ *
+ * Responderle a uno de ésos funciona —`wa.ts` lo manda en `recipient` y no en
+ * `to`—, pero **guardarlo donde va un teléfono es lo que rompe cosas**, y en
+ * silencio: los clientes se deduplican por los últimos diez dígitos, así que
+ * `CO.1287538963396593` entra a la tabla con la clave `8963396593`. Hoy no
+ * choca con nadie porque los móviles colombianos empiezan por 3 y esa clave
+ * no — pero eso es suerte, no diseño. El día que llegue uno que termine en
+ * diez dígitos empezando por 3, esa persona se funde con una clienta real y
+ * quedan las dos en una sola ficha.
+ *
+ * Y un pedido con eso en `customer_phone` es un pedido que nadie puede llamar
+ * para coordinar la entrega.
+ *
+ * Entre 10 y 15 dígitos: diez es un móvil colombiano sin indicativo —el mismo
+ * criterio del índice único de `customers`— y quince es el tope de E.164.
+ */
+export function esTelefono(v: unknown): boolean {
+  const s = String(v ?? '').trim()
+  if (!s) return false
+  /* Un identificador trae letras o puntos; un teléfono, sólo dígitos y los
+     adornos con los que la gente los escribe. */
+  if (!/^\+?[\d\s()-]+$/.test(s)) return false
+  const digitos = s.replace(/\D/g, '')
+  return digitos.length >= 10 && digitos.length <= 15
+}
 
 /**
  * El mismo número entra de tres formas según por dónde llegue: `3143602930`
