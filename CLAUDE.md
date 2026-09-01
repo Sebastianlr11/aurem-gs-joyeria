@@ -39,7 +39,7 @@ npm run dev          # Vite en http://localhost:5173
 npm run build        # eslint && vitest && sitemap.mjs && correos.mjs && tsc -b && vite build
 npm run preview      # Sirve /dist
 npm run lint         # ESLint (sí corre en el build)
-npm test             # Vitest, una pasada (332 pruebas)
+npm test             # Vitest, una pasada (335 pruebas)
 npm run test:mirar   # Vitest en marcha, repitiendo al guardar
 
 npm run sitemap      # Regenera public/sitemap.xml desde Supabase
@@ -74,7 +74,7 @@ Cuatro advertencias sobre el build:
 
 ### Las pruebas
 
-Hay **332**, en veintitrés archivos que viven al lado de lo que prueban:
+Hay **335**, en veintitrés archivos que viven al lado de lo que prueban:
 
 | Archivo | Qué fija |
 |---|---|
@@ -230,6 +230,9 @@ Módulos compartidos en `supabase/functions/_shared/`:
   duplicarlo sería garantizar que algún día lleven a sitios distintos
 - `pedidos.ts` (79 l.) — qué piezas lleva un pedido, listas para enseñar. Aparte por lo
   mismo: lo usan el correo de confirmación y el de despacho
+- `correos.ts` — la confirmación por correo de un pedido. Aparte porque la mandan dos
+  momentos que no se conocen: `mp-webhook` cuando entra un pago, y `create-preference`
+  cuando un contraentrega de Bogotá nace confirmado sin pagar nada
 - `reglas.ts` — la lógica de Valentina **sin nada de Deno dentro**: la talla, la cotización
   del oro, la atribución, los teléfonos y el parseo de lo que el modelo pide al tomar un
   pedido. Existe para poder probarla: son las tres cosas del
@@ -855,6 +858,17 @@ Cosas que ya costaron un incidente. Léelas antes de tocar lo que describen.
 - **`products.metal` es texto libre y hay cinco formas de decir «oro»** —`Oro`, `Oro 18k`,
   `Oro blanco 18k`, `Oro y plata 925`, `Plata 925 y oro`—. No es sólo estética: es lo que el
   bot lee para decidir qué ofrecer, y lo que agrupa el filtro del catálogo.
+- **Un pedido sin pago no dispara `mp-webhook`, y ahí vivía el aviso a la clienta.** El
+  correo de confirmación lo mandaba el webhook al entrar el dinero. Con el contraentrega sin
+  abono no entra dinero, así que **nadie avisaba**: la clienta se comprometía a pagar en su
+  puerta y no le quedaba nada por escrito. Lo manda `create-preference` al nacer el pedido,
+  con `avisarPorCorreo()` de `_shared/correos.ts`. **Si añades otra forma de que nazca un
+  pedido, mira quién avisa**: no es el que cobra, es el que confirma.
+- **La plantilla `pedido-confirmado` tiene TRES casos, no dos.** Abonó / no pagó nada y paga
+  todo al recibir / pagó completo en línea. El del medio se añadió el 1 de septiembre de
+  2026: sin él, el correo le decía «recibimos tu pago completo» a alguien que no había
+  pagado un peso. Lo decide la bandera `contraentrega` que manda `correos.ts`, no el
+  `abono`.
 - **La ventana de WhatsApp se cierra a las 24 h.** Pasado ese plazo sólo se puede
   escribir con plantillas aprobadas por Meta.
 - **El modo prueba puede quemar plantillas.** Un pedido `es_prueba` que dispara una

@@ -16,25 +16,22 @@ import { STATUS_META } from './comunes';
 import { StatusBadge } from './piezas';
 
 /* Un pedido de ejemplo por camino, para que las frases salgan con cifras y no
-   con huecos. $550.000 y $20.000 de abono son un pedido típico de la tienda. */
-const EJEMPLO_COD = { amount: 550_000, payment_method: 'contraentrega', abono_monto: 20_000, carrier: 'Interrapidísimo' };
+   con huecos. $250.000 sin abono es el pedido típico de la tienda desde el 1
+   de septiembre de 2026: en Bogotá el contraentrega no cobra nada por
+   adelantado. `abono_monto: null` es como lo guarda create-preference. */
+const EJEMPLO_COD = { amount: 250_000, payment_method: 'contraentrega', abono_monto: null, carrier: 'Interrapidísimo' };
 const EJEMPLO_LINEA = { amount: 550_000, payment_method: 'mercadopago', carrier: 'Interrapidísimo' };
 
 const CAMINOS = [
     {
         id: 'cod',
-        titulo: 'Contraentrega con abono',
-        nota: 'Casi todos los pedidos. Abona el envío para confirmar y paga el resto en la puerta.',
+        titulo: 'Contraentrega',
+        nota: 'Casi todos los pedidos. En Bogotá no abona nada: paga todo cuando recibe la pieza.',
         ejemplo: EJEMPLO_COD,
         pasos: [
             {
-                estado: 'pendiente',
-                quien: 'Lo pone el sistema solo, cuando entra el pedido',
-                boton: null,
-            },
-            {
                 estado: 'confirmado',
-                quien: 'Lo pone Mercado Pago solo, cuando ella paga el abono del envío',
+                quien: 'Lo pone el sistema solo: sin abono que esperar, el pedido nace confirmado',
                 boton: null,
             },
             {
@@ -194,8 +191,8 @@ const GuiaDelCircuito = () => (
         </div>
         <p className="guia-intro">
             Un pedido recorre un camino distinto según cómo se pague. Lo de abajo son los dos
-            caminos, en orden, con lo que hace cada botón. Los ejemplos usan un pedido
-            de $550.000 con $20.000 de abono.
+            caminos, en orden, con lo que hace cada botón. El contraentrega usa un pedido
+            de $250.000, que en Bogotá no abona nada; el de pago en línea, uno de $550.000.
         </p>
 
         <div className="guia-caminos">

@@ -3,6 +3,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { enviarTexto, enviarPlantilla, ventanaAbierta, numeroPropioDe } from '../_shared/wa.ts'
 import { avisarVenta } from '../_shared/conversiones.ts'
 import { piezasDelPedido } from '../_shared/pedidos.ts'
+import { avisarPorCorreo } from '../_shared/correos.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -459,62 +460,4 @@ async function pagoAprobadoDe(ordenId: string, token: string): Promise<string | 
   return null
 }
 
-/**
- * Le pide a la función de Vercel que mande la confirmación por correo.
- *
- * Trae la foto y la ficha de la pieza porque el correo las enseña: una
- * tarjeta con el nombre a secas se lee como una factura, y en una joyería el
- * producto es la mitad del mensaje. Si la consulta falla, el correo sale
- * igual con el rombo de la marca en vez de la foto — mejor eso que no
- * mandarlo.
- */
-async function avisarPorCorreo(
-  orden: Record<string, any>,
-  orderId: string,
-  esAbono: boolean,
-  piezas: PiezaDePedido[],
-) {
-  const base = Deno.env.get('APP_URL') ?? 'https://www.auremgsjoyeria.com'
-  const secreto = Deno.env.get('CORREO_SECRETO')
-  if (!secreto) {
-    console.error('correo: falta CORREO_SECRETO, no se manda')
-    return
-  }
 
-  /* La referencia que ve la clienta es la misma que enseña la ficha de la
-     pieza en el sitio. Si acá saliera otra, un reclamo por correo y otro por
-     WhatsApp parecerían dos pedidos distintos. */
-  const referencia = `AG-${String(orden.product_id).replace(/\D/g, '').slice(-4).padStart(4, '0')}`
-
-  const fecha = new Date().toLocaleDateString('es-CO', {
-    day: 'numeric', month: 'long', year: 'numeric', timeZone: 'America/Bogota',
-  })
-
-  const res = await fetch(`${base}/api/correo`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-correo-secreto': secreto },
-    body: JSON.stringify({
-      plantilla: 'pedido-confirmado',
-      para: orden.customer_email,
-      /* La referencia del pedido y no la de la pieza: es lo que hace que un
-         reenvío del webhook no mande el correo dos veces. */
-      referencia: orderId,
-      datos: {
-        nombre: orden.customer_name,
-        pieza: orden.product_name,
-        referencia,
-        total: Number(orden.amount),
-        abono: esAbono ? Number(orden.abono_monto) : null,
-        ciudad: orden.shipping_city ?? 'Colombia',
-        direccion: orden.shipping_address ?? '',
-        piezas,
-        fecha,
-      },
-    }),
-  })
-
-  if (!res.ok) {
-    throw new Error(`api/correo respondió ${res.status}: ${(await res.text()).slice(0, 160)}`)
-  }
-  console.log('Confirmación por correo enviada:', orderId)
-}
