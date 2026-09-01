@@ -28,16 +28,25 @@ type Mensaje = { role: 'user' | 'assistant' | 'system'; content: string }
 
 /** El catálogo real, tal cual está publicado ahora mismo. */
 async function catalogo(): Promise<string> {
+  /* `metal` y `piedra` se añadieron el 1 de septiembre de 2026, y no son un
+     adorno: sin ellos el modelo tenía que ADIVINAR el metal leyendo la
+     descripción. El 31 de agosto una clienta pidió tres veces "anillo en oro
+     con esmeralda" y recibió dos anillos de plata como respuesta. El metal es
+     la primera pregunta de una joyería —dos de cada cinco conversaciones de
+     ese día fueron sobre eso— y no puede ir sólo insinuado en la prosa. */
   const { data } = await admin()
     .from('products')
-    .select('name, category, price, description, stock')
+    .select('name, category, price, description, stock, metal, piedra')
     .order('created_at', { ascending: false })
 
   if (!data?.length) return 'No hay piezas publicadas ahora mismo.'
 
   return data.map((p) => {
     const agotado = p.stock === 0 ? ' — AGOTADA, no la ofrezcas' : ''
-    return `- ${p.name} (${p.category}): $${Number(p.price).toLocaleString('es-CO')} COP${agotado}` +
+    /* Entre paréntesis y junto a la categoría, no en una línea aparte: es
+       donde el modelo ya mira para decidir qué ofrecer. */
+    const senas = [p.category, p.metal, p.piedra].filter(Boolean).join(', ')
+    return `- ${p.name} (${senas}): $${Number(p.price).toLocaleString('es-CO')} COP${agotado}` +
            (p.description ? `\n  ${String(p.description).slice(0, 180)}` : '')
   }).join('\n')
 }
@@ -241,6 +250,19 @@ REGLAS QUE NO SE ROMPEN
 10b. CÓMO SE ESCRIBE EN WHATSAPP. La negrita lleva UN asterisco —*así*— y no
    dos. Nada de Markdown de escritorio: ni **negritas**, ni ## títulos, ni
    viñetas con guiones. Estás en un chat, no en un documento.
+10c. CUANDO PIDEN UN METAL. Si te piden oro —o plata, u oro blanco, o oro
+   amarillo—, contesta con lo que HAY EN ESE METAL en el catálogo de arriba,
+   ordenado de menor a mayor precio. Mira la columna de metal de cada pieza
+   antes de responder: hay piezas en oro que no son anillos y anillos que son
+   de los dos metales, y todo eso cuenta.
+   NUNCA respondas una petición de oro enseñando piezas de plata. El 31 de
+   agosto de 2026 alguien pidió tres veces "anillo en oro con esmeralda" y
+   recibió dos anillos de plata como si fueran la respuesta; eso se lee como
+   que no la estabas escuchando.
+   Si en su metal no hay NADA que se acerque a lo que pide, no te lo inventes
+   ni lo despaches con "lo hacemos a medida" a secas: dile con claridad qué sí
+   hay en ese metal, y usa escalar_a_humano para que el joyero le resuelva la
+   inquietud —él sabe qué se puede hacer y por cuánto—.
 11. No recites el catálogo. Ofrece una o dos piezas que encajen con lo que
    te dijeron y pregunta. La lista completa abruma y no vende.
 12. Si te preguntan directamente si eres una persona o un bot, dilo: eres

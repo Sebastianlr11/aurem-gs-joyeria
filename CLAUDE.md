@@ -417,6 +417,7 @@ nombre es el identificador que la base ya tiene anotado.
 | `20260831_de_que_joya_viene_el_lead.sql` | `ajustes_internos.anuncios_piezas`: de qué pieza es cada anuncio, para que Valentina abra nombrándola |
 | `20260831_una_valentina_a_la_vez.sql` | `tomar_turno`/`soltar_turno`: dos corridas del bot le contestaban a la vez a la misma persona |
 | `20260901_no_todo_el_que_escribe_trae_numero.sql` | `customers.wa_id`: Meta manda contactos sin teléfono y se estaban guardando como si lo fueran |
+| `20260901_lo_que_valentina_no_sabia_contestar.sql` | Dónde estamos y crédito: dos preguntas del primer día de pauta que escalaban sin necesidad |
 
 `20260822_cerrar_conversaciones_a_anon.sql` cerró el fallo más grave de todos:
 `whatsapp_conversaciones` y `chat_takeover` tenían políticas
@@ -824,6 +825,15 @@ Cosas que ya costaron un incidente. Léelas antes de tocar lo que describen.
   porque la regla se olvida y el saneador no. Se aplica antes de trocear y antes de enviar;
   si tocas esa función, mira sus pruebas: lo que importa es lo que NO debe convertir (una
   lista con viñetas de asterisco, `2 ** 3`, un asterisco suelto).
+- **El catálogo que lee Valentina no traía el metal, y por eso lo adivinaba.** `catalogo()`
+  le pasaba nombre, categoría, precio y descripción; el metal sólo estaba insinuado en la
+  prosa de la descripción. El 31 de agosto de 2026 una clienta pidió tres veces «anillo en
+  oro con esmeralda» y recibió dos anillos de plata. Desde el 1 de septiembre van `metal` y
+  `piedra` como datos. **Si añades un atributo por el que la gente pregunte, tiene que ir
+  ahí**: lo que no está en ese texto, el modelo lo deduce, y deducir es inventar.
+- **`products.metal` es texto libre y hay cinco formas de decir «oro»** —`Oro`, `Oro 18k`,
+  `Oro blanco 18k`, `Oro y plata 925`, `Plata 925 y oro`—. No es sólo estética: es lo que el
+  bot lee para decidir qué ofrecer, y lo que agrupa el filtro del catálogo.
 - **La ventana de WhatsApp se cierra a las 24 h.** Pasado ese plazo sólo se puede
   escribir con plantillas aprobadas por Meta.
 - **El modo prueba puede quemar plantillas.** Un pedido `es_prueba` que dispara una
