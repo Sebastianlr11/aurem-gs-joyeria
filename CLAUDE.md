@@ -423,6 +423,8 @@ nombre es el identificador que la base ya tiene anotado.
 | `20260901_no_todo_el_que_escribe_trae_numero.sql` | `customers.wa_id`: Meta manda contactos sin teléfono y se estaban guardando como si lo fueran |
 | `20260901_lo_que_valentina_no_sabia_contestar.sql` | Dónde estamos y crédito: dos preguntas del primer día de pauta que escalaban sin necesidad |
 | `20260901_el_contraentrega_ya_no_pide_abono.sql` | El abono a cero: en Bogotá se paga todo al recibir, y el pedido nace confirmado |
+| `20260902_el_indice_parcial_rompia_el_upsert.sql` | Un índice parcial no se puede inferir en un `ON CONFLICT`: los contactos sin teléfono no se guardaban |
+| `20260902_en_bogota_el_envio_ya_no_se_cobra.sql` | Valentina seguía cobrando $15.000 de envío en Bogotá, donde entrega el taller |
 
 `20260822_cerrar_conversaciones_a_anon.sql` cerró el fallo más grave de todos:
 `whatsapp_conversaciones` y `chat_takeover` tenían políticas
@@ -859,6 +861,15 @@ Cosas que ya costaron un incidente. Léelas antes de tocar lo que describen.
 - **`products.metal` es texto libre y hay cinco formas de decir «oro»** —`Oro`, `Oro 18k`,
   `Oro blanco 18k`, `Oro y plata 925`, `Plata 925 y oro`—. No es sólo estética: es lo que el
   bot lee para decidir qué ofrecer, y lo que agrupa el filtro del catálogo.
+- **Un índice PARCIAL no sirve para un `ON CONFLICT`.** Postgres no lo puede inferir a menos
+  que la sentencia repita su predicado, y PostgREST no lo repite. `customers_wa_id_unico`
+  nació parcial —`where wa_id is not null`, que parecía lo prolijo— y dejó fallando el
+  `upsert` de todo contacto que llega sin teléfono, **en silencio**, un día entero. En una
+  columna que admite nulos, el índice único normal ya hace lo que hace falta: los nulos son
+  distintos entre sí y conviven sin chocar.
+- **Un guardado que se cae sin decirlo no se descubre nunca.** Ese `upsert` no miraba su
+  `error`. Ahora sí. Si escribes un guardado que «no importa si falla», al menos que lo
+  cuente al registro.
 - **Al cambiar cómo NACE un pedido, mira `ESTADOS_VIGILADOS` en `vigilancia`.** El vigía
   sólo persigue los estados de esa lista, y al quitar el abono los pedidos dejaron de nacer
   en `pendiente` —vigilado— para nacer en `confirmado`, que no lo estaba: el estado en el que
