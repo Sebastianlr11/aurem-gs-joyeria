@@ -230,8 +230,15 @@ Deno.serve(async (req: Request) => {
        Guardarlo en `phone` rompe la deduplicación por diez dígitos y en
        silencio — ver 20260901_no_todo_el_que_escribe_trae_numero.sql. */
     const columna = esTelefono(telefono) ? 'phone' : 'wa_id'
-    await db.from('customers')
+    const { error } = await db.from('customers')
       .upsert({ name: nombre, [columna]: telefono }, { onConflict: columna, ignoreDuplicates: true })
+
+    /* Se mira el error, y no es celo: sin esto el 1 de septiembre de 2026 un
+       índice parcial hizo fallar este upsert para TODOS los contactos que
+       llegan sin teléfono, y no se supo hasta mirar a mano por qué a esas
+       fichas les faltaba el nombre. Un guardado que se cae sin decirlo no se
+       descubre nunca. */
+    if (error) console.error(`No se pudo guardar el contacto (${columna}):`, error.message)
   }
 
   /* Un sticker, una ubicación, una encuesta, un video de una sola vista: nada
