@@ -88,7 +88,11 @@ export default function ChatEscalado({ nombre, telefono, motivo, ultimos, hora }
             <table role="presentation" cellPadding={0} cellSpacing={0} border={0}>
               <tbody>
                 <tr>
-                  <Boton href={`${SITIO}/admin/chat`}>Abrir la conversación</Boton>
+                  {/* Con el teléfono, no a la lista pelada: el botón abre ESE
+                      chat. Sin `?tel=` dejaba al joyero en una bandeja de
+                      treinta conversaciones buscando cuál era, y por eso
+                      terminaba escribiéndole desde su WhatsApp personal. */}
+                  <Boton href={`${SITIO}/admin/chat?tel=${encodeURIComponent(telefono)}`}>Abrir la conversación</Boton>
                 </tr>
               </tbody>
             </table>

@@ -248,6 +248,22 @@ ${cod.abono === 0
    rechaza, así que ofrecerlo sólo consigue que quedes mal.
 7. Si te piden algo que no puedes resolver —un reclamo, un cambio, un precio
    especial, hablar con una persona— usa escalar_a_humano y dilo con calma.
+7b. Y ESCALA TAMBIÉN EN ESTOS CASOS, que salieron todos de conversaciones
+   reales de la primera semana de pauta:
+   - **Quilates, peso o calidad de la piedra.** El catálogo no trae el peso
+     en quilates de las esmeraldas, así que no lo tienes y no se deduce. El
+     joyero sí lo sabe.
+   - **Cualquier pregunta técnica de joyería** que no esté en lo de arriba:
+     el tipo de engaste, la aleación, si se puede cambiar la piedra, si se
+     puede grabar, cómo se repara. Estás hablando con gente que a veces sabe
+     del oficio.
+   - **«No me alcanza» o un presupuesto por debajo de lo publicado.** NO
+     bajes de pieza en pieza buscando la más barata: eso convierte la
+     conversación en un descuento que no puedes dar. Reconoce lo que te dijo,
+     dile que le pasas con alguien que puede mirar opciones, y escala.
+   La regla que las une: **tú atiendes, el joyero cierra lo que se sale del
+   catálogo.** No te disculpes al pasar el chat ni lo hagas sonar a que no
+   sabes; es que hay alguien que sabe más y va a contestarle mejor.
 8. No prometas descuentos que no estén en esta lista.
 9. EL NOMBRE, UNA SOLA VEZ. Pregúntalo con naturalidad — "¿con quién tengo
    el gusto?" — pero **después** de haberle mostrado algo, no antes: primero
@@ -292,8 +308,12 @@ ${cod.abono === 0
    ninguna de las catorce se mencionó que no hay que pagar nada por
    adelantado. Estás enseñando un catálogo cuando lo que hace falta es
    vender, y son personas que llegaron por un anuncio que ya se pagó.
-   Cuando alguien mire una pieza con interés —la nombra, pregunta el precio,
-   pide ver más, dice que le gusta— haz DOS cosas en el mismo mensaje:
+   PROPONES EL PEDIDO SÓLO SI SE DAN LAS TRES: es una pieza del catálogo, la
+   persona está en Bogotá, y no hay ninguna pregunta abierta que no sepas
+   contestar. Si falta cualquiera de las tres, atiende y escala — no cierres.
+   Cuando sí se den, y alguien mire una pieza con interés —la nombra,
+   pregunta el precio, pide ver más, dice que le gusta— haz DOS cosas en el
+   mismo mensaje:
    - **Dile lo que se lleva sin arriesgar nada.** En Bogotá no paga un peso
      hasta tener la pieza en la mano. Es el mejor argumento que tenemos con
      alguien que no nos conoce, y no lo estás usando NUNCA.
@@ -1077,9 +1097,28 @@ async function avisarPorWhatsApp(
   if (!numeros.length) return   // nadie configurado: el correo ya salió
 
   const quien = String(nombre ?? '').trim() || telefono
-  /* Meta rechaza una variable vacía y corta los mensajes largos: el motivo
-     lo escribe el modelo y puede irse de largo. */
-  const porque = motivo.trim().slice(0, 180) || 'Sin motivo anotado'
+
+  /* El motivo, y detrás el enlace que abre ESE chat en el panel.
+   *
+   * Hasta el 6 de septiembre de 2026 el aviso traía el nombre del cliente y
+   * nada más, así que el joyero copiaba el número y le escribía desde su
+   * WhatsApp personal. Funcionaba para el cliente y no para nadie más: el
+   * panel no se enteraba de lo hablado, los chats se quedaban marcados como
+   * «esperando» para siempre, y una venta cerrada así no existía para Meta
+   * —ni pedido, ni conversión, ni atribución al anuncio que la trajo—.
+   *
+   * El enlace es lo único que pone el panel en su camino. Va dentro del
+   * parámetro del motivo porque la plantilla `aviso_equipo` ya está aprobada
+   * con tres variables de texto y crear una nueva con botón de URL cuesta uno
+   * o dos días de revisión de Meta. Si algún día Meta deja de aceptar URLs en
+   * un parámetro, ése es el camino: plantilla nueva con botón. */
+  const base = (Deno.env.get('APP_URL') ?? 'https://www.auremgsjoyeria.com').replace(/\/$/, '')
+  const enlace = `${base}/admin/chat?tel=${encodeURIComponent(telefono)}`
+
+  /* Meta rechaza una variable vacía y corta los mensajes largos: el motivo lo
+     escribe el modelo y puede irse de largo. Se recorta para dejarle sitio al
+     enlace, que es lo que de verdad hay que poder tocar. */
+  const porque = `${motivo.trim().slice(0, 120) || 'Sin motivo anotado'} · Ábrelo acá: ${enlace}`
 
   for (const numero of numeros) {
     const envio = await enviarPlantilla(
