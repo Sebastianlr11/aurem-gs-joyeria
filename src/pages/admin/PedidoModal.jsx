@@ -18,6 +18,7 @@
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '../../lib/supabase';
+import { laVentaEntro } from '../../lib/dinero';
 
 const ESTADOS = [
     { id: 'pendiente', label: 'Pendiente' },
@@ -105,11 +106,19 @@ const Campo = ({ etiqueta, requerido, apunte, children }) => (
     </div>
 );
 
-export default function PedidoModal({ order, products = [], onClose, onSaved }) {
+/**
+ * @param inicial     datos con los que arranca un pedido nuevo — el nombre y el
+ *                    WhatsApp del chat desde el que se registra
+ * @param atribucion  `{ ctwa_clid, anuncio_id }` de la conversación. Es lo que
+ *                    permite que Meta le acredite la venta al anuncio que la
+ *                    trajo; sin esto un pedido registrado a mano queda anotado
+ *                    en el panel y mudo para las campañas.
+ */
+export default function PedidoModal({ order, products = [], onClose, onSaved, inicial, atribucion }) {
     const isEdit = !!order?.id;
 
     const [form, setForm] = useState(() => {
-        if (!isEdit) return { ...VACIO };
+        if (!isEdit) return { ...VACIO, ...(inicial || {}) };
         return {
             ...VACIO, ...order,
             product_id: order.product_id || '',
@@ -205,7 +214,19 @@ export default function PedidoModal({ order, products = [], onClose, onSaved }) 
                hueco, no para auditar ediciones. */
             costo_anotado_en: hayCosto ? (order?.costo_anotado_en || new Date().toISOString()) : null,
         };
-        if (!isEdit) payload.order_source = 'manual';
+        if (!isEdit) {
+            payload.order_source = 'manual';
+            /* La atribución de la conversación, si la trae.
+             *
+             * Va SÓLO al crear: en una edición sobrescribiría la que el pedido
+             * ya tenga —la del checkout de la web, por ejemplo— con la del
+             * chat, y esa venta se le acreditaría al anuncio equivocado.
+             *
+             * Y sólo lo que exista: escribir `null` encima de un identificador
+             * bueno es perderlo. */
+            if (atribucion?.ctwa_clid) payload.ctwa_clid = atribucion.ctwa_clid;
+            if (atribucion?.anuncio_id) payload.anuncio_id = atribucion.anuncio_id;
+        }
 
         let err, creado = null;
         try {
@@ -231,8 +252,15 @@ export default function PedidoModal({ order, products = [], onClose, onSaved }) 
            su candado y la cancelación además exige que la venta se haya avisado
            antes, así que no pasa nada si esto se dispara de más. */
         const id = isEdit ? order.id : creado?.id;
+        /* `laVentaEntro` y no `status === 'pagado'`, que es lo que decía antes.
+           En contraentrega `pagado` no significa que entró la plata —el abono,
+           cuando lo había, no era la venta— y lo que cuenta es `entregado`. Con
+           la condición vieja, una venta cerrada por WhatsApp y registrada a
+           mano como entregada **no le llegaba a Meta**, que es justo lo único
+           que este formulario viene a arreglar. La regla vive en dinero.js
+           porque la comparte con el botón de estado de la tabla de Pedidos. */
         const aviso =
-            form.status === 'pagado'    ? {} :
+            laVentaEntro({ payment_method: form.payment_method }, form.status) ? {} :
             form.status === 'cancelado' ? { evento: 'cancelacion' } : null;
 
         if (id && aviso) {

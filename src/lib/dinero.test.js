@@ -16,6 +16,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import {
+    laVentaEntro,
     esContraentrega,
     recibidoDe,
     porCobrarDe,
@@ -352,5 +353,44 @@ describe('netoRecibidoDe', () => {
     it('sin pedido no revienta', () => {
         expect(netoRecibidoDe(null)).toBe(0);
         expect(costoDePasarelaDe(undefined)).toBe(0);
+    });
+});
+
+/**
+ * Cuándo se le cuenta la venta a los anuncios.
+ *
+ * Esta regla decide si Meta y TikTok se enteran de una venta. Se prueba
+ * porque falla en las dos direcciones y ninguna se ve: si dice que no cuando
+ * sí, la campaña nunca aprende de las ventas que trajo; si dice que sí cuando
+ * no, se le cuenta una venta que no ocurrió y no hay forma de descontarla.
+ */
+describe('laVentaEntro', () => {
+    const linea = (status) => ({ status, payment_method: 'mercadopago' });
+    const cod = (status) => ({ status, payment_method: 'contraentrega' });
+
+    it('en pago en línea, la venta entra al quedar pagado', () => {
+        expect(laVentaEntro(linea('pagado'))).toBe(true);
+        for (const otro of ['pendiente', 'confirmado', 'procesando', 'enviado', 'entregado', 'cancelado'])
+            expect(laVentaEntro(linea(otro)), otro).toBe(false);
+    });
+
+    /* El error que esta regla existe para evitar: en contraentrega, `pagado`
+       NO es la venta —el abono nunca lo fue— y `entregado` sí. */
+    it('en contraentrega, la venta entra al entregarse', () => {
+        expect(laVentaEntro(cod('entregado'))).toBe(true);
+        for (const otro of ['pendiente', 'confirmado', 'procesando', 'enviado', 'devuelto', 'cancelado'])
+            expect(laVentaEntro(cod(otro)), otro).toBe(false);
+    });
+
+    /* Se le puede pasar un estado aparte para preguntar por uno al que
+       todavía no ha cambiado: es como lo usa el botón del panel. */
+    it('acepta un estado distinto al que trae el pedido', () => {
+        expect(laVentaEntro(cod('enviado'), 'entregado')).toBe(true);
+        expect(laVentaEntro(linea('pendiente'), 'pagado')).toBe(true);
+    });
+
+    it('sin pedido no cuenta nada', () => {
+        expect(laVentaEntro(null)).toBe(false);
+        expect(laVentaEntro(undefined)).toBe(false);
     });
 });

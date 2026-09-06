@@ -77,6 +77,26 @@ export function porCobrarDe(pedido) {
 }
 
 /**
+ * ¿Este estado significa que la venta se consumó?
+ *
+ * Es lo que decide si se le cuenta la venta a Meta y a TikTok, y por eso vive
+ * acá y no suelta en la pantalla que la usa: la usan DOS sitios que no se
+ * conocen —el botón que cambia el estado de un pedido y el formulario que
+ * registra a mano una venta cerrada por WhatsApp— y con la regla escrita dos
+ * veces, un día una de las dos deja de contar ventas y nadie lo nota.
+ *
+ * En pago en línea, `pagado` es el final: el dinero entró.
+ * En contraentrega, `pagado` no significa nada parecido —el abono, cuando lo
+ * había, no es la venta— y lo que cuenta es `entregado`, que es cuando el
+ * cliente puso la plata en la mano.
+ *
+ * NO vale para el contraentrega sin abono creado desde la web: ése ya se le
+ * contó a Meta al nacer, y para eso está el candado `conversion_enviada_en`.
+ */
+export const laVentaEntro = (pedido, estado = pedido?.status) =>
+  estado === 'pagado' || (esContraentrega(pedido) && estado === 'entregado');
+
+/**
  * Un pedido que sigue vivo: alguien se comprometió y la historia no ha
  * terminado.
  *

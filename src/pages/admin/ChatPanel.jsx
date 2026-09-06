@@ -12,6 +12,8 @@ import { MESES_PURGA, normalizePhone, sortMessages, truncate } from './chat/comu
 import { AvisosDeChat, ChatErrorBoundary, VisorDeFoto } from './chat/piezas';
 import { useAvisos, useFichaDelContacto, useResumenDelHilo, useSeleccion, useVisorDeFotos } from './chat/ganchos';
 import FichaDelContacto from './chat/FichaDelContacto';
+import PedidoModal from './PedidoModal';
+import { traerAtribucionDelChat } from '../../lib/atribucionDelChat';
 import SelectorDeImagen from './chat/SelectorDeImagen';
 import FilaDeContacto from './chat/FilaDeContacto';
 import CabeceraDeContactos from './chat/CabeceraDeContactos';
@@ -36,6 +38,10 @@ const ChatPanel = () => {
        escribía desde su WhatsApp personal — y el panel nunca se enteraba de
        nada de lo que se hablaba. */
     const [parametros, setParametros] = useSearchParams();
+    /* El pedido que se está registrando desde un chat: los datos con los que
+       arranca y la atribución de esa conversación. `null` mientras no haya
+       ninguno abierto. */
+    const [pedidoDesdeChat, setPedidoDesdeChat] = useState(null);
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
@@ -962,6 +968,28 @@ const ChatPanel = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps -- selectContact se redefine en cada render y meterla obligaría a memorizarla para nada: lo que dispara esto es que llegue el parámetro o que carguen los contactos.
     }, [telPedido, contacts.length]);
 
+    /* Abre el pedido con lo que ya se sabe de esa conversación.
+     *
+     * La atribución se busca ANTES de abrir el modal y no al guardar: si la
+     * consulta falla o tarda, es mejor que el joyero lo vea al abrir —y que el
+     * pedido se cree igual, sin ella— que perderla en silencio justo al
+     * guardar, que es el momento en que nadie mira. */
+    const registrarPedido = async (telefono) => {
+        const contacto = contacts.find(c => c.phone_number === telefono);
+        const atribucion = await traerAtribucionDelChat(supabase, telefono);
+
+        setPedidoDesdeChat({
+            inicial: {
+                customer_name: contacto?.customer_name || '',
+                /* El teléfono como lo tiene WhatsApp. `sync_customer_from_order`
+                   deduplica por los últimos diez dígitos, así que no hay que
+                   darle formato para que encuentre a la persona. */
+                customer_phone: telefono || '',
+            },
+            atribucion,
+        });
+    };
+
     if (!session) return null;
 
     const activeContactData = contacts.find(c => c.phone_number === activeContact);
@@ -971,6 +999,15 @@ const ChatPanel = () => {
 
     return (
         <>
+        {pedidoDesdeChat && (
+            <PedidoModal
+                products={products}
+                inicial={pedidoDesdeChat.inicial}
+                atribucion={pedidoDesdeChat.atribucion}
+                onClose={() => setPedidoDesdeChat(null)}
+                onSaved={() => { setPedidoDesdeChat(null); ficha.recargar?.(); }}
+            />
+        )}
         <div className="admin-layout">
             <AdminSidebar session={session} activeId="chat" onNavClick={handleNavClick} chatUnread={totalUnreadMemo} />
 
@@ -1229,6 +1266,7 @@ filteredContacts.map(c => (
                                             onCerrar={() => setShowContactInfo(false)}
                                             onPonerEtiqueta={handleAddTag}
                                             onQuitarEtiqueta={handleRemoveTag}
+                                            onRegistrarPedido={registrarPedido}
                                         />
                                     )}
                                 </div>

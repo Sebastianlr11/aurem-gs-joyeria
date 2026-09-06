@@ -39,7 +39,7 @@ npm run dev          # Vite en http://localhost:5173
 npm run build        # eslint && vitest && sitemap.mjs && correos.mjs && tsc -b && vite build
 npm run preview      # Sirve /dist
 npm run lint         # ESLint (sí corre en el build)
-npm test             # Vitest, una pasada (342 pruebas)
+npm test             # Vitest, una pasada (351 pruebas)
 npm run test:mirar   # Vitest en marcha, repitiendo al guardar
 
 npm run sitemap      # Regenera public/sitemap.xml desde Supabase
@@ -74,7 +74,7 @@ Cuatro advertencias sobre el build:
 
 ### Las pruebas
 
-Hay **342**, en veinticuatro archivos que viven al lado de lo que prueban:
+Hay **351**, en veinticinco archivos que viven al lado de lo que prueban:
 
 | Archivo | Qué fija |
 |---|---|
@@ -96,6 +96,7 @@ Hay **342**, en veinticuatro archivos que viven al lado de lo que prueban:
 | `src/lib/nombreUnico.test.js` | Que dos nombres no se confundan y dejen a Valentina sin fotos |
 | `src/lib/fotoProducto.test.js` | Que la foto que se precarga sea la misma que se pinta |
 | `emails/_render.test.ts` | El asunto de cada correo, que no vive en la plantilla |
+| `src/lib/atribucionDelChat.test.js` | Que una venta cerrada por WhatsApp vuelva a la campaña que la trajo |
 
 **Una de ellas no comprueba código, compara dos copias.** La talla de anillo está
 implementada dos veces —`src/lib/talla.js` para la guía del sitio y
@@ -861,6 +862,17 @@ Cosas que ya costaron un incidente. Léelas antes de tocar lo que describen.
 - **`products.metal` es texto libre y hay cinco formas de decir «oro»** —`Oro`, `Oro 18k`,
   `Oro blanco 18k`, `Oro y plata 925`, `Plata 925 y oro`—. No es sólo estética: es lo que el
   bot lee para decidir qué ofrecer, y lo que agrupa el filtro del catálogo.
+- **Un pedido creado a mano SÍ le avisa a los anuncios, pero mira `laVentaEntro`.** La
+  condición era `status === 'pagado'`, y en contraentrega `pagado` no significa que entró la
+  plata: lo que cuenta es `entregado`. Con la condición vieja, una venta cerrada por
+  WhatsApp y registrada a mano **no le llegaba a Meta**, que es justo lo único que ese
+  formulario viene a arreglar. La regla vive en `dinero.js` porque la comparten el botón de
+  estado de la tabla de Pedidos y el formulario del pedido.
+- **Un pedido registrado desde el chat hereda el `ctwa_clid` de esa conversación**
+  (`src/lib/atribucionDelChat.js`). Sin eso el pedido queda anotado en el panel y **mudo
+  para las campañas**, que es como si no se hubiera registrado. Se copia sólo al CREAR: en
+  una edición sobrescribiría la atribución que el pedido ya tenga —la del checkout de la
+  web— y la venta se le acreditaría al anuncio equivocado.
 - **El aviso de un chat escalado lleva a `wa.me`, no al panel — y eso es una decisión, con
   un precio.** El joyero atiende desde su WhatsApp personal, así que el aviso le abre el
   chat del cliente de un toque (`avisarPorWhatsApp` en `bot.ts`). **Lo que cuesta:** lo que

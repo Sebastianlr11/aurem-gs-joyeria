@@ -7,7 +7,7 @@
  */
 import React, { useMemo, useState } from 'react';
 import { queFalta } from '../../../lib/circuito';
-import { estaVivo, recibidoDe } from '../../../lib/dinero';
+import { estaVivo, recibidoDe, laVentaEntro } from '../../../lib/dinero';
 import { supabase } from '../../../lib/supabase';
 import PedidoModal from '../PedidoModal';
 import { GRUPOS, ORDER_STATUSES, SOURCE_META, STATUS_META, coincideTelefono, despacharPedido, enGrupo, fireWebhook, fmt, fmtDate, isCOD, norm } from './comunes';
@@ -262,7 +262,7 @@ const OrdersSection = ({ orders, products, loading, onRefresh }) => {
            no cuenta dos veces. Se deja igual y no se quita: los pedidos
            pagados en línea y cualquier contraentrega que vuelva a pedir abono
            siguen dependiendo de acá. */
-        const entraLaPlata = newStatus === 'pagado' || (isCOD(order) && newStatus === 'entregado');
+        const entraLaPlata = laVentaEntro(order, newStatus);
         /* Nunca desde un pedido de prueba. El candado de verdad está en
            `conversion-pedido`, que lo comprueba contra la base; esto sólo
            evita el viaje. Se le habían contado tres ventas inventadas a Meta
