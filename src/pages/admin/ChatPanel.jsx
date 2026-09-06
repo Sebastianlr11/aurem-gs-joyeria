@@ -14,6 +14,7 @@ import { useAvisos, useFichaDelContacto, useResumenDelHilo, useSeleccion, useVis
 import FichaDelContacto from './chat/FichaDelContacto';
 import PedidoModal from './PedidoModal';
 import { traerAtribucionDelChat } from '../../lib/atribucionDelChat';
+import { ESTADOS, estadoDe, definicionDe, estaAbierto } from '../../lib/estadoDelChat';
 import SelectorDeImagen from './chat/SelectorDeImagen';
 import FilaDeContacto from './chat/FilaDeContacto';
 import CabeceraDeContactos from './chat/CabeceraDeContactos';
@@ -225,7 +226,7 @@ const ChatPanel = () => {
         if (!session) return;
         const fetchStatusAndTags = async () => {
             const [{ data: statusData }, { data: tagsData }] = await Promise.all([
-                supabase.from('chat_status').select('phone_number, is_resolved, is_archived'),
+                supabase.from('chat_status').select('phone_number, is_resolved, is_archived, estado'),
                 supabase.from('contact_tags').select('id, phone_number, tag_name, color'),
             ]);
             if (statusData) {
@@ -652,6 +653,34 @@ const ChatPanel = () => {
         setStatusMap(prev => ({ ...prev, [phone]: { ...prev[phone], is_resolved: newVal } }));
     };
 
+    /* ─── En qué va la conversación ──────────────────────────────
+     *
+     * El botón de «resuelto» que había —un ✓ sin etiqueta, entre otros
+     * iconos— no lo usó nadie: cuarenta chats y cero marcados. Esto lo
+     * reemplaza con algo que dice en qué va la venta y se cambia en un toque,
+     * desde la cabecera del chat abierto, que es donde el joyero está mirando
+     * cuando termina de hablar con alguien. */
+    const cambiarEstado = async (phone, estado) => {
+        if (!phone || !estado) return;
+
+        /* Se pinta primero y se guarda después: el joyero está mirando la
+           pantalla y un estado que tarda medio segundo en cambiar se siente
+           roto. Si el guardado falla, se devuelve al que estaba. */
+        const anterior = statusMap[phone]?.estado;
+        setStatusMap(prev => ({ ...prev, [phone]: { ...prev[phone], estado } }));
+
+        const { error } = await supabase.from('chat_status').upsert({
+            phone_number: phone,
+            estado,
+            updated_at: new Date().toISOString(),
+        }, { onConflict: 'phone_number' });
+
+        if (error) {
+            console.error('No se pudo guardar el estado del chat:', error.message);
+            setStatusMap(prev => ({ ...prev, [phone]: { ...prev[phone], estado: anterior } }));
+        }
+    };
+
     /* ─── Archive conversation ───────────────────────────────────── */
     const handleArchive = async (phone) => {
         if (!phone) return;
@@ -873,8 +902,15 @@ const ChatPanel = () => {
         } else if (contactFilter === 'sin_responder') {
             // Last message from user more than 24h ago
             result = result.filter(c => c.last_role === 'user' && (now - new Date(c.last_time)) > 86400000);
-        } else if (contactFilter === 'resuelto') {
-            result = result.filter(c => !!statusMap[c.phone_number]?.is_resolved);
+        } else if (contactFilter === 'por_atender') {
+            /* Lo que necesita algo de alguien: sigue abierto —nuevo,
+               atendiendo o cotizado— y la última palabra la tiene la clienta.
+               Un chat donde el último mensaje es nuestro no está esperando a
+               nadie, aunque siga abierto. */
+            result = result.filter(c =>
+                estaAbierto(statusMap[c.phone_number]) && c.last_role === 'user');
+        } else if (['cotizado', 'vendido', 'perdido'].includes(contactFilter)) {
+            result = result.filter(c => estadoDe(statusMap[c.phone_number]) === contactFilter);
         } else if (contactFilter === 'purgar') {
             /* Mientras la base contesta no se enseña nada: una lista completa
                que en un segundo se recorta a dos es peor que un momento vacío. */
@@ -1169,13 +1205,23 @@ filteredContacts.map(c => (
                                                 onClick={() => setShowMsgSearch(!showMsgSearch)} title="Buscar en mensajes">
                                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                                         </button>
-                                        <button
-                                            className={`chat-header-action-btn chat-header-action-btn--secundaria ${statusMap[activeContact]?.is_resolved ? 'chat-header-action-btn--resolved' : ''}`}
-                                            onClick={() => handleToggleResolved(activeContact)}
-                                            title={statusMap[activeContact]?.is_resolved ? 'Marcar como no resuelto' : 'Marcar como resuelto'}
+                                        {/* En qué va esta conversación. Un `select` y no
+                                            unas píldoras: el joyero trabaja desde el
+                                            celular y el selector nativo del sistema es lo
+                                            más cómodo que hay ahí. Lleva el color del
+                                            estado, que es lo que se ve de reojo. */}
+                                        <select
+                                            className="chat-estado-select"
+                                            style={{ '--estado-color': definicionDe(statusMap[activeContact])?.color || 'var(--text-muted)' }}
+                                            value={estadoDe(statusMap[activeContact])}
+                                            onChange={e => cambiarEstado(activeContact, e.target.value)}
+                                            title={definicionDe(statusMap[activeContact])?.ayuda}
+                                            aria-label="En qué va esta conversación"
                                         >
-                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                                        </button>
+                                            {ESTADOS.map(e => (
+                                                <option key={e.id} value={e.id}>{e.etiqueta}</option>
+                                            ))}
+                                        </select>
                                         <button
                                             className="chat-header-action-btn chat-header-action-btn--secundaria"
                                             onClick={() => setConfirmArchive(activeContact)}

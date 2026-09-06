@@ -39,7 +39,7 @@ npm run dev          # Vite en http://localhost:5173
 npm run build        # eslint && vitest && sitemap.mjs && correos.mjs && tsc -b && vite build
 npm run preview      # Sirve /dist
 npm run lint         # ESLint (sí corre en el build)
-npm test             # Vitest, una pasada (351 pruebas)
+npm test             # Vitest, una pasada (358 pruebas)
 npm run test:mirar   # Vitest en marcha, repitiendo al guardar
 
 npm run sitemap      # Regenera public/sitemap.xml desde Supabase
@@ -74,7 +74,7 @@ Cuatro advertencias sobre el build:
 
 ### Las pruebas
 
-Hay **351**, en veinticinco archivos que viven al lado de lo que prueban:
+Hay **358**, en veintiséis archivos que viven al lado de lo que prueban:
 
 | Archivo | Qué fija |
 |---|---|
@@ -97,6 +97,7 @@ Hay **351**, en veinticinco archivos que viven al lado de lo que prueban:
 | `src/lib/fotoProducto.test.js` | Que la foto que se precarga sea la misma que se pinta |
 | `emails/_render.test.ts` | El asunto de cada correo, que no vive en la plantilla |
 | `src/lib/atribucionDelChat.test.js` | Que una venta cerrada por WhatsApp vuelva a la campaña que la trajo |
+| `src/lib/estadoDelChat.test.js` | En qué va cada conversación, y que ninguna se caiga de todos los filtros |
 
 **Una de ellas no comprueba código, compara dos copias.** La talla de anillo está
 implementada dos veces —`src/lib/talla.js` para la guía del sitio y
@@ -293,7 +294,7 @@ Todas se crean en `20260228_esquema_base.sql` salvo donde se diga.
 | `customers` | Clientes |
 | `whatsapp_conversaciones` | Todos los mensajes de WhatsApp |
 | `chat_takeover` | Cuándo una persona toma el control de un chat |
-| `chat_status` | Resuelta / archivada |
+| `chat_status` | Resuelta / archivada, y `estado`: en qué va la venta (`20260906_en_que_va_cada_conversacion.sql`) |
 | `contact_tags` | Etiquetas de contacto |
 | `notes` | Anotaciones internas |
 | `gasto_pauta` | Gasto de publicidad por día y canal |
@@ -426,6 +427,7 @@ nombre es el identificador que la base ya tiene anotado.
 | `20260901_el_contraentrega_ya_no_pide_abono.sql` | El abono a cero: en Bogotá se paga todo al recibir, y el pedido nace confirmado |
 | `20260902_el_indice_parcial_rompia_el_upsert.sql` | Un índice parcial no se puede inferir en un `ON CONFLICT`: los contactos sin teléfono no se guardaban |
 | `20260902_en_bogota_el_envio_ya_no_se_cobra.sql` | Valentina seguía cobrando $15.000 de envío en Bogotá, donde entrega el taller |
+| `20260906_en_que_va_cada_conversacion.sql` | `chat_status.estado`: el embudo del chat, porque «resuelto» no se usó ni una vez |
 
 `20260822_cerrar_conversaciones_a_anon.sql` cerró el fallo más grave de todos:
 `whatsapp_conversaciones` y `chat_takeover` tenían políticas
@@ -862,6 +864,13 @@ Cosas que ya costaron un incidente. Léelas antes de tocar lo que describen.
 - **`products.metal` es texto libre y hay cinco formas de decir «oro»** —`Oro`, `Oro 18k`,
   `Oro blanco 18k`, `Oro y plata 925`, `Plata 925 y oro`—. No es sólo estética: es lo que el
   bot lee para decidir qué ofrecer, y lo que agrupa el filtro del catálogo.
+- **Una función que el panel esconde detrás de un menú es una función que no existe.** El
+  chat tenía «resuelto», «archivado» y etiquetas de colores desde hacía semanas: el 6 de
+  septiembre de 2026, con cuarenta chats, **ninguna se había usado ni una sola vez**. No era
+  falta de ganas — «marcar resuelta» vivía en un menú de tres puntos por fila, y en la
+  cabecera era un ✓ sin etiqueta entre otros iconos. Antes de añadir un botón, mira si el
+  que ya está se usa: `select count(*) from chat_status where is_resolved` contesta en un
+  segundo.
 - **Un pedido creado a mano SÍ le avisa a los anuncios, pero mira `laVentaEntro`.** La
   condición era `status === 'pagado'`, y en contraentrega `pagado` no significa que entró la
   plata: lo que cuenta es `entregado`. Con la condición vieja, una venta cerrada por

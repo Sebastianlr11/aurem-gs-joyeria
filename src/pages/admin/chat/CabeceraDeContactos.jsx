@@ -19,12 +19,20 @@ import React from 'react';
    meses. */
 const FILTROS = [
     ['todos', 'Todos'],
+    /* «Por atender» abre la lista: es la pregunta con la que el joyero entra
+       al panel —¿qué me falta?— y hasta hoy no tenía respuesta, había que
+       revisar las cuarenta filas una por una. */
+    ['por_atender', 'Por atender'],
     ['hoy', 'Hoy'],
     ['no_leidos', 'No leídos'],
     ['sin_responder', '+24h'],
     ['takeover', 'Manual'],
+    /* El embudo. Reemplazan al viejo «Resuelto», que en cuarenta chats no se
+       usó ni una vez porque un sí/no no dice en qué va una venta. */
+    ['cotizado', 'Cotizados'],
+    ['vendido', 'Vendidos'],
+    ['perdido', 'Perdidos'],
     ['pendiente', 'Pedido'],
-    ['resuelto', 'Resuelto'],
     ['archivado', 'Archivados'],
     ['purgar', 'Para purgar'],
 ];
