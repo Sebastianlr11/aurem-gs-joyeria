@@ -11,7 +11,7 @@
  * ese caso no aparece nunca mirando el panel.
  */
 import { describe, it, expect } from 'vitest';
-import { acuseDe, glifoDeAcuse, ACUSE, resumenDelMensaje } from './comunes';
+import { acuseDe, glifoDeAcuse, ACUSE, resumenDelMensaje, esperaDesde, siguientePorAtender } from './comunes';
 
 describe('acuseDe', () => {
     it('un mensaje recién salido está "enviando", no "enviado"', () => {
@@ -89,3 +89,81 @@ describe('de qué va el último mensaje de la lista', () => {
         }
     })
 })
+
+/* ─── La tarjeta de arriba de la lista ────────────────────────────────────
+ *
+ * Se prueban las dos piezas del rediseño del 6 de septiembre de 2026 que
+ * deciden algo: cuánto lleva esperando una conversación, y cuál es la
+ * siguiente. Mirando el panel no se pueden comprobar —haría falta un chat
+ * real que llevara cinco horas sin respuesta— y las dos se equivocan en
+ * silencio: la tarjeta señalaría a la persona equivocada y nadie lo notaría,
+ * porque la tarjeta siempre enseña a alguien. */
+describe('cuánto lleva esperando', () => {
+    const AHORA = new Date('2026-09-06T15:00:00Z').getTime();
+    const hace = (min) => new Date(AHORA - min * 60000).toISOString();
+
+    it('minutos, horas y días, en ese orden', () => {
+        expect(esperaDesde(hace(40), AHORA)).toBe('40 min');
+        expect(esperaDesde(hace(59), AHORA)).toBe('59 min');
+        expect(esperaDesde(hace(60), AHORA)).toBe('1 h');
+        expect(esperaDesde(hace(60 * 5), AHORA)).toBe('5 h');
+        expect(esperaDesde(hace(60 * 23), AHORA)).toBe('23 h');
+        expect(esperaDesde(hace(60 * 24), AHORA)).toBe('1 d');
+        expect(esperaDesde(hace(60 * 24 * 3 + 5), AHORA)).toBe('3 d');
+    });
+
+    /* Lo que acaba de entrar no está esperando: decirlo en el mismo tono que
+       cinco horas gasta el aviso justo cuando no hace falta. */
+    it('menos de un minuto no es esperar', () => {
+        expect(esperaDesde(hace(0), AHORA)).toBeNull();
+        expect(esperaDesde(new Date(AHORA + 60000).toISOString(), AHORA)).toBeNull();
+    });
+
+    it('una fecha que no lo es no rompe la fila', () => {
+        for (const nada of [null, undefined, '', 'ayer', {}]) {
+            expect(esperaDesde(nada, AHORA), String(nada)).toBeNull();
+        }
+    });
+});
+
+describe('la siguiente por atender', () => {
+    const c = (phone, min, last_role = 'user') => ({
+        phone_number: phone,
+        last_role,
+        last_time: new Date(Date.UTC(2026, 8, 6, 15 - min, 0, 0)).toISOString(),
+    });
+
+    it('gana la que lleva más tiempo esperando, no la más reciente', () => {
+        const lista = [c('a', 1), c('b', 9), c('c', 4)];
+        expect(siguientePorAtender(lista, {})?.phone_number).toBe('b');
+    });
+
+    /* Los mismos tres requisitos del filtro «Por atender». Si dejaran de
+       coincidir, la tarjeta ofrecería abrir algo que la lista de abajo no
+       enseña. */
+    it('un chat donde la última palabra es nuestra no espera a nadie', () => {
+        expect(siguientePorAtender([c('a', 9, 'assistant')], {})).toBeNull();
+    });
+
+    it('lo cerrado y lo archivado no cuentan', () => {
+        const lista = [c('vendido', 9), c('perdido', 8), c('guardado', 7), c('vivo', 2)];
+        const estados = {
+            vendido: { estado: 'vendido' },
+            perdido: { estado: 'perdido' },
+            guardado: { estado: 'atendiendo', is_archived: true },
+        };
+        expect(siguientePorAtender(lista, estados)?.phone_number).toBe('vivo');
+    });
+
+    /* Sin fila en `chat_status` el chat es `nuevo`, que sigue abierto: un lead
+       que nadie ha tocado es exactamente lo que la tarjeta viene a rescatar. */
+    it('un chat sin estado guardado cuenta como nuevo', () => {
+        expect(siguientePorAtender([c('a', 3)], {})?.phone_number).toBe('a');
+    });
+
+    it('sin nada esperando la tarjeta no se pinta', () => {
+        expect(siguientePorAtender([], {})).toBeNull();
+        expect(siguientePorAtender(null, {})).toBeNull();
+        expect(siguientePorAtender([c('a', 9, 'assistant')], {})).toBeNull();
+    });
+});

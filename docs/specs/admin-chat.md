@@ -1,12 +1,13 @@
 # Panel — conversaciones
 
 > **Estado:** en producción
-> **Última revisión:** 2026-08-23
-> **Ruta:** `/admin/chat` · `src/pages/admin/ChatPanel.jsx` (1.289 líneas) + doce archivos
+> **Última revisión:** 2026-09-06
+> **Ruta:** `/admin/chat` · `src/pages/admin/ChatPanel.jsx` + catorce archivos
 > en `src/pages/admin/chat/`: `comunes.js`, `piezas.jsx`, `ganchos.js`, `useSuscripcion.js`,
 > `BuscadorDeMensajes.jsx`, `FichaDelContacto.jsx`, `SelectorDeImagen.jsx`,
 > `FilaDeContacto.jsx`, `CabeceraDeContactos.jsx`, `DialogoDeConfirmacion.jsx`,
-> `HiloDeMensajes.jsx`, `Compositor.jsx` — más sus cuatro archivos de prueba.
+> `HiloDeMensajes.jsx`, `Compositor.jsx`, `SiguientePorAtender.jsx`,
+> `MenuDeAcciones.jsx` — más sus cinco archivos de prueba.
 
 > **Sin números de línea, a propósito.** Los llevaba, y al partirse el componente todos
 > quedaron apuntando a sitios que ya no existen. Una referencia falsa manda a buscar donde
@@ -23,13 +24,20 @@ real que no se puede montar y desmontar como una pestaña.
 ### Estructura
 
 ```
-┌────────────┬──────────────────────┬──────────────┐
-│ Contactos  │  Hilo activo         │ Ficha del    │
-│ (últimos   │  (últimos 200 msg)   │ contacto     │
-│ 1000 msg   │                      │ pedidos,     │
-│ agrupados) │  compositor          │ notas, tags  │
-└────────────┴──────────────────────┴──────────────┘
+┌────┬────────────┬──────────────────────┬──────────────┐
+│ ri │ Contactos  │  Hilo activo         │ Ficha del    │
+│ el │ (últimos   │  (últimos 200 msg)   │ contacto     │
+│ 72 │ 1000 msg   │                      │ pedidos,     │
+│ px │ agrupados) │  compositor          │ notas, tags  │
+└────┴────────────┴──────────────────────┴──────────────┘
 ```
+
+**Esta pantalla no lleva la barra de arriba del panel.** Es la única, y desde el 6 de
+septiembre de 2026: decía «Conversaciones» y justo debajo la cabecera de la lista repetía
+«Chats». Lo que llevaba —el punto de conexión en vivo, el altavoz y el avatar de la
+cuenta— se mudó a la cabecera de la lista. Por la misma razón la navegación se encoge a un
+riel de 72px sólo aquí (`.admin-layout--riel`): es la única pantalla que se usa de corrido
+y los 260px del menú se los estaba quitando al hilo.
 
 ### Archivos clave
 
@@ -41,7 +49,9 @@ real que no se puede montar y desmontar como una pestaña.
 | `ChatPanel.jsx` | Canal `chat-realtime` — dos suscripciones, y el fallback de polling si cae |
 | `chat/useSuscripcion.js` | El gancho que abre y cierra un canal de realtime sin fugas |
 | `chat/Compositor.jsx` | La caja de escribir; el envío vía `wa-send` con burbuja optimista está en `ChatPanel.jsx` |
-| `chat/CabeceraDeContactos.jsx` · `chat/FilaDeContacto.jsx` | Takeover, filtros y el menú de cada fila |
+| `chat/CabeceraDeContactos.jsx` · `chat/FilaDeContacto.jsx` | Título, pulso, buscador, pestañas y el menú de cada fila |
+| `chat/SiguientePorAtender.jsx` | La tarjeta de arriba de la lista: quién sigue |
+| `chat/MenuDeAcciones.jsx` | Las acciones del chat abierto: desplegable en escritorio, hoja inferior en el celular |
 | `chat/piezas.jsx` | Imágenes: públicas de catálogo vs privadas firmadas, y `PieDeFoto` |
 | `chat/HiloDeMensajes.jsx` | Las burbujas, los acuses y el visor de fotos |
 | `chat/ganchos.js` | Los ganchos sueltos: avisos, visor, scroll |
@@ -94,6 +104,71 @@ saber quién tomó el chat, y la fila se marca visualmente con `--takeover`.
 
 **Notificación de escritorio sólo si la pestaña está oculta**, y toast si el mensaje es de
 otro contacto. Refresco de la lista con debounce de 800 ms.
+
+## El rediseño «1b» — 6 de septiembre de 2026
+
+De dos direcciones dibujadas en Claude Design, el joyero eligió ésta. Lo que cambió y por
+qué:
+
+**Una tarjeta dice quién sigue** (`SiguientePorAtender.jsx`). La lista contesta «qué pasó»,
+ordenada por lo último que entró; no contestaba «qué hago ahora» — y la conversación que
+más lleva sin respuesta es justamente la que la lista empuja hacia abajo, porque hace horas
+que nadie escribe en ella. El filtro «Por atender» ya recortaba eso, pero hay que acordarse
+de pulsarlo. La tarjeta está puesta antes de que nadie pulse nada.
+
+Sus dos decisiones viven en `comunes.js` y están probadas, porque las dos se equivocan en
+silencio: `siguientePorAtender()` usa los **mismos tres requisitos** que el filtro —sigue
+abierta, la última palabra la tiene la clienta, no está archivada— y de ésas gana la que
+**más lleva esperando**, no la más reciente. No se pinta si hay una búsqueda puesta, si hay
+una selección abierta, en «archivados» y «para purgar», ni cuando señalaría al chat que ya
+está abierto.
+
+**La espera reemplaza a la fecha en la fila.** «4 sept» contesta cuándo habló; «5 h sin
+resp.» contesta cuánto lleva sin respuesta, que es lo que hace falta. Sólo se enciende —en
+oro— en las que de verdad esperan; en una venta cerrada sería una alarma sobre algo que ya
+terminó. La marca de en qué va la venta se mudó de la línea de la vista previa a la cola de
+la fila, donde comparte casilla con la insignia de no leídos: **lo no leído gana a en qué
+va, y en qué va gana a quién contestó**.
+
+**Filtros con filete en vez de píldoras.** Sin fondo ni relleno lateral ocupan la mitad, y
+por eso pasaron de dos a la vista a tres (cuatro en escritorio) sin que «Por atender» salga
+como «Por a».
+
+**El buscador se esconde detrás de una lupa.** Con cuarenta conversaciones se busca de vez
+en cuando, y el campo fijo se llevaba una franja de la pantalla del celular todos los días.
+Ctrl+K lo abre y lo enfoca; cerrarlo borra lo buscado, porque si no la lista se quedaría
+filtrada sin nada que dijera por qué.
+
+**Las respuestas rápidas salieron del desplegable** a una tira de fichas encima del campo.
+Son seis frases que se escriben veinte veces al día y el botón —un globo de diálogo— no
+decía ninguna: para saber qué había dentro había que abrirlo, así que era más rápido
+teclear. Misma lección que «marcar resuelta».
+
+**En el celular las acciones son una hoja que sube desde abajo** y no un desplegable
+anclado a la esquina más lejos del pulgar. Es el mismo árbol que el desplegable de
+escritorio, con los mismos `.chat-menu-secundarias` y `.chat-menu-ficha` que el CSS enciende
+y apaga por ancho; lo que cambia es la forma. Van en tres grupos con título, porque eran
+nueve botones seguidos y el noveno borraba la conversación para siempre.
+
+> ⚠️ **Mientras la hoja está abierta se esconde la barra de navegación** (clase
+> `chat-hoja-abierta` en el `body`). No es estética: en el celular `.chat-panel` es
+> `position: fixed` con `z-index: 1`, o sea que crea un contexto de apilado, y **todo lo que
+> hay dentro se pinta por debajo de la barra**, que cuelga del `body`. El `z-index` de la
+> hoja no puede nada contra eso — la barra le tapaba los últimos cincuenta píxeles, que son
+> los del botón «Cancelar». Si algún día se mete otra cosa flotante dentro del panel, es la
+> misma trampa.
+
+**La cabecera de la conversación volvió a una sola fila en el celular.** Fueron dos —el
+nombre arriba, los mandos abajo— porque en una sola no cabían. Ahora caben: la insignia de
+modo se fue (lo que decía lo dicen el subtítulo, «… · manual», y el punto oro del retrato) y
+buscar y archivar bajaron a la hoja.
+
+**Las burbujas: tres esquinas de 12px y una de 2px**, del lado de quien habla. Esa misma
+mañana se habían revertido los 16px redondos a 2px porque «el hilo se veía como cualquier
+mensajero y no como esta joyería»; sigue siendo verdad de los 16 redondos. La esquina en
+punta es la que ancla la burbuja a la marca. Y Valentina pasó de cacao pleno a cacao suave
+(`--ink-soft`): sobre la arena del hilo, el `#1C1714` era el contraste más duro de la
+pantalla.
 
 ## Retención y borrado de conversaciones (en curso)
 
@@ -171,6 +246,12 @@ fotos y —por diseño— no borra nada.**
 - `buscar_conversaciones` **sigue sin cuerpo en el repositorio**: sólo sus permisos. Es
   una de las cinco RPC que un entorno nuevo no levantaría.
 - Las respuestas rápidas viven en `localStorage`, así que son por navegador, no por equipo.
+- **La tarjeta de «siguiente por atender» repite casi siempre la primera fila de la lista.**
+  Es a propósito —no es un atajo a la lista, es la respuesta—, pero en una bandeja tranquila
+  se ve como una fila en negrita.
+- `field-sizing: content` en el selector «Más» es de Chrome 123 en adelante. Donde no
+  exista, el selector mide lo que su opción más larga y le queda un hueco entre la palabra y
+  la flecha; el `max-width` evita que se coma las pestañas.
 
 ## Cómo probarlo
 
@@ -188,3 +269,8 @@ fotos y —por diseño— no borra nada.**
    el teclado.
 7. **Borrado:** con dígitos equivocados no debe dejar. Con los correctos, comprueba que el
    bucket queda limpio **y** las cuatro tablas también.
+8. **La hoja de acciones, en un celular de verdad:** abre un chat, toca los tres puntos y
+   comprueba que se ve el botón «Cancelar» **entero**. Es lo primero que tapa la barra de
+   navegación si alguien toca el apilado.
+9. **La tarjeta de arriba:** con una búsqueda escrita, en «Archivados» y con la selección
+   múltiple abierta **no debe pintarse**. Y al abrir el chat que señala, debe desaparecer.

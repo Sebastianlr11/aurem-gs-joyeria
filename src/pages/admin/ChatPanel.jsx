@@ -5,10 +5,9 @@ import AdminSidebar from './AdminSidebar';
 import EliminarChat from './EliminarChat';
 import { descargarChat, borrarFotosDe } from '../../lib/chatArchivo';
 import { leerRespuestas } from '../../lib/respuestasRapidas';
-import { NAV } from './adminNav.jsx';
 import '../../panel.css';
 
-import { MESES_PURGA, normalizePhone, sortMessages, truncate } from './chat/comunes';
+import { MESES_PURGA, normalizePhone, siguientePorAtender, sortMessages, truncate } from './chat/comunes';
 import { AvisosDeChat, ChatErrorBoundary, VisorDeFoto } from './chat/piezas';
 import { useAvisos, useFichaDelContacto, useResumenDelHilo, useSeleccion, useVisorDeFotos } from './chat/ganchos';
 import FichaDelContacto from './chat/FichaDelContacto';
@@ -22,6 +21,8 @@ import CabeceraDeContactos from './chat/CabeceraDeContactos';
 import DialogoDeConfirmacion from './chat/DialogoDeConfirmacion';
 import HiloDeMensajes from './chat/HiloDeMensajes';
 import Compositor from './chat/Compositor';
+import SiguientePorAtender from './chat/SiguientePorAtender';
+import MenuDeAcciones from './chat/MenuDeAcciones';
 import { useSuscripcion } from './chat/useSuscripcion';
 import BuscadorDeMensajes from './chat/BuscadorDeMensajes';
 
@@ -47,6 +48,11 @@ const ChatPanel = () => {
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
+    /* El buscador de la lista se abre y se cierra. Con cuarenta conversaciones
+       se busca de vez en cuando, y el campo fijo se llevaba una franja de la
+       pantalla del celular todos los días para eso. Nace abierto si ya hay algo
+       escrito, que no pasa al entrar pero sí si algún día se guarda. */
+    const [verBuscador, setVerBuscador] = useState(false);
     const [loading, setLoading] = useState(true);
     const [loadingMsgs, setLoadingMsgs] = useState(false);
     const [sending, setSending] = useState(false);
@@ -63,7 +69,6 @@ const ChatPanel = () => {
     }, []);
 
     const activeContactRef = useRef(null);
-    const [showQuickReplies, setShowQuickReplies] = useState(false);
     const [showImagePicker, setShowImagePicker] = useState(false);
     const [products, setProducts] = useState([]);
     /* Qué parte de lo enviado lo escribió Valentina. Sólo cuenta los mensajes
@@ -136,7 +141,6 @@ const ChatPanel = () => {
     const menuFilaRef = useRef(null);
     const [soundEnabled, setSoundEnabled] = useState(() => localStorage.getItem('admin_sound_enabled') !== 'false');
     const quickReplies = useMemo(() => leerRespuestas(), []);
-    const quickRepliesRef = useRef(null);
     const imagePickerRef = useRef(null);
     const takeoverMapRef = useRef(takeoverMap);
     const searchInputRef = useRef(null);
@@ -378,6 +382,20 @@ const ChatPanel = () => {
         document.body.classList.toggle('chat-escribiendo', escribiendo);
         return () => document.body.classList.remove('chat-escribiendo');
     }, [escribiendo]);
+
+    /* Lo mismo con la hoja de acciones, y aquí no es estética: en el celular
+       `.chat-panel` es `position: fixed` con `z-index: 1`, así que crea un
+       contexto de apilado y TODO lo que hay dentro —la hoja incluida— se pinta
+       por debajo de la barra de navegación, que cuelga del `body`. El `z-index`
+       de la hoja no sirve de nada contra eso: la barra le tapaba los últimos
+       cincuenta píxeles, que son justamente donde está «Cancelar», y el fondo
+       oscuro se quedaba sin cubrirla. Escondiendo la barra mientras la hoja
+       está abierta no hay nada que tapar — y es lo mismo que ya se hace
+       mientras se escribe. */
+    useEffect(() => {
+        document.body.classList.toggle('chat-hoja-abierta', showExportMenu);
+        return () => document.body.classList.remove('chat-hoja-abierta');
+    }, [showExportMenu]);
 
     /* El teclado en iOS NO encoge el layout: encoge el viewport VISUAL y
        deja el de layout igual. Por eso un panel anclado con position fixed
@@ -822,9 +840,6 @@ const ChatPanel = () => {
     /* ─── Close panels on outside click ─────────────────────────── */
     useEffect(() => {
         const handleClickOutside = (e) => {
-            if (quickRepliesRef.current && !quickRepliesRef.current.contains(e.target)) {
-                setShowQuickReplies(false);
-            }
             if (imagePickerRef.current && !imagePickerRef.current.contains(e.target)) {
                 setShowImagePicker(false);
             }
@@ -849,10 +864,13 @@ const ChatPanel = () => {
     /* ─── Keyboard shortcuts ──────────────────────────────────────── */
     useEffect(() => {
         const handleGlobalKeyDown = (e) => {
-            // Ctrl+K → focus search
+            /* Ctrl+K → abrir el buscador y poner el cursor dentro. Desde que
+               el campo se esconde en reposo hay que montarlo primero: el foco
+               va en el fotograma siguiente, cuando ya existe. */
             if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
                 e.preventDefault();
-                searchInputRef.current?.focus();
+                setVerBuscador(true);
+                requestAnimationFrame(() => searchInputRef.current?.focus());
                 return;
             }
             // Escape → close panels cascade
@@ -862,14 +880,17 @@ const ChatPanel = () => {
                 if (showMsgSearch) { setShowMsgSearch(false); return; }
                 if (showExportMenu) { setShowExportMenu(false); return; }
                 if (showContactInfo) { setShowContactInfo(false); return; }
-                if (showQuickReplies) { setShowQuickReplies(false); return; }
                 if (showImagePicker) { setShowImagePicker(false); return; }
+                /* El buscador se cierra antes que el chat, y sólo si no hay
+                   nada escrito: cerrarlo con la búsqueda puesta dejaría la
+                   lista filtrada y ningún sitio donde ver por qué. */
+                if (verBuscador && !searchQuery) { setVerBuscador(false); return; }
                 if (activeContact) { setActiveContact(null); setMobileShowChat(false); return; }
             }
         };
         document.addEventListener('keydown', handleGlobalKeyDown);
         return () => document.removeEventListener('keydown', handleGlobalKeyDown);
-    }, [showContactInfo, showQuickReplies, showImagePicker, activeContact, showMsgSearch, showExportMenu, fotoAbierta, cerrarVisor, confirmArchive]);
+    }, [showContactInfo, showImagePicker, activeContact, showMsgSearch, showExportMenu, fotoAbierta, cerrarVisor, confirmArchive, verBuscador, searchQuery]);
 
     /* ─── Sidebar nav ─────────────────────────────────────────────── */
     const handleNavClick = (id) => {
@@ -939,6 +960,14 @@ const ChatPanel = () => {
         const s = statusMap[c.phone_number];
         return c.last_role === 'user' && !s?.is_archived && !s?.is_resolved;
     }).length, [contacts, statusMap]);
+
+    /* Quién sigue. Se calcula sobre TODOS los contactos y no sobre los que el
+       filtro deja ver: la tarjeta contesta «qué hago ahora», y esa respuesta no
+       puede depender de en qué pestaña quedó el panel. */
+    const siguiente = useMemo(
+        () => siguientePorAtender(contacts, statusMap),
+        [contacts, statusMap]
+    );
 
     /* Cuántas lleva alguien a mano ahora mismo. */
     const enManual = useMemo(
@@ -1039,7 +1068,24 @@ const ChatPanel = () => {
     const activeVisible = nombreVisible(activeContactData || { phone_number: activeContact });
     const activeDisplayName = activeVisible.nombre;
     const isTakeover = !!takeoverMap[activeContact];
-    const totalUnread = totalUnreadMemo;
+
+    /* La segunda línea de la cabecera. Aquí vivía una insignia con punto que
+       decía «Control manual» o «Agente IA» al lado del nombre, y en 390px le
+       quitaba el ancho al nombre —había que pintarla en dos versiones, larga y
+       corta, para que cupiera—. Lo mismo dicho como texto no le quita nada a
+       nadie, y quién lleva el chat lo canta además el punto oro del retrato. */
+    const subtituloDelChat = isTakeover
+        ? [activeVisible.detalle, 'manual'].filter(Boolean).join(' · ')
+        : (activeVisible.detalle || 'Responde Valentina');
+
+    /* Lo que la hoja de acciones enseña debajo del nombre: en qué va, cuántas
+       fotos guarda el hilo y cuántos mensajes se han cargado. Es lo que hace
+       falta saber antes de pulsar «borrar sólo las fotos» o «exportar». */
+    const metaDelChat = [
+        definicionDe(statusMap[activeContact]).etiqueta,
+        hilo.fotos > 0 ? (hilo.fotos === 1 ? '1 foto' : `${hilo.fotos} fotos`) : null,
+        messages.length === 1 ? '1 mensaje' : `${messages.length} mensajes`,
+    ].filter(Boolean).join(' · ');
 
     return (
         <>
@@ -1052,40 +1098,22 @@ const ChatPanel = () => {
                 onSaved={() => { setPedidoDesdeChat(null); ficha.recargar?.(); }}
             />
         )}
-        <div className="admin-layout">
+        {/* El riel: en esta pantalla la navegación se encoge a 72px de iconos.
+            Es la única del panel que se usa de corrido —se lee una conversación,
+            se contesta, se pasa a la siguiente— y los 260px del menú se los
+            estaba quitando al hilo, que es lo que se viene a leer. En las demás
+            secciones el menú sigue entero: allí sí se navega. */}
+        <div className="admin-layout admin-layout--riel">
             <AdminSidebar session={session} activeId="chat" onNavClick={handleNavClick} chatUnread={totalUnreadMemo} />
 
             <main className="admin-content">
-                <header className="admin-topbar">
-                    <div className="admin-topbar-left">
-                        <span className="admin-topbar-icon">{NAV.find(n => n.id === 'chat')?.icon}</span>
-                        <h2 className="admin-topbar-title">
-                            <span>Conversaciones</span>
-                            <span className={`chat-rt-status ${realtimeStatus === 'SUBSCRIBED' ? 'chat-rt-status--ok' : 'chat-rt-status--err'}`}
-                                  title={realtimeStatus === 'SUBSCRIBED' ? 'Conectado en tiempo real' : `Estado: ${realtimeStatus}`} />
-                            {totalUnread > 0 ? <span className="chat-nav-badge">{totalUnread}</span> : null}
-                        </h2>
-                    </div>
-                    <div className="admin-topbar-right">
-                        <button
-                            className={`chat-sound-toggle ${soundEnabled ? '' : 'chat-sound-toggle--muted'}`}
-                            onClick={() => {
-                                const next = !soundEnabled;
-                                setSoundEnabled(next);
-                                localStorage.setItem('admin_sound_enabled', String(next));
-                            }}
-                            title={soundEnabled ? 'Silenciar notificaciones' : 'Activar notificaciones'}
-                        >
-                            {soundEnabled ? (
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 010 7.07"/><path d="M19.07 4.93a10 10 0 010 14.14"/></svg>
-                            ) : (
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
-                            )}
-                        </button>
-                        <div className="admin-topbar-avatar">{session.user.email[0].toUpperCase()}</div>
-                    </div>
-                </header>
-
+                {/* Aquí vivía la barra de arriba del panel. Decía
+                    «Conversaciones», el punto de conexión, el altavoz y el
+                    avatar — todo lo cual está ahora en la cabecera de la lista,
+                    que también dice «Conversaciones». Eran 64px de alto en el
+                    celular repitiendo la palabra que venía justo debajo, y con
+                    un chat abierto, tres barras apiladas antes del primer
+                    mensaje. Se quitó el 6 de septiembre de 2026. */}
                 <div className="chat-panel">
                     {/* Contact list */}
                     <div className={`chat-contacts ${mobileShowChat ? 'chat-contacts--hidden-mobile' : ''}`}>
@@ -1095,11 +1123,46 @@ const ChatPanel = () => {
                             busqueda={searchQuery}
                             onBuscar={setSearchQuery}
                             campoRef={searchInputRef}
+                            verBuscador={verBuscador}
+                            onVerBuscador={abrir => {
+                                setVerBuscador(abrir);
+                                if (abrir) requestAnimationFrame(() => searchInputRef.current?.focus());
+                                /* Cerrarlo borra lo buscado: si no, la lista se
+                                   quedaría filtrada sin nada en pantalla que
+                                   dijera por qué. */
+                                else setSearchQuery('');
+                            }}
                             filtro={contactFilter}
                             onFiltrar={setContactFilter}
                             lote={lote}
                             onMarcarTodas={() => lote.entrar(filteredContacts.map(c => c.phone_number))}
+                            conectado={realtimeStatus === 'SUBSCRIBED'}
+                            estadoRealtime={realtimeStatus}
+                            sonido={soundEnabled}
+                            onSonido={() => {
+                                const conSonido = !soundEnabled;
+                                setSoundEnabled(conSonido);
+                                localStorage.setItem('admin_sound_enabled', String(conSonido));
+                            }}
+                            inicialDelEquipo={session.user.email[0].toUpperCase()}
                         />
+                        {/* No se pinta en las vistas donde estorbaría: con una
+                            búsqueda puesta o con la selección abierta, lo que
+                            se está haciendo es otra cosa; en «archivados» y en
+                            la purga, ofrecer atender a alguien es lo contrario
+                            de lo que se vino a hacer. Y nunca señala al chat
+                            que ya está abierto. */}
+                        {siguiente
+                            && !searchQuery
+                            && !lote.marcadas
+                            && !['archivado', 'purgar'].includes(contactFilter)
+                            && siguiente.phone_number !== activeContact && (
+                            <SiguientePorAtender
+                                contacto={siguiente}
+                                estado={statusMap[siguiente.phone_number]}
+                                onAbrir={selectContact}
+                            />
+                        )}
                         {contactFilter === 'purgar' && (
                             <p className="chat-purga-aviso">
                                 Sin ningún pedido y sin escribir desde hace más de {MESES_PURGA} meses.
@@ -1196,23 +1259,17 @@ filteredContacts.map(c => (
                                         {(!activeVisible.anonimo && /[a-záéíóúüñ]/i.test(activeDisplayName[0] || '')) ? activeDisplayName[0].toUpperCase() : (
                                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                                         )}
+                                        {/* El mismo punto oro que lleva la fila de la
+                                            lista cuando alguien tomó el chat: dice lo
+                                            mismo que la insignia que había aquí, sin
+                                            gastar ancho del nombre. */}
+                                        {isTakeover && <span className="chat-contact-takeover-dot" />}
                                     </div>
                                     <div className="chat-conv-header-info">
                                         <div className="chat-conv-header-name">
                                             <span>{activeDisplayName}</span>
-                                            {/* Dos rótulos y no uno: en 390px «Control
-                                                manual» empujaba el nombre fuera de la
-                                                cabecera, y quedaba una pantalla llena de
-                                                botones donde no se podía saber con quién
-                                                estabas hablando. */}
-                                            <span className={`chat-mode-badge ${isTakeover ? 'chat-mode-badge--manual' : 'chat-mode-badge--ai'}`}>
-                                                <span className="chat-mode-badge-largo">{isTakeover ? 'Control manual' : 'Agente IA'}</span>
-                                                <span className="chat-mode-badge-corto">{isTakeover ? 'Manual' : 'IA'}</span>
-                                            </span>
                                         </div>
-                                        {activeVisible.detalle ? (
-                                            <div className="chat-conv-header-phone">{activeVisible.detalle}</div>
-                                        ) : null}
+                                        <div className="chat-conv-header-phone">{subtituloDelChat}</div>
                                     </div>
                                     <div className="chat-conv-header-actions">
                                         <button className={`chat-header-action-btn chat-header-action-btn--secundaria chat-accion-secundaria ${showMsgSearch ? 'chat-header-action-btn--active' : ''}`}
@@ -1223,7 +1280,14 @@ filteredContacts.map(c => (
                                             unas píldoras: el joyero trabaja desde el
                                             celular y el selector nativo del sistema es lo
                                             más cómodo que hay ahí. Lleva el color del
-                                            estado, que es lo que se ve de reojo. */}
+                                            estado, que es lo que se ve de reojo.
+
+                                            Desde el 6 de septiembre de 2026 se pinta como
+                                            una píldora con su filete y su fondo en dosis
+                                            baja, no como un `select` desnudo: es el único
+                                            mando de la cabecera que se toca en cada
+                                            conversación, y se veía como una etiqueta más
+                                            entre los iconos. */}
                                         <select
                                             className="chat-estado-select"
                                             style={{ '--estado-color': definicionDe(statusMap[activeContact])?.color || 'var(--text-muted)' }}
@@ -1264,51 +1328,31 @@ filteredContacts.map(c => (
                                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg>
                                             </button>
                                             {showExportMenu && (
-                                                <div className="chat-export-menu">
-                                                    {/* Las mismas cuatro acciones que en escritorio
-                                                        están en la barra. Se pintan siempre y las
-                                                        esconde el CSS por encima de 768px, en vez de
-                                                        preguntarle el ancho al navegador: así hay un
-                                                        solo árbol y una sola verdad.
-
-                                                        En 390px la barra tenía siete controles y
-                                                        ninguno era el nombre del cliente. Aquí abajo
-                                                        quedan las que se usan una vez por conversación;
-                                                        arriba, el estado, que se usa en cada una. */}
-                                                    {/* Dos grupos y dos anchos, porque son dos
-                                                        razones. Por debajo de 1280 la cabecera no
-                                                        tiene sitio para la barra entera —en 1024 le
-                                                        quedan 476px y las acciones piden 468—, así
-                                                        que buscar, archivar y el mando de Valentina
-                                                        bajan aquí. La ficha aguanta hasta 768: en un
-                                                        portátil su botón es lo que abre el panel que
-                                                        ahora flota, y esconderlo sería quitar la
-                                                        puerta de lo que se acaba de mover. */}
-                                                    <div className="chat-menu-secundarias">
-                                                        <button onClick={() => { handleToggleTakeover(); setShowExportMenu(false); }}>
-                                                            {isTakeover ? 'Devolver a Valentina' : 'Tomar el control'}
-                                                        </button>
-                                                        <button onClick={() => { setShowMsgSearch(!showMsgSearch); setShowExportMenu(false); }}>
-                                                            Buscar en los mensajes
-                                                        </button>
-                                                        <button onClick={() => { setConfirmArchive(activeContact); setShowExportMenu(false); }}>
-                                                            Archivar
-                                                        </button>
-                                                    </div>
-                                                    <div className="chat-menu-ficha">
-                                                        <button onClick={() => { setShowContactInfo(!showContactInfo); setShowExportMenu(false); }}>
-                                                            {showContactInfo ? 'Ocultar la ficha' : 'Ver la ficha del contacto'}
-                                                        </button>
-                                                    </div>
-                                                    <button onClick={() => { handleExport('txt'); setShowExportMenu(false); }}>Exportar TXT</button>
-                                                    <button onClick={() => { handleExport('csv'); setShowExportMenu(false); }}>Exportar CSV</button>
-                                                    {hilo.fotos > 0 && (
-                                                        <button onClick={() => { setConfirmFotos(true); setShowExportMenu(false); }}>
-                                                            Borrar sólo las fotos ({hilo.fotos})
-                                                        </button>
-                                                    )}
-                                                    <button className="chat-export-menu-danger" onClick={() => { setABorrar([{ telefono: activeContact, nombre: activeContactData?.customer_name }]); setShowExportMenu(false); }}>Eliminar conversación</button>
-                                                </div>
+                                                /* Las mismas acciones en los dos anchos: un
+                                                   desplegable en escritorio y una hoja que
+                                                   sube desde abajo en el celular. Cuáles se
+                                                   esconden a cada ancho lo decide el CSS —
+                                                   `chat-menu-secundarias` por debajo de 1280,
+                                                   `chat-menu-ficha` por debajo de 768— y no
+                                                   una pregunta al navegador: así hay un solo
+                                                   árbol y una sola verdad. */
+                                                <MenuDeAcciones
+                                                    nombre={activeDisplayName}
+                                                    meta={metaDelChat}
+                                                    enManual={isTakeover}
+                                                    resuelta={!!statusMap[activeContact]?.is_resolved}
+                                                    verFicha={showContactInfo}
+                                                    fotos={hilo.fotos}
+                                                    onCerrar={() => setShowExportMenu(false)}
+                                                    onTomarControl={handleToggleTakeover}
+                                                    onBuscarMensajes={() => setShowMsgSearch(!showMsgSearch)}
+                                                    onAlternarResuelta={() => handleToggleResolved(activeContact)}
+                                                    onArchivar={() => setConfirmArchive(activeContact)}
+                                                    onVerFicha={() => setShowContactInfo(!showContactInfo)}
+                                                    onExportar={handleExport}
+                                                    onBorrarFotos={() => setConfirmFotos(true)}
+                                                    onEliminar={() => setABorrar([{ telefono: activeContact, nombre: activeContactData?.customer_name }])}
+                                                />
                                             )}
                                         </div>
                                         <button
@@ -1380,12 +1424,8 @@ filteredContacts.map(c => (
                                     respuestas={quickReplies}
                                     onElegirRespuesta={texto => {
                                         setNewMessage(texto.replace(/\{\{nombre\}\}/gi, activeContactData?.customer_name || ''));
-                                        setShowQuickReplies(false);
                                     }}
-                                    verRespuestas={showQuickReplies}
-                                    onVerRespuestas={() => { setShowQuickReplies(!showQuickReplies); setShowImagePicker(false); }}
-                                    refRespuestas={quickRepliesRef}
-                                    onVerImagenes={() => { setShowImagePicker(!showImagePicker); setShowQuickReplies(false); }}
+                                    onVerImagenes={() => setShowImagePicker(!showImagePicker)}
                                     enManual={isTakeover}
                                     panelDeImagen={showImagePicker && (
                                         <SelectorDeImagen

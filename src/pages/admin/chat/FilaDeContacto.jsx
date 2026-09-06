@@ -13,8 +13,8 @@
  * espaciadora igual que antes.
  */
 import React from 'react';
-import { fmtDate, fmtDateFull, truncate, resumenDelMensaje } from './comunes';
-import { definicionDe } from '../../../lib/estadoDelChat';
+import { fmtDate, fmtDateFull, truncate, resumenDelMensaje, esperaDesde } from './comunes';
+import { definicionDe, estaAbierto } from '../../../lib/estadoDelChat';
 import { nombreVisible, inicialDe } from '../../../lib/contacto';
 
 export default function FilaDeContacto({
@@ -41,6 +41,15 @@ export default function FilaDeContacto({
     const { nombre, detalle, anonimo } = nombreVisible(contacto);
     const ultimo = resumenDelMensaje(contacto.last_message);
     const inicial = inicialDe(contacto);
+
+    /* Cuánto lleva esperando, en el sitio donde estaba la fecha.
+       La fecha contestaba «cuándo habló» y la pregunta es «cuánto lleva sin
+       respuesta»; sólo se dice de las que de verdad esperan —los mismos tres
+       requisitos del filtro «Por atender»—, porque en una venta cerrada «3 d»
+       en oro sería una alarma sobre algo que ya terminó. */
+    const esperando = contacto.last_role === 'user' && !estado?.is_archived && estaAbierto(estado);
+    const espera = esperando ? esperaDesde(contacto.last_time) : null;
+    const sinLeer = contacto.unread || 0;
 
     /* En modo selección la fila marca en vez de abrir: tener que apuntar a una
        casilla de 16 px para elegir siete conversaciones es puntería, no
@@ -88,11 +97,8 @@ export default function FilaDeContacto({
             </div>
             <div className="chat-contact-info">
                 <div className="chat-contact-top">
-                    <span className={`chat-contact-name ${(contacto.unread || 0) > 0 ? 'chat-contact-name--unread' : ''} ${anonimo ? 'chat-contact-name--anonimo' : ''}`}>
+                    <span className={`chat-contact-name ${sinLeer > 0 ? 'chat-contact-name--unread' : ''} ${anonimo ? 'chat-contact-name--anonimo' : ''}`}>
                         {nombre}
-                    </span>
-                    <span className="chat-contact-time">
-                        {filtro === 'purgar' ? fmtDateFull(contacto.last_time) : fmtDate(contacto.last_time)}
                     </span>
                 </div>
                 <div className="chat-contact-preview">
@@ -109,25 +115,6 @@ export default function FilaDeContacto({
                         {truncate(ultimo.texto, 45) || (ultimo.marca ? '' : detalle || '')}
                     </span>
 
-                    {/* En qué va la venta, con su nombre escrito.
-                        Fue un aro alrededor del avatar y después un punto de
-                        7px, y las dos veces pasó lo mismo: se pintaba y no se
-                        notaba. Un color sin rótulo obliga a acordarse de qué
-                        significaba cada uno, y nadie se acuerda. Va en la
-                        segunda línea porque en la del nombre le quitaría el
-                        ancho que se le acaba de devolver.
-
-                        `nuevo` no lleva etiqueta: si los cuarenta chats sin
-                        tocar la llevaran, dejaría de señalar lo que necesita
-                        algo. */}
-                    {colorDelEstado && (
-                        <span
-                            className="chat-estado-marca"
-                            style={{ '--estado-color': colorDelEstado }}
-                        >
-                            {estadoEtiqueta}
-                        </span>
-                    )}
                 </div>
                 {etiquetas.length > 0 && (
                     <div className="chat-contact-tags">
@@ -137,10 +124,39 @@ export default function FilaDeContacto({
                     </div>
                 )}
             </div>
-            {(contacto.unread || 0) > 0
-                ? <span className="chat-unread-badge">{contacto.unread}</span>
-                : contacto.last_role === 'assistant' && !enManual && <span className="chat-contact-ia">IA</span>}
-        
+            {/* La cola de la fila: arriba el tiempo, abajo en qué va.
+             *
+             * Las dos casillas tienen prioridades, y son las que decidió el
+             * rediseño del 6 de septiembre de 2026:
+             *
+             *   tiempo   la espera, si espera; si no, la fecha
+             *   marca    lo que no está leído gana a en qué va la venta, y
+             *            en qué va la venta gana a quién contestó
+             *
+             * Es una sola casilla y no tres apiladas porque tres etiquetas en
+             * la esquina de una fila de 44px de alto no se leen: se ven como
+             * ruido y la fila deja de tener forma.
+             *
+             * `nuevo` no lleva etiqueta: si los cuarenta chats sin tocar la
+             * llevaran, dejaría de señalar lo que necesita algo. */}
+            <div className="chat-contact-cola">
+                {espera
+                    ? <span className="chat-contact-espera">{espera} sin resp.</span>
+                    : <span className="chat-contact-time">
+                        {filtro === 'purgar' ? fmtDateFull(contacto.last_time) : fmtDate(contacto.last_time)}
+                      </span>}
+
+                {sinLeer > 0 ? (
+                    <span className="chat-unread-badge">{sinLeer}</span>
+                ) : colorDelEstado ? (
+                    <span className="chat-estado-marca" style={{ '--estado-color': colorDelEstado }}>
+                        {estadoEtiqueta}
+                    </span>
+                ) : contacto.last_role === 'assistant' && !enManual ? (
+                    <span className="chat-contact-ia">IA</span>
+                ) : null}
+            </div>
+
             {/* Archivar y eliminar, en la fila. Antes había que
                 abrir el chat y entrar al menú de exportar para
                 encontrar el borrado; aquí está donde se mira la

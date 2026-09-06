@@ -51,11 +51,19 @@ const AdminSidebar = ({ session, activeId, onNavClick, chatUnread = 0 }) => {
                 </div>
 
                 <nav className="admin-sidebar-nav">
+                    {/* El `title` y el `aria-label` no son de adorno: en el
+                        riel de 72px que usa /admin/chat el rótulo se apaga y
+                        queda sólo el dibujo, así que sin ellos serían siete
+                        iconos sin nombre. Se ponen siempre —en el menú entero
+                        no estorban— para que no dependan de una prop que
+                        alguien olvide pasar. */}
                     {NAV.map(item => (
                         <button
                             key={item.id}
                             className={`admin-nav-item ${activeId === item.id ? 'admin-nav-item--active' : ''}`}
                             onClick={() => handleNav(item)}
+                            title={item.label}
+                            aria-label={item.label}
                         >
                             <span className="admin-nav-icon">{item.icon}</span>
                             {item.label}
@@ -74,7 +82,7 @@ const AdminSidebar = ({ session, activeId, onNavClick, chatUnread = 0 }) => {
                             <div className="admin-sidebar-role">Administrador</div>
                         </div>
                     </div>
-                    <button className="admin-sidebar-logout" onClick={handleLogout}>
+                    <button className="admin-sidebar-logout" onClick={handleLogout} title="Cerrar sesión" aria-label="Cerrar sesión">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
                         Cerrar sesion
                     </button>

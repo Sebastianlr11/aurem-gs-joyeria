@@ -39,7 +39,7 @@ npm run dev          # Vite en http://localhost:5173
 npm run build        # eslint && vitest && sitemap.mjs && correos.mjs && tsc -b && vite build
 npm run preview      # Sirve /dist
 npm run lint         # ESLint (sí corre en el build)
-npm test             # Vitest, una pasada (358 pruebas)
+npm test             # Vitest, una pasada (379 pruebas)
 npm run test:mirar   # Vitest en marcha, repitiendo al guardar
 
 npm run sitemap      # Regenera public/sitemap.xml desde Supabase
@@ -74,7 +74,7 @@ Cuatro advertencias sobre el build:
 
 ### Las pruebas
 
-Hay **358**, en veintiséis archivos que viven al lado de lo que prueban:
+Hay **379**, en veintisiete archivos que viven al lado de lo que prueban:
 
 | Archivo | Qué fija |
 |---|---|
@@ -82,7 +82,7 @@ Hay **358**, en veintiséis archivos que viven al lado de lo que prueban:
 | `src/lib/circuito.test.js` | Lo que el panel le dice a quien va a pulsar un botón |
 | `src/lib/talla.test.js` | Que la guía del sitio y Valentina den la misma talla |
 | `src/lib/fotosEnStorage.test.js` | Qué archivos se borran al borrar una pieza |
-| `src/pages/admin/chat/*.test.js(x)` | Los ganchos del chat, la ficha, la selección y el diálogo |
+| `src/pages/admin/chat/*.test.js(x)` | Los ganchos del chat, la ficha, la selección, el diálogo, y quién es la siguiente por atender |
 | `supabase/functions/_shared/reglas.test.ts` | Las reglas de Valentina |
 | `supabase/functions/_shared/bucle.test.ts` | El bucle del agente, sin Deno y sin red |
 | `supabase/functions/_shared/redaccion.test.ts` | Lo que se le pide al modelo al redactar una pieza, y lo que se le revisa |
@@ -692,6 +692,21 @@ Cosas que ya costaron un incidente. Léelas antes de tocar lo que describen.
   esto, es de plan Pro y en este proyecto responde 403.
 - **Gmail borra los `<style>` externos.** Por eso `emails/_marca.tsx` duplica los tokens
   en línea y usa Georgia en vez de Marcellus.
+- **La barra de arriba del panel no existe en `/admin/chat`, y la navegación se encoge a
+  72px.** Es la única pantalla así, y las dos cosas por lo mismo: se usa de corrido —se lee
+  una conversación, se contesta, se pasa a la siguiente— y tanto los 64px de la barra como
+  los 260 del menú se los estaban quitando al hilo. El título, el punto de conexión en
+  vivo, el altavoz y el avatar de la cuenta viven en la cabecera de la lista. El riel es
+  una clase en el contenedor, `.admin-layout--riel`; **el rótulo de cada botón del menú es
+  un nodo de texto sin envoltorio**, así que se apaga con `font-size: 0` y lo que dice a
+  dónde lleva cada icono es su `title`. Si añades un botón al menú, ponle `title`.
+- **En el celular, lo que flota dentro del panel del chat queda DEBAJO de la barra de
+  navegación.** `.chat-panel` es `position: fixed` con `z-index: 1`, o sea que crea un
+  contexto de apilado: nada de lo que hay dentro puede subir por encima de
+  `.admin-mobile-bar`, que cuelga del `body`, por mucho `z-index` que se le ponga. La hoja
+  de acciones se estrenó así el 6 de septiembre de 2026 —la barra le tapaba justo el botón
+  «Cancelar»— y se arregla escondiendo la barra mientras la hoja está abierta, igual que ya
+  se hacía mientras se escribe. Si metes otra cosa flotante ahí dentro, es la misma trampa.
 - **El CSS ya no son dos archivos: son ocho.** `src/index.css` (2.900 líneas — el sistema
   de diseño, la portada y todo lo compartido), `src/panel.css` (el panel), y **seis hojas de
   ruta** que se cargan sólo con su pantalla: `src/pages/ProductPage.css`, `Catalog.css`,
