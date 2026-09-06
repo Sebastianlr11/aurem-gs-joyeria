@@ -36,10 +36,8 @@ import path from 'node:path'
 
 const BASE = process.env.HUELLA_BASE || 'http://localhost:4173'
 
-/* Las pantallas públicas. El panel queda fuera porque vive en `panel.css` y
-   además pide sesión; si algún día se toca aquél, se añaden aquí con un
-   token. La ruta inventada es la del 404, que también se pinta con el layout
-   normal y ya se rompió una vez. */
+/* Las pantallas públicas. La ruta inventada es la del 404, que también se
+   pinta con el layout normal y ya se rompió una vez. */
 const PANTALLAS = [
   ['portada', '/'],
   ['catalogo', '/catalogo'],
@@ -49,6 +47,33 @@ const PANTALLAS = [
   ['devoluciones', '/politica-de-devoluciones'],
   ['tallas', '/guia-de-tallas'],
   ['no-encontrado', '/una-ruta-que-no-existe'],
+]
+
+/* ─── El panel, que hasta hoy no se medía ─────────────────────────────────
+ *
+ * Quedaba fuera por una razón que era buena y dejó de serlo: pide sesión. El
+ * resultado es que `panel.css` —5.000 líneas más que `index.css`, y la
+ * pantalla donde el joyero pasa el día— se tocaba a ciegas, que es justo lo
+ * que esta herramienta existe para no hacer.
+ *
+ * Con `--panel` entra por el formulario de verdad, con las credenciales de
+ * `HUELLA_ADMIN_EMAIL` y `HUELLA_ADMIN_CLAVE`. **Nunca en el archivo**: van en
+ * el entorno de quien la corre, como el resto de los secretos del proyecto.
+ *
+ * Las siete secciones no son rutas: son `?tab=` sobre el mismo `Dashboard`, y
+ * los identificadores están en inglés (ver CLAUDE.md §4). La entrada
+ * (`/admin/login`) se queda fuera: se mide antes de que haya sesión, y medirla
+ * en la misma corrida pediría un segundo perfil de Chrome por una pantalla que
+ * no cambia. */
+const PANEL = [
+  ['panel-portada', '/admin?tab=dashboard'],
+  ['panel-productos', '/admin?tab=products'],
+  ['panel-pedidos', '/admin?tab=orders'],
+  ['panel-clientes', '/admin?tab=customers'],
+  ['panel-reportes', '/admin?tab=reports'],
+  ['panel-anotaciones', '/admin?tab=notes'],
+  ['panel-ajustes', '/admin?tab=settings'],
+  ['panel-chat', '/admin/chat'],
 ]
 
 /* ─── Los estados que no se ven al cargar ─────────────────────────────────
@@ -79,7 +104,35 @@ const ESTADOS = {
   ],
 }
 
+/* Los del panel van aparte y **no los gobierna `--estados`**: con la lista
+   cerrada, `/admin/chat` es una columna de filas y un hueco. El interior del
+   chat —la cabecera, el hilo, la ficha del contacto— es la pantalla, no un
+   estado suyo, así que `--panel` lo mide siempre. */
+const ESTADOS_PANEL = {
+  'panel-chat': [
+    { nombre: 'abierto', abrir: `document.querySelector('.chat-contact-item')?.click()`, esperaA: '.chat-conv-messages' },
+  ],
+  /* El modal de pieza son 400 líneas de CSS que sólo existen tras pulsar «Nueva
+     pieza». Sin esto, tocarlas es exactamente el cambio a ciegas que esta
+     herramienta vino a impedir.
+
+     Sigue sin medirse el diálogo de despacho (`.envio-*`): pide un pedido en un
+     estado concreto, y montarlo desde aquí sería atarse a los datos de la base.
+     Queda anotado como el punto ciego que es. */
+  'panel-productos': [
+    { nombre: 'modal', abrir: `[...document.querySelectorAll('.prod-btn-ink')].find(b => /pieza/i.test(b.textContent))?.click()`, esperaA: '.pm-caja' },
+  ],
+}
+
 const CON_ESTADOS = process.argv.includes('--estados')
+const CON_PANEL = process.argv.includes('--panel')
+/* `--fotos <carpeta>` guarda además un PNG de cada pantalla medida. La huella
+   dice si algo cambió; las fotos dicen si el cambio está bien, que es una
+   pregunta que ninguna comparación de propiedades puede contestar. */
+const FOTOS = (() => {
+  const i = process.argv.indexOf('--fotos')
+  return i >= 0 ? process.argv[i + 1] || 'fotos' : null
+})()
 
 /* Cuatro anchos y no uno. 390 no basta —está escrito en CLAUDE.md y costó
    descubrirlo—: los saltos de este CSS están en 768 y en 968, así que un
@@ -224,7 +277,69 @@ function conectar(url) {
   }
 }
 
+/* ─── Entrar al panel ─────────────────────────────────────────────────────
+ *
+ * Por el formulario y no metiendo la sesión a mano en `localStorage`: si
+ * algún día el candado cambia, esto tiene que fallar aquí y no medir siete
+ * pantallas de redirección creyendo que midió el panel.
+ *
+ * El valor se pone con el `setter` nativo del prototipo y no con `el.value`
+ * porque los campos son controlados por React: asignarle el valor al nodo deja
+ * el estado del componente vacío y el formulario se envía en blanco, sin decir
+ * nada. Es la misma trampa de siempre, con `input` burbujeando detrás. */
+const ENTRAR = (correo, clave) => `(async () => {
+  const poner = (el, v) => {
+    const s = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+    s.call(el, v);
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+  };
+  for (let i = 0; i < 60 && !document.querySelector('#admin-correo'); i++)
+    await new Promise((r) => setTimeout(r, 100));
+  const correo = document.querySelector('#admin-correo');
+  const clave = document.querySelector('#admin-clave');
+  if (!correo || !clave) return 'no apareció el formulario de entrada';
+  poner(correo, ${JSON.stringify(correo)});
+  poner(clave, ${JSON.stringify(clave)});
+  await new Promise((r) => setTimeout(r, 50));
+  correo.form.requestSubmit();
+  for (let i = 0; i < 150; i++) {
+    if (document.querySelector('.admin-sidebar')) return '';
+    await new Promise((r) => setTimeout(r, 100));
+  }
+  const err = document.querySelector('.admin-login-error');
+  return err ? ('el panel rechazó las credenciales: ' + err.textContent.trim()) : 'no se llegó al panel';
+})()`
+
+async function entrarAlPanel(ses, cx) {
+  const correo = process.env.HUELLA_ADMIN_EMAIL
+  const clave = process.env.HUELLA_ADMIN_CLAVE
+  if (!correo || !clave) {
+    console.error('Para medir el panel hacen falta HUELLA_ADMIN_EMAIL y HUELLA_ADMIN_CLAVE en el entorno.')
+    process.exit(1)
+  }
+
+  await ses('Emulation.setDeviceMetricsOverride', { width: 1440, height: 2400, deviceScaleFactor: 1, mobile: false })
+  const cargada = cx.unaVez('Page.loadEventFired')
+  await ses('Page.navigate', { url: BASE + '/admin/login' })
+  await cargada
+
+  const r = await ses('Runtime.evaluate', { expression: ENTRAR(correo, clave), awaitPromise: true, returnByValue: true })
+  /* Un fallo aquí tumba la corrida a propósito. Seguir mediría ocho veces la
+     pantalla de entrada y el informe diría, con toda la confianza del mundo,
+     que el panel no cambió nada. */
+  if (r.result.value) throw new Error(`No se pudo entrar al panel: ${r.result.value}`)
+  console.log('  (sesión abierta en el panel)')
+}
+
 // ─── Tomar la huella ────────────────────────────────────────────────────────
+
+/** Un PNG de lo que hay en pantalla, si se pidió `--fotos`. */
+async function retratar(ses, nombre) {
+  if (!FOTOS) return
+  fs.mkdirSync(FOTOS, { recursive: true })
+  const { data } = await ses('Page.captureScreenshot', { format: 'png' })
+  fs.writeFileSync(path.join(FOTOS, `${nombre.replace(/[^\w@.-]/g, '_')}.png`), Buffer.from(data, 'base64'))
+}
 
 async function tomar(destino) {
   const puerto = 9333 + Math.floor(Math.random() * 300)
@@ -239,7 +354,7 @@ async function tomar(destino) {
   await ses('Page.enable')
   await ses('Runtime.enable')
 
-  const huella = { base: BASE, tomada: new Date().toISOString(), propiedades: PROPIEDADES, estados: CON_ESTADOS, pantallas: {} }
+  const huella = { base: BASE, tomada: new Date().toISOString(), propiedades: PROPIEDADES, estados: CON_ESTADOS, panel: CON_PANEL, pantallas: {} }
 
   /* La ficha de pieza no se puede escribir a mano: su ruta lleva el uuid de un
      producto, y el que hoy es el primero mañana puede no estar. Se le pregunta
@@ -262,6 +377,19 @@ async function tomar(destino) {
     else console.log('  ⚠ el catálogo no dio ninguna pieza: la ficha queda sin medir')
   }
 
+  /* La sesión se abre una vez y vive en `localStorage`, que sobrevive a los
+     cambios de ancho y a las navegaciones: no hay que volver a entrar en cada
+     pantalla. */
+  if (CON_PANEL) {
+    await entrarAlPanel(ses, cx)
+    pantallas.push(...PANEL)
+  }
+
+  /* Los del panel van siempre que se pida `--panel`; los de la tienda, sólo
+     con `--estados`. Ver ESTADOS_PANEL. */
+  const estadosDe = (nombre) =>
+    (nombre.startsWith('panel-') ? ESTADOS_PANEL[nombre] : CON_ESTADOS ? ESTADOS[nombre] : null) || []
+
   for (const [nombre, ruta] of pantallas) {
     for (const ancho of ANCHOS) {
       /* El alto va generoso a propósito: con una ventana corta, las secciones
@@ -283,11 +411,12 @@ async function tomar(destino) {
       const datos = JSON.parse(r.result.value)
       huella.pantallas[`${nombre}@${ancho}`] = datos
       process.stdout.write(`  ${nombre} @${ancho}: ${datos.length} elementos\n`)
+      await retratar(ses, `${nombre}@${ancho}`)
 
       /* Cada estado se mide desde una carga limpia y no encadenando clics
          sobre la anterior: abrir el visor y después los filtros dejaría el
          visor abierto debajo, y lo medido no sería ninguno de los dos. */
-      for (const est of (CON_ESTADOS && ESTADOS[nombre]) || []) {
+      for (const est of estadosDe(nombre)) {
         const cargadaEst = cx.unaVez('Page.loadEventFired')
         await ses('Page.navigate', { url: BASE + ruta + (est.ruta || '') })
         await cargadaEst
@@ -307,6 +436,7 @@ async function tomar(destino) {
         const datosEst = JSON.parse(re.result.value)
         huella.pantallas[`${nombre}:${est.nombre}@${ancho}`] = datosEst
         process.stdout.write(`  ${nombre}:${est.nombre} @${ancho}: ${datosEst.length} elementos\n`)
+        await retratar(ses, `${nombre}-${est.nombre}@${ancho}`)
       }
     }
   }
@@ -346,7 +476,7 @@ function comparar(rutaA, rutaB) {
     console.error('Las dos huellas no cubren las mismas pantallas.')
     if (soloEnA.length) console.error(`  sólo en ${rutaA}: ${soloEnA.join(', ')}`)
     if (soloEnB.length) console.error(`  sólo en ${rutaB}: ${soloEnB.join(', ')}`)
-    console.error('Vuelve a tomarlas con las mismas opciones (¿faltó --estados en una?).')
+    console.error('Vuelve a tomarlas con las mismas opciones (¿faltó --estados o --panel en una?).')
     process.exit(1)
   }
 
@@ -400,7 +530,13 @@ function comparar(rutaA, rutaB) {
 /* Las opciones se apartan antes de leer los archivos: `tomar --estados h.json`
    y `tomar h.json --estados` tienen que hacer lo mismo, y sobre todo ninguna
    de las dos puede acabar escribiendo un archivo llamado «--estados». */
-const [orden, ...args] = process.argv.slice(2).filter((a) => !a.startsWith('--'))
+const crudos = process.argv.slice(2)
+const iFotos = crudos.indexOf('--fotos')
+/* `--fotos` se lleva su valor por delante: sin esto, `tomar h.json --fotos f/`
+   dejaría «f/» como segundo argumento y `comparar` lo tomaría por una huella. */
+const [orden, ...args] = crudos
+  .filter((a, i) => i !== iFotos + 1 || iFotos < 0)
+  .filter((a) => !a.startsWith('--'))
 if (orden === 'tomar' && args[0]) await tomar(args[0])
 else if (orden === 'comparar' && args[1]) comparar(args[0], args[1])
 else {
@@ -410,7 +546,10 @@ else {
     '  node scripts/huella-estilos.mjs comparar <antes.json> <despues.json>\n\n' +
     '  --estados  mide además el visor, el modal de compra y el panel de filtros,\n' +
     '             que no existen hasta que alguien hace clic. Las dos tomas tienen\n' +
-    '             que llevarlo, o comparar se planta.'
+    '             que llevarlo, o comparar se planta.\n' +
+    '  --panel    entra a /admin y mide sus ocho pantallas, con el chat abierto.\n' +
+    '             Pide HUELLA_ADMIN_EMAIL y HUELLA_ADMIN_CLAVE en el entorno.\n' +
+    '  --fotos <carpeta>  guarda además un PNG de cada pantalla medida.'
   )
   process.exit(1)
 }
