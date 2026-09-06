@@ -71,6 +71,47 @@ export const MESES_PURGA = 12;
 
 export const truncate = (s, n = 50) => s && s.length > n ? s.slice(0, n) + '...' : s;
 
+/**
+ * De qué va el último mensaje, para la línea de vista previa de la lista.
+ *
+ * En la lista se leían cosas como `[plantilla: cotizacion_sin_cerrar] Maria ·
+ * …`, `[audio]` y `[reaction]`. Son marcas internas —las escribe `wa.ts` al
+ * mandar una plantilla, y `medios.ts` cuando entra una foto o una nota de voz—
+ * y en pantalla no significan nada para quien las lee: quince de las cuarenta
+ * filas empezaban con un corchete y un nombre de plantilla en minúsculas con
+ * guiones bajos.
+ *
+ * Devuelve la marca por separado para poder pintarla como lo que es —una
+ * etiqueta— y dejar el texto de verdad en su sitio.
+ *
+ * @returns `{ marca, texto }`, con `marca` en `null` si es un mensaje normal
+ */
+const MARCAS = {
+    image: 'Foto',
+    audio: 'Nota de voz',
+    reaction: 'Reacción',
+    document: 'Documento',
+    sticker: 'Sticker',
+};
+
+export function resumenDelMensaje(crudo) {
+    const s = typeof crudo === 'string' ? crudo.trim() : '';
+    if (!s) return { marca: null, texto: '' };
+
+    /* La plantilla trae su nombre técnico dentro; se descarta a propósito.
+       `cotizacion_sin_cerrar` no le dice nada a nadie mirando una lista, y lo
+       que importa es que el mensaje salió de una plantilla y qué decía. */
+    const plantilla = s.match(/^\[plantilla:[^\]]*\]\s*(.*)$/s);
+    if (plantilla) return { marca: 'Plantilla', texto: plantilla[1].trim() };
+
+    const simple = s.match(/^\[([a-z]+)\]\s*(.*)$/s);
+    if (simple && MARCAS[simple[1]]) {
+        return { marca: MARCAS[simple[1]], texto: simple[2].trim() };
+    }
+
+    return { marca: null, texto: s };
+}
+
 /* ─── Sort helper: user before assistant when same timestamp ─── */
 export const sortMessages = (msgs) => {
     if (!msgs) return [];

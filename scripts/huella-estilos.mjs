@@ -110,7 +110,11 @@ const ESTADOS = {
    estado suyo, así que `--panel` lo mide siempre. */
 const ESTADOS_PANEL = {
   'panel-chat': [
-    { nombre: 'abierto', abrir: `esperarYPulsar('.chat-contact-item')`, esperaA: '.chat-conv-messages' },
+    /* `.chat-bubble` y no `.chat-conv-messages`: el contenedor existe vacío
+       mientras los mensajes llegan de Supabase, así que se medía —y se
+       retrataba— un hilo en blanco. Las burbujas, que son la mitad de la
+       pantalla, nunca habían pasado por aquí. */
+    { nombre: 'abierto', abrir: `esperarYPulsar('.chat-contact-item')`, esperaA: '.chat-bubble' },
     /* La ficha del contacto no nace abierta por debajo de 1.280, así que sin
        esto quedaba sin medir justo en los anchos donde se decidió que flotara.
        El botón vive en dos sitios según el ancho —en la barra en escritorio,
