@@ -110,7 +110,37 @@ const ESTADOS = {
    estado suyo, así que `--panel` lo mide siempre. */
 const ESTADOS_PANEL = {
   'panel-chat': [
-    { nombre: 'abierto', abrir: `document.querySelector('.chat-contact-item')?.click()`, esperaA: '.chat-conv-messages' },
+    { nombre: 'abierto', abrir: `esperarYPulsar('.chat-contact-item')`, esperaA: '.chat-conv-messages' },
+    /* La ficha del contacto no nace abierta por debajo de 1.280, así que sin
+       esto quedaba sin medir justo en los anchos donde se decidió que flotara.
+       El botón vive en dos sitios según el ancho —en la barra en escritorio,
+       dentro del menú de tres puntos en celular—, y por eso lo busca en los
+       dos en vez de dar por hecho uno. */
+    {
+      nombre: 'ficha',
+      abrir: `(async () => {
+        const espera = (ms) => new Promise((r) => setTimeout(r, ms));
+        const visible = (el) => el && el.offsetParent !== null;
+        await esperarYPulsar('.chat-contact-item');
+        for (let i = 0; i < 60; i++) {
+          if (document.querySelector('.chat-info-panel')) return;
+          const enBarra = [...document.querySelectorAll('.chat-conv-header-actions button')]
+            .find((b) => /Info del contacto/i.test(b.getAttribute('title') || ''));
+          if (visible(enBarra)) { enBarra.click(); await espera(120); continue; }
+          const puntos = [...document.querySelectorAll('.chat-conv-header-actions button')]
+            .find((b) => /Más opciones/i.test(b.getAttribute('aria-label') || ''));
+          if (visible(puntos)) {
+            puntos.click();
+            await espera(120);
+            const entrada = [...document.querySelectorAll('.chat-export-menu button')]
+              .find((b) => /ficha/i.test(b.textContent));
+            if (entrada) { entrada.click(); await espera(120); continue; }
+          }
+          await espera(120);
+        }
+      })()`,
+      esperaA: '.chat-info-panel',
+    },
   ],
   /* El modal de pieza son 400 líneas de CSS que sólo existen tras pulsar «Nueva
      pieza». Sin esto, tocarlas es exactamente el cambio a ciegas que esta
@@ -120,7 +150,7 @@ const ESTADOS_PANEL = {
      estado concreto, y montarlo desde aquí sería atarse a los datos de la base.
      Queda anotado como el punto ciego que es. */
   'panel-productos': [
-    { nombre: 'modal', abrir: `[...document.querySelectorAll('.prod-btn-ink')].find(b => /pieza/i.test(b.textContent))?.click()`, esperaA: '.pm-caja' },
+    { nombre: 'modal', abrir: `esperarYPulsar('.prod-btn-ink')`, esperaA: '.pm-caja' },
   ],
 }
 
@@ -198,11 +228,32 @@ const CONGELAR = `(async () => {
   return document.querySelectorAll('*').length;
 })()`
 
-/* Espera a que el estado esté de verdad en pantalla. Dos segundos de tope:
-   con las animaciones apagadas por CONGELAR, un modal que no apareció en ese
-   tiempo es que no se abrió. */
+/* Pulsar lo primero que aparezca con ese selector, esperándolo si hace falta.
+ *
+ * Los datos del panel vienen de Supabase, así que la lista de chats o la
+ * rejilla de productos pueden no existir todavía cuando toca abrir el estado.
+ * Pulsar a ciegas fallaba **en silencio**: no se abría nada, y el informe
+ * decía «no se abrió» sin distinguir «cambió el botón» de «llegué temprano».
+ * Le pasó a la ficha del contacto en 1024 y sólo en 1024, que es el peor tipo
+ * de intermitencia. */
+const AYUDANTES = `
+  window.esperarYPulsar = async (sel) => {
+    for (let i = 0; i < 60; i++) {
+      const el = document.querySelector(sel);
+      if (el) { el.click(); return true; }
+      await new Promise((r) => setTimeout(r, 100));
+    }
+    return false;
+  };
+`
+
+/* Espera a que el estado esté de verdad en pantalla. Diez segundos de tope y
+   no dos: los estados del panel abren detrás de datos que vienen de Supabase,
+   y con dos segundos el informe decía «no se abrió» cuando lo que pasaba era
+   que la lista todavía no había llegado. Con las animaciones apagadas por
+   CONGELAR, lo que no aparece en diez segundos es que de verdad no se abrió. */
 const ESPERAR = (sel) => `(async () => {
-  for (let i = 0; i < 40; i++) {
+  for (let i = 0; i < 200; i++) {
     if (document.querySelector(${JSON.stringify(sel)})) return true;
     await new Promise((r) => setTimeout(r, 50));
   }
@@ -422,6 +473,7 @@ async function tomar(destino) {
         await cargadaEst
         await new Promise((r) => setTimeout(r, 1500))
         await ses('Runtime.evaluate', { expression: CONGELAR, awaitPromise: true })
+        await ses('Runtime.evaluate', { expression: AYUDANTES })
         if (est.abrir) await ses('Runtime.evaluate', { expression: est.abrir })
 
         const abierto = await ses('Runtime.evaluate', {
