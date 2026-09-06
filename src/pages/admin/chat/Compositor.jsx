@@ -30,6 +30,7 @@ export default function Compositor({
     refRespuestas,
     onVerImagenes,
     panelDeImagen,
+    enManual,
 }) {
     return (
         <>
@@ -70,9 +71,18 @@ export default function Compositor({
 
                     {panelDeImagen}
                 </div>
+                {/* En manual el marcador lo dice, y lo dice AQUÍ.
+                    Antes había un letrero de tres renglones encima de la
+                    conversación —«Modo manual activo — Valentina no responde
+                    en este chat…»— que en un celular se llevaba el 10% de la
+                    pantalla para repetir lo que la insignia de la cabecera ya
+                    decía. Se quitó el 6 de septiembre de 2026. Lo que sí hacía
+                    falta de aquel texto es esta advertencia, y su sitio es el
+                    campo: se lee en el momento de escribir, no cinco pantallas
+                    más arriba. */}
                 <textarea
                     className="chat-input-field"
-                    placeholder="Escribe un mensaje..."
+                    placeholder={enManual ? 'Escribe al cliente...' : 'Escribe un mensaje...'}
                     value={mensaje}
                     onChange={e => onCambiar(e.target.value)}
                     onKeyDown={onTeclear}

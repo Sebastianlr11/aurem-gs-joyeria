@@ -14,28 +14,53 @@
  */
 import React from 'react';
 
-/* El orden es el de uso, no el alfabético: los tres primeros son los de todos
-   los días y «Para purgar» va al final porque se entra una vez cada varios
-   meses. */
-const FILTROS = [
+/* ─── Cuatro a la vista y nueve en el cajón ───────────────────────────────
+ *
+ * Eran trece píldoras en una columna de 360px. Trece no es un filtro, es un
+ * menú: se desbordaban —«No leídos» salía cortada a «No l…»— y nadie iba a
+ * encontrar «Cotizados» en la posición ocho de una tira que se arrastra.
+ *
+ * A la vista quedan los cuatro del día: con qué se entra, y las dos casillas
+ * del embudo donde se decide una venta. El resto son vistas que se abren de
+ * vez en cuando, y para eso está un selector — que además es lo más cómodo que
+ * hay en un celular, por lo mismo que el estado de un chat es un `select`.
+ */
+const PRIMARIOS = [
     ['todos', 'Todos'],
     /* «Por atender» abre la lista: es la pregunta con la que el joyero entra
        al panel —¿qué me falta?— y hasta hoy no tenía respuesta, había que
        revisar las cuarenta filas una por una. */
     ['por_atender', 'Por atender'],
-    ['hoy', 'Hoy'],
-    ['no_leidos', 'No leídos'],
-    ['sin_responder', '+24h'],
-    ['takeover', 'Manual'],
-    /* El embudo. Reemplazan al viejo «Resuelto», que en cuarenta chats no se
-       usó ni una vez porque un sí/no no dice en qué va una venta. */
+];
+
+/* Dos píldoras y no cuatro: la columna mide 360px y con cuatro «Por atender»
+   salía cortada a «Por a». Aquí caben las dos de todos los días; el resto va
+   en el selector, en dos grupos, porque son dos preguntas distintas —«en qué
+   va» y «cuáles quiero ver»— y mezcladas en una lista de diez no se
+   encuentra ninguna. */
+const EL_EMBUDO = [
+    /* Reemplazaron al viejo «Resuelto», que en cuarenta chats no se usó ni una
+       vez porque un sí/no no dice en qué va una venta. */
     ['cotizado', 'Cotizados'],
     ['vendido', 'Vendidos'],
     ['perdido', 'Perdidos'],
-    ['pendiente', 'Pedido'],
+    ['pendiente', 'Con pedido'],
+];
+
+/* «Para purgar» va al final porque se entra una vez cada varios meses. */
+const LAS_VISTAS = [
+    ['hoy', 'Hoy'],
+    ['no_leidos', 'No leídos'],
+    /* Chrome le da al `select` el ancho de su opción más larga, así que un
+       rótulo de más se lo quita a las píldoras de al lado: con «Sin responder
+       +24h» aquí, «Por atender» salía cortada a «Por ater». */
+    ['sin_responder', 'Más de 24h'],
+    ['takeover', 'En manual'],
     ['archivado', 'Archivados'],
     ['purgar', 'Para purgar'],
 ];
+
+const EN_EL_CAJON = [...EL_EMBUDO, ...LAS_VISTAS];
 
 export default function CabeceraDeContactos({
     enManual,
@@ -48,6 +73,8 @@ export default function CabeceraDeContactos({
     lote,
     onMarcarTodas,
 }) {
+    const enElCajon = EN_EL_CAJON.some(([f]) => f === filtro);
+
     return (
                 <div className="chat-contacts-header">
                     <div className="chat-contacts-titulo">
@@ -69,15 +96,39 @@ export default function CabeceraDeContactos({
                         value={busqueda}
                         onChange={e => onBuscar(e.target.value)}
                     />
-                    <div className="riel" role="group" aria-label="Filtrar conversaciones">
-                        {FILTROS.map(([f, label]) => (
-                            <button key={f} type="button"
-                                    className={`riel-btn${filtro === f ? ' riel-btn--on' : ''}`}
-                                    aria-pressed={filtro === f}
-                                    onClick={() => onFiltrar(f)}>
-                                <span>{label}</span>
-                            </button>
-                        ))}
+                    <div className="chat-filtros" role="group" aria-label="Filtrar conversaciones">
+                        <div className="riel">
+                            {PRIMARIOS.map(([f, label]) => (
+                                <button key={f} type="button"
+                                        className={`riel-btn${filtro === f ? ' riel-btn--on' : ''}`}
+                                        aria-pressed={filtro === f}
+                                        onClick={() => onFiltrar(f)}>
+                                    <span>{label}</span>
+                                </button>
+                            ))}
+                        </div>
+                        {/* Cuando hay una vista del cajón puesta, ninguna
+                            píldora se ve encendida: lo dice el selector, que
+                            pasa a llevar el oro. Sin eso la lista saldría
+                            filtrada y nada en pantalla diría por qué. */}
+                        <select
+                            className={`chat-filtro-mas${enElCajon ? ' chat-filtro-mas--on' : ''}`}
+                            value={enElCajon ? filtro : ''}
+                            onChange={e => onFiltrar(e.target.value)}
+                            aria-label="Más vistas"
+                        >
+                            <option value="" disabled>Más vistas…</option>
+                            <optgroup label="En qué va">
+                                {EL_EMBUDO.map(([f, label]) => (
+                                    <option key={f} value={f}>{label}</option>
+                                ))}
+                            </optgroup>
+                            <optgroup label="Cuáles ver">
+                                {LAS_VISTAS.map(([f, label]) => (
+                                    <option key={f} value={f}>{label}</option>
+                                ))}
+                            </optgroup>
+                        </select>
                     </div>
 
                     {/* Ni oculta tras un gesto ni ocupando sitio de más:
