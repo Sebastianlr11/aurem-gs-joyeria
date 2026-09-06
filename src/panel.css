@@ -2900,6 +2900,26 @@
   background: var(--oro);
   color: var(--bg-color);
 }
+/* El de registrar una venta cerrada por fuera. Ocupa el ancho porque no es una
+   acción más de la ficha: es el único camino por el que una venta hecha desde
+   el WhatsApp personal del joyero vuelve al sistema. */
+.chat-info-btn--venta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 100%;
+  padding: 9px 14px;
+  font-size: 0.78rem;
+}
+
+.chat-info-nota {
+  margin: 7px 0 0;
+  font-size: 0.7rem;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
 .chat-info-btn--outline {
   background: var(--bg-color);
   border: 1px solid var(--hairline);

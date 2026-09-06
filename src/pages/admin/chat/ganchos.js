@@ -112,6 +112,11 @@ export function useAvisos() {
 export function useFichaDelContacto(telefono) {
     const [cliente, setCliente] = useState(null);
     const [pedidos, setPedidos] = useState([]);
+    /* Un contador para volver a pedir los datos. Hace falta desde que se puede
+       registrar un pedido sin salir del chat: sin esto el pedido se crea, la
+       ficha sigue enseñando los de antes, y el joyero no tiene forma de saber
+       si quedó guardado. */
+    const [recargas, setRecargas] = useState(0);
     const [notas, setNotas] = useState('');
     const [editandoNotas, setEditandoNotas] = useState(false);
 
@@ -140,7 +145,7 @@ export function useFichaDelContacto(telefono) {
             .then(({ data }) => { if (vigente) setPedidos(data || []); });
 
         return () => { vigente = false; };
-    }, [telefono]);
+    }, [telefono, recargas]);
 
     const guardarNotas = useCallback(async () => {
         if (!cliente) return;
@@ -161,6 +166,7 @@ export function useFichaDelContacto(telefono) {
         cliente, pedidos, notas, setNotas,
         editandoNotas, setEditandoNotas,
         guardarNotas, cancelarNotas,
+        recargar: () => setRecargas(n => n + 1),
     };
 }
 

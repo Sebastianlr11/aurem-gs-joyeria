@@ -26,6 +26,7 @@ export default function FichaDelContacto({
     onCerrar,
     onPonerEtiqueta,
     onQuitarEtiqueta,
+    onRegistrarPedido,
 }) {
     const {
         cliente, pedidos, notas, setNotas,
@@ -109,6 +110,28 @@ export default function FichaDelContacto({
                         </div>
                     </div>
     
+                    {/* ── Registrar una venta cerrada por fuera ──────────────
+                        El joyero cierra desde su WhatsApp personal, así que la
+                        venta no entra sola por ningún lado: ni pedido, ni
+                        conversión, ni atribución al anuncio que la trajo. Este
+                        botón es el único camino de vuelta, y por eso va arriba
+                        del todo y no escondido en un menú. */}
+                    {onRegistrarPedido && (
+                        <div className="chat-info-section">
+                            <button className="chat-info-btn chat-info-btn--venta"
+                                    onClick={() => onRegistrarPedido(telefono)}>
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                    <circle cx="12" cy="12" r="10" /><polyline points="8 12.5 11 15.5 16 9.5" />
+                                </svg>
+                                Registrar un pedido
+                            </button>
+                            <p className="chat-info-nota">
+                                Si le vendiste por fuera del panel, anótalo acá: es lo que
+                                hace que la venta le llegue al anuncio que la trajo.
+                            </p>
+                        </div>
+                    )}
+
                     {/* ── Tags ── */}
                     <div className="chat-info-section">
                         <div className="chat-info-section-head">
