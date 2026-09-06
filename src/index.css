@@ -2600,9 +2600,12 @@ textarea:focus-visible {
 /* Sólo escritorio: si va suelto pisa la regla móvil de más arriba,
    porque este bloque se escribió después en el archivo. */
 
+/* La fila abierta lleva el color de la conversación que abre —arena— para
+   que se lea como la puerta de lo que hay al lado, y no como una fila
+   ligeramente distinta. */
 .chat-contact-item.active,
 .chat-contact-item--active {
-  background: var(--bg-marfil);
+  background: var(--bg-arena);
 }
 
 .chat-contact-item.active::before,

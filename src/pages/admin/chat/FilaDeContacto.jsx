@@ -13,7 +13,7 @@
  * espaciadora igual que antes.
  */
 import React from 'react';
-import { fmtDate, fmtDateFull, truncate } from './comunes';
+import { fmtDate, fmtDateFull, truncate, resumenDelMensaje } from './comunes';
 import { definicionDe } from '../../../lib/estadoDelChat';
 import { nombreVisible, inicialDe } from '../../../lib/contacto';
 
@@ -39,6 +39,7 @@ export default function FilaDeContacto({
 }) {
     const { etiqueta: estadoEtiqueta, color: colorDelEstado } = definicionDe(estado);
     const { nombre, detalle, anonimo } = nombreVisible(contacto);
+    const ultimo = resumenDelMensaje(contacto.last_message);
     const inicial = inicialDe(contacto);
 
     /* En modo selección la fila marca en vez de abrir: tener que apuntar a una
@@ -87,23 +88,6 @@ export default function FilaDeContacto({
             </div>
             <div className="chat-contact-info">
                 <div className="chat-contact-top">
-                    {/* El punto del estado, delante del nombre y con la misma
-                        forma que el de un pedido (DESIGN-PANEL.md): es el
-                        vocabulario que el panel ya usa para «en qué va esto».
-
-                        Antes era un aro de 2px alrededor del avatar y no se
-                        veía: se puso el 6 de septiembre de 2026 para que la
-                        lista dejara de ser una pared plana, y no cambió nada
-                        porque nadie mira el borde de un círculo. `nuevo` sigue
-                        sin pintar —si los cuarenta sin tocar llevaran color,
-                        el color dejaría de señalar lo que necesita algo—. */}
-                    {colorDelEstado && (
-                        <span
-                            className="chat-contact-estado-punto"
-                            style={{ '--estado-color': colorDelEstado }}
-                            title={estadoEtiqueta}
-                        />
-                    )}
                     <span className={`chat-contact-name ${(contacto.unread || 0) > 0 ? 'chat-contact-name--unread' : ''} ${anonimo ? 'chat-contact-name--anonimo' : ''}`}>
                         {nombre}
                     </span>
@@ -115,7 +99,35 @@ export default function FilaDeContacto({
                     {/* Sin mensaje todavía —un lead que acaba de llegar— la
                         línea decía el teléfono otra vez. Ahora dice de dónde
                         vino, que es lo único nuevo que hay que saber. */}
-                    <span>{truncate(contacto.last_message, 45) || detalle || ''}</span>
+                    <span>
+                        {/* «[plantilla: cotizacion_sin_cerrar]» y «[audio]» son
+                            marcas internas: las escribe `wa.ts` al mandar una
+                            plantilla y `medios.ts` cuando entra una foto. En la
+                            lista se leían crudas, con el nombre técnico y todo,
+                            en quince de cuarenta filas. */}
+                        {ultimo.marca && <em className="chat-contact-marca">{ultimo.marca}</em>}
+                        {truncate(ultimo.texto, 45) || (ultimo.marca ? '' : detalle || '')}
+                    </span>
+
+                    {/* En qué va la venta, con su nombre escrito.
+                        Fue un aro alrededor del avatar y después un punto de
+                        7px, y las dos veces pasó lo mismo: se pintaba y no se
+                        notaba. Un color sin rótulo obliga a acordarse de qué
+                        significaba cada uno, y nadie se acuerda. Va en la
+                        segunda línea porque en la del nombre le quitaría el
+                        ancho que se le acaba de devolver.
+
+                        `nuevo` no lleva etiqueta: si los cuarenta chats sin
+                        tocar la llevaran, dejaría de señalar lo que necesita
+                        algo. */}
+                    {colorDelEstado && (
+                        <span
+                            className="chat-estado-marca"
+                            style={{ '--estado-color': colorDelEstado }}
+                        >
+                            {estadoEtiqueta}
+                        </span>
+                    )}
                 </div>
                 {etiquetas.length > 0 && (
                     <div className="chat-contact-tags">
