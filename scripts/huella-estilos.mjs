@@ -145,6 +145,26 @@ const ESTADOS_PANEL = {
       })()`,
       esperaA: '.chat-info-panel',
     },
+    /* El menú de tres puntos de la cabecera. En el celular es el único sitio
+       desde donde se toma el control, se archiva, se busca y se abre la ficha
+       —lo puso ahí la mudanza del 6 de septiembre de 2026— y estuvo recortado
+       por un `overflow: hidden` de la cabecera sin que nadie lo viera: es la
+       tercera capa que se abre al pulsar y que se rompe fuera del alcance de
+       esta herramienta. Ya no. */
+    {
+      nombre: 'menu',
+      abrir: `(async () => {
+        const espera = (ms) => new Promise((r) => setTimeout(r, ms));
+        await esperarYPulsar('.chat-contact-item');
+        for (let i = 0; i < 60; i++) {
+          const puntos = [...document.querySelectorAll('.chat-conv-header-actions button')]
+            .find((b) => /Más opciones/i.test(b.getAttribute('aria-label') || ''));
+          if (puntos && puntos.offsetParent !== null) { puntos.click(); return; }
+          await espera(120);
+        }
+      })()`,
+      esperaA: '.chat-export-menu',
+    },
   ],
   /* El modal de pieza son 400 líneas de CSS que sólo existen tras pulsar «Nueva
      pieza». Sin esto, tocarlas es exactamente el cambio a ciegas que esta

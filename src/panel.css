@@ -1877,6 +1877,10 @@
   align-items: center;
   gap: 14px;
   padding: 14px 28px;
+  /* `position` explícito: sin él, el `z-index` de aquí abajo no hacía
+     absolutamente nada —sólo cuenta en elementos posicionados— y lo que
+     mantenía el menú por encima del hilo era la suerte del orden de pintado. */
+  position: relative;
   z-index: 5;
 }
 
@@ -2158,7 +2162,12 @@
     row-gap: 8px;
     gap: 8px;
     padding: 10px 12px;
-    overflow: hidden;
+    /* **Sin `overflow: hidden`.** Lo llevaba de cuando era una sola fila que se
+       desbordaba de lado; ahora envuelve y no se desborda nada, y lo único que
+       hacía era recortar el menú de tres puntos justo por el borde de abajo de
+       la cabecera. En el celular ese menú es el único sitio desde donde se
+       toma el control, se archiva, se busca y se abre la ficha, así que
+       recortarlo dejaba la pantalla sin la mitad de sus mandos. */
   }
 
   .chat-conv-header-actions {
@@ -5414,7 +5423,11 @@
   background: var(--bg-color);
   border: 1px solid var(--hairline);
   border-radius: 2px;
-  box-shadow: none;
+  /* Con sombra, y es lo que manda DESIGN-PANEL.md: «la sombra se reserva para
+     lo que flota de verdad». Un menú desplegado y un modal flotan. Estaba en
+     `none` y por eso, incluso sin recortarse, se leían como pegados al fondo
+     en vez de por encima. */
+  box-shadow: 0 14px 30px rgba(28, 23, 20, 0.18);
 }
 
 .chat-confirm-overlay {
