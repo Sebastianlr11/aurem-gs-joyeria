@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import AdminSidebar from './AdminSidebar';
 import EliminarChat from './EliminarChat';
@@ -29,6 +29,13 @@ const ChatPanel = () => {
     const [session, setSession] = useState(null);
     const [contacts, setContacts] = useState([]);
     const [activeContact, setActiveContact] = useState(null);
+    /* El chat que pide la URL. Existe para que el aviso de WhatsApp que le
+       llega al joyero cuando Valentina escala pueda traer un enlace directo a
+       esa conversación: hasta el 6 de septiembre de 2026 no había forma de
+       abrir un chat concreto, así que él copiaba el número del aviso y le
+       escribía desde su WhatsApp personal — y el panel nunca se enteraba de
+       nada de lo que se hablaba. */
+    const [parametros, setParametros] = useSearchParams();
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
@@ -927,6 +934,33 @@ const ChatPanel = () => {
         setActiveContact(phone);
         setMobileShowChat(true);
     };
+
+    /* Abrir el chat que pide la URL, una sola vez.
+     *
+     * El teléfono se compara por sus últimos diez dígitos y no por la cadena
+     * cruda: el aviso lo manda como lo tiene WhatsApp —`573143602930`— y en la
+     * lista puede estar de otra forma. Es el mismo criterio con el que la base
+     * deduplica clientes.
+     *
+     * Se espera a que haya contactos cargados, y si el número no aparece en la
+     * lista se abre igual: puede ser una conversación que el filtro de ese
+     * momento esconde, y llegar por un enlace y encontrarse la lista sin nada
+     * abierto es peor que abrir un hilo vacío.
+     *
+     * El parámetro se limpia al usarlo para que un refresco no vuelva a
+     * arrastrar al joyero al mismo chat cuando ya está en otro. */
+    const telPedido = parametros.get('tel');
+    useEffect(() => {
+        if (!telPedido || !contacts.length) return;
+
+        const diez = (v) => String(v || '').replace(/\D/g, '').slice(-10);
+        const buscado = diez(telPedido);
+        const encontrado = contacts.find(c => diez(c.phone_number) === buscado);
+
+        selectContact(encontrado?.phone_number ?? telPedido);
+        setParametros({}, { replace: true });
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- selectContact se redefine en cada render y meterla obligaría a memorizarla para nada: lo que dispara esto es que llegue el parámetro o que carguen los contactos.
+    }, [telPedido, contacts.length]);
 
     if (!session) return null;
 

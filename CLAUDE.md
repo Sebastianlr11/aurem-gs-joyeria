@@ -861,6 +861,16 @@ Cosas que ya costaron un incidente. Léelas antes de tocar lo que describen.
 - **`products.metal` es texto libre y hay cinco formas de decir «oro»** —`Oro`, `Oro 18k`,
   `Oro blanco 18k`, `Oro y plata 925`, `Plata 925 y oro`—. No es sólo estética: es lo que el
   bot lee para decidir qué ofrecer, y lo que agrupa el filtro del catálogo.
+- **El aviso de un chat escalado tiene que traer el enlace al chat.** `/admin/chat?tel=…`
+  abre esa conversación directamente; sin ese parámetro el joyero cae en una bandeja de
+  treinta y termina escribiéndole al cliente desde su WhatsApp personal — y entonces el
+  panel no se entera de nada: el chat se queda marcado como «esperando» para siempre y una
+  venta cerrada así **no existe para Meta** (ni pedido, ni conversión, ni atribución). Lo
+  llevan los dos avisos, el WhatsApp (`avisarPorWhatsApp` en `bot.ts`) y el correo
+  (`chat-escalado.tsx`). El enlace va dentro del parámetro del motivo de la plantilla
+  `aviso_equipo`, que ya está aprobada con tres variables de texto; si Meta dejara de
+  aceptar URLs ahí, la salida es una plantilla nueva con botón de URL — y eso son uno o dos
+  días de revisión suya.
 - **Un índice PARCIAL no sirve para un `ON CONFLICT`.** Postgres no lo puede inferir a menos
   que la sentencia repita su predicado, y PostgREST no lo repite. `customers_wa_id_unico`
   nació parcial —`where wa_id is not null`, que parecía lo prolijo— y dejó fallando el
