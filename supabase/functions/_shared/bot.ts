@@ -3,7 +3,7 @@
  * precios y los pedidos salen de la base, no del modelo, para que no
  * invente nada.
  */
-import { admin, enviarImagen, enviarPlantilla, enviarTexto } from './wa.ts'
+import { admin, enviarImagen, enviarPlantilla, enviarTexto, idDestino } from './wa.ts'
 import {
   anuncioDe, atribucionDe, calcularTalla, cotizarOro, esContraentrega, esTelefono, piezaDelAnuncio,
   origen, piezasDelPedido, refDelTexto,
@@ -1098,27 +1098,36 @@ async function avisarPorWhatsApp(
 
   const quien = String(nombre ?? '').trim() || telefono
 
-  /* El motivo, y detrás el enlace que abre ESE chat en el panel.
+  /* El motivo, y detrás el enlace para atender.
    *
    * Hasta el 6 de septiembre de 2026 el aviso traía el nombre del cliente y
-   * nada más, así que el joyero copiaba el número y le escribía desde su
-   * WhatsApp personal. Funcionaba para el cliente y no para nadie más: el
-   * panel no se enteraba de lo hablado, los chats se quedaban marcados como
-   * «esperando» para siempre, y una venta cerrada así no existía para Meta
-   * —ni pedido, ni conversión, ni atribución al anuncio que la trajo—.
+   * nada más, así que el joyero copiaba el número a mano y le escribía desde
+   * su WhatsApp personal.
    *
-   * El enlace es lo único que pone el panel en su camino. Va dentro del
-   * parámetro del motivo porque la plantilla `aviso_equipo` ya está aprobada
-   * con tres variables de texto y crear una nueva con botón de URL cuesta uno
-   * o dos días de revisión de Meta. Si algún día Meta deja de aceptar URLs en
-   * un parámetro, ése es el camino: plantilla nueva con botón. */
+   * El enlace apunta al chat del cliente en WhatsApp —`wa.me`— y no al panel,
+   * por decisión del taller: así el aviso se convierte en un toque en vez de
+   * copiar y pegar, y respeta cómo trabaja de verdad.
+   *
+   * **Lo que eso cuesta, para que no se descubra tarde:** lo que se hable por
+   * ahí no queda en el hilo del negocio, el chat sigue marcado como
+   * «esperando» en el panel, y una venta cerrada así no existe para Meta —ni
+   * pedido, ni conversión, ni atribución al anuncio que la trajo—. Ya pasó con
+   * la primera venta real. La contrapartida es poder registrar el pedido
+   * después desde el panel; mientras eso no exista, cada venta por este camino
+   * es una venta que las campañas no ven.
+   *
+   * Los contactos que llegan sin teléfono —los `CO.…` de Meta— no tienen
+   * número al que escribir, así que a ésos el aviso los manda al panel, que es
+   * el único sitio desde donde se les puede contestar. */
   const base = (Deno.env.get('APP_URL') ?? 'https://www.auremgsjoyeria.com').replace(/\/$/, '')
-  const enlace = `${base}/admin/chat?tel=${encodeURIComponent(telefono)}`
+  const enlace = esTelefono(telefono)
+    ? `https://wa.me/${idDestino(telefono)}`
+    : `${base}/admin/chat?tel=${encodeURIComponent(telefono)}`
 
   /* Meta rechaza una variable vacía y corta los mensajes largos: el motivo lo
      escribe el modelo y puede irse de largo. Se recorta para dejarle sitio al
      enlace, que es lo que de verdad hay que poder tocar. */
-  const porque = `${motivo.trim().slice(0, 120) || 'Sin motivo anotado'} · Ábrelo acá: ${enlace}`
+  const porque = `${motivo.trim().slice(0, 120) || 'Sin motivo anotado'} · Escríbele acá: ${enlace}`
 
   for (const numero of numeros) {
     const envio = await enviarPlantilla(

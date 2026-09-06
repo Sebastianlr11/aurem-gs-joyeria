@@ -861,16 +861,19 @@ Cosas que ya costaron un incidente. Léelas antes de tocar lo que describen.
 - **`products.metal` es texto libre y hay cinco formas de decir «oro»** —`Oro`, `Oro 18k`,
   `Oro blanco 18k`, `Oro y plata 925`, `Plata 925 y oro`—. No es sólo estética: es lo que el
   bot lee para decidir qué ofrecer, y lo que agrupa el filtro del catálogo.
-- **El aviso de un chat escalado tiene que traer el enlace al chat.** `/admin/chat?tel=…`
-  abre esa conversación directamente; sin ese parámetro el joyero cae en una bandeja de
-  treinta y termina escribiéndole al cliente desde su WhatsApp personal — y entonces el
-  panel no se entera de nada: el chat se queda marcado como «esperando» para siempre y una
-  venta cerrada así **no existe para Meta** (ni pedido, ni conversión, ni atribución). Lo
-  llevan los dos avisos, el WhatsApp (`avisarPorWhatsApp` en `bot.ts`) y el correo
-  (`chat-escalado.tsx`). El enlace va dentro del parámetro del motivo de la plantilla
-  `aviso_equipo`, que ya está aprobada con tres variables de texto; si Meta dejara de
-  aceptar URLs ahí, la salida es una plantilla nueva con botón de URL — y eso son uno o dos
-  días de revisión suya.
+- **El aviso de un chat escalado lleva a `wa.me`, no al panel — y eso es una decisión, con
+  un precio.** El joyero atiende desde su WhatsApp personal, así que el aviso le abre el
+  chat del cliente de un toque (`avisarPorWhatsApp` en `bot.ts`). **Lo que cuesta:** lo que
+  se hable por ahí no queda en el hilo del negocio, el chat sigue marcado como «esperando»
+  en el panel, y **una venta cerrada así no existe para Meta** —ni pedido, ni conversión, ni
+  atribución al anuncio que la trajo—. Ya pasó con la primera venta real. La contrapartida
+  pendiente es poder registrar el pedido después desde el panel.
+  A los contactos sin teléfono —los `CO.…` de Meta— el aviso los manda a
+  `/admin/chat?tel=…`, que abre ese chat concreto: no hay número al que escribirles y el
+  panel es el único sitio desde donde se les contesta. El **correo** de escalado sigue
+  llevando al panel, que es donde tiene sentido desde un computador.
+  Y quedó comprobado el 6 de septiembre de 2026: **Meta sí acepta una URL dentro de un
+  parámetro de plantilla** y WhatsApp la vuelve enlace. No hizo falta plantilla nueva.
 - **Un índice PARCIAL no sirve para un `ON CONFLICT`.** Postgres no lo puede inferir a menos
   que la sentencia repita su predicado, y PostgREST no lo repite. `customers_wa_id_unico`
   nació parcial —`where wa_id is not null`, que parecía lo prolijo— y dejó fallando el
