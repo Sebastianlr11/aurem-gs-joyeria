@@ -95,7 +95,7 @@ misma marca; que parezca otro producto sería mentir sobre quién lo hizo.
 | Regla de la landing | En el panel |
 |---|---|
 | Orden obligatorio de bandas | No hay bandas. Hay secciones conmutadas por el riel lateral. |
-| Todo lo importante en el primer viewport móvil | El panel se usa en portátil. El móvil es para consultar, no para trabajar. |
+| Todo lo importante en el primer viewport móvil | **Sí, desde el 6 de septiembre de 2026.** Ver abajo. |
 | Presupuesto de oro: acento racionado | El oro marca **estado**, no decora. Puede aparecer más veces, siempre con significado. |
 | Cuerpo nunca menor de 1rem | **Aquí sí**, y es deliberado. Ver abajo. |
 | Dos acciones con jerarquía clara | Cada sección tiene su acción principal, pero conviven muchas secundarias. |
@@ -216,6 +216,34 @@ es 32px, no 112.
 (padding de botones, campos, texto) y `px` para lo estructural (anchos de riel,
 alturas de barra, grosores). Mezclarlos dentro del mismo componente es lo que
 produjo la ensalada actual.
+
+### Los cortes
+
+**Tres, y son los del proyecto: 480 · 768 · 900.** Más `1100`, que sobrevive
+sólo para las dos rejillas de Reportes —es un problema de pantalla ancha, no de
+celular— y `769`/`901` como complementos de los otros dos.
+
+No estaban escritos, y esa omisión se pagó: el panel llegó a tener **nueve**
+cortes —480, 520, 600, 700, 720, 768, 860, 900, 1100—, cinco de ellos entre 700
+y 900 diciendo lo mismo con números distintos. El efecto es que entre una tablet
+y un portátil chico la pantalla cambiaba de forma cuatro veces, en componentes
+que no se conocen entre sí. Se alinearon el 6 de septiembre de 2026.
+
+**Un corte nuevo pide una razón escrita aquí.** Es lo único que impide que vuelvan
+a ser nueve: cada uno se añadió a solas y con sentido, y el desorden salió de la
+suma.
+
+### El celular sí es para trabajar
+
+`DESIGN.md` pide que todo lo importante quepa en el primer viewport móvil y este
+documento lo descartaba: «el panel se usa en portátil». **Dejó de ser cierto el 6
+de septiembre de 2026.** El joyero atiende desde el celular —contesta WhatsApp,
+cierra ventas y ahora registra el pedido desde el chat—, y lo probó ahí antes que
+en ningún otro sitio.
+
+Lo que cambia en la práctica: la lista de chats, la cabecera de un chat abierto y
+la ficha del contacto se diseñan para 390px primero. Las tablas de Pedidos y
+Productos siguen siendo de portátil; ésas no se usan de pie.
 
 **Forma:** radio **2px** en todo —tarjetas, campos, tablas, modales—, **100px**
 sólo en lo que se pulsa —botones, píldoras, filtros de riel— y **50%** en avatares.

@@ -15,6 +15,7 @@ import FichaDelContacto from './chat/FichaDelContacto';
 import PedidoModal from './PedidoModal';
 import { traerAtribucionDelChat } from '../../lib/atribucionDelChat';
 import { ESTADOS, estadoDe, definicionDe, estaAbierto } from '../../lib/estadoDelChat';
+import { nombreVisible } from '../../lib/contacto';
 import SelectorDeImagen from './chat/SelectorDeImagen';
 import FilaDeContacto from './chat/FilaDeContacto';
 import CabeceraDeContactos from './chat/CabeceraDeContactos';
@@ -1029,7 +1030,10 @@ const ChatPanel = () => {
     if (!session) return null;
 
     const activeContactData = contacts.find(c => c.phone_number === activeContact);
-    const activeDisplayName = activeContactData?.customer_name || activeContact;
+    /* Antes era `customer_name || activeContact`, y para quien llega de un
+       anuncio de Instagram eso pintaba `CO.1287538963396593` de titular. */
+    const activeVisible = nombreVisible(activeContactData || { phone_number: activeContact });
+    const activeDisplayName = activeVisible.nombre;
     const isTakeover = !!takeoverMap[activeContact];
     const totalUnread = totalUnreadMemo;
 
@@ -1185,23 +1189,29 @@ filteredContacts.map(c => (
                                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
                                     </button>
                                     <div className="chat-conv-header-avatar">
-                                        {activeContactData?.customer_name ? activeContactData.customer_name[0].toUpperCase() : (
+                                        {(!activeVisible.anonimo && /[a-záéíóúüñ]/i.test(activeDisplayName[0] || '')) ? activeDisplayName[0].toUpperCase() : (
                                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                                         )}
                                     </div>
                                     <div className="chat-conv-header-info">
                                         <div className="chat-conv-header-name">
                                             <span>{activeDisplayName}</span>
+                                            {/* Dos rótulos y no uno: en 390px «Control
+                                                manual» empujaba el nombre fuera de la
+                                                cabecera, y quedaba una pantalla llena de
+                                                botones donde no se podía saber con quién
+                                                estabas hablando. */}
                                             <span className={`chat-mode-badge ${isTakeover ? 'chat-mode-badge--manual' : 'chat-mode-badge--ai'}`}>
-                                                {isTakeover ? 'Control manual' : 'Agente IA'}
+                                                <span className="chat-mode-badge-largo">{isTakeover ? 'Control manual' : 'Agente IA'}</span>
+                                                <span className="chat-mode-badge-corto">{isTakeover ? 'Manual' : 'IA'}</span>
                                             </span>
                                         </div>
-                                        {activeContactData?.customer_name ? (
-                                            <div className="chat-conv-header-phone">{activeContact}</div>
+                                        {activeVisible.detalle ? (
+                                            <div className="chat-conv-header-phone">{activeVisible.detalle}</div>
                                         ) : null}
                                     </div>
                                     <div className="chat-conv-header-actions">
-                                        <button className={`chat-header-action-btn chat-header-action-btn--secundaria ${showMsgSearch ? 'chat-header-action-btn--active' : ''}`}
+                                        <button className={`chat-header-action-btn chat-header-action-btn--secundaria chat-accion-ancha ${showMsgSearch ? 'chat-header-action-btn--active' : ''}`}
                                                 onClick={() => setShowMsgSearch(!showMsgSearch)} title="Buscar en mensajes">
                                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                                         </button>
@@ -1223,14 +1233,14 @@ filteredContacts.map(c => (
                                             ))}
                                         </select>
                                         <button
-                                            className="chat-header-action-btn chat-header-action-btn--secundaria"
+                                            className="chat-header-action-btn chat-header-action-btn--secundaria chat-accion-ancha"
                                             onClick={() => setConfirmArchive(activeContact)}
                                             title="Archivar conversación"
                                         >
                                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
                                         </button>
                                         <button
-                                            className={`chat-takeover-btn ${isTakeover ? 'chat-takeover-btn--active' : ''}`}
+                                            className={`chat-takeover-btn chat-accion-ancha ${isTakeover ? 'chat-takeover-btn--active' : ''}`}
                                             onClick={handleToggleTakeover}
                                             title={isTakeover ? 'Devolver al agente IA' : 'Tomar control manual'}
                                         >
@@ -1251,6 +1261,30 @@ filteredContacts.map(c => (
                                             </button>
                                             {showExportMenu && (
                                                 <div className="chat-export-menu">
+                                                    {/* Las mismas cuatro acciones que en escritorio
+                                                        están en la barra. Se pintan siempre y las
+                                                        esconde el CSS por encima de 768px, en vez de
+                                                        preguntarle el ancho al navegador: así hay un
+                                                        solo árbol y una sola verdad.
+
+                                                        En 390px la barra tenía siete controles y
+                                                        ninguno era el nombre del cliente. Aquí abajo
+                                                        quedan las que se usan una vez por conversación;
+                                                        arriba, el estado, que se usa en cada una. */}
+                                                    <div className="chat-menu-solo-movil">
+                                                        <button onClick={() => { handleToggleTakeover(); setShowExportMenu(false); }}>
+                                                            {isTakeover ? 'Devolver a Valentina' : 'Tomar el control'}
+                                                        </button>
+                                                        <button onClick={() => { setShowContactInfo(!showContactInfo); setShowExportMenu(false); }}>
+                                                            {showContactInfo ? 'Ocultar la ficha' : 'Ver la ficha del contacto'}
+                                                        </button>
+                                                        <button onClick={() => { setShowMsgSearch(!showMsgSearch); setShowExportMenu(false); }}>
+                                                            Buscar en los mensajes
+                                                        </button>
+                                                        <button onClick={() => { setConfirmArchive(activeContact); setShowExportMenu(false); }}>
+                                                            Archivar
+                                                        </button>
+                                                    </div>
                                                     <button onClick={() => { handleExport('txt'); setShowExportMenu(false); }}>Exportar TXT</button>
                                                     <button onClick={() => { handleExport('csv'); setShowExportMenu(false); }}>Exportar CSV</button>
                                                     {hilo.fotos > 0 && (
@@ -1263,7 +1297,7 @@ filteredContacts.map(c => (
                                             )}
                                         </div>
                                         <button
-                                            className={`chat-header-action-btn ${showContactInfo ? 'chat-header-action-btn--active' : ''}`}
+                                            className={`chat-header-action-btn chat-accion-ancha ${showContactInfo ? 'chat-header-action-btn--active' : ''}`}
                                             onClick={() => setShowContactInfo(!showContactInfo)}
                                             title="Info del contacto"
                                         >
@@ -1280,14 +1314,16 @@ filteredContacts.map(c => (
                                     }} />
                                 )}
 
-                                {/* Takeover banner */}
-                                {isTakeover && (
-                                    <div className="chat-takeover-banner">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                                        <span>Modo manual activo — Valentina no responde en este chat. Tus mensajes se envían directamente al cliente.</span>
-                                        <button className="chat-takeover-banner-end" onClick={handleToggleTakeover}>Devolver a IA</button>
-                                    </div>
-                                )}
+                                {/* Aquí vivía el letrero de «Modo manual activo».
+                                    Decía por cuarta vez lo que ya dicen la insignia
+                                    de la cabecera, el botón de «Devolver a IA» y el
+                                    punto de la fila, con un segundo «Devolver a IA»
+                                    a cuarenta píxeles del primero. En 390px se
+                                    llevaba tres renglones y un botón —el 10% de la
+                                    pantalla— antes del primer mensaje. Su única
+                                    frase útil, la de que el mensaje va directo al
+                                    cliente, se mudó al marcador del campo, que es
+                                    donde se lee justo antes de escribir. */}
 
                                 <div className="chat-conv-body">
                                     {/* Messages */}
@@ -1335,6 +1371,7 @@ filteredContacts.map(c => (
                                     onVerRespuestas={() => { setShowQuickReplies(!showQuickReplies); setShowImagePicker(false); }}
                                     refRespuestas={quickRepliesRef}
                                     onVerImagenes={() => { setShowImagePicker(!showImagePicker); setShowQuickReplies(false); }}
+                                    enManual={isTakeover}
                                     panelDeImagen={showImagePicker && (
                                         <SelectorDeImagen
                                             piezas={products}

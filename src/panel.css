@@ -1546,7 +1546,7 @@
   cursor: not-allowed;
   transform: none;
 }
-@media (max-width: 600px){
+@media (max-width: 768px){
   .modal-row { grid-template-columns: 1fr; }}
 
 /* ============================================================
@@ -1627,6 +1627,61 @@
   background: rgba(255,255,255,0.04) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='15' height='15' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E") 13px center no-repeat;
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
+/* ─── Los filtros de la lista ──────────────────────────────────────────────
+ *
+ * Cuatro píldoras y un selector con el resto. El selector va FUERA del riel:
+ * dentro heredaría su fondo de arena y parecería una píldora más, y lo que
+ * tiene que parecer es la puerta a lo que no está a la vista. */
+.chat-filtros {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  /* El riel se encoge y el selector no: al revés, «Más vistas…» sería lo
+     primero en desaparecer y todo lo que no está a la vista quedaría sin
+     puerta. */
+  min-width: 0;
+}
+
+/* Las píldoras de `index.css` vienen dimensionadas para la tienda, donde el
+   riel tiene la página entera. Aquí viven en una columna de 360px, así que se
+   aprietan a la densidad del panel — que es la razón de que su escala sea de
+   4px y no de 8. */
+.chat-filtros .riel-btn {
+  min-height: 36px;
+  padding: 0 12px;
+  font-size: 0.82rem;
+}
+
+.chat-filtro-mas {
+  flex-shrink: 0;
+  /* Tope, por si algún día entra una vista de nombre largo: antes de comerse
+     las píldoras, que se corte el selector. */
+  max-width: 45%;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--hairline);
+  border-radius: 100px;
+  background: var(--bg-color);
+  font-family: var(--font-ui);
+  /* 0.875rem no es un paso de la escala del panel: es el de `.riel-btn`, que
+     vive en `index.css` y lo comparte con la tienda. Se copia a propósito
+     —van pegados y a tamaños distintos parecerían un error— y no se añade a
+     la escala. */
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color 0.3s var(--ease), border-color 0.3s var(--ease);
+}
+
+.chat-filtro-mas:hover { color: var(--ink); }
+
+.chat-filtro-mas--on {
+  border-color: rgba(168, 134, 63, 0.35);
+  color: var(--oro-ink);
+  font-weight: 700;
+}
+
 .chat-search::placeholder {
   color: var(--text-secondary);
 }
@@ -1703,6 +1758,19 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  /* Lo único de la fila que cede ancho. Sin esto el nombre se comía la fecha
+     —o al revés, según el orden— y la fila cambiaba de forma según lo largo
+     que fuera cada nombre. */
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* «Sin nombre» no es un nombre: se pinta como lo que es, un hueco. */
+.chat-info-nombre--anonimo,
+.chat-contact-name--anonimo {
+  font-weight: 400;
+  font-style: italic;
+  color: var(--text-secondary);
 }
 
 .chat-contact-time {
@@ -1781,6 +1849,12 @@
   flex-shrink: 0;
 }
 
+/* El nombre manda en esta fila.
+   Hasta el 6 de septiembre de 2026 `.chat-conv-header-actions` llevaba
+   `flex-shrink: 0` y esto no llevaba `min-width`, así que en 390px los siete
+   controles se quedaban con todo el ancho, el nombre se encogía a cero y
+   `overflow: hidden` lo recortaba entero: una cabecera llena de botones donde
+   no se podía saber con quién estabas hablando. */
 .chat-conv-header-name {
   font-size: 0.95rem;
   display: flex;
@@ -1788,6 +1862,31 @@
   flex-wrap: wrap;
   gap: 6px;
   letter-spacing: -0.01em;
+  min-width: 0;
+}
+
+/* El nombre se corta con puntos suspensivos; la insignia no se corta nunca. */
+.chat-conv-header-name > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 3ch;
+}
+
+.chat-mode-badge-corto { display: none; }
+
+/* Las cuatro acciones que en el celular viven en el menú de tres puntos. En
+   escritorio están en la barra, así que aquí sobrarían: se pintan siempre y
+   se esconden por CSS, en vez de preguntarle el ancho al navegador. */
+.chat-menu-solo-movil { display: none; }
+
+@media (max-width: 768px) {
+  .chat-menu-solo-movil {
+    display: block;
+    border-bottom: 1px solid var(--hairline);
+    padding-bottom: 4px;
+    margin-bottom: 4px;
+  }
 }
 
 .chat-conv-header-phone {
@@ -2009,10 +2108,24 @@
      En móvil quedan tomar control e info, que son las de operar en vivo. */
   .chat-header-action-btn--secundaria { display: none; }
   .chat-conv-header-info {
-    flex: 1 1 0;
+    flex: 1 1 auto;
     min-width: 0;
     overflow: hidden;
   }
+
+  /* «Control manual» empujaba el nombre fuera de la cabecera. */
+  .chat-mode-badge-largo { display: none; }
+  .chat-mode-badge-corto { display: inline; }
+  .chat-mode-badge { padding: 2px 7px; letter-spacing: 0.03em; }
+
+  /* Las cuatro acciones de una vez por conversación se van al menú de tres
+     puntos; arriba se queda el estado, que se toca en cada una. Así la barra
+     baja de siete controles a tres y el nombre tiene dónde caber. */
+  /* Con el selector de la barra delante (0,2,0) y no a solas (0,1,0): a
+     igual especificidad gana la última, y `.chat-header-action-btn` con su
+     `display: flex` se define 160 líneas más abajo. Escrito a solas, esta
+     regla no hacía nada y el nombre seguía sin caber. */
+  .chat-conv-header-actions .chat-accion-ancha { display: none; }
   .chat-conv-header-name,
   .chat-conv-header-phone {
     overflow: hidden;
@@ -2020,7 +2133,7 @@
     white-space: nowrap;
   }
   .chat-conv-header-actions {
-    flex-shrink: 0;
+    /* Sin `flex-shrink: 0`: los botones son lo que sobra, no lo que manda. */
     gap: 2px;
   }
   .chat-conv-header-actions button { padding: 6px; }
@@ -2114,7 +2227,9 @@
   padding: 10px 16px;
   background: var(--bg-arena);
   border-top: 1px solid var(--oro);
-  color: var(--oro-ink);
+  /* Sin `color`: lo pone el bloque de «Avisos» más abajo, y el de aquí nunca
+     llegó a aplicarse. Estaba escondido detrás del selector agrupado con el
+     letrero de control manual; al quitarse aquél, `css-pisadas` lo vio. */
   font-size: 0.82rem;
 }
 .chat-webhook-banner svg { flex-shrink: 0; stroke: var(--oro); }
@@ -2144,9 +2259,12 @@
   border: 2px solid var(--bg-color);
   animation: rtPulse 1.5s ease-in-out infinite;
 }
+/* Sin `border-left`: esos 3px son de «cuál está abierta» (`--active`), y
+   tenerlos dos dueños hacía que la fila abierta y la fila en manual se vieran
+   igual. Aquí queda sólo el fondo templado; quién responde lo dice el punto
+   del avatar. */
 .chat-contact-item--takeover {
   background: rgba(168, 134, 63, 0.06);
-  border-left: 3px solid var(--oro);
 }
 .chat-contact-item--takeover:hover {
   background: rgba(168, 134, 63, 0.1);
@@ -2157,52 +2275,12 @@
 .chat-contact-item--takeover.chat-contact-item--active::before {
   background: linear-gradient(180deg, var(--oro), var(--oro-ink));
 }
-.chat-takeover-badge {
-  display: inline-block;
-  padding: 1px 6px;
-  font-weight: 700;
-  line-height: 1.4;
-  flex-shrink: 0;
-  animation: chatBadgePop 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-}
+/* La insignia «MANUAL» de la fila se quitó el 6 de septiembre de 2026. Decía
+   lo mismo que el punto del avatar y que el fondo templado de la fila —tres
+   veces— y a cambio se llevaba el ancho que necesitaba el nombre: en 360px
+   los nombres salían cortados a «florezconz…» para dejarle sitio. */
 
 /* ─── Takeover banner in chat ─────────────────────────────────── */
-.chat-takeover-banner {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 20px;
-  background: linear-gradient(135deg, var(--bg-marfil), var(--bg-arena));
-  border-bottom: 1px solid var(--oro-hairline);
-  color: var(--oro-ink);
-  font-size: 0.82rem;
-  line-height: 1.4;
-  animation: chatFadeIn 0.3s ease-out;
-}
-.chat-takeover-banner svg {
-  flex-shrink: 0;
-  stroke: var(--oro);
-}
-.chat-takeover-banner span {
-  flex: 1;
-}
-.chat-takeover-banner-end {
-  padding: 5px 12px;
-  border-radius: 6px;
-  border: 1px solid var(--oro);
-  background: var(--bg-color);
-  color: var(--oro-ink);
-  font-size: 0.75rem;
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.chat-takeover-banner-end:hover {
-  background: var(--oro);
-  color: var(--bg-color);
-}
-
 /* ─── Chat header actions ──────────────────────────────────────── */
 .chat-conv-header-actions {
   display: flex;
@@ -2911,7 +2989,7 @@
   background: color-mix(in srgb, var(--estado-color) 10%, transparent);
   color: var(--estado-color);
   font-family: var(--font-ui);
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.02em;
   cursor: pointer;
@@ -2935,12 +3013,18 @@
 
 /* El aro del avatar en la lista. Va como anillo alrededor y no como punto
    para no pelearse con el de «manual», que ya ocupa una esquina. */
-.chat-contact-estado-aro {
-  position: absolute;
-  inset: -2px;
+/* El punto del estado, delante del nombre.
+   Misma forma que el de un pedido —7px con línea de pelo, DESIGN-PANEL.md—
+   porque es la misma pregunta: en qué va esto. Era un aro alrededor del
+   avatar y no lo vio nadie: el borde de un círculo no es un sitio donde se
+   mire. */
+.chat-contact-estado-punto {
+  width: 7px;
+  height: 7px;
+  flex-shrink: 0;
   border-radius: 50%;
-  border: 2px solid var(--estado-color);
-  pointer-events: none;
+  background: var(--estado-color);
+  box-shadow: 0 0 0 1px var(--bg-color), 0 0 0 2px var(--estado-color);
 }
 
 /* El de registrar una venta cerrada por fuera. Ocupa el ancho porque no es una
@@ -2953,12 +3037,12 @@
   gap: 7px;
   width: 100%;
   padding: 9px 14px;
-  font-size: 0.78rem;
+  font-size: 0.82rem;
 }
 
 .chat-info-nota {
   margin: 7px 0 0;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   line-height: 1.45;
   color: var(--text-muted);
 }
@@ -3441,12 +3525,17 @@
 }
 
 /* ─── Chat: unread contact name bold ───────────────────────────── */
+/* Lo no leído se lee MÁS, no menos.
+   Hasta el 6 de septiembre de 2026 estas dos reglas venían de cuando la lista
+   era oscura: el nombre se pintaba con `--bg-color` —blanco sobre blanco, o
+   sea invisible— y la vista previa se aclaraba. Las dos filas que más urgía
+   ver eran las únicas que no se veían. */
 .chat-contact-item--unread .chat-contact-preview {
-  color: var(--text-muted);
+  color: var(--ink);
 }
 .chat-contact-name--unread {
   font-weight: 800;
-  color: var(--bg-color);
+  color: var(--ink);
 }
 
 /* ─── Chat: filter chips scrollable ────────────────────────────── */
@@ -4931,7 +5020,6 @@
 }
 
 /* ── Avisos ── */
-.chat-takeover-banner,
 .chat-webhook-banner {
   background: var(--bg-arena);
   border-bottom: 1px solid var(--hairline);
@@ -4940,16 +5028,7 @@
   border-radius: 0;
 }
 
-.chat-takeover-badge {
-  background: var(--bg-arena);
-  color: var(--oro-ink);
-  border: 1px solid var(--oro-hairline);
-  border-radius: 100px;
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-}
+
 
 /* ── Barra de escritura ── */
 .chat-conv-input {
@@ -5437,7 +5516,7 @@
 .inf-vacio { padding: 2rem 0; font-size: 0.82rem; color: var(--text-secondary); }
 @media (max-width: 1100px){
   .inf-fila-principal, .inf-dos { grid-template-columns: 1fr; }}
-@media (max-width: 700px){
+@media (max-width: 768px){
   .inf-kpis { grid-template-columns: 1fr; grid-template-rows: none; }
   .inf-kpi { border-right: 0; }
   .inf-kpi:last-child { border-bottom: 0; }
@@ -5456,7 +5535,7 @@
   padding: 1.125rem 0; border-bottom: 1px solid var(--hairline);
 }
 .inf-compara:last-child { border-bottom: 0; }
-@media (max-width: 700px){ .inf-trio { grid-template-columns: 1fr; } .inf-trio .inf-kpi { border-right: 0; border-bottom: 1px solid var(--hairline); padding-left: 0 !important; }}
+@media (max-width: 768px){ .inf-trio { grid-template-columns: 1fr; } .inf-trio .inf-kpi { border-right: 0; border-bottom: 1px solid var(--hairline); padding-left: 0 !important; }}
 .inf-panel > .inf-pieza:last-child,
 .inf-panel > .inf-canal:last-child,
 .inf-embudo > .inf-canal:last-child { border-bottom: 0; padding-bottom: 0.25rem; }
@@ -5840,7 +5919,7 @@
    perdería el vistazo rápido a la columna, que es para lo que sirve. */
 .ped-falta {
   display: block; margin-top: 5px; max-width: 30ch;
-  font-size: 0.72rem; line-height: 1.45; color: var(--text-secondary);
+  font-size: 0.75rem; line-height: 1.45; color: var(--text-secondary);
 }
 
 /* «No la recibió»: la salida a `devuelto`. Va bajo el botón principal y sin
@@ -5848,7 +5927,7 @@
    competir con lo que se pulsa todos los días. */
 .ped-accion-otra {
   display: block; margin-top: 6px; padding: 0; border: 0; background: none;
-  font-family: inherit; font-size: 0.72rem; color: var(--text-secondary);
+  font-family: inherit; font-size: 0.75rem; color: var(--text-secondary);
   text-decoration: underline; text-underline-offset: 3px; cursor: pointer;
   transition: color 0.3s var(--ease);
 }
@@ -5862,7 +5941,7 @@
    `src/lib/circuito.js`, en un solo sitio para todo el panel. */
 .ped-confirmar { padding: 1.25rem 1.75rem 0; }
 .ped-confirmar-quien {
-  font-size: 0.85rem; line-height: 1.55; color: var(--text-secondary);
+  font-size: 0.82rem; line-height: 1.55; color: var(--text-secondary);
 }
 .ped-confirmar-quien strong { color: var(--ink); font-weight: 700; }
 .ped-confirmar-salto {
@@ -5877,7 +5956,7 @@
 .ped-confirmar-lista {
   margin-top: 0.5rem; padding-left: 1.1rem;
   display: flex; flex-direction: column; gap: 0.4rem;
-  font-size: 0.85rem; line-height: 1.5; color: var(--ink);
+  font-size: 0.82rem; line-height: 1.5; color: var(--ink);
 }
 .ped-confirmar-lista li::marker { color: var(--oro); }
 
@@ -6809,7 +6888,7 @@
   flex: 0 0 auto;
   padding: 0.25rem 0.7rem; border-radius: 100px;
   border: 1px solid var(--hairline); background: transparent;
-  font-family: var(--font-ui); font-size: 0.7rem; font-weight: 700;
+  font-family: var(--font-ui); font-size: 0.75rem; font-weight: 700;
   letter-spacing: 0.04em; color: var(--oro-ink); cursor: pointer;
   transition: var(--transition-smooth); white-space: nowrap;
 }
@@ -6965,7 +7044,7 @@
 .pm-fondo :is(button, input, select, textarea, [tabindex]):focus-visible {
   outline: 2px solid var(--oro); outline-offset: 3px;
 }
-@media (max-width: 860px){
+@media (max-width: 900px){
   .pm-fondo { padding: 0; }
   .pm-caja { height: 100dvh; max-height: none; border-radius: 0; }
   .pm-riel { display: none; }
@@ -7123,7 +7202,7 @@
 .ep-velo :is(button, input):focus-visible {
   outline: 2px solid var(--oro); outline-offset: 3px;
 }
-@media (max-width: 520px){
+@media (max-width: 480px){
   .ep-velo { padding: 0; }
   .ep-caja { max-width: none; min-height: 100dvh; max-height: none; border: 0; border-radius: 0; }
   .ep-banda { padding: 1.5rem 1.25rem 1.375rem; }
@@ -7172,7 +7251,7 @@
   color: rgba(251, 247, 242, 0.38);
   margin-top: -0.35rem;
 }
-@media (max-width: 860px){
+@media (max-width: 900px){
   .jornada-tendencia {
     padding-left: 0; padding-top: 1.25rem;
     border-left: 0; border-top: 1px solid rgba(255, 255, 255, 0.09);
@@ -7383,7 +7462,7 @@
 .pd-velo :is(button, input, select, textarea):focus-visible {
   outline: 2px solid var(--oro); outline-offset: 3px;
 }
-@media (max-width: 720px){
+@media (max-width: 768px){
   .pd-velo { padding: 0; }
   .pd-caja { max-width: none; height: 100dvh; max-height: none; border: 0; border-radius: 0; }
   .pd-cabeza { padding: 1.25rem 1.25rem 1rem; }
@@ -7753,7 +7832,7 @@
 .guia-circuito { max-width: 960px; }
 
 .guia-intro {
-  font-size: 0.85rem; line-height: 1.6; color: var(--text-secondary);
+  font-size: 0.82rem; line-height: 1.6; color: var(--text-secondary);
   max-width: 62ch; margin-bottom: 1.5rem;
 }
 
@@ -7776,10 +7855,10 @@
 
 .guia-camino-titulo {
   font-family: var(--font-display); font-weight: 400;
-  font-size: 1.1rem; color: var(--ink);
+  font-size: 1.15rem; color: var(--ink);
 }
 .guia-camino-nota {
-  margin-top: 0.25rem; font-size: 0.78rem; line-height: 1.5;
+  margin-top: 0.25rem; font-size: 0.82rem; line-height: 1.5;
   color: var(--text-secondary);
 }
 
@@ -7797,23 +7876,23 @@
 .guia-paso-cabeza { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
 .guia-paso-quien { font-size: 0.75rem; line-height: 1.4; color: var(--text-secondary); }
 .guia-paso-falta {
-  margin-top: 0.3rem; font-size: 0.78rem; line-height: 1.5; color: var(--ink);
+  margin-top: 0.3rem; font-size: 0.82rem; line-height: 1.5; color: var(--ink);
 }
 
 .guia-paso-boton { margin-top: 0.55rem; }
 .guia-boton-nombre {
   display: inline-block; padding: 0.28rem 0.7rem; border-radius: 100px;
   border: 1px solid var(--hairline); background: var(--bg-color);
-  font-size: 0.7rem; font-weight: 700; color: var(--ink);
+  font-size: 0.75rem; font-weight: 700; color: var(--ink);
 }
-.guia-paso-boton .ped-confirmar-lista { margin-top: 0.45rem; font-size: 0.78rem; }
+.guia-paso-boton .ped-confirmar-lista { margin-top: 0.45rem; font-size: 0.82rem; }
 
 .guia-salidas {
   list-style: none; margin: 1rem 0 0; padding: 0;
   display: flex; flex-direction: column; gap: 0.85rem;
 }
 .guia-salida { display: flex; align-items: flex-start; gap: 0.75rem; }
-.guia-salida-cuando { font-size: 0.8rem; line-height: 1.5; color: var(--ink); }
+.guia-salida-cuando { font-size: 0.82rem; line-height: 1.5; color: var(--ink); }
 .guia-salida-boton { margin-top: 0.2rem; font-size: 0.75rem; color: var(--text-secondary); }
 
 /* La regla que más se ha equivocado en este proyecto. Va sobre arena y con
@@ -7839,11 +7918,11 @@
 .envio-cotiza-btn { width: 100%; }
 
 .envio-cotiza-error {
-  font-size: 0.78rem; line-height: 1.5; color: var(--error-ink);
+  font-size: 0.82rem; line-height: 1.5; color: var(--error-ink);
 }
 
 .envio-cotiza-titulo {
-  font-size: 0.7rem; font-weight: 700; letter-spacing: 0.12em;
+  font-size: 0.68rem; font-weight: 700; letter-spacing: 0.12em;
   text-transform: uppercase; color: var(--oro-ink);
 }
 
@@ -7867,13 +7946,13 @@
 
 .envio-opcion-nombre { font-size: 0.82rem; color: var(--ink); }
 .envio-opcion-precio {
-  font-size: 0.85rem; font-weight: 700; color: var(--ink);
+  font-size: 0.95rem; font-weight: 700; color: var(--ink);
   font-variant-numeric: tabular-nums; white-space: nowrap;
 }
 
 .envio-cotiza-pie {
   margin-top: 0.5rem;
-  font-size: 0.72rem; line-height: 1.5; color: var(--text-secondary);
+  font-size: 0.75rem; line-height: 1.5; color: var(--text-secondary);
 }
 
 /* El desglose del contrapago. Va debajo del total y en pequeño: el número
@@ -7893,7 +7972,7 @@
   list-style: none; margin: 0.5rem 0 0; padding: 0.5rem 0.6rem;
   border-left: 2px solid var(--hairline); border-radius: 2px;
   display: flex; flex-direction: column; gap: 0.3rem;
-  font-size: 0.72rem; line-height: 1.45; color: var(--text-secondary);
+  font-size: 0.75rem; line-height: 1.45; color: var(--text-secondary);
 }
 .envio-cotiza-fuera strong { color: var(--ink); font-weight: 700; }
 
@@ -7904,13 +7983,13 @@
   margin-top: 0.6rem; padding: 0.6rem 0.7rem;
   border-left: 2px solid var(--oro); border-radius: 2px;
   background: var(--bg-arena);
-  font-size: 0.78rem; line-height: 1.5; color: var(--ink);
+  font-size: 0.82rem; line-height: 1.5; color: var(--ink);
 }
 
 /* «desde 2 envíos» junto al nombre de Envía. Pequeño y al lado, no debajo:
    es una condición de la opción, no una nota al pie. */
 .envio-opcion-nota {
-  margin-left: 0.4rem; font-size: 0.65rem; color: var(--text-secondary);
+  margin-left: 0.4rem; font-size: 0.68rem; color: var(--text-secondary);
   white-space: nowrap;
 }
 .envio-recogida p + p { margin-top: 0.4rem; }
@@ -7932,17 +8011,17 @@
 .guia-despacho-ojo {
   margin-top: 0.35rem; padding: 0.5rem 0.6rem;
   background: var(--bg-arena); border-radius: 2px;
-  font-size: 0.76rem; line-height: 1.5; color: var(--ink);
+  font-size: 0.82rem; line-height: 1.5; color: var(--ink);
 }
 
 /* «Dónde» va antes que «qué»: lo primero que necesita quien no ha hecho
    esto nunca es saber en qué pantalla está. */
 .guia-despacho-donde {
   margin-top: 0.2rem;
-  font-size: 0.72rem; line-height: 1.45; color: var(--oro-ink);
+  font-size: 0.75rem; line-height: 1.45; color: var(--oro-ink);
 }
 .guia-despacho-pasa {
   margin-top: 0.3rem;
-  font-size: 0.78rem; line-height: 1.5; color: var(--text-secondary);
+  font-size: 0.82rem; line-height: 1.5; color: var(--text-secondary);
 }
 .guia-despacho-pasa strong { color: var(--ink); font-weight: 700; }

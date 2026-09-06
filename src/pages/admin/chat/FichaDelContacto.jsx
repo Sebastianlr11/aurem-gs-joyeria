@@ -13,6 +13,7 @@
 import React from 'react';
 import { recibidoDe, estaVivo } from '../../../lib/dinero';
 import { PRESET_TAGS, STATUS_PEDIDO, fmtDate, fmtDateFull, iniciales } from './comunes';
+import { nombreVisible } from '../../../lib/contacto';
 
 export default function FichaDelContacto({
     telefono,
@@ -33,6 +34,14 @@ export default function FichaDelContacto({
         editandoNotas, setEditandoNotas, guardarNotas, cancelarNotas,
     } = ficha;
 
+    /* El mismo nombre que la lista y la cabecera. Antes cada uno lo componía a
+       su manera, y la ficha era la única que seguía enseñando el `CO.38364…`
+       de Meta como si fuera un teléfono. */
+    const quien = nombreVisible({
+        customer_name: cliente?.name || (pedidos.length > 0 && pedidos[0].customer_name) || null,
+        phone_number: telefono,
+    });
+
     return (
             <div className="chat-info-panel">
                 <div className="chat-info-panel-header">
@@ -48,10 +57,14 @@ export default function FichaDelContacto({
                             {iniciales(cliente?.name || (pedidos.length > 0 && pedidos[0].customer_name))}
                         </div>
                         <div className="chat-info-identity">
-                            <h5>{cliente?.name || (pedidos.length > 0 && pedidos[0].customer_name) || 'Sin nombre'}</h5>
+                            <h5 className={quien.anonimo ? 'chat-info-nombre--anonimo' : undefined}>{quien.nombre}</h5>
                             <span className="chat-info-phone">
-                                {telefono}
-                                {mensajes.length > 0 && ` · Cliente desde ${fmtDate(mensajes[0].created_at)}`}
+                                {/* El identificador de Meta ya no se pinta: no se puede
+                                    marcar ni buscar, y ocupaba la línea del teléfono
+                                    haciéndose pasar por uno. Lo que va aquí es de dónde
+                                    llegó, que sí se puede usar. */}
+                                {quien.detalle || (quien.anonimo ? 'Llegó por Instagram o Facebook' : '')}
+                                {mensajes.length > 0 && `${quien.detalle || quien.anonimo ? ' · ' : ''}Cliente desde ${fmtDate(mensajes[0].created_at)}`}
                             </span>
                         </div>
                         <span className={`chat-info-modo ${enManual ? 'chat-info-modo--manual' : ''}`}>

@@ -15,6 +15,7 @@
 import React from 'react';
 import { fmtDate, fmtDateFull, truncate } from './comunes';
 import { definicionDe } from '../../../lib/estadoDelChat';
+import { nombreVisible, inicialDe } from '../../../lib/contacto';
 
 export default function FilaDeContacto({
     contacto,
@@ -36,7 +37,9 @@ export default function FilaDeContacto({
     onPedirArchivado,
     onPedirBorrado,
 }) {
-    const colorDelEstado = definicionDe(estado)?.color;
+    const { etiqueta: estadoEtiqueta, color: colorDelEstado } = definicionDe(estado);
+    const { nombre, detalle, anonimo } = nombreVisible(contacto);
+    const inicial = inicialDe(contacto);
 
     /* En modo selección la fila marca en vez de abrir: tener que apuntar a una
        casilla de 16 px para elegir siete conversaciones es puntería, no
@@ -76,30 +79,43 @@ export default function FilaDeContacto({
                 />
             )}
             <div className="chat-contact-avatar">
-                {contacto.customer_name ? contacto.customer_name[0].toUpperCase() : (
+                {inicial || (
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                 )}
                 {enManual && <span className="chat-contact-takeover-dot" />}
                 {resuelta && !enManual && <span className="chat-contact-resolved-dot" title="Resuelto">✓</span>}
-                {/* El color del estado, en el borde del avatar. `nuevo` no
-                    lleva —si los cuarenta sin tocar se pintaran, el color
-                    dejaría de señalar lo que necesita algo—. */}
-                {colorDelEstado && (
-                    <span className="chat-contact-estado-aro" style={{ '--estado-color': colorDelEstado }} />
-                )}
             </div>
             <div className="chat-contact-info">
                 <div className="chat-contact-top">
-                    <span className={`chat-contact-name ${(contacto.unread || 0) > 0 ? 'chat-contact-name--unread' : ''}`}>
-                        {contacto.customer_name || contacto.phone_number}
+                    {/* El punto del estado, delante del nombre y con la misma
+                        forma que el de un pedido (DESIGN-PANEL.md): es el
+                        vocabulario que el panel ya usa para «en qué va esto».
+
+                        Antes era un aro de 2px alrededor del avatar y no se
+                        veía: se puso el 6 de septiembre de 2026 para que la
+                        lista dejara de ser una pared plana, y no cambió nada
+                        porque nadie mira el borde de un círculo. `nuevo` sigue
+                        sin pintar —si los cuarenta sin tocar llevaran color,
+                        el color dejaría de señalar lo que necesita algo—. */}
+                    {colorDelEstado && (
+                        <span
+                            className="chat-contact-estado-punto"
+                            style={{ '--estado-color': colorDelEstado }}
+                            title={estadoEtiqueta}
+                        />
+                    )}
+                    <span className={`chat-contact-name ${(contacto.unread || 0) > 0 ? 'chat-contact-name--unread' : ''} ${anonimo ? 'chat-contact-name--anonimo' : ''}`}>
+                        {nombre}
                     </span>
-                    {enManual && <span className="chat-takeover-badge">MANUAL</span>}
                     <span className="chat-contact-time">
                         {filtro === 'purgar' ? fmtDateFull(contacto.last_time) : fmtDate(contacto.last_time)}
                     </span>
                 </div>
                 <div className="chat-contact-preview">
-                    <span>{truncate(contacto.last_message, 45)}</span>
+                    {/* Sin mensaje todavía —un lead que acaba de llegar— la
+                        línea decía el teléfono otra vez. Ahora dice de dónde
+                        vino, que es lo único nuevo que hay que saber. */}
+                    <span>{truncate(contacto.last_message, 45) || detalle || ''}</span>
                 </div>
                 {etiquetas.length > 0 && (
                     <div className="chat-contact-tags">
@@ -130,7 +146,7 @@ export default function FilaDeContacto({
                 <button
                     type="button"
                     className={`chat-contact-menu-btn ${menu?.phone === contacto.phone_number ? 'chat-contact-menu-btn--abierto' : ''}`}
-                    aria-label={`Opciones de ${contacto.customer_name || contacto.phone_number}`}
+                    aria-label={`Opciones de ${nombre}`}
                     aria-expanded={menu?.phone === contacto.phone_number}
                     onClick={e => {
                         if (menu?.phone === contacto.phone_number) { setMenu(null); return; }
