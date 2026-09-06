@@ -14,6 +14,7 @@
  */
 import React from 'react';
 import { fmtDate, fmtDateFull, truncate } from './comunes';
+import { definicionDe } from '../../../lib/estadoDelChat';
 
 export default function FilaDeContacto({
     contacto,
@@ -22,7 +23,7 @@ export default function FilaDeContacto({
     enSeleccion,          // hay modo selección encendido (aunque no haya nada marcado)
     enManual,
     resuelta,
-    estado,               // la fila de chat_status, para saber si está archivada
+    estado,               // la fila de chat_status: archivada, resuelta y en qué va
     etiquetas,
     filtro,
     menu,                 // { phone, arriba } del menú abierto, si es esta fila
@@ -35,6 +36,8 @@ export default function FilaDeContacto({
     onPedirArchivado,
     onPedirBorrado,
 }) {
+    const colorDelEstado = definicionDe(estado)?.color;
+
     /* En modo selección la fila marca en vez de abrir: tener que apuntar a una
        casilla de 16 px para elegir siete conversaciones es puntería, no
        interfaz. */
@@ -78,6 +81,12 @@ export default function FilaDeContacto({
                 )}
                 {enManual && <span className="chat-contact-takeover-dot" />}
                 {resuelta && !enManual && <span className="chat-contact-resolved-dot" title="Resuelto">✓</span>}
+                {/* El color del estado, en el borde del avatar. `nuevo` no
+                    lleva —si los cuarenta sin tocar se pintaran, el color
+                    dejaría de señalar lo que necesita algo—. */}
+                {colorDelEstado && (
+                    <span className="chat-contact-estado-aro" style={{ '--estado-color': colorDelEstado }} />
+                )}
             </div>
             <div className="chat-contact-info">
                 <div className="chat-contact-top">
