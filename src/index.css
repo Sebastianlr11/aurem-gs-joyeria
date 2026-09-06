@@ -2632,13 +2632,11 @@ textarea:focus-visible {
   .riel-btn { min-height: 44px; padding: 0 16px; }
 }
 
-/* El riel en la cabecera de la bandeja: cabe a lo ancho de la columna y
-   se desliza, como en móvil. */
-.chat-contacts-header .riel {
-  display: flex;
-  margin-top: 10px;
-  width: 100%;
-}
+/* La regla de `.chat-contacts-header .riel` se mudó a `panel.css` el 6 de
+   septiembre de 2026. Era del panel y estaba aquí, o sea dentro de la hoja que
+   bloquea el primer pintado de la tienda entera, para gobernar una pantalla que
+   ningún cliente ve nunca. Quedan ocho selectores así — `css-de-quien-es.mjs`
+   no los encuentra porque sólo abre pantallas públicas. */
 
 /* El panel en sí */
 .catalogo-panel-velo {

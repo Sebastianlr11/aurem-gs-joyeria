@@ -80,7 +80,11 @@ const ChatPanel = () => {
         products.find(p => p.id === o.product_id) || products.find(p => p.name === o.product_name)
     )?.image_url || null;
     const [takeoverMap, setTakeoverMap] = useState({});
-    const [showContactInfo, setShowContactInfo] = useState(() => window.innerWidth >= 1200);
+    /* 1280 y no 1200, y es el mismo número que el `@media` de `panel.css` que
+       hace flotar la ficha: por debajo de ahí las tres columnas no caben. Si
+       tocas uno, toca el otro — con 1200 la ficha nacía abierta en anchos
+       donde ya iba flotando, tapando la conversación al entrar. */
+    const [showContactInfo, setShowContactInfo] = useState(() => window.innerWidth >= 1280);
     /* El interruptor se queda aquí —lo tocan el botón de la cabecera, Escape y
        el ancho de pantalla—, pero los datos y las notas se los lleva la ficha. */
     const ficha = useFichaDelContacto(activeContact);
@@ -1211,7 +1215,7 @@ filteredContacts.map(c => (
                                         ) : null}
                                     </div>
                                     <div className="chat-conv-header-actions">
-                                        <button className={`chat-header-action-btn chat-header-action-btn--secundaria chat-accion-ancha ${showMsgSearch ? 'chat-header-action-btn--active' : ''}`}
+                                        <button className={`chat-header-action-btn chat-header-action-btn--secundaria chat-accion-secundaria ${showMsgSearch ? 'chat-header-action-btn--active' : ''}`}
                                                 onClick={() => setShowMsgSearch(!showMsgSearch)} title="Buscar en mensajes">
                                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                                         </button>
@@ -1233,14 +1237,14 @@ filteredContacts.map(c => (
                                             ))}
                                         </select>
                                         <button
-                                            className="chat-header-action-btn chat-header-action-btn--secundaria chat-accion-ancha"
+                                            className="chat-header-action-btn chat-header-action-btn--secundaria chat-accion-secundaria"
                                             onClick={() => setConfirmArchive(activeContact)}
                                             title="Archivar conversación"
                                         >
                                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
                                         </button>
                                         <button
-                                            className={`chat-takeover-btn chat-accion-ancha ${isTakeover ? 'chat-takeover-btn--active' : ''}`}
+                                            className={`chat-takeover-btn chat-accion-secundaria ${isTakeover ? 'chat-takeover-btn--active' : ''}`}
                                             onClick={handleToggleTakeover}
                                             title={isTakeover ? 'Devolver al agente IA' : 'Tomar control manual'}
                                         >
@@ -1271,18 +1275,29 @@ filteredContacts.map(c => (
                                                         ninguno era el nombre del cliente. Aquí abajo
                                                         quedan las que se usan una vez por conversación;
                                                         arriba, el estado, que se usa en cada una. */}
-                                                    <div className="chat-menu-solo-movil">
+                                                    {/* Dos grupos y dos anchos, porque son dos
+                                                        razones. Por debajo de 1280 la cabecera no
+                                                        tiene sitio para la barra entera —en 1024 le
+                                                        quedan 476px y las acciones piden 468—, así
+                                                        que buscar, archivar y el mando de Valentina
+                                                        bajan aquí. La ficha aguanta hasta 768: en un
+                                                        portátil su botón es lo que abre el panel que
+                                                        ahora flota, y esconderlo sería quitar la
+                                                        puerta de lo que se acaba de mover. */}
+                                                    <div className="chat-menu-secundarias">
                                                         <button onClick={() => { handleToggleTakeover(); setShowExportMenu(false); }}>
                                                             {isTakeover ? 'Devolver a Valentina' : 'Tomar el control'}
-                                                        </button>
-                                                        <button onClick={() => { setShowContactInfo(!showContactInfo); setShowExportMenu(false); }}>
-                                                            {showContactInfo ? 'Ocultar la ficha' : 'Ver la ficha del contacto'}
                                                         </button>
                                                         <button onClick={() => { setShowMsgSearch(!showMsgSearch); setShowExportMenu(false); }}>
                                                             Buscar en los mensajes
                                                         </button>
                                                         <button onClick={() => { setConfirmArchive(activeContact); setShowExportMenu(false); }}>
                                                             Archivar
+                                                        </button>
+                                                    </div>
+                                                    <div className="chat-menu-ficha">
+                                                        <button onClick={() => { setShowContactInfo(!showContactInfo); setShowExportMenu(false); }}>
+                                                            {showContactInfo ? 'Ocultar la ficha' : 'Ver la ficha del contacto'}
                                                         </button>
                                                     </div>
                                                     <button onClick={() => { handleExport('txt'); setShowExportMenu(false); }}>Exportar TXT</button>
@@ -1297,7 +1312,7 @@ filteredContacts.map(c => (
                                             )}
                                         </div>
                                         <button
-                                            className={`chat-header-action-btn chat-accion-ancha ${showContactInfo ? 'chat-header-action-btn--active' : ''}`}
+                                            className={`chat-header-action-btn chat-accion-ficha ${showContactInfo ? 'chat-header-action-btn--active' : ''}`}
                                             onClick={() => setShowContactInfo(!showContactInfo)}
                                             title="Info del contacto"
                                         >

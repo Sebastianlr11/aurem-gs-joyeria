@@ -219,9 +219,9 @@ produjo la ensalada actual.
 
 ### Los cortes
 
-**Tres, y son los del proyecto: 480 · 768 · 900.** Más `1100`, que sobrevive
-sólo para las dos rejillas de Reportes —es un problema de pantalla ancha, no de
-celular— y `769`/`901` como complementos de los otros dos.
+**Tres, y son los del proyecto: 480 · 768 · 900.** Más dos de pantalla ancha
+—`1100` para las dos rejillas de Reportes y `1280` para la ficha del chat, los
+dos explicados abajo— y `769`/`901` como complementos.
 
 No estaban escritos, y esa omisión se pagó: el panel llegó a tener **nueve**
 cortes —480, 520, 600, 700, 720, 768, 860, 900, 1100—, cinco de ellos entre 700
@@ -232,6 +232,14 @@ que no se conocen entre sí. Se alinearon el 6 de septiembre de 2026.
 **Un corte nuevo pide una razón escrita aquí.** Es lo único que impide que vuelvan
 a ser nueve: cada uno se añadió a solas y con sentido, y el desorden salió de la
 suma.
+
+**`1280` — la ficha del contacto deja de ser columna.** Sale de una resta, no de
+un número redondo: riel (248) + lista en su mínimo (300) + ficha (300) + 420 de
+conversación legible = 1.268. Por debajo de ahí las tres columnas no caben, y la
+que se quedaba sin sitio era la conversación: en un portátil de 1024 le tocaban
+**116px**. Desde el 6 de septiembre de 2026 la ficha flota encima en vez de
+quitarle ancho. **El mismo número está en `ChatPanel.jsx`**, que decide si la
+ficha nace abierta; si tocas uno, toca el otro.
 
 ### El celular sí es para trabajar
 

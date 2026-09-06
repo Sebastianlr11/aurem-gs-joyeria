@@ -1570,9 +1570,18 @@
 /* ═══════════════════════════════════════════════════════════════════
    CHAT PANEL — /admin/chat  (Premium Redesign)
 ═══════════════════════════════════════════════════════════════════ */
+/* ─── El reparto de la pantalla ────────────────────────────────────────────
+ *
+ * La lista era `360px` clavados: ni crecía en un monitor de 1920 —donde
+ * sobraba sitio y los nombres seguían saliendo cortados— ni cedía en un
+ * portátil de 1024, donde cada píxel suyo se lo quitaba a la conversación.
+ *
+ * `minmax(0, 1fr)` y no `1fr` a secas: el mínimo por defecto de una columna de
+ * rejilla es `auto`, o sea el ancho de su contenido, así que un mensaje largo
+ * ensanchaba la columna en vez de partirse y empujaba la lista fuera. */
 .chat-panel {
   display: grid;
-  grid-template-columns: 360px 1fr;
+  grid-template-columns: clamp(300px, 26vw, 400px) minmax(0, 1fr);
   height: calc(100vh - 64px);
   overflow: hidden;
 }
@@ -1635,10 +1644,26 @@
 .chat-filtros {
   display: flex;
   align-items: center;
+  margin-top: 10px;
   gap: 8px;
+  /* Que baje de línea antes que cortar. Con la lista en su mínimo de 300px no
+     caben las dos píldoras y el selector, y lo que se veía era «Por ater». */
+  flex-wrap: wrap;
+  row-gap: 6px;
   /* El riel se encoge y el selector no: al revés, «Más vistas…» sería lo
      primero en desaparecer y todo lo que no está a la vista quedaría sin
      puerta. */
+  min-width: 0;
+}
+
+/* El riel ocupa lo que ocupan sus píldoras, no la línea entera.
+   Venía de `.chat-contacts-header .riel { width: 100% }`, que vivía en
+   `index.css` y tenía sentido con trece filtros: llenaba la columna y se
+   deslizaba. Con dos, llenarla dejaba al selector sin sitio y lo empujaba a
+   una segunda línea que no hacía ninguna falta. */
+.chat-filtros .riel {
+  display: flex;
+  width: auto;
   min-width: 0;
 }
 
@@ -1875,18 +1900,33 @@
 
 .chat-mode-badge-corto { display: none; }
 
-/* Las cuatro acciones que en el celular viven en el menú de tres puntos. En
-   escritorio están en la barra, así que aquí sobrarían: se pintan siempre y
-   se esconden por CSS, en vez de preguntarle el ancho al navegador. */
-.chat-menu-solo-movil { display: none; }
+/* Las acciones que según el ancho viven en el menú de tres puntos. Se pintan
+   siempre y las esconde el CSS, en vez de preguntarle el ancho al navegador:
+   así hay un solo árbol y una sola verdad. */
+.chat-menu-secundarias,
+.chat-menu-ficha { display: none; }
 
+.chat-menu-secundarias,
+.chat-menu-ficha {
+  border-bottom: 1px solid var(--hairline);
+  padding-bottom: 4px;
+  margin-bottom: 4px;
+}
+
+/* Por debajo de 1280 la cabecera no da para la barra entera: en 1024 le quedan
+   476px y sus controles piden 468, así que el nombre volvía a quedarse sin
+   sitio y «Devolver a IA» se salía de la pantalla. Mismo número que el de la
+   ficha flotante, y por la misma razón: no hay ancho. */
+@media (max-width: 1280px) {
+  .chat-conv-header-actions .chat-accion-secundaria { display: none; }
+  .chat-menu-secundarias { display: block; }
+}
+
+/* La ficha aguanta hasta el celular: en un portátil su botón es lo que abre el
+   panel que ahora flota. */
 @media (max-width: 768px) {
-  .chat-menu-solo-movil {
-    display: block;
-    border-bottom: 1px solid var(--hairline);
-    padding-bottom: 4px;
-    margin-bottom: 4px;
-  }
+  .chat-conv-header-actions .chat-accion-ficha { display: none; }
+  .chat-menu-ficha { display: block; }
 }
 
 .chat-conv-header-phone {
@@ -2121,11 +2161,6 @@
   /* Las cuatro acciones de una vez por conversación se van al menú de tres
      puntos; arriba se queda el estado, que se toca en cada una. Así la barra
      baja de siete controles a tres y el nombre tiene dónde caber. */
-  /* Con el selector de la barra delante (0,2,0) y no a solas (0,1,0): a
-     igual especificidad gana la última, y `.chat-header-action-btn` con su
-     `display: flex` se define 160 líneas más abajo. Escrito a solas, esta
-     regla no hacía nada y el nombre seguía sin caber. */
-  .chat-conv-header-actions .chat-accion-ancha { display: none; }
   .chat-conv-header-name,
   .chat-conv-header-phone {
     overflow: hidden;
@@ -2777,6 +2812,37 @@
   animation: chatSlideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* ─── Por debajo de 1280, la ficha flota ──────────────────────────────────
+ *
+ * Es el cuarto corte del panel y va con su razón escrita, como pide
+ * DESIGN-PANEL.md. Sale de una resta, no de un número redondo: con el riel
+ * (248), la lista en su mínimo (300) y la ficha (300), para que a la
+ * conversación le queden 420px legibles hacen falta 1.268. Por debajo de ahí,
+ * las tres columnas no caben y la que se quedaba sin sitio era la
+ * conversación — en un portátil de 1024 le tocaban **116px**.
+ *
+ * Hoy eso no se ve porque `showContactInfo` arranca cerrada por debajo de
+ * 1.280, pero es un parche de JavaScript delante de un problema de ancho: en
+ * cuanto alguien abre la ficha a mano, la pantalla se rompe.
+ *
+ * Flotando, la ficha no le quita nada a nadie. Por debajo de 900 la regla de
+ * más abajo la vuelve pantalla completa, que en un celular es lo correcto. */
+@media (max-width: 1280px) {
+  /* El ancla de la ficha en los dos modos: flotando a la derecha hasta 900, y
+     cubriendo el cuerpo entero por debajo. */
+  .chat-conv-body { position: relative; }
+
+  .chat-info-panel {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: min(320px, 100%);
+    z-index: 40;
+    box-shadow: -14px 0 30px rgba(28, 23, 20, 0.14);
+  }
+}
+
 .chat-info-panel-header {
   display: flex;
   align-items: center;
@@ -2863,16 +2929,21 @@
 }
 
 /* ── Stats grid ── */
+/* `auto-fit` y no `1fr 1fr`: ahora pueden ser una, dos, tres o cuatro cuentas
+   según lo que haya que contar, y con dos columnas fijas una sola quedaba
+   media caja colgando. */
 .chat-info-stats {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: 8px;
 }
 .chat-info-stat {
   padding: 12px 10px;
   background: var(--bg-marfil);
   border: 1px solid var(--bg-arena);
-  border-radius: 12px;
+  /* 2px, que es el radio de la marca. Los 12 eran del diseño anterior — están
+     nombrados como deuda en DESIGN-PANEL.md, «Espaciado y forma». */
+  border-radius: 2px;
   text-align: center;
   display: flex;
   flex-direction: column;
@@ -3221,15 +3292,30 @@
   border: 1px dashed rgba(140, 47, 30, 0.45);
 }
 @media (max-width: 900px){
-  /* En escritorio la ficha del contacto va al costado. En móvil no cabe,
-     y ocultarla dejaba el dato inalcanzable: pasa a cubrir la pantalla,
-     por encima de la barra inferior, y se cierra con su propia aspa. */
+  /* En escritorio la ficha del contacto va al costado. En móvil no cabe: pasa
+     a cubrir la conversación entera y se cierra con su propia aspa.
+
+     «La conversación entera», y no la ventana, es el arreglo del 6 de
+     septiembre de 2026. Con `position: fixed; inset: 0` tapaba la pantalla
+     **incluida la barra superior**, y como la barra se pinta encima, la
+     cabecera de la ficha —la que lleva la × — quedaba debajo y no se podía
+     tocar. El menú que también la cierra estaba detrás de la propia ficha, así
+     que en un celular abrirla era entrar sin salida: sólo quedaba la tecla
+     Escape, que en un teléfono no existe.
+
+     El ancla es `.chat-conversation` y para eso hay que soltar la de 1280:
+     `absolute` se resuelve contra el ancestro posicionado más cercano, y con
+     `.chat-conv-body` relativo la ficha cubriría sólo los mensajes, dejando
+     fuera su propia cabecera otra vez. */
+  .chat-conversation { position: relative; }
+  .chat-conv-body { position: static; }
+
   .chat-info-panel {
-    position: fixed;
+    position: absolute;
     inset: 0;
     width: auto;
     border-left: 0;
-    z-index: 1200;
+    z-index: 40;
     animation: none;
   }
   .chat-info-panel-header {
@@ -3241,8 +3327,9 @@
     background: var(--bg-color, var(--bg-color));
     z-index: 1;
   }
-  /* Por encima de la barra inferior (1000) y del chat anclado. */
-  .chat-info-panel { z-index: 1200; }
+  /* Ya no hace falta ganarle a la barra inferior (1000): la ficha vive dentro
+     de la conversación y no encima de la ventana, así que la barra de abajo y
+     la de arriba se quedan a la vista, que es donde tienen que estar. */
   .chat-quick-replies {
     min-width: 240px;
     max-width: 300px;

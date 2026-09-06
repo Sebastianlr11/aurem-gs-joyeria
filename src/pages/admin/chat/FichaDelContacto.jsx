@@ -42,6 +42,22 @@ export default function FichaDelContacto({
         phone_number: telefono,
     });
 
+    /* La misma cuenta que el dashboard, del mismo archivo. Antes esta ficha
+       contaba sólo 'pagado' y 'entregado' y el dashboard contaba cuatro
+       estados: el mismo cliente daba números distintos según dónde se mirara. */
+    const mensajesTotales = resumen?.mensajes ?? mensajes.length;
+    const cuentas = [
+        pedidos.length > 0 && {
+            rotulo: 'Ha pagado',
+            valor: `$${pedidos.reduce((t, o) => t + recibidoDe(o), 0).toLocaleString('es-CO')}`,
+        },
+        /* Los vivos. Contar cancelados al lado de «$0 gastado» daba fichas que
+           se contradecían solas. */
+        pedidos.length > 0 && { rotulo: 'Pedidos', valor: pedidos.filter(estaVivo).length },
+        mensajesTotales > 0 && { rotulo: 'Mensajes', valor: mensajesTotales },
+        porcentajeIA != null && { rotulo: 'Resp. por IA', valor: porcentajeIA },
+    ].filter(Boolean);
+
     return (
             <div className="chat-info-panel">
                 <div className="chat-info-panel-header">
@@ -91,37 +107,37 @@ export default function FichaDelContacto({
                                 <span>{cliente.city}</span>
                             </div>
                         )}
-                        <div className="chat-info-meta-row">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                            <span>Desde {resumen?.desde ? fmtDateFull(resumen.desde) : '—'}</span>
-                        </div>
+                        {/* Sin fecha no se pinta la fila: «Desde —» ocupa un
+                            renglón para decir que no se sabe, que es lo mismo
+                            que no decir nada. */}
+                        {resumen?.desde && (
+                            <div className="chat-info-meta-row">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                <span>Desde {fmtDateFull(resumen.desde)}</span>
+                            </div>
+                        )}
                     </div>
     
-                    {/* ── Stats grid ── */}
-                    <div className="chat-info-stats">
-                        {/* La misma cuenta que el dashboard, del mismo archivo.
-                            Antes esta ficha contaba sólo 'pagado' y 'entregado' y
-                            el dashboard contaba cuatro estados: el mismo cliente
-                            daba números distintos según dónde se mirara. */}
-                        <div className="chat-info-stat">
-                            <span className="chat-info-stat-value">${pedidos.reduce((s, o) => s + recibidoDe(o), 0).toLocaleString('es-CO')}</span>
-                            <span className="chat-info-stat-label">Ha pagado</span>
+                    {/* ── Las cuentas ──────────────────────────────────────
+                        Sólo las que tienen algo que decir. Eran cuatro cajas
+                        fijas y en un contacto recién llegado las cuatro decían
+                        «$0 · 0 · 0 · —»: doscientos píxeles de alto para no
+                        decir nada, y empujando hacia abajo «Registrar un
+                        pedido», que es la acción que justifica esta ficha.
+
+                        Sin pedidos no se pintan «Ha pagado» ni «Pedidos»: que
+                        no los hay ya lo dice «Sin pedidos aún», más abajo, y
+                        repetirlo con dos ceros no lo dice mejor. */}
+                    {cuentas.length > 0 && (
+                        <div className="chat-info-stats">
+                            {cuentas.map((c) => (
+                                <div className="chat-info-stat" key={c.rotulo}>
+                                    <span className="chat-info-stat-value">{c.valor}</span>
+                                    <span className="chat-info-stat-label">{c.rotulo}</span>
+                                </div>
+                            ))}
                         </div>
-                        <div className="chat-info-stat">
-                            {/* Los vivos. Contar cancelados al lado de "$0 gastado"
-                                daba fichas que se contradecían solas. */}
-                            <span className="chat-info-stat-value">{pedidos.filter(estaVivo).length}</span>
-                            <span className="chat-info-stat-label">Pedidos</span>
-                        </div>
-                        <div className="chat-info-stat">
-                            <span className="chat-info-stat-value">{resumen?.mensajes ?? mensajes.length}</span>
-                            <span className="chat-info-stat-label">Mensajes</span>
-                        </div>
-                        <div className="chat-info-stat">
-                            <span className="chat-info-stat-value">{porcentajeIA ?? '—'}</span>
-                            <span className="chat-info-stat-label">Resp. por IA</span>
-                        </div>
-                    </div>
+                    )}
     
                     {/* ── Registrar una venta cerrada por fuera ──────────────
                         El joyero cierra desde su WhatsApp personal, así que la
