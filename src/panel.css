@@ -1196,7 +1196,10 @@
     font-family: inherit;
     transition: color 0.2s;
   }
-  .admin-mobile-bar-btn--active { color: var(--bg-color); }
+  /* Oro claro y no blanco: es el mismo acento con el que el riel de
+     escritorio marca dónde estás, y sobre el cacao es el único color de la
+     marca que cumple contraste. */
+  .admin-mobile-bar-btn--active { color: var(--oro-luz); }
   .admin-mobile-bar-icon { display: flex; align-items: center; justify-content: center; }
   .admin-mobile-bar-icon svg { width: 20px; height: 20px; }
   .admin-mobile-bar-label { font-size: 0.68rem; font-weight: 600; letter-spacing: 0.01em; }
@@ -1582,7 +1585,9 @@
 .chat-panel {
   display: grid;
   grid-template-columns: clamp(300px, 26vw, 400px) minmax(0, 1fr);
-  height: calc(100vh - 64px);
+  /* La pantalla entera desde el 6 de septiembre de 2026: eran 64px menos, los
+     de la barra de arriba del panel, que en esta ruta ya no se pinta. */
+  height: 100vh;
   overflow: hidden;
 }
 
@@ -1621,10 +1626,6 @@
   overflow: hidden;
 }
 
-.chat-contacts-header {
-  padding: 16px 18px;
-}
-
 .chat-search {
   width: 100%;
   padding: 11px 14px 11px 38px;
@@ -1641,72 +1642,15 @@
  * Cuatro píldoras y un selector con el resto. El selector va FUERA del riel:
  * dentro heredaría su fondo de arena y parecería una píldora más, y lo que
  * tiene que parecer es la puerta a lo que no está a la vista. */
-.chat-filtros {
-  display: flex;
-  align-items: center;
-  margin-top: 10px;
-  gap: 8px;
-  /* Que baje de línea antes que cortar. Con la lista en su mínimo de 300px no
-     caben las dos píldoras y el selector, y lo que se veía era «Por ater». */
-  flex-wrap: wrap;
-  row-gap: 6px;
-  /* El riel se encoge y el selector no: al revés, «Más vistas…» sería lo
-     primero en desaparecer y todo lo que no está a la vista quedaría sin
-     puerta. */
-  min-width: 0;
-}
-
 /* El riel ocupa lo que ocupan sus píldoras, no la línea entera.
    Venía de `.chat-contacts-header .riel { width: 100% }`, que vivía en
    `index.css` y tenía sentido con trece filtros: llenaba la columna y se
    deslizaba. Con dos, llenarla dejaba al selector sin sitio y lo empujaba a
    una segunda línea que no hacía ninguna falta. */
-.chat-filtros .riel {
-  display: flex;
-  width: auto;
-  min-width: 0;
-}
-
 /* Las píldoras de `index.css` vienen dimensionadas para la tienda, donde el
    riel tiene la página entera. Aquí viven en una columna de 360px, así que se
    aprietan a la densidad del panel — que es la razón de que su escala sea de
    4px y no de 8. */
-.chat-filtros .riel-btn {
-  min-height: 36px;
-  padding: 0 12px;
-  font-size: 0.82rem;
-}
-
-.chat-filtro-mas {
-  flex-shrink: 0;
-  /* Tope, por si algún día entra una vista de nombre largo: antes de comerse
-     las píldoras, que se corte el selector. */
-  max-width: 45%;
-  min-height: 40px;
-  padding: 0 12px;
-  border: 1px solid var(--hairline);
-  border-radius: 100px;
-  background: var(--bg-color);
-  font-family: var(--font-ui);
-  /* 0.875rem no es un paso de la escala del panel: es el de `.riel-btn`, que
-     vive en `index.css` y lo comparte con la tienda. Se copia a propósito
-     —van pegados y a tamaños distintos parecerían un error— y no se añade a
-     la escala. */
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: color 0.3s var(--ease), border-color 0.3s var(--ease);
-}
-
-.chat-filtro-mas:hover { color: var(--ink); }
-
-.chat-filtro-mas--on {
-  border-color: rgba(168, 134, 63, 0.35);
-  color: var(--oro-ink);
-  font-weight: 700;
-}
-
 .chat-search::placeholder {
   color: var(--text-secondary);
 }
@@ -1811,14 +1755,12 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  margin-top: 4px;
+  margin-top: 3px;
   line-height: 1.3;
-  /* La vista previa cede y la marca del estado no: al revés, «VENDIDO» se
-     cortaría antes que un texto que ya va truncado. */
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  /* Una sola cosa en la línea. Era un `flex` con la marca del estado al final
+     —«la vista previa cede y la marca no»—, y la marca se mudó a la cola de la
+     fila el 6 de septiembre de 2026. */
+  display: block;
 }
 
 /* La marca de qué clase de mensaje fue: plantilla, foto, nota de voz. En
@@ -1908,26 +1850,27 @@
    `flex-shrink: 0` y esto no llevaba `min-width`, así que en 390px los siete
    controles se quedaban con todo el ancho, el nombre se encogía a cero y
    `overflow: hidden` lo recortaba entero: una cabecera llena de botones donde
-   no se podía saber con quién estabas hablando. */
+   no se podía saber con quién estabas hablando.
+
+   Era un `flex` porque compartía renglón con la insignia de modo. Esa insignia
+   se fue —lo que decía lo dicen el subtítulo y el punto del retrato—, así que
+   aquí dentro no queda más que el nombre. */
 .chat-conv-header-name {
-  font-size: 0.95rem;
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 6px;
+  display: block;
   letter-spacing: -0.01em;
   min-width: 0;
 }
 
-/* El nombre se corta con puntos suspensivos; la insignia no se corta nunca. */
 .chat-conv-header-name > span:first-child {
+  display: block;
+  font-family: var(--font-ui);
+  font-size: 1rem;
+  font-weight: 700;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   min-width: 3ch;
 }
-
-.chat-mode-badge-corto { display: none; }
 
 /* Las acciones que según el ancho viven en el menú de tres puntos. Se pintan
    siempre y las esconde el CSS, en vez de preguntarle el ancho al navegador:
@@ -2051,11 +1994,14 @@
 }
 
 /* ─── Input area ───────────────────────────────────────────────── */
+/* Dos renglones desde el 6 de septiembre de 2026: la tira de respuestas
+   rápidas encima, y debajo la foto, el campo y el botón de enviar. */
 .chat-conv-input {
   display: flex;
-  align-items: flex-end;
-  gap: 10px;
-  padding: 16px 28px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.625rem;
+  padding: 0.75rem 1.25rem;
 }
 
 .chat-input-field {
@@ -2137,7 +2083,8 @@
      siguen valiendo. */
   .chat-panel {
     position: fixed;
-    top: var(--barra-superior);
+    /* En el borde: la barra de arriba del panel no se pinta en esta ruta. */
+    top: 0;
     bottom: calc(var(--barra-inferior) + env(safe-area-inset-bottom));
     left: 0;
     right: 0;
@@ -2145,23 +2092,16 @@
     z-index: 1;
   }
 
-  /* Una sola fila. Se gana el ancho quitando el avatar —el nombre ya
-     dice de quién es— y dejando que el nombre se corte antes que los
-     botones, que son los que hacen falta para operar.
-
-     El overflow oculto es lo que impide que la cabecera empuje el ancho
-     de la página: sin él, seis botones más el nombre desbordaban y toda
-     la pantalla se corría de lado al enfocar el campo. */
-  /* Dos filas en el celular: el nombre arriba, los mandos abajo.
-     En una sola no caben, y ya se probó a repartir el ancho — el estado con su
-     color a la vista pide unos 130px y el nombre se quedaba en «Sin nom…» con
-     la insignia cortada a «MANUAI». Son las dos cosas que hay que poder leer
-     de un vistazo: con quién hablas y en qué va. Cada una en su renglón. */
+  /* Una sola fila otra vez, desde el 6 de septiembre de 2026.
+     Fueron dos —el nombre arriba, los mandos abajo— porque en una sola el
+     estado pedía unos 130px y el nombre se quedaba en «Sin nom…» con la
+     insignia de modo cortada a «MANUAI». Esa insignia ya no está y el buscar
+     y el archivar se fueron a la hoja: back 40 + retrato 40 + estado 92 +
+     tres puntos 36 dejan 155px para el nombre en una pantalla de 375. */
   .chat-conv-header {
-    flex-wrap: wrap;
-    row-gap: 8px;
-    gap: 8px;
-    padding: 10px 12px;
+    flex-wrap: nowrap;
+    gap: 0.5rem;
+    padding: 0.625rem 0.5rem 0.625rem 0.25rem;
     /* **Sin `overflow: hidden`.** Lo llevaba de cuando era una sola fila que se
        desbordaba de lado; ahora envuelve y no se desborda nada, y lo único que
        hacía era recortar el menú de tres puntos justo por el borde de abajo de
@@ -2170,11 +2110,6 @@
        recortarlo dejaba la pantalla sin la mitad de sus mandos. */
   }
 
-  .chat-conv-header-actions {
-    flex-basis: 100%;
-    margin-left: 0;
-    justify-content: flex-start;
-  }
   /* Con sólo dos acciones el avatar vuelve a caber, y ayuda a identificar
      la conversación de un vistazo. */
   .chat-conv-header-avatar { width: 38px; height: 38px; flex-shrink: 0; }
@@ -2189,11 +2124,6 @@
     overflow: hidden;
   }
 
-  /* «Control manual» empujaba el nombre fuera de la cabecera. */
-  .chat-mode-badge-largo { display: none; }
-  .chat-mode-badge-corto { display: inline; }
-  .chat-mode-badge { padding: 2px 7px; letter-spacing: 0.03em; }
-
   /* Las cuatro acciones de una vez por conversación se van al menú de tres
      puntos; arriba se queda el estado, que se toca en cada una. Así la barra
      baja de siete controles a tres y el nombre tiene dónde caber. */
@@ -2205,7 +2135,10 @@
   }
   .chat-conv-header-actions {
     /* Sin `flex-shrink: 0`: los botones son lo que sobra, no lo que manda. */
-    gap: 2px;
+    flex-basis: auto;
+    margin-left: auto;
+    justify-content: flex-end;
+    gap: 4px;
   }
   .chat-conv-header-actions button { padding: 6px; }
 
@@ -2225,6 +2158,12 @@
      escribe manda la conversación y no la navegación. */
   body.chat-escribiendo .admin-mobile-bar,
   body.chat-escribiendo .admin-topbar { display: none; }
+
+  /* Y con la hoja de acciones abierta, por otra razón: ver el comentario del
+     efecto que pone esta clase en `ChatPanel.jsx`. El contexto de apilado de
+     `.chat-panel` deja la hoja por debajo de la barra, y la barra le tapaba
+     «Cancelar». */
+  body.chat-hoja-abierta .admin-mobile-bar { display: none; }
 
   body.chat-escribiendo .chat-panel {
     top: var(--vv-top, 0px);
@@ -2261,33 +2200,16 @@
   min-width: 20px;
   height: 20px;
   padding: 0 6px;
-  border-radius: 10px;
-  /* El fondo y el color los fija una regla posterior en lista
-     (`.chat-unread-badge, .chat-nav-badge`), que los deja en cacao sobre
-     blanco. Aquí había un #D4AF37 que no llegaba a verse nunca. */
+  /* El fondo, el color, el radio y el peso los fija una regla posterior en
+     este mismo archivo, que la deja redonda y en cacao sobre blanco. Aquí
+     había un #D4AF37 de esquinas de 10px que no llegaba a verse nunca. */
   font-size: 0.68rem;
-  font-weight: 800;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   animation: chatBadgePop 0.35s cubic-bezier(0.16, 1, 0.3, 1);
   box-shadow: 0 2px 8px rgba(168, 134, 63, 0.35);
-}
-
-.chat-nav-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 5px;
-  border-radius: 9px;
-  color: var(--ink);
-  font-size: 0.68rem;
-  font-weight: 800;
-  margin-left: 8px;
-  vertical-align: middle;
 }
 
 /* ─── Webhook missing banner ──────────────────────────────────── */
@@ -2418,41 +2340,11 @@
   background: rgba(168, 134, 63, 0.12);
 }
 
-/* ─── Mode badge ───────────────────────────────────────────────── */
-.chat-mode-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 10px;
-  border-radius: 6px;
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  vertical-align: middle;
-  transition: all 0.2s;
-}
-/* Quién atiende también es un estado, y va en la misma escala: que
-   responda Valentina es lo normal —punto quieto—; que respondas tú
-   quiere decir que esa conversación te espera —punto vivo, y late. */
-.chat-mode-badge--ai,
-.chat-mode-badge--manual {
-  background: var(--bg-color);
-  color: var(--ink);
-  border: 1px solid var(--hairline);
-}
-.chat-mode-badge--ai::before,
-.chat-mode-badge--manual::before {
-  content: '';
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  border: 1px solid var(--hairline);
-  flex-shrink: 0;
-}
-.chat-mode-badge--ai::before { background: var(--punto-quieto); }
-.chat-mode-badge--manual::before { background: var(--punto-vivo); border-color: transparent; }
-.chat-mode-badge--manual { animation: rtPulse 2s ease-in-out infinite; }
+/* Aquí vivía la insignia de modo —«Control manual» / «Agente IA»— con su
+   punto de la escala. Se fue el 6 de septiembre de 2026: en 390px le quitaba
+   el ancho al nombre, hasta el punto de que había que pintarla en dos
+   versiones para que cupiera. Lo que decía lo dicen ahora el subtítulo de la
+   cabecera y el punto oro del retrato, que no le quitan nada a nadie. */
 
 /* ─── Chat body with info panel ────────────────────────────────── */
 .chat-conv-body {
@@ -2464,26 +2356,27 @@
   flex: 1;
 }
 
-/* ─── Quick replies ────────────────────────────────────────────── */
+/* ─── Lo que cuelga del compositor ─────────────────────────────── */
 .chat-input-actions {
   display: flex;
   gap: 4px;
   align-items: center;
-  /* Ancla los dos paneles que cuelgan de aquí —las respuestas rápidas y el
-     selector de fotos—, que van en posición absoluta. Vivía en un `style`
+  /* Ancla el panel que cuelga de aquí —el selector de fotos—, que va en
+     posición absoluta. Eran dos hasta el 6 de septiembre de 2026, cuando las
+     respuestas rápidas salieron del desplegable a la tira de fichas de encima
+     del campo. Vivía en un `style`
      dentro del JSX, igual que el del menú de los tres puntos: invisible para
      el diagnóstico de CSS y para quien buscara la clase. */
   position: relative;
 }
 
-.chat-quick-trigger,
 .chat-image-trigger {
-  width: 38px;
-  height: 38px;
-  border-radius: 12px;
-  border: 1px solid var(--hairline);
-  background: var(--bg-marfil);
-  color: var(--text-muted);
+  width: 44px;
+  height: 44px;
+  border-radius: 2px;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -2491,48 +2384,12 @@
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   flex-shrink: 0;
 }
-.chat-quick-trigger:hover,
 .chat-image-trigger:hover {
   background: var(--bg-arena);
-  color: var(--oro-ink);
-  border-color: rgba(168, 134, 63, 0.3);
-  transform: scale(1.06);
+  color: var(--ink);
 }
-.chat-quick-trigger:active,
 .chat-image-trigger:active {
   transform: scale(0.95);
-}
-
-.chat-quick-replies {
-  position: absolute;
-  bottom: 48px;
-  left: 0;
-  padding: 10px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  z-index: 50;
-  min-width: 280px;
-  max-width: 400px;
-  animation: chatPopUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.chat-quick-reply-btn {
-  padding: 7px 14px;
-  border-radius: 8px;
-  border: 1px solid var(--bg-arena);
-  background: var(--bg-color);
-  font-size: 0.75rem;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  white-space: nowrap;
-  color: var(--text-secondary);
-}
-.chat-quick-reply-btn:hover {
-  background: var(--ink);
-  border-color: var(--ink);
-  color: var(--oro-ink);
-  transform: translateY(-1px);
 }
 
 /* ─── Image picker ─────────────────────────────────────────────── */
@@ -3090,20 +2947,22 @@
    y en el borde: es lo que se ve de reojo sin leerlo. */
 /* El mando principal de esta pantalla, y se veía como un adorno: al 10% de su
    color, con el mismo peso que los iconos de al lado. Es lo que el joyero toca
-   en cada conversación —es el embudo entero—, así que se pinta como tal:
-   relleno, en mayúsculas y con el color de su estado a la vista. */
+   en cada conversación —es el embudo entero—, así que se pinta como tal.
+
+   Estuvo al 18% y en mayúsculas para ganarle a los iconos que tenía al lado;
+   el 6 de septiembre de 2026 esos iconos se fueron a la hoja de acciones, así
+   que puede bajar el tono y leerse como lo que es —un mando que se abre— en
+   vez de como una etiqueta. */
 .chat-estado-select {
   appearance: none;
-  padding: 7px 28px 7px 14px;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--estado-color) 55%, transparent);
-  background: color-mix(in srgb, var(--estado-color) 18%, transparent);
+  padding: 7px 26px 7px 13px;
+  border-radius: 100px;
+  border: 1px solid color-mix(in srgb, var(--estado-color) 42%, transparent);
+  background: color-mix(in srgb, var(--estado-color) 10%, transparent);
   color: var(--estado-color);
   font-family: var(--font-ui);
-  font-size: 0.75rem;
+  font-size: 0.82rem;
   font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
   cursor: pointer;
   /* La flecha, dibujada acá para no depender de la del sistema, que en cada
      navegador sale de un color distinto. */
@@ -3261,39 +3120,6 @@
 .chat-info-order-status--entregado::before { background: var(--punto-pleno); border-color: transparent; }
 .chat-info-order-status--cancelado::before { background: var(--punto-nulo); }
 
-/* ─── Sound toggle button ─────────────────────────────────────── */
-.chat-sound-toggle {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  border: 1px solid var(--bg-arena);
-  background: var(--bg-marfil);
-  color: var(--text-muted);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  position: relative;
-}
-.chat-sound-toggle:hover {
-  background: var(--bg-arena);
-  color: var(--ink);
-  transform: scale(1.06);
-}
-.chat-sound-toggle:active {
-  transform: scale(0.95);
-}
-.chat-sound-toggle--muted {
-  color: var(--error-ink);
-  background: var(--bg-marfil);
-  border-color: var(--hairline);
-}
-.chat-sound-toggle--muted:hover {
-  background: var(--bg-arena);
-  color: var(--text-secondary);
-}
-
 /* ─── Realtime status indicator ────────────────────────────────── */
 .chat-rt-status {
   display: inline-block;
@@ -3381,12 +3207,7 @@
   }
   /* Ya no hace falta ganarle a la barra inferior (1000): la ficha vive dentro
      de la conversación y no encima de la ventana, así que la barra de abajo y
-     la de arriba se quedan a la vista, que es donde tienen que estar. */
-  .chat-quick-replies {
-    min-width: 240px;
-    max-width: 300px;
-  }
-  .chat-image-picker {
+     la de arriba se quedan a la vista, que es donde tienen que estar. */  .chat-image-picker {
     width: calc(100vw - 32px);
     max-width: 340px;
     left: -8px;
@@ -3576,12 +3397,6 @@
 }
 .chat-bubble-image--clickable:hover { opacity: 0.88; }
 
-/* ─── Chat: header resolved button ─────────────────────────────── */
-.chat-header-action-btn--resolved {
-  color: var(--oro-ink) !important;
-  background: rgba(168, 134, 63, 0.12) !important;
-}
-
 /* ─── Chat: contact tags (list + info panel) ────────────────────── */
 .chat-contact-tags {
   display: flex;
@@ -3628,21 +3443,18 @@
   gap: 5px;
   margin-top: 2px;
 }
+/* La caja. El trazo y los colores los fija una regla posterior en este mismo
+   archivo: aquí quedaban un borde discontinuo teñido del color de la etiqueta
+   y una transición de 0,18s de cuando había cinco colores de etiqueta. Hoy
+   sólo hay un oro. */
 .chat-tag-add-btn {
   display: inline-flex;
   align-items: center;
   padding: 3px 9px;
-  border-radius: 20px;
   font-size: 0.68rem;
-  font-weight: 600;
-  border: 1px dashed color-mix(in srgb, var(--tag-color) 50%, transparent);
-  background: none;
-  color: color-mix(in srgb, var(--tag-color) 70%, var(--text-secondary));
   cursor: pointer;
-  transition: all 0.18s;
 }
 .chat-tag-add-btn:hover {
-  background: color-mix(in srgb, var(--tag-color) 12%, transparent);
   border-style: solid;
 }
 
@@ -4993,7 +4805,6 @@
   outline: none;
 }
 
-.chat-quick-reply-btn,
 .chat-tag-add-btn {
   border-radius: 100px;
   border: 1px solid var(--hairline);
@@ -5004,7 +4815,6 @@
   transition: all 0.3s var(--ease);
 }
 
-.chat-quick-reply-btn:hover,
 .chat-tag-add-btn:hover {
   border-color: var(--oro-hairline);
   background: var(--bg-arena);
@@ -5042,8 +4852,7 @@
   color: var(--text-muted);
 }
 
-.chat-unread-badge,
-.chat-nav-badge {
+.chat-unread-badge {
   background: var(--ink);
   color: var(--bg-color);
   border-radius: 100px;
@@ -5138,8 +4947,13 @@
  * la alineación y el color —que ahora son tres y no dos—, así que la cola ya
  * no hacía falta.
  *
- * Si algún día se decide que las esquinas blandas valían la pena, es este
- * número y nada más. */
+ * **Y esa misma tarde se decidió a medias**: el rediseño «1b» le devolvió tres
+ * esquinas de 12px y le dejó una de 2px, del lado de quien habla. El 2px de
+ * aquí abajo sigue siendo el valor de partida —lo que hereda cualquier burbuja
+ * nueva—; quien lo cambia son las dos reglas de `.chat-bubble--user` y
+ * `.chat-bubble--assistant` del bloque «la bandeja 1b», más abajo en este
+ * mismo archivo. Los 16px redondos siguen descartados, y por lo que dice el
+ * párrafo de arriba. */
 .chat-bubble {
   border-radius: 2px;
   border: 1px solid var(--hairline);
@@ -5155,10 +4969,14 @@
 /* Valentina: cacao con texto marfil.
    Marfil y no blanco puro: el blanco puro sobre el cacao casi negro es el
    contraste más duro que hay, y esta marca no usa ninguno de los dos extremos
-   —ver DESIGN.md, «nunca negro puro»—. */
+   —ver DESIGN.md, «nunca negro puro»—.
+
+   Y cacao suave y no cacao pleno desde el 6 de septiembre de 2026: sobre la
+   arena del hilo, el #1C1714 era el contraste más duro de la pantalla, y
+   Valentina no es lo más importante que hay en ella. */
 .chat-bubble--assistant {
-  background: var(--ink);
-  border-color: var(--ink);
+  background: var(--ink-soft);
+  border-color: var(--ink-soft);
   color: var(--bg-marfil);
 }
 
@@ -5273,24 +5091,15 @@
   transform: translateY(-2px);
 }
 
-.chat-quick-trigger,
 .chat-input-actions button {
   border-radius: 2px;
   color: var(--text-secondary);
   transition: all 0.3s var(--ease);
 }
 
-.chat-quick-trigger:hover,
 .chat-input-actions button:hover {
   background: var(--bg-arena);
   color: var(--ink);
-}
-
-.chat-quick-replies {
-  background: var(--bg-color);
-  border: 1px solid var(--hairline);
-  border-radius: 2px;
-  box-shadow: none;
 }
 
 /* ── Ficha del contacto ── */
@@ -5506,6 +5315,585 @@
   border-color: rgba(138, 90, 74, 0.45);
   background: rgba(138, 90, 74, 0.06);
   color: var(--ink);
+}
+
+/* ================================================================
+   CONVERSACIONES — la bandeja (rediseño «1b», 6 de septiembre de 2026)
+   ================================================================
+   De dos direcciones dibujadas, el joyero eligió ésta. Lo que cambia
+   respecto de lo que había, y por qué:
+
+     · **Una sola cabecera.** La barra de arriba del panel decía
+       «Conversaciones» y justo debajo la lista repetía «Chats». En un
+       celular eran 64px de nada antes de la primera fila y, con un chat
+       abierto, tres barras apiladas. Se fue la de arriba; lo suyo —el
+       punto de conexión, el altavoz, el avatar— vive ahora aquí.
+
+     · **La navegación se encoge a un riel de 72px.** Ésta es la única
+       pantalla del panel que se usa de corrido; los 260px del menú se
+       los estaba quitando al hilo.
+
+     · **Una tarjeta dice quién sigue.** La lista contesta «qué pasó»,
+       ordenada por lo último que entró; no contestaba «qué hago ahora».
+
+     · **Filtros con filete en vez de píldoras**, que ocupan la mitad y
+       dejan sitio para tres a la vista en 375px.
+
+     · **La espera, en la fila.** Donde estaba la fecha —«4 sept»— va
+       ahora «5 h sin resp.», que es la pregunta de verdad.
+
+     · **Las respuestas rápidas salen del desplegable** a una tira de
+       fichas sobre el campo. Un botón con un globo de diálogo no dice
+       ninguna de las seis frases que hay dentro.
+
+     · **En el celular las acciones son una hoja que sube desde abajo**,
+       no un desplegable anclado a la esquina más lejos del pulgar.
+
+   Esta hoja se carga después que todo lo de arriba, así que a igual
+   especificidad estas reglas ganan: es a propósito, y es lo que permite
+   dejar intacto el bloque original y leer aquí sólo lo que cambió.
+   ================================================================ */
+
+/* ── El riel ──────────────────────────────────────────────────────
+   Sólo en esta pantalla. En las demás secciones el menú sigue entero:
+   allí sí se navega, y un icono suelto no dice a dónde lleva.
+
+   El rótulo de cada botón es un nodo de texto sin envoltorio que
+   esconder —`<span icono/>{label}`—, así que se apaga con `font-size: 0`
+   y se le devuelve el suyo a lo que sí tiene que verse. El `title` de
+   cada botón lo pone `AdminSidebar`: sin él, el riel sería siete
+   dibujos sin nombre. */
+.admin-layout--riel { grid-template-columns: 72px 1fr; }
+
+.admin-layout--riel .admin-sidebar-logo {
+  justify-content: center;
+  padding: 1.25rem 0 0.75rem;
+  margin-bottom: 0;
+}
+.admin-layout--riel .admin-sidebar-logo-text { display: none; }
+.admin-layout--riel .admin-sidebar-logo-img { height: 30px; }
+
+.admin-layout--riel .admin-sidebar-nav {
+  padding: 0 0.875rem;
+  gap: 0.25rem;
+}
+
+.admin-layout--riel .admin-nav-item {
+  font-size: 0;
+  justify-content: center;
+  gap: 0;
+  height: 44px;
+  padding: 0;
+}
+.admin-layout--riel .admin-nav-icon { margin: 0; }
+.admin-layout--riel .admin-nav-unread-badge { font-size: 0.62rem; }
+
+.admin-layout--riel .admin-sidebar-footer { padding: 0.75rem 0.875rem 1.25rem; }
+.admin-layout--riel .admin-sidebar-user { justify-content: center; }
+.admin-layout--riel .admin-sidebar-user-info { display: none; }
+.admin-layout--riel .admin-sidebar-logout {
+  font-size: 0;
+  justify-content: center;
+  gap: 0;
+  height: 40px;
+  padding: 0;
+}
+
+/* ── La cabecera de la lista ─────────────────────────────────────── */
+.chat-contacts-header {
+  /* Los dos lados como variables: el filete de las pestañas los deshace con
+     márgenes negativos para correr de borde a borde, y en el celular la
+     cabecera se aprieta. Escritos dos veces se separarían. */
+  --cab-izq: 1.25rem;
+  --cab-der: 1rem;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  padding: 1rem var(--cab-der) 0.5rem var(--cab-izq);
+}
+
+/* El mando del lote pierde su filete: el de las pestañas, que corre de borde
+   a borde justo encima, ya lo separa de todo lo demás. Dos líneas a diez
+   píxeles una de otra son una raya gorda, no dos secciones. */
+.chat-contacts-header .chat-seleccion-barra {
+  margin-top: 0.5rem;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.chat-cab-fila {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.chat-cab-titulo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.chat-contacts-header h2 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.5rem;
+  line-height: 1.1;
+  letter-spacing: 0.01em;
+  color: var(--ink);
+}
+
+/* El pulso. Lo que espera va primero y en oro; lo que va bien, en gris
+   y sólo si no hay nada esperando. */
+.chat-cab-pulso {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.chat-cab-pulso strong { color: var(--oro-ink); font-weight: 700; }
+.chat-cab-pulso .chat-rt-status { margin: 0 7px 0 0; }
+
+.chat-cab-mandos {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.chat-cab-icono {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 1px solid var(--hairline);
+  border-radius: 2px;
+  background: var(--bg-color);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color 0.3s var(--ease), border-color 0.3s var(--ease), background 0.3s var(--ease);
+}
+.chat-cab-icono:hover { color: var(--ink); border-color: var(--oro-hairline); }
+.chat-cab-icono--on {
+  color: var(--oro-ink);
+  border-color: var(--oro-hairline);
+  background: var(--bg-marfil);
+}
+.chat-cab-icono--mudo { color: var(--text-muted); }
+
+/* Con qué cuenta se entró. Es lo único que hacía el avatar de la barra
+   que se quitó, y sigue haciéndolo aquí. */
+.chat-cab-avatar {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 100px;
+  background: var(--ink);
+  color: var(--oro-luz);
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  flex-shrink: 0;
+}
+
+/* Sin el hueco de 36px para la lupa de dentro. Esa lupa era una imagen de
+   fondo que una regla posterior ya pisaba con un color plano —llevaba años
+   sin verse—, y ahora además sobra: el que abre el campo es el botón de lupa
+   de la cabecera, a veinte píxeles de aquí. */
+.chat-contacts-header .chat-search {
+  margin-top: 0.75rem;
+  padding: 10px 14px;
+  font-size: 0.82rem;
+}
+
+/* ── Las pestañas ─────────────────────────────────────────────────
+   Un filete de oro debajo de la que manda, y nada más: sin fondo ni
+   relleno lateral ocupan la mitad que las píldoras, que es lo que
+   permite tener tres a la vista en una columna de 300px sin que
+   «Por atender» salga como «Por a». */
+.chat-pestanas {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  margin-top: 0.875rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+  /* El filete corre de borde a borde de la columna, no sólo por debajo de las
+     pestañas: es lo que hace que el de la pestaña encendida se lea como un
+     tramo de esa línea y no como un subrayado suelto. Los márgenes negativos
+     deshacen el relleno de la cabecera. */
+  margin-left: calc(-1 * var(--cab-izq));
+  margin-right: calc(-1 * var(--cab-der));
+  padding-left: var(--cab-izq);
+  padding-right: var(--cab-der);
+  border-bottom: 1px solid var(--hairline);
+}
+.chat-pestanas::-webkit-scrollbar { display: none; }
+
+.chat-pestana {
+  flex-shrink: 0;
+  padding: 0 0 0.75rem;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  background: none;
+  font-family: var(--font-ui);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 0.3s var(--ease), border-color 0.3s var(--ease);
+}
+.chat-pestana:hover { color: var(--ink); }
+.chat-pestana--on {
+  color: var(--ink);
+  font-weight: 700;
+  border-bottom-color: var(--oro);
+}
+
+/* La puerta a las otras ocho vistas. Va pegada al borde derecho para
+   que se lea como lo que es —lo que no está a la vista— y no como una
+   pestaña más de la fila. */
+.chat-pestana--mas {
+  margin-left: auto;
+  appearance: none;
+  -webkit-appearance: none;
+  /* Un `select` mide lo que su opción más larga, así que con «Más» escrito
+     quedaba una pestaña de 120px con la palabra a un lado y la flecha al
+     otro. `field-sizing` lo hace medir lo que se ve. Donde no exista, el tope
+     evita que «Para purgar» se coma el ancho de las pestañas. */
+  field-sizing: content;
+  max-width: 7rem;
+  padding-right: 1rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236B615A' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0 top 6px;
+}
+.chat-pestana--mas option { color: var(--text-primary); background: var(--bg-color); }
+
+/* La cuarta pestaña sólo cabe en escritorio: en el celular le quitaría
+   el sitio a «Más», que es la puerta a todo lo demás. */
+@media (max-width: 900px) {
+  .chat-pestana--ancha { display: none; }
+}
+
+/* ── La tarjeta de quién sigue ───────────────────────────────────── */
+.chat-siguiente {
+  flex-shrink: 0;
+  margin: 0.875rem 1rem 0;
+  padding: 0.8125rem 0.9375rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  background: var(--bg-color);
+  border: 1px solid var(--oro-hairline);
+  border-radius: 2px;
+  cursor: pointer;
+  transition: border-color 0.3s var(--ease), background 0.3s var(--ease);
+}
+.chat-siguiente:hover { border-color: var(--oro); background: var(--bg-marfil); }
+.chat-siguiente:focus-visible { outline: 2px solid var(--oro); outline-offset: 2px; }
+
+.chat-siguiente-rotulo {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--oro-ink);
+}
+
+.chat-siguiente-quien { display: flex; align-items: center; gap: 0.75rem; }
+.chat-siguiente .chat-contact-avatar { width: 44px; height: 44px; font-size: 1.05rem; }
+
+.chat-siguiente-texto {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.chat-siguiente-nombre {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.chat-siguiente-preview {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.chat-siguiente-abrir {
+  flex-shrink: 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--oro-ink);
+  white-space: nowrap;
+}
+
+/* El pie es lo que justifica que sea esta persona y no otra. */
+.chat-siguiente-pie {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.875rem;
+  padding-top: 0.625rem;
+  border-top: 1px solid var(--hairline);
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+.chat-siguiente-pie strong { color: var(--ink); font-weight: 700; }
+.chat-siguiente-estado { color: var(--estado-color); font-weight: 700; }
+
+/* ── La cola de la fila ───────────────────────────────────────────
+   Dos renglones alineados a la derecha: arriba el tiempo, abajo la
+   marca. La fecha salió de la línea del nombre, que ahora la ocupa
+   entera. */
+.chat-contact-cola {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+/* Lo único de la fila que va en oro. Es una alarma, y sólo se enciende
+   en las que de verdad esperan respuesta. */
+.chat-contact-espera {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--oro-ink);
+  white-space: nowrap;
+}
+
+.chat-contact-cola .chat-estado-marca {
+  padding: 1px 7px;
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+}
+
+/* ── La cabecera de la conversación ──────────────────────────────── */
+/* El punto de «alguien tomó este chat», el mismo que lleva la fila. */
+.chat-conv-header-avatar { position: relative; }
+
+/* ── Las burbujas ─────────────────────────────────────────────────
+   Tres esquinas de 12px y una de 2px, del lado de quien habla.
+
+   El 6 de septiembre de 2026 por la mañana se había hecho justo lo
+   contrario: se revirtieron los 16px a 2px porque «el hilo se veía como
+   cualquier mensajero y no como esta joyería». Sigue siendo verdad de
+   los 16px redondos; esto es otra cosa. La esquina en punta es la que
+   ancla la burbuja a la marca —el radio de 2px del sistema sigue ahí, a
+   la vista, en la esquina que señala a quien escribió— y las otras tres
+   son las que hacen que una conversación se lea como una conversación.
+   Es la forma que eligió el joyero mirando las dos.
+
+   Si algún día se vuelve a discutir, son estos dos números y nada
+   más. */
+.chat-bubble--user { border-radius: 2px 12px 12px 12px; }
+.chat-bubble--assistant,
+.chat-bubble--admin { border-radius: 12px 2px 12px 12px; }
+
+/* ── El compositor ───────────────────────────────────────────────── */
+.chat-conv-input-fila {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Las seis frases de todos los días, escritas. Se arrastra de lado y se
+   desvanece por el borde derecho: el degradado es lo que dice que hay
+   más, sin gastar una flecha ni una segunda línea. */
+.chat-rapidas {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
+  mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
+}
+.chat-rapidas::-webkit-scrollbar { display: none; }
+
+.chat-rapida {
+  flex-shrink: 0;
+  padding: 7px 13px;
+  border: 1px solid var(--hairline);
+  border-radius: 100px;
+  background: var(--bg-color);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color 0.3s var(--ease), background 0.3s var(--ease), color 0.3s var(--ease);
+}
+.chat-rapida:hover {
+  border-color: var(--oro-hairline);
+  background: var(--bg-arena);
+  color: var(--oro-ink);
+}
+
+/* ── Las acciones: un desplegable arriba, una hoja abajo ──────────
+   El mismo árbol en los dos anchos. Lo que sólo existe en la hoja se
+   apaga aquí y se enciende en el `@media` de más abajo. */
+.chat-hoja-fondo,
+.chat-hoja-tirador,
+.chat-hoja-cabeza,
+.chat-export-menu .chat-hoja-cancelar { display: none; }
+
+/* 230 y no los 190 de antes: desde que cada acción puede llevar un dato a la
+   derecha —«Borrar sólo las fotos · 3 fotos»— con 190 el rótulo se partía en
+   dos renglones. */
+.chat-export-dropdown .chat-export-menu { min-width: 230px; }
+
+.chat-acciones-grupo { padding: 0.25rem 0; }
+.chat-acciones-grupo + .chat-acciones-grupo { border-top: 1px solid var(--hairline); }
+
+/* Los títulos separan lo que se hace mientras se habla de lo que se
+   lleva o borra cosas. Eran nueve botones seguidos y el noveno borraba
+   la conversación para siempre. */
+.chat-acciones-titulo {
+  display: block;
+  padding: 0.5rem 0.875rem 2px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--oro-ink);
+}
+
+.chat-export-menu .chat-acciones-grupo button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.chat-acciones-cuenta {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* ── El celular ──────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .chat-contacts-header {
+    --cab-izq: 1rem;
+    --cab-der: 0.75rem;
+    padding-top: 0.875rem;
+  }
+  .chat-contacts-header h2 { font-size: 1.4rem; }
+
+  /* Una sola fila otra vez. Cabe desde que la insignia de «Control
+     manual» se fue al subtítulo y al punto del retrato: back 40 +
+     retrato 40 + estado 92 + tres puntos 36 dejan 155px para el
+     nombre en una pantalla de 375. */
+  .chat-estado-select { font-size: 0.75rem; padding: 6px 22px 6px 11px; }
+
+  .chat-conv-input { padding: 0.625rem 0.75rem; }
+
+  /* La hoja. Un desplegable anclado arriba a la derecha cae fuera de la
+     pantalla o queda recortado —ya pasó— y además obliga a estirar el
+     pulgar hasta la esquina más lejos que hay. */
+  .chat-hoja-fondo {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(28, 23, 20, 0.45);
+    z-index: 1200;
+    animation: hojaFondo 0.2s ease both;
+  }
+
+  .chat-export-dropdown .chat-export-menu {
+    position: fixed;
+    inset: auto 0 0 0;
+    margin: 0;
+    min-width: 0;
+    max-height: 82vh;
+    overflow-y: auto;
+    border: 0;
+    border-radius: 2px 2px 0 0;
+    padding-bottom: calc(1.25rem + env(safe-area-inset-bottom));
+    box-shadow: 0 -24px 50px rgba(28, 23, 20, 0.18);
+    z-index: 1201;
+    animation: hojaSube 0.26s var(--ease) both;
+  }
+
+  .chat-hoja-tirador {
+    display: block;
+    width: 36px;
+    height: 3px;
+    margin: 0.5rem auto 0.875rem;
+    border-radius: 100px;
+    background: var(--hairline);
+  }
+
+  .chat-hoja-cabeza {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0 1.25rem 0.875rem;
+    border-bottom: 1px solid var(--hairline);
+  }
+  .chat-hoja-nombre {
+    font-family: var(--font-display);
+    font-size: 1.05rem;
+    color: var(--ink);
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .chat-hoja-meta {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .chat-export-menu .chat-acciones-grupo button {
+    padding: 0.8125rem 1.25rem;
+    font-size: 0.95rem;
+    color: var(--ink);
+  }
+  .chat-acciones-titulo { padding: 0.625rem 1.25rem 2px; }
+
+  /* Sólo en la hoja: en un desplegable de escritorio se cierra pulsando
+     fuera, y un botón de cancelar sería un estorbo. */
+  .chat-export-menu .chat-hoja-cancelar {
+    display: block;
+    width: calc(100% - 2.5rem);
+    margin: 0.875rem 1.25rem 0;
+    height: 46px;
+    padding: 0;
+    border: 1px solid var(--hairline);
+    border-radius: 100px;
+    background: var(--bg-color);
+    color: var(--ink);
+    font-family: var(--font-ui);
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-align: center;
+  }
+}
+
+@keyframes hojaSube {
+  from { transform: translateY(100%); }
+  to { transform: none; }
+}
+@keyframes hojaFondo {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 
@@ -5752,22 +6140,6 @@
    vista, estadísticas) en el lenguaje de la marca: sin degradados,
    sin sombras, radio de 2px y el círculo sólo en lo que es retrato.
    ================================================================ */
-.chat-contacts-titulo {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.75rem;
-  margin-bottom: 12px;
-}
-
-.chat-contacts-titulo h2 {
-  margin: 0;
-  font-family: var(--font-display);
-  font-weight: 400;
-  font-size: 1.35rem;
-  letter-spacing: 0.01em;
-  color: var(--ink);
-}
 
 .chat-info-profile {
   display: flex;
@@ -5843,35 +6215,10 @@
 }
 
 /* Estado del agente en la cabecera de la bandeja */
-.chat-agente {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  border-radius: 100px;
-  border: 1px solid var(--hairline);
-  background: var(--bg-color);
-  font-size: 0.68rem;
-  font-weight: 600;
-  color: var(--text-secondary);
-  white-space: nowrap;
-}
-
 /* El mismo punto que en el distintivo de la cabecera: que responda
    Valentina es lo normal —quieto—; que haya chats en manual te está
    pidiendo algo —vivo. */
-.chat-agente-punto {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  border: 1px solid var(--hairline);
-  background: var(--punto-quieto);
-  flex-shrink: 0;
-}
-
-.chat-agente--manual { border-color: var(--oro-hairline); background: var(--bg-arena); color: var(--oro-ink); }
-.chat-agente--manual .chat-agente-punto { background: var(--punto-vivo); border-color: transparent; }
-
+.
 /* Quién respondió el último mensaje de la fila */
 .chat-contact-ia {
   align-self: flex-end;

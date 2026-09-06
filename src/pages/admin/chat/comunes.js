@@ -12,6 +12,7 @@
  * `secciones/`: `react-refresh/only-export-components` prohíbe que un archivo
  * exporte componentes y constantes a la vez.
  */
+import { estaAbierto } from '../../../lib/estadoDelChat';
 
 export const normalizePhone = (p) => {
     if (!p) return '';
@@ -70,6 +71,56 @@ export const isSameDay = (a, b) => {
 export const MESES_PURGA = 12;
 
 export const truncate = (s, n = 50) => s && s.length > n ? s.slice(0, n) + '...' : s;
+
+/**
+ * Cuánto lleva esperando una conversación, en tres caracteres.
+ *
+ * La lista enseñaba la fecha del último mensaje —«4 sept»— y eso contesta
+ * *cuándo* habló, no *cuánto lleva sin respuesta*, que es la única pregunta
+ * con la que el joyero abre el panel. «5 h» y «40 min» se leen de reojo; una
+ * fecha hay que restarla mentalmente contra hoy.
+ *
+ * Menos de un minuto devuelve `null` a propósito: acaba de entrar, y decir
+ * «0 min sin resp.» en el mismo tono de alarma que cinco horas gasta el aviso
+ * justo cuando no hace falta. Quien lo llame que pinte la fecha.
+ *
+ * @returns `'40 min'` · `'5 h'` · `'3 d'` · `null`
+ */
+export function esperaDesde(fecha, ahora = Date.now()) {
+    /* `new Date(null)` es el 1 de enero de 1970, no una fecha inválida: sin
+       esta guardia una fila sin `last_time` decía «20702 d sin resp.». */
+    if (fecha == null) return null;
+    const t = new Date(fecha).getTime();
+    if (!Number.isFinite(t)) return null;
+    const minutos = Math.floor((ahora - t) / 60000);
+    if (minutos < 1) return null;
+    if (minutos < 60) return `${minutos} min`;
+    const horas = Math.floor(minutos / 60);
+    if (horas < 24) return `${horas} h`;
+    return `${Math.floor(horas / 24)} d`;
+}
+
+/**
+ * Cuál es la siguiente conversación por atender.
+ *
+ * Es la que va en la tarjeta de arriba de la lista. Los tres requisitos son
+ * los mismos con los que el filtro «Por atender» recorta la lista —sigue
+ * abierta, la última palabra la tiene la clienta, no está archivada—, y de
+ * entre ésas gana **la que lleva más tiempo esperando**, no la más reciente:
+ * la lista ya está ordenada por lo último que entró, así que la que se cae del
+ * borde de la pantalla es justo la que más lleva sin respuesta.
+ *
+ * @returns el contacto, o `null` si no hay ninguna esperando
+ */
+export function siguientePorAtender(contactos, estados = {}) {
+    let peor = null;
+    for (const c of contactos || []) {
+        const s = estados[c.phone_number];
+        if (c.last_role !== 'user' || s?.is_archived || !estaAbierto(s)) continue;
+        if (!peor || new Date(c.last_time) < new Date(peor.last_time)) peor = c;
+    }
+    return peor;
+}
 
 /**
  * De qué va el último mensaje, para la línea de vista previa de la lista.
