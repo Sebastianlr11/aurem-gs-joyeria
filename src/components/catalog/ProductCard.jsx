@@ -82,7 +82,11 @@ const ProductCard = ({ product, indice = 0 }) => {
                            el LCP, y dársela a varias es no dársela a ninguna. */
                         loading={indice < 2 ? 'eager' : 'lazy'}
                         fetchPriority={indice === 0 ? 'high' : undefined}
-                        decoding="async"
+                        /* Y la primera SIN `decoding="async"`: es el elemento
+                           LCP del catálogo, y esa palabra difiere justo lo que
+                           se está esperando. Es la misma lección del hero, ver
+                           CLAUDE.md §11. */
+                        decoding={indice === 0 ? undefined : 'async'}
                     />
                     : <span className="pieza-foto-vacia">✦</span>}
                 {/* El punzón abajo a la izquierda: arriba tapa la pieza, que en

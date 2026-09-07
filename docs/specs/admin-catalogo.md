@@ -183,6 +183,12 @@ Ver [admin-pedidos](admin-pedidos.md) y `supabase/migrations/20260823_costos_del
 
 ## Límites conocidos y pendientes
 
+- **`stock` es manual y nada lo mueve.** Ningún pedido lo descuenta —ni la web, ni Valentina,
+  ni el panel— y `create-preference` no lo mira. Con todo por encargo es una decisión, no una
+  falta: «Agotada» y «Última unidad» en el catálogo son lo que el joyero puso, no un contador.
+  Si algún día una pieza se vende por unidades hechas, el descuento tiene que ir en la base,
+  en el mismo disparador que crea el pedido.
+
 - **Las fotos ya publicadas no llevan la marca en el nombre**, así que se sirven a tamaño
   completo. El mecanismo (`fotoProducto.js`) sólo trabaja con fotos que se suban de ahora
   en adelante; no hay migración posible, porque las copias se generan en el navegador de

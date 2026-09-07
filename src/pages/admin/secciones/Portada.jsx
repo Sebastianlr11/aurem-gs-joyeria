@@ -288,7 +288,7 @@ const DashboardHome = ({ products, orders, chatsPendientes, actualizadoEn, verPr
         {
             clave: 'despachar', icono: 'truck', n: porDespachar,
             titulo: 'Por despachar',
-            sub: 'Confirmados que el taller despacha en 2 a 3 días',
+            sub: `Confirmados que el taller despacha en ${DIAS_PROMESA} días`,
             ir: () => onNavigate('orders'),
         },
         {
