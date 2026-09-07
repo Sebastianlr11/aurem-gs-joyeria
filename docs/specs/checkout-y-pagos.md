@@ -142,6 +142,18 @@ simultáneos se serializan en la base; sólo uno recibe filas.
 cuerpo). Leer sólo una era descartar la mitad **con un 200**: el pago entra y el pedido
 nunca se entera.
 
+**Y contesta 500 cuando el error es suyo, para que Mercado Pago reintente.** Hasta el 6 de
+septiembre de 2026 decía «siempre 200 para que MP no reintente» también cuando la API de
+Mercado Pago fallaba o el `UPDATE` de `orders` no entraba: el pago quedaba aprobado allá y el
+pedido en `pendiente` aquí hasta que el vigía lo señalara 24 h después. El 200 se reserva
+para lo que no cambia con un reintento —pago no aprobado, aviso repetido, orden sin pago—.
+La petición sin firma sigue respondiendo 401, que es lo que comprueba el vigía.
+
+**El anti-duplicado vive sólo en la base.** `create-preference` tenía una segunda copia,
+anterior al disparador, que cancelaba todo `pendiente` de la misma persona y pieza sin
+ventana de tiempo. Se quitó ese mismo día; manda
+`20260824_cancelar_el_duplicado_no_el_pedido_de_ayer.sql`.
+
 **`/confirmacion` sólo lee.** Antes marcaba `status='pagado'` desde el navegador con la
 anon key: **cualquiera podía falsificar un pago escribiendo una URL** (`Confirmacion.jsx:23-35`).
 Ahora el estado lo escribe el webhook y el valor de `pixelCompra` sale de la base, no de la

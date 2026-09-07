@@ -218,25 +218,14 @@ Deno.serve(async (req: Request) => {
        pasarela, así que no hay enlace de pago ni nada que esperar. */
     const sinAbono = esContraEntrega && abono === 0
 
-    // Cancelar pedidos pendientes duplicados del mismo cliente + producto
-    // (ej: cliente cambia de MercadoPago a contraentrega)
-    if (buyer.phone) {
-      const { error: cancelError } = await supabase
-        .from('orders')
-        .update({ status: 'cancelado' })
-        .eq('status', 'pendiente')
-        .eq('product_name', combinedName)
-        .eq('customer_phone', buyer.phone)
-      if (cancelError) console.warn('Error cancelando duplicados:', cancelError)
-    } else if (buyer.email) {
-      const { error: cancelError } = await supabase
-        .from('orders')
-        .update({ status: 'cancelado' })
-        .eq('status', 'pendiente')
-        .eq('product_name', combinedName)
-        .eq('customer_email', buyer.email)
-      if (cancelError) console.warn('Error cancelando duplicados:', cancelError)
-    }
+    /* Aquí había un segundo anti-duplicado, escrito antes que el de la base:
+       cancelaba TODO pedido `pendiente` de la misma persona y la misma pieza,
+       sin ventana de tiempo y comparando el teléfono como cadena cruda. El
+       disparador de `orders` hace lo mismo bien desde el 24 de agosto de 2026
+       —una hora de ventana y los últimos diez dígitos, ver
+       `20260824_cancelar_el_duplicado_no_el_pedido_de_ayer.sql`—, así que esta
+       copia sólo servía para matar pedidos legítimos de días atrás. Se quitó el
+       6 de septiembre de 2026: una regla, un sitio. */
 
     // Insertar una sola orden con todos los productos
     const { data: order, error: orderError } = await supabase
