@@ -22,13 +22,12 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { borrarFotos } from '../../lib/fotosEnStorage';
 import { refDe } from '../../lib/referencia';
+import { ESTADOS_SIN_ENTREGAR } from '../../lib/dinero';
 
 /* En español los números pequeños se escriben con letra, y esta frase se lee
    como una frase, no como un informe. */
 const CANTIDAD = ['ninguna', 'una', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve', 'diez'];
 const enLetra = (n) => CANTIDAD[n] ?? String(n);
-
-const VIVOS = ['pendiente', 'pagado', 'procesando', 'enviado'];
 
 export default function EliminarPieza({ product, onClose, onDeleted }) {
     const [ref, setRef] = useState('');
@@ -54,7 +53,9 @@ export default function EliminarPieza({ product, onClose, onDeleted }) {
             .select('id', { count: 'exact', head: true })
             .eq('product_id', product.id)
             .eq('es_prueba', false)
-            .in('status', VIVOS)
+            /* La lista de `dinero.js`, no una propia: la que había aquí no
+               traía `confirmado` y el aviso no veía ningún contraentrega. */
+            .in('status', ESTADOS_SIN_ENTREGAR)
             .then(({ count }) => { if (vigente) setPedidosVivos(count ?? 0); })
             .catch(() => { if (vigente) setPedidosVivos(0); });
         return () => { vigente = false; };

@@ -109,6 +109,23 @@ export const laVentaEntro = (pedido, estado = pedido?.status) =>
 export const estaVivo = (pedido) =>
     !!pedido && !['cancelado', 'pendiente', 'devuelto'].includes(pedido.status);
 
+/**
+ * Los pedidos que siguen vivos y todavía no llegaron: lo que el taller aún le
+ * debe a alguien. Es la pregunta que hacen los diálogos de borrar una pieza o
+ * un chat —«¿hay un pedido sin entregar con esto?»— y hasta el 6 de septiembre
+ * de 2026 cada uno la contestaba con su propia lista, escrita a mano, que
+ * decía `pendiente` (que no es venta viva) y no decía `confirmado`, que es el
+ * estado en el que nace TODO contraentrega desde que no hay abono. Es decir:
+ * el aviso no veía ni un pedido real.
+ *
+ * La lista va exportada y no sólo la función porque los dos diálogos la
+ * necesitan para un `.in('status', …)` contra la base. Es `estaVivo` menos el
+ * único final feliz, `entregado`.
+ */
+export const ESTADOS_SIN_ENTREGAR = ['confirmado', 'pagado', 'procesando', 'enviado'];
+export const sinEntregar = (pedido) =>
+    !!pedido && ESTADOS_SIN_ENTREGAR.includes(pedido.status);
+
 /** Lo recibido y lo que falta, de un conjunto de pedidos. */
 export function resumenDe(pedidos = []) {
     const recibido = pedidos.reduce((s, o) => s + recibidoDe(o), 0);

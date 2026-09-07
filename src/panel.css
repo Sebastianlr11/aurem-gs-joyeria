@@ -6215,10 +6215,6 @@
 }
 
 /* Estado del agente en la cabecera de la bandeja */
-/* El mismo punto que en el distintivo de la cabecera: que responda
-   Valentina es lo normal —quieto—; que haya chats en manual te está
-   pidiendo algo —vivo. */
-.
 /* Quién respondió el último mensaje de la fila */
 .chat-contact-ia {
   align-self: flex-end;

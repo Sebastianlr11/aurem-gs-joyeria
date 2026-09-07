@@ -21,8 +21,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { borrarTodoDe, descargarChat } from '../../lib/chatArchivo';
-
-const VIVOS = ['pendiente', 'pagado', 'procesando', 'enviado'];
+import { ESTADOS_SIN_ENTREGAR } from '../../lib/dinero';
 
 /* Los cuatro últimos dígitos: lo que se escribe para confirmar una y lo que
    distingue un número de otro de un vistazo. */
@@ -103,7 +102,9 @@ export default function EliminarChat({ objetivos, onClose, onDeleted }) {
             .select('customer_phone')
             .in('customer_phone', telefonos.flatMap(variantes))
             .eq('es_prueba', false)
-            .in('status', VIVOS)
+            /* La lista de `dinero.js`, no una propia: la que había aquí no
+               traía `confirmado` y el aviso no veía ningún contraentrega. */
+            .in('status', ESTADOS_SIN_ENTREGAR)
             .then(({ data }) => {
                 if (!vigente) return;
                 const filas = (data || []).filter(o => claves.has(clave(o.customer_phone)));

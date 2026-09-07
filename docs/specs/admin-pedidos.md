@@ -160,8 +160,10 @@ correo `pedido-despachado`. Un despacho sin guía es un cliente preguntando "¿y
 ## Límites conocidos y pendientes
 
 - No hay historial de cambios de estado: sólo `status_updated_at`, el último.
-- El borrado de un pedido no está protegido con la fricción de escribir la referencia, como
-  sí lo está el de piezas y chats.
+- **Sólo se borran los pedidos de prueba y los cancelados** (desde el 6 de septiembre de
+  2026). `pagos` cae en cascada con el pedido, así que borrar uno real se llevaba en silencio
+  sus movimientos del libro de caja. Un pedido real se cancela; el botón lo dice al pasar el
+  cursor. Sigue sin la fricción de escribir la referencia que tienen piezas y chats.
 - La talla elegida en la ficha pública **no llega** al pedido; sólo la traen los pedidos con
   `items[]` (WhatsApp y manuales).
 - Los estados no se validan como transiciones: se puede saltar de `pendiente` a `entregado`.

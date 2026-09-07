@@ -176,6 +176,9 @@ const origenDe = (o) => {
     return 'directo';
 };
 
+/* Qué pedidos se pueden borrar. Ver el comentario sobre el botón. */
+const sePuedeBorrar = (o) => !!o.es_prueba || o.status === 'cancelado';
+
 const OrdersSection = ({ orders, products, loading, onRefresh }) => {
     const [search, setSearch]           = useState('');
     const [filterStatus, setFilterStatus] = useState('Todos');
@@ -484,7 +487,17 @@ const OrdersSection = ({ orders, products, loading, onRefresh }) => {
                                                     <button className="ped-icono" onClick={() => setModal({ type: 'edit', order: o })} title="Editar">
                                                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                                                     </button>
-                                                    <button className="ped-icono ped-icono--baja" onClick={() => setModal({ type: 'delete', order: o })} title="Eliminar">
+                                                    {/* Sólo se borra lo que no deja historia: las pruebas y lo
+                                                        cancelado. `pagos` cae en cascada con el pedido, así que
+                                                        borrar uno real se llevaba en silencio los movimientos del
+                                                        libro de caja y el «Cobrado · últimos 30 días» cambiaba
+                                                        sin rastro. Lo demás se cancela, no se borra. */}
+                                                    <button
+                                                        className="ped-icono ped-icono--baja"
+                                                        onClick={() => setModal({ type: 'delete', order: o })}
+                                                        disabled={!sePuedeBorrar(o)}
+                                                        title={sePuedeBorrar(o) ? 'Eliminar' : 'Un pedido real no se borra: cancélalo. Borrarlo se llevaría sus pagos del libro de caja.'}
+                                                    >
                                                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
                                                     </button>
                                                 </div>
@@ -650,7 +663,7 @@ const OrdersSection = ({ orders, products, loading, onRefresh }) => {
             {modal?.type === 'delete' && (
                 <ConfirmModal
                     title="Eliminar pedido"
-                    text={`Eliminar el pedido de "${modal.order.customer_name}"?`}
+                    text={`Eliminar el pedido de "${modal.order.customer_name}"? Se van también los pagos que tuviera anotados en el libro de caja.`}
                     onClose={closeModal}
                     onConfirm={async () => {
                         const res = await supabase.from('orders').delete().eq('id', modal.order.id);

@@ -42,7 +42,9 @@ const CustomersSection = ({ customers, orders = [], loading, onRefresh }) => {
             /* Los vivos, no todos. Contar cancelados junto a "ha gastado $0"
                daba fichas que se contradecían solas: 10 pedidos, cero pesos. */
             pedidos: vivos.length,
-            cancelados: suyos.length - vivos.length,
+            /* Los que se cayeron de verdad. `suyos - vivos` metía los
+               `pendiente` —un checkout sin pagar— como cancelados. */
+            cancelados: suyos.filter(o => ['cancelado', 'devuelto'].includes(o.status)).length,
             gastado: suyos.reduce((s, o) => s + recibidoDe(o), 0),
             porCobrar: suyos.reduce((s, o) => s + porCobrarDe(o), 0),
             ultima: ultima?.created_at || null,

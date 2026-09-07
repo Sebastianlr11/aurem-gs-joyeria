@@ -201,6 +201,9 @@ Deno.serve(async (req: Request) => {
   const esContraentrega = pedido.payment_method === 'contraentrega'
   const total = haySimulacion ? simulado : (Number(pedido.amount) || 0)
   const abono = Number(pedido.abono_monto) || 0
+  /* La regla de CLAUDE.md §8 —`recibidoDe`— reescrita aquí porque Deno no
+     puede importar `src/lib/dinero.js`. Si cambia allá, cambia aquí y en
+     `crear-guia`. */
   const yaEntro = esContraentrega
     ? (['entregado', 'pagado'].includes(pedido.status) ? total : abono)
     : total
