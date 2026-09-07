@@ -357,13 +357,19 @@ async function enfriadas(): Promise<Envio[]> {
 
   if (!candidatos.length) return []
 
-  // Quien ya compró alguna vez no es una cotización sin cerrar.
+  /* Quien ya compró alguna vez no es una cotización sin cerrar.
+
+     Se traen los teléfonos de TODOS los pedidos y se comparan por los diez
+     últimos dígitos, no con un `.in()` sobre la cadena cruda: un pedido del
+     checkout guarda `+573…` y la conversación `573…`, y hasta el 6 de
+     septiembre de 2026 eso hacía que una clienta que acababa de comprar
+     recibiera igual la plantilla de «cotización sin cerrar» — de Marketing,
+     y pagada. Son unas decenas de filas; el día que sean miles esto se lleva
+     a una RPC con `right(regexp_replace(...), 10)` como `puede_recibir_plantillas`. */
   const { data: conPedido } = await db
     .from('orders')
     .select('customer_phone')
-    .in('customer_phone', candidatos)
-
-  const compraron = new Set((conPedido ?? []).map((o) => o.customer_phone))
+    .not('customer_phone', 'is', null)
 
   /* Y los contactos del equipo tampoco: probar el bot con el número de un
      amigo no es una cotización que se enfrió, y mandarle seguimiento comercial
@@ -377,12 +383,14 @@ async function enfriadas(): Promise<Envio[]> {
   const diezUltimos = (t: string | null | undefined) =>
     String(t ?? '').replace(/\D/g, '').slice(-10)
 
+  const compraron = new Set((conPedido ?? []).map((o) => diezUltimos(o.customer_phone)).filter(Boolean))
+
   const { data: dePrueba } = await db
     .from('customers').select('phone').eq('es_prueba', true)
   const delEquipo = new Set((dePrueba ?? []).map((c) => diezUltimos(c.phone)).filter(Boolean))
 
   const frios = candidatos.filter(
-    (t) => !compraron.has(t) && !delEquipo.has(diezUltimos(t)),
+    (t) => !compraron.has(diezUltimos(t)) && !delEquipo.has(diezUltimos(t)),
   )
   if (!frios.length) return []
 

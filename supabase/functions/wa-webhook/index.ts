@@ -5,12 +5,17 @@
  *
  * Meta corta a los 20 segundos y reintenta si no ve un 200, así que se
  * responde de inmediato y el trabajo largo sigue en waitUntil.
+ *
+ * Un POST puede traer varios mensajes —y de varias personas— a la vez. Se
+ * atienden TODOS: hasta el 6 de septiembre de 2026 se leía sólo el primero y
+ * el resto se perdía sin guardarse. Ver `_shared/lote.ts`.
  */
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { admin, enModoManual, enviarTexto, enviarTextoNatural, idDestino, mantenerEscribiendo } from '../_shared/wa.ts'
 import { responder } from '../_shared/bot.ts'
 import { transcribir, verYGuardarImagen } from '../_shared/medios.ts'
 import { esTelefono } from '../_shared/reglas.ts'
+import { contactoDe, desglosarLote } from '../_shared/lote.ts'
 
 /* Cuánto se espera antes de contestar. La gente reparte una idea en tres o
    cuatro mensajes seguidos: si se responde al primero, Valentina interrumpe,
@@ -119,13 +124,14 @@ Deno.serve(async (req: Request) => {
   let cuerpo: any
   try { cuerpo = JSON.parse(crudo) } catch { return ok({ ok: true, ignorado: 'json ilegible' }) }
 
-  const valor = cuerpo?.entry?.[0]?.changes?.[0]?.value
-  if (!valor) return ok({ ok: true, ignorado: 'sin cambios' })
+  const { acuses, mensajes } = desglosarLote(cuerpo)
+  if (!acuses.length && !mensajes.length) return ok({ ok: true, ignorado: 'sin cambios' })
+
+  const db = admin()
 
   // 2. Acuses de entrega y lectura: el doble check que hasta ahora no se pintaba.
-  if (valor.statuses?.length) {
-    const db = admin()
-    await Promise.all(valor.statuses.map((s: any) => {
+  if (acuses.length) {
+    await Promise.all(acuses.map((s: any) => {
       /* Cuando algo no se entrega, Meta dice por qué. Guardarlo es la
          diferencia entre saberlo y reconstruirlo adivinando: sin el código
          de error, un mensaje fallido es sólo la palabra "failed" y horas
@@ -146,12 +152,41 @@ Deno.serve(async (req: Request) => {
         })
         .eq('wa_message_id', s.id)
     }))
-    return ok({ ok: true, acuses: valor.statuses.length })
+    if (!mensajes.length) return ok({ ok: true, acuses: acuses.length })
   }
 
-  // 3. Mensajes entrantes.
-  const mensaje = valor.messages?.[0]
-  if (!mensaje) return ok({ ok: true, ignorado: 'sin mensajes' })
+  /* 3. Mensajes entrantes, todos los del lote, en el orden en que vinieron.
+     Se guardan uno a uno —el orden de `created_at` es lo que le dice a cada
+     corrida de Valentina si la persona siguió escribiendo— y las corridas
+     quedan en segundo plano juntas. Si dos mensajes son de la misma persona,
+     la espera de 15 s y el candado de turno hacen que responda una sola. */
+  const trabajos: Promise<void>[] = []
+  const atendidos: unknown[] = []
+  for (const { valor, mensaje } of mensajes) {
+    const r = await atenderMensaje(db, valor, mensaje)
+    atendidos.push(r.cuerpo)
+    if (r.trabajo) trabajos.push(r.trabajo)
+  }
+
+  const fondo = Promise.all(trabajos).then(() => undefined)
+  // @ts-expect-error EdgeRuntime existe en el entorno de Supabase pero no en sus tipos
+  if (typeof EdgeRuntime !== 'undefined') EdgeRuntime.waitUntil(fondo)
+  else await fondo
+
+  return ok({ ok: true, acuses: acuses.length, mensajes: atendidos })
+})
+
+/**
+ * Un mensaje entrante: guardarlo, y si toca, despertar a Valentina.
+ * Devuelve qué pasó con él y, si arrancó una corrida, la promesa para
+ * dejarla en segundo plano.
+ */
+async function atenderMensaje(
+  db: ReturnType<typeof admin>,
+  valor: any,
+  mensaje: any,
+): Promise<{ cuerpo: unknown; trabajo?: Promise<void> }> {
+  const contacto = contactoDe(valor, mensaje)
 
   /* `from` no siempre viene: con el despliegue de nombres de usuario de Meta
      puede llegar vacío y el cliente identificarse con un BSUID ("CO.106…")
@@ -159,12 +194,12 @@ Deno.serve(async (req: Request) => {
      puede responder. Se usa || y no ??: Meta manda cadena vacía, no null. */
   const telefono = idDestino(
     mensaje.from
-    || valor.contacts?.[0]?.wa_id
+    || contacto?.wa_id
     || mensaje.from_user_id          // BSUID: cuentas con nombre de usuario
-    || valor.contacts?.[0]?.user_id
+    || contacto?.user_id
     || '',
   )
-  const nombre = valor.contacts?.[0]?.profile?.name ?? null
+  const nombre = contacto?.profile?.name ?? null
   const texto = mensaje.text?.body
     ?? mensaje.button?.text
     ?? mensaje.interactive?.button_reply?.title
@@ -198,13 +233,12 @@ Deno.serve(async (req: Request) => {
 
   if (!telefono) {
     console.error('Mensaje sin remitente identificable; no se guarda:', JSON.stringify(mensaje).slice(0, 300))
-    return ok({ ok: true, ignorado: 'sin remitente' })
+    return { cuerpo: { ok: true, ignorado: 'sin remitente' } }
   }
 
   /* El insert es también el candado contra reentregas: wa_message_id tiene
      índice único. Si Meta reintenta —y reintenta cada vez que tardamos—, el
      insert choca y paramos aquí, en vez de contestarle dos veces al cliente. */
-  const db = admin()
   const { data: guardado, error: fallo } = await db.from('whatsapp_conversaciones').insert({
     phone_number: telefono,
     role: 'user',
@@ -218,9 +252,9 @@ Deno.serve(async (req: Request) => {
   }).select('created_at').single()
 
   if (fallo) {
-    if (fallo.code === '23505') return ok({ ok: true, ignorado: 'reentrega de Meta' })
+    if (fallo.code === '23505') return { cuerpo: { ok: true, ignorado: 'reentrega de Meta' } }
     console.error('No se pudo guardar el mensaje entrante:', fallo.message)
-    return ok({ ok: true, ignorado: 'no se pudo guardar' })
+    return { cuerpo: { ok: true, ignorado: 'no se pudo guardar' } }
   }
 
   if (nombre) {
@@ -270,11 +304,11 @@ Deno.serve(async (req: Request) => {
     if (!(await enModoManual(telefono))) {
       await avisarQueNoSeAbrio(db, telefono, numeroPropio)
     }
-    return ok({ ok: true, guardado: true, sinRespuesta: 'mensaje no interpretable' })
+    return { cuerpo: { ok: true, guardado: true, sinRespuesta: 'mensaje no interpretable' } }
   }
 
   if (await enModoManual(telefono)) {
-    return ok({ ok: true, guardado: true, sinRespuesta: 'la conversación la lleva una persona' })
+    return { cuerpo: { ok: true, guardado: true, sinRespuesta: 'la conversación la lleva una persona' } }
   }
 
   /* Acuse de lectura y "escribiendo…" mientras el modelo piensa. Se
@@ -392,9 +426,5 @@ Deno.serve(async (req: Request) => {
     }
   })()
 
-  // @ts-expect-error EdgeRuntime existe en el entorno de Supabase pero no en sus tipos
-  if (typeof EdgeRuntime !== 'undefined') EdgeRuntime.waitUntil(trabajo)
-  else await trabajo
-
-  return ok({ ok: true, guardado: true })
-})
+  return { cuerpo: { ok: true, guardado: true }, trabajo }
+}

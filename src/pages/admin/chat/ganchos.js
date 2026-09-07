@@ -13,6 +13,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { normalizePhone } from './comunes';
+import { esTelefono } from '../../../lib/contacto';
 
 /* Tiene que cuadrar con la animación `.lb-closing` de panel.css. Si allí se
    cambia la duración, aquí también, o la foto se queda a medio desvanecer. */
@@ -129,8 +130,14 @@ export function useFichaDelContacto(telefono) {
         const largo = normalizePhone(telefono);
         const corto = largo.startsWith('57') ? largo.slice(2) : largo;
 
-        supabase.from('customers').select('*')
-            .or(`phone.eq.${largo},phone.eq.${corto},phone.eq.${telefono}`)
+        /* Un contacto sin teléfono —los `CO.…` de Meta— vive en `wa_id`, no
+           en `phone`. Buscarlo ahí dejaba la ficha vacía y sin notas para la
+           gente que llega por pauta, que es la que más las necesita. */
+        const consulta = esTelefono(telefono)
+            ? supabase.from('customers').select('*').or(`phone.eq.${largo},phone.eq.${corto},phone.eq.${telefono}`)
+            : supabase.from('customers').select('*').eq('wa_id', telefono);
+
+        consulta
             .maybeSingle()
             .then(({ data }) => {
                 if (!vigente) return;

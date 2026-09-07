@@ -1006,7 +1006,10 @@ async function avisarQueEsperan(telefono: string, motivo: string): Promise<void>
   const db = admin()
 
   const { data: cliente } = await db
-    .from('customers').select('name').eq('phone', telefono).maybeSingle()
+    /* Un contacto sin teléfono —los `CO.…` de Meta— vive en `wa_id`, y
+       buscarlo en `phone` dejaba el aviso sin nombre justo para la gente que
+       llega por pauta. */
+    .from('customers').select('name').eq(esTelefono(telefono) ? 'phone' : 'wa_id', telefono).maybeSingle()
 
   /* Las dos vías van por separado a propósito. Antes el WhatsApp colgaba de
      que hubiera correos de admin, y si algún día no los hubiera se caerían
