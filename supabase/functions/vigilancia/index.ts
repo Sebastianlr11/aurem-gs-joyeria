@@ -434,6 +434,31 @@ Deno.serve(async (req: Request) => {
     }
   }
 
+  /* Cuentas sin rol. Una cuenta del panel sin `app_metadata.rol` tiene sesión
+     pero RLS no le deja ver nada: es exactamente lo que hacía `create-admin`
+     hasta el 6 de septiembre de 2026, y nadie se enteraba porque quien crea la
+     cuenta no es quien la usa. Se revisa aquí para que la próxima vez que
+     algo cree una cuenta sin rol —a mano en el dashboard, por ejemplo— no
+     tarde un mes en verse. */
+  try {
+    const { data: cuentas, error: errCuentas } = await db.auth.admin.listUsers({ perPage: 200 })
+    if (errCuentas) throw errCuentas
+    const sinRol = (cuentas?.users ?? []).filter((u) => !['dueño', 'equipo'].includes(String(u.app_metadata?.rol ?? '')))
+    for (const u of sinRol) {
+      hallazgos.push({
+        que: `${u.email ?? u.id} tiene cuenta pero no puede ver el panel`,
+        detalle: 'La cuenta no tiene `app_metadata.rol`, y sin él RLS le niega todas las tablas. Authentication → Users → la cuenta → App Metadata → `{"rol": "equipo"}`.',
+        grave: true,
+      })
+    }
+  } catch (e) {
+    hallazgos.push({
+      que: 'No se pudo revisar las cuentas del panel',
+      detalle: e instanceof Error ? e.message : String(e),
+      grave: false,
+    })
+  }
+
   /* La configuración de Auth. Esto habría cazado los DOS problemas del 23 de
      agosto: el registro abierto, que era el agujero, y el susto de después
      —apagar «Enable email provider» creyendo cerrar el registro, que apaga

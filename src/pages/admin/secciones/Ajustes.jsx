@@ -353,10 +353,12 @@ const ConocimientoCard = () => {
 
 /* ─── SettingsSection ────────────────────────────────────────────── */
 const SettingsSection = () => {
-    const [webhookUrl, setWebhookUrl] = useState(() => localStorage.getItem('admin_webhook_url') || '');
-    const [saved, setSaved] = useState(false);
-    const [testing, setTesting] = useState(false);
-    const [testResult, setTestResult] = useState('');
+    /* Hasta el 6 de septiembre de 2026 aquí se guardaba `admin_webhook_url`:
+       una URL a la que el panel mandaba cada pedido entero al cambiar de
+       estado. Era de la era n8n y no quedaba nadie escuchando. Se borra la
+       clave por si algún navegador la tiene todavía, que es la única forma de
+       estar seguros de que no queda ninguna salida configurada. */
+    useEffect(() => { localStorage.removeItem('admin_webhook_url'); }, []);
     /* Las de fábrica salen de src/lib/respuestasRapidas.js, que es donde viven
        ahora. Antes estaban escritas aquí otra vez, en formato de cadena, y en
        ChatPanel.jsx en formato de array: las dos copias apuntaban a un dominio
@@ -441,12 +443,6 @@ const SettingsSection = () => {
         setConfirmDelete(null);
     };
 
-    const handleSave = () => {
-        localStorage.setItem('admin_webhook_url', webhookUrl.trim());
-        setSaved(true);
-        setTimeout(() => setSaved(false), 2000);
-    };
-
     const handleSaveQuickReplies = () => {
         localStorage.setItem(CLAVE_RESPUESTAS, quickReplies);
         setQrSaved(true);
@@ -457,27 +453,6 @@ const SettingsSection = () => {
         const newVal = !soundEnabled;
         setSoundEnabled(newVal);
         localStorage.setItem('admin_sound_enabled', String(newVal));
-    };
-
-    const handleTest = async () => {
-        const url = webhookUrl.trim();
-        if (!url) { setTestResult('Ingresa una URL primero.'); return; }
-        setTesting(true); setTestResult('');
-        try {
-            const res = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    event: 'test',
-                    message: 'Test webhook from Aurem Gs Admin Panel',
-                    timestamp: new Date().toISOString(),
-                }),
-            });
-            setTestResult(res.ok ? 'Webhook enviado correctamente.' : `Error: HTTP ${res.status}`);
-        } catch (e) {
-            setTestResult(`Error: ${e.message}`);
-        }
-        setTesting(false);
     };
 
     const handleCreateAdmin = async () => {
@@ -669,44 +644,6 @@ const SettingsSection = () => {
                 </div>
             )}
 
-            {/* Webhook */}
-            <div className="admin-card" style={{ maxWidth: 600 }}>
-                <div className="admin-card-head">
-                    <h3 className="admin-card-title">
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
-                            Webhook URL
-                        </span>
-                    </h3>
-                </div>
-                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1rem', lineHeight: 1.5 }}>
-                    Recibe notificaciones cuando cambia el estado de un pedido. Se enviará un POST con los datos del pedido.
-                </p>
-                <div className="modal-field">
-                    <label>URL del webhook</label>
-                    <input
-                        value={webhookUrl}
-                        onChange={e => setWebhookUrl(e.target.value)}
-                        placeholder="http://localhost:5678/webhook/notificacion-estado-pedido"
-                        style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}
-                    />
-                </div>
-                <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem', alignItems: 'center' }}>
-                    <button className="admin-btn" onClick={handleSave}>
-                        {saved ? 'Guardado!' : 'Guardar'}
-                    </button>
-                    <button className="admin-btn admin-btn--outline" onClick={handleTest} disabled={testing}>
-                        {testing ? 'Enviando...' : 'Probar webhook'}
-                    </button>
-                </div>
-                {testResult && (
-                    <p style={{ marginTop: '0.75rem', fontSize: '0.85rem', color: testResult.startsWith('Error') ? 'var(--error-ink)' : 'var(--oro-ink)' }}>
-                        {testResult}
-                    </p>
-                )}
-            </div>
-
-            {/* Chat webhook */}
                         {/* Quick replies */}
             <div className="admin-card" style={{ maxWidth: 600 }}>
                 <div className="admin-card-head">

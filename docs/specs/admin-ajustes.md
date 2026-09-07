@@ -78,9 +78,20 @@ diario pero no cambia la cotización por movimientos chicos —*"si mañana baja
 3000 no importa"*— así que el dato se usa tal cual; lo que se vigila es que no esté
 **abandonado**.
 
-**Las respuestas rápidas y el webhook viven en `localStorage`**, no en la base. Es una
-decisión de conveniencia con un coste real: **son por navegador, no por equipo**. Quien
-entre desde otro computador no las tiene.
+**Las respuestas rápidas viven en `localStorage`**, no en la base. Es una decisión de
+conveniencia con un coste real: **son por navegador, no por equipo**. Quien entre desde
+otro computador no las tiene.
+
+**Ya no hay tarjeta de webhook.** Hasta el 6 de septiembre de 2026 Ajustes guardaba una
+URL (`admin_webhook_url`) a la que el panel mandaba **el pedido entero** —nombre, teléfono,
+dirección— en cada cambio de estado. Era de la era n8n, no quedaba nadie escuchando, y era
+una salida de datos de clientas hacia cualquier dirección que alguien pegara ahí. Se quitó, y
+la sección borra la clave de `localStorage` al abrirse por si algún navegador la conservaba.
+
+**Un administrador creado desde aquí nace con `app_metadata.rol = 'equipo'`.** Hasta esa
+misma fecha `create-admin` lo creaba sin rol: tenía sesión, pero RLS —que desde el 23 de
+agosto exige `es_del_equipo()`— no le dejaba ver nada, y la tarjeta le prometía «acceso
+completo». El vigía revisa ahora cada hora que no quede ninguna cuenta sin rol.
 
 ## Límites conocidos y pendientes
 

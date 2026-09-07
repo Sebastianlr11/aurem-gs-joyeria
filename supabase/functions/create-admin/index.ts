@@ -155,12 +155,17 @@ Deno.serve(async (req: Request) => {
       return json({ error: 'La contraseña debe tener al menos 6 caracteres' }, 400)
     }
 
-    /* Sin app_metadata: quien entra por acá es administrador del panel, no
-       dueño. El rol sólo se pone sellando a mano o por el arranque de arriba. */
+    /* Con `rol: 'equipo'`, y no sin nada. Desde el 23 de agosto de 2026 todas
+       las políticas del panel exigen `es_del_equipo()` —rol `dueño` o
+       `equipo`—, y esto seguía creando la cuenta sin rol: el administrador
+       nuevo entraba al panel y no veía ni un pedido, mientras Ajustes le
+       prometía «acceso completo». Se vio en la revisión del 6 de septiembre
+       de 2026. `dueño` sigue siendo sólo el que sella el arranque de arriba. */
     const { data, error } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
       email_confirm: true,
+      app_metadata: { rol: 'equipo' },
     })
 
     if (error) return json({ error: error.message }, 400)
