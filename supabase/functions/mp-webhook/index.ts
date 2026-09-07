@@ -166,10 +166,19 @@ Deno.serve(async (req: Request) => {
       headers: { 'Authorization': `Bearer ${mpAccessToken}` }
     })
 
+    /* Con 500, no con 200. Decía «siempre 200 para que MP no reintente», y
+       eso era justo el problema: si la API de Mercado Pago falla un segundo,
+       el pago queda aprobado allá y el pedido aquí en `pendiente`, sin nadie
+       que vuelva a preguntar, hasta que el vigía lo señale un día después.
+       Con un error Mercado Pago reintenta solo, con espera creciente, que es
+       para lo que existen los reintentos. El 200 se reserva para las
+       decisiones de negocio —pago no aprobado, aviso repetido, orden sin
+       pago— donde reintentar no cambiaría nada. Corregido el 6 de septiembre
+       de 2026. */
     if (!mpRes.ok) {
       console.error('Error consultando pago MP:', paymentId, mpRes.status)
       return new Response(JSON.stringify({ error: 'Error consultando pago' }), {
-        status: 200, // Siempre 200 para que MP no reintente
+        status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
@@ -237,7 +246,14 @@ Deno.serve(async (req: Request) => {
       .maybeSingle()
 
     if (updateError) {
+      /* Lo mismo: el pago existe y el pedido no lo sabe. Que Mercado Pago
+         vuelva a avisar; el candado de `conversion_enviada_en` sigue
+         impidiendo que se procese dos veces cuando sí entre. */
       console.error('Error actualizando orden:', orderId, updateError)
+      return new Response(JSON.stringify({ error: 'Error actualizando orden' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
     } else if (!orden) {
       /* Ya se procesó en un intento anterior. No es un error: es el candado
          haciendo su trabajo. */
@@ -403,9 +419,12 @@ Deno.serve(async (req: Request) => {
     })
 
   } catch (err) {
+    /* Un error que no se esperaba también merece reintento: es más probable
+       que sea un tropiezo de red que un aviso malformado, y el malformado ya
+       se descartó arriba con 200. */
     console.error('Webhook error:', err)
-    return new Response(JSON.stringify({ ok: true }), {
-      status: 200, // Siempre 200 para MP
+    return new Response(JSON.stringify({ error: 'Error inesperado' }), {
+      status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
   }
