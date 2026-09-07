@@ -78,7 +78,47 @@ abrió**. Es el código más cuidado del frontend público en accesibilidad.
 
 **"Ver más" incremental**, no paginación numerada: en móvil el pulgar ya está abajo.
 
+### El catálogo viene pintado desde el build (7 de septiembre de 2026)
+
+PageSpeed móvil del 6 de septiembre: **93**, con LCP 2,8 s y Speed Index 4,2 s. El LCP es
+la foto de la primera tarjeta, y el navegador no sabía que existía hasta desenredar
+`app.html → index.js → consulta a Supabase (921 ms) → chunk del catálogo → <img>`. Es el
+problema que ya tuvo la portada y se resuelve igual: `scripts/prerenderizar.mjs` pinta
+`/catalogo` en Node y deja **`dist/catalogo.html`** con la rejilla dentro de `#root`, las dos
+hojas (`index.css` y `Catalog.css`, en ese orden) en línea, `<link rel="preload">` de las dos
+primeras fotos —la primera con `fetchpriority="high"`—, `modulepreload` del chunk, y el
+título, la descripción y la canónica del catálogo en el `<head>`. `vercel.json` manda
+`/catalogo` ahí con una reescritura explícita.
+
+Lo que lo diferencia de la portada es que **el catálogo son datos**:
+
+- El build trae la lista con la misma `CONSULTA` de `piezasPublicadas.js`, la siembra con
+  `sembrar()` antes de pintar y la escribe en el HTML como `window.__catalogo`, antes del
+  bundle. `useCatalogoPublico` arranca de esa semilla, así el primer render del navegador es
+  idéntico al HTML y React hidrata en vez de reconstruir.
+- En cuanto monta, el gancho vuelve a preguntar y reemplaza la lista por la viva. **La
+  semilla es el primer frame, no la verdad.**
+- Y guardar una pieza en el panel dispara un build nuevo por el Deploy Hook de Vercel
+  (`20260907_el_catalogo_se_vuelve_a_pintar_solo.sql`), para que ese primer frame también
+  esté al día. Necesita la clave `ajustes_internos.vercel_deploy_hook`; sin ella el
+  disparador no hace nada y el primer frame se actualiza en cada despliegue.
+
+Tres cosas que se cambiaron en la pantalla para que el primer render sea el mismo en Node y
+en el celular, y que no hay que deshacer: `categoria` arranca siempre en «Todos» y el
+`?categoria=` de la URL se aplica en un efecto después de montar (un frame de rejilla
+completa para quien llega desde una colección de la portada); los enlaces de WhatsApp usan
+`useWaUrl` y no `waUrl`; y el `sizes` de la tarjeta vive en `TAMANOS_TARJETA`
+(`fotoProducto.js`) porque el build lo repite en la precarga.
+
+Si la consulta falla en el build, `catalogo.html` sale como el cascarón vacío y la consola lo
+grita; el build no se tumba. Pintado en Node, el catálogo enseña 8 tarjetas (`columnas = 1`
+hasta que el navegador mide la rejilla), que es lo mismo que pinta el primer render del
+navegador.
+
 ## Límites conocidos y pendientes
+
+- **La primera tarjeta ya no lleva `decoding="async"`** (desde el 6 de septiembre de 2026):
+  es el LCP de esta pantalla. Las demás sí.
 
 - **No escala.** Una consulta que trae el catálogo entero deja de funcionar a partir de
   unos cientos de piezas.

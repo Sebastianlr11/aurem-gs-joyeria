@@ -71,7 +71,7 @@ cada hora que la regla de la base diga lo mismo.
 | `taller_conocimiento` | `tema`, `contenido` — lo que Valentina puede afirmar |
 | `plantillas_enviadas` | **Dos índices únicos parciales** (por pedido / por persona) |
 | `gasto_pauta` | Único por `fecha, canal` |
-| `ajustes_internos` | Clave/valor: `cron_secreto`, `clave_anon`, `url_funciones`, `telefonos_avisos`, `contactos_equipo` |
+| `ajustes_internos` | Clave/valor: `cron_secreto`, `clave_anon`, `url_funciones`, `telefonos_avisos`, `contactos_equipo`, `anuncios_piezas`, `vercel_deploy_hook` (el Deploy Hook de Vercel que dispara un build al guardar una pieza; sin él, nada) |
 | `vigilancia_ultima` | Fila id=1 con `hallazgos[]` y `corrida_en` |
 | `notes` | Anotaciones internas con prioridad |
 | `pagos` | El libro de movimientos que lee `src/lib/caja.js`, llenado por el trigger `registrar_pago`: cuándo entró cada peso |

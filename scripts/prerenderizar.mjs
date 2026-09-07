@@ -61,13 +61,14 @@
  * pinte a partir de `navigator`, `localStorage`, la fecha o el azar tiene que
  * salir del primer render.**
  */
-import { readFile, writeFile, rm } from 'node:fs/promises'
+import { readFile, writeFile, rm, readdir } from 'node:fs/promises'
 import { resolve, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
 const raiz = resolve(import.meta.dirname, '..')
 const CASCARON = resolve(raiz, 'dist/index.html')
 const COMODIN = resolve(raiz, 'dist/app.html')
+const CATALOGO = resolve(raiz, 'dist/catalogo.html')
 const SERVIDOR = resolve(raiz, 'dist-servidor/entrada-servidor.js')
 
 /* El div vacío que deja `index.html`. Si Vite o el HTML cambian y esto deja
@@ -127,7 +128,8 @@ if (!ADELANTO_PIEZA.test(html)) {
   )
 }
 
-const { pintar } = await import(pathToFileURL(SERVIDOR).href)
+const servidor = await import(pathToFileURL(SERVIDOR).href)
+const { pintar } = servidor
 const portada = pintar('/')
 
 if (!portada.includes('hero-frame')) {
@@ -189,11 +191,155 @@ if (relativas.length) {
 
 await writeFile(CASCARON, conPortada.replace(enlaceHoja[0], `<style>${hoja}</style>`))
 
-/* La compilación de servidor no se despliega: es un intermedio del build y en
-   `dist/` sólo debe quedar lo que se sirve. */
-await rm(resolve(raiz, 'dist-servidor'), { recursive: true, force: true })
-
 const kb = (t) => `${(Buffer.byteLength(t) / 1024).toFixed(1)} KB`
 console.log(`Portada prerenderizada: ${kb(portada)} de HTML dentro de #root.`)
 console.log(`Hoja de estilos en línea: ${kb(hoja)}, cero peticiones bloqueando el pintado.`)
 console.log(`dist/app.html: el cascarón vacío para las demás rutas (${kb(html)}).`)
+
+/* ══ El catálogo, también pintado ═════════════════════════════════════════
+ *
+ * Medido con PageSpeed móvil el 6 de septiembre de 2026 sobre `/catalogo`:
+ * 93, con LCP 2,8 s y Speed Index 4,2 s. El LCP es la foto de la primera
+ * tarjeta, y el navegador no sabía que existía hasta desenredar esto:
+ *
+ *     app.html 206 ms → index.js 317 ms → consulta a Supabase 921 ms
+ *       → chunk del catálogo → React pinta el <img> → recién ahí baja la foto
+ *
+ * Es el mismo problema que tenía la portada, y se resuelve igual: la rejilla
+ * viene pintada en el HTML, la hoja de estilos adentro, y la foto de la
+ * primera tarjeta precargada desde el <head>. Con una diferencia que la
+ * portada no tiene: el catálogo son DATOS, y cambian sin que haya build.
+ *
+ * Cómo se lleva eso:
+ *   - La lista se trae acá, en el build, con la misma consulta que hace el
+ *     navegador (`CONSULTA` de piezasPublicadas.js), y se siembra antes de
+ *     pintar (`sembrar`).
+ *   - La misma lista va dentro del HTML como `window.__catalogo`, para que el
+ *     primer render del navegador sea IDÉNTICO al del build. Si no lo fuera,
+ *     React tiraría la rejilla ya pintada y la construiría de nuevo.
+ *   - Y en cuanto React monta, `useCatalogoPublico` vuelve a preguntar y
+ *     reemplaza la lista por la viva. Lo que se pintó en el build es el primer
+ *     frame, nunca la verdad.
+ *   - Aparte, guardar una pieza en el panel dispara un build nuevo
+ *     (`20260907_el_catalogo_se_vuelve_a_pintar_solo.sql`), para que ese
+ *     primer frame también esté al día.
+ *
+ * Si la consulta falla —sin variables, sin red, Supabase caído— NO se tumba
+ * el build: `catalogo.html` sale igual que `app.html` y el catálogo carga como
+ * cargaba hasta hoy. Es la política del sitemap: mejor un catálogo lento que
+ * ningún despliegue. Pero se dice a gritos en la consola, porque un catálogo
+ * que vuelve a tardar 2,8 s no lo delata ninguna prueba.
+ */
+const cascaron = html.replace(PRECARGA_HERO, '').replace(ADELANTO_PIEZA, '')
+
+async function pintarCatalogo() {
+  const { url, clave } = servidor.SUPABASE
+  if (!url || !clave || !url.startsWith('http')) {
+    throw new Error('sin VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY en el build')
+  }
+
+  /* La llave en la URL y sin cabeceras, como en el navegador: es la misma
+     lectura pública, y así la consulta es la MISMA cadena de bytes. */
+  const res = await fetch(`${url}/rest/v1/products?${servidor.CONSULTA}&apikey=${clave}`)
+  if (!res.ok) throw new Error(`Supabase respondió ${res.status}`)
+  const piezas = await res.json()
+  if (!Array.isArray(piezas) || !piezas.length) {
+    throw new Error('el catálogo vino vacío: un catálogo prerenderizado sin piezas es peor que ninguno')
+  }
+
+  servidor.sembrar(piezas)
+  const rejilla = await servidor.pintarConDatos('/catalogo')
+
+  if (!rejilla.includes('catalogo-grid') || !/class="pieza[\s"]/.test(rejilla)) {
+    throw new Error('el catálogo se pintó sin la rejilla o sin tarjetas')
+  }
+
+  /* Ver `pintarConDatos` en `src/entrada-servidor.jsx`: si React dejó la
+     rejilla como contenido tardío, el HTML trae un `<template>`, un
+     `<div hidden id="S:…">` y un `$RC(`. Eso no se despliega. */
+  if (/\$RC\(|<template|hidden id="S:/.test(rejilla)) {
+    throw new Error('el catálogo salió como contenido tardío (con $RC/<template>): la página no quedó en línea')
+  }
+
+  /* ── Las precargas: la foto de las dos primeras tarjetas ───────────────
+     Son la fila de arriba en el celular; la primera es el LCP y va con
+     prioridad alta, la segunda sin ella —dársela a las dos es no dársela a
+     ninguna—. `imagesrcset` e `imagesizes` tienen que ser EXACTAMENTE los del
+     <img> de ProductCard, o el navegador precarga un archivo y pinta otro:
+     por eso salen de `fotoProducto()` y `TAMANOS_TARJETA`, las mismas
+     funciones y no una copia. Sin `href`, por lo mismo que en index.html: un
+     navegador que no entienda `imagesrcset` se bajaría uno que el <img> no
+     va a usar. */
+  const precargas = piezas
+    .filter((p) => p.image_url)
+    .slice(0, 2)
+    .map((p, i) => {
+      const foto = servidor.fotoProducto(p.image_url)
+      const prioridad = i === 0 ? ' fetchpriority="high"' : ''
+      return foto.srcSet
+        ? `<link rel="preload" as="image" imagesrcset="${foto.srcSet}" imagesizes="${servidor.TAMANOS_TARJETA}"${prioridad} />`
+        : `<link rel="preload" as="image" href="${foto.src}"${prioridad} />`
+    })
+
+  /* El chunk del catálogo, avisado desde el HTML. Hoy el navegador no sabe
+     que existe hasta ejecutar index.js; así baja en paralelo y la rejilla se
+     vuelve interactiva antes. `crossorigin` porque así los pide Vite. */
+  const archivos = await readdir(resolve(raiz, 'dist/assets'))
+  const chunk = archivos.find((a) => /^Catalog-[\w-]+\.js$/.test(a))
+  const hojaDeRuta = archivos.find((a) => /^Catalog-[\w-]+\.css$/.test(a))
+  if (!chunk || !hojaDeRuta) throw new Error('no encontré Catalog-*.js o Catalog-*.css en dist/assets')
+  const modulo = `<link rel="modulepreload" crossorigin href="/assets/${chunk}" />`
+
+  /* ── Las DOS hojas adentro, en este orden ─────────────────────────────
+     `index.css` donde estaba el <link>, y `Catalog.css` justo después. En el
+     navegador la hoja de ruta se carga con el chunk, DESPUÉS de index.css, y
+     a igual especificidad gana la última: si acá fueran al revés cambiaría
+     quién gana y no lo vería ninguna prueba (CLAUDE.md §11). */
+  const hojaCatalogo = await readFile(resolve(raiz, 'dist/assets', hojaDeRuta), 'utf8')
+  const relativasDeRuta = (hojaCatalogo.match(/url\(\s*(?!["']?(?:\/|data:|https?:|#))[^)]+\)/g) || [])
+  if (relativasDeRuta.length) {
+    throw new Error(`Catalog.css trae ${relativasDeRuta.length} url() relativa(s): en línea se resuelven contra /.`)
+  }
+
+  /* La semilla, ANTES del bundle: los <script type="module"> se difieren y
+     este no, así que `window.__catalogo` existe cuando el bundle se evalúa.
+     `<` escapado para que ningún nombre de pieza pueda cerrar el <script>. */
+  const semilla = `<script>window.__catalogo=${JSON.stringify(piezas).replace(/</g, '\\u003c')}</script>`
+
+  const meta = servidor.META_CATALOGO
+  const canonica = `https://www.auremgsjoyeria.com${meta.ruta}`
+
+  let salida = cascaron
+    .replace(HUECO, `<div id="root">${rejilla}</div>`)
+    .replace(enlaceHoja[0], `${precargas.join('\n    ')}\n    ${modulo}\n    <style>${hoja}</style><style>${hojaCatalogo}</style>`)
+    .replace('<script type="module"', `${semilla}\n    <script type="module"`)
+    .replace(/<title>[^<]*<\/title>/, `<title>${meta.titulo}</title>`)
+    .replace(/<meta name="description" content="[^"]*" \/>/, `<meta name="description" content="${meta.descripcion}" />`)
+    .replace(/<link rel="canonical" href="[^"]*" \/>/, `<link rel="canonical" href="${canonica}" />`)
+    .replace(/<meta property="og:url" content="[^"]*" \/>/, `<meta property="og:url" content="${canonica}" />`)
+
+  for (const [nombre, marca] of [['la rejilla', 'catalogo-grid'], ['la semilla', 'window.__catalogo='], ['el modulepreload', 'modulepreload'], ['el título', meta.titulo]]) {
+    if (!salida.includes(marca)) throw new Error(`catalogo.html salió sin ${nombre}`)
+  }
+
+  await writeFile(CATALOGO, salida)
+  console.log(
+    `dist/catalogo.html: ${piezas.length} piezas sembradas, ${kb(rejilla)} de rejilla, ` +
+    `${precargas.length} foto(s) precargada(s), hojas en línea ${kb(hoja)} + ${kb(hojaCatalogo)}.`
+  )
+}
+
+try {
+  await pintarCatalogo()
+} catch (e) {
+  await writeFile(CATALOGO, cascaron)
+  console.warn(
+    `\n⚠️  EL CATÁLOGO NO SE PUDO PRERENDERIZAR: ${e instanceof Error ? e.message : e}\n` +
+    '   dist/catalogo.html sale como el cascarón vacío. El sitio funciona, pero /catalogo ' +
+    'vuelve a tardar lo que tardaba antes del 7 de septiembre de 2026 (LCP ~2,8 s).\n'
+  )
+}
+
+/* La compilación de servidor no se despliega: es un intermedio del build y en
+   `dist/` sólo debe quedar lo que se sirve. */
+await rm(resolve(raiz, 'dist-servidor'), { recursive: true, force: true })

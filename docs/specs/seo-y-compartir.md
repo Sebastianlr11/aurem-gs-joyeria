@@ -127,6 +127,12 @@ enseñarla recortada— es contenido oculto para Google, y cuesta la ficha enriq
   la ciudad y de si paga en línea o con abono. Se quedan fuera hasta que se puedan decir
   exactos.
 
+**`/catalogo` también viene prerenderizado** desde el 7 de septiembre de 2026, con su
+`<title>`, `description` y `canonical` escritos en el `<head>` de `dist/catalogo.html` por el
+build (salen de `META_CATALOGO` en `src/lib/meta.js`, la misma constante que usa `ponerMeta`
+al montar). Google ve la rejilla con las 8 primeras piezas sin ejecutar nada. Ver
+[catalogo.md](catalogo.md).
+
 ## Límites conocidos y pendientes
 
 - ~~**El JSON-LD de la portada contradice al sitio**~~ — corregido el 23 de agosto de 2026:

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { waUrl } from '../../lib/whatsapp';
-import { fotoProducto } from '../../lib/fotoProducto';
+import { useWaUrl } from '../../lib/whatsapp';
+import { fotoProducto, TAMANOS_TARJETA } from '../../lib/fotoProducto';
 
 const fmt = (price) => Number(price || 0).toLocaleString('es-CO');
 
@@ -46,7 +46,10 @@ const ProductCard = ({ product, indice = 0 }) => {
         (product.piedra || '').split(/,| con /i)[0].trim().toLowerCase() || null,
     ].filter(Boolean).join(' · ');
 
-    const waLink = waUrl({
+    /* `useWaUrl` y no `waUrl`: desde el 7 de septiembre de 2026 el catálogo
+       se pinta en el build, y ahí no hay `navigator` ni `localStorage`. El
+       primer render tiene que ser el mismo en Node y en el celular. */
+    const waLink = useWaUrl({
         mobile: `Hola! 👋 Vi esta pieza en su tienda: *${product.name}* — $${fmt(product.price)} COP. Me gustaría saber si está disponible ✨`,
         desktop: `Hola! Vi esta pieza en su tienda: *${product.name}* — $${fmt(product.price)} COP. Me gustaría saber si está disponible.`,
     });
@@ -71,10 +74,11 @@ const ProductCard = ({ product, indice = 0 }) => {
                        Los tres tramos son los tres de la hoja: dos columnas
                        hasta 768, `auto-fill minmax(240px)` hasta 968 —que da
                        tres—, y de ahí arriba la rejilla llena, donde ninguna
-                       columna pasa de ~300px. */
+                       columna pasa de ~300px. Vive en `fotoProducto.js` porque
+                       el build lo repite en la precarga de `catalogo.html`. */
                     ? <img
                         {...fotoProducto(product.image_url)}
-                        sizes="(max-width: 768px) 46vw, (max-width: 968px) 31vw, 300px"
+                        sizes={TAMANOS_TARJETA}
                         alt={product.name}
                         /* Las dos primeras son la fila de arriba en el celular,
                            y en escritorio están de todos modos a la vista. La
