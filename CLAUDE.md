@@ -2,7 +2,7 @@
 
 Guía para Claude Code (claude.ai/code) al trabajar en este repositorio.
 
-> **Última conciliación con el código: 30 de agosto de 2026.**
+> **Última conciliación con el código: 6 de septiembre de 2026.**
 > Si algo de este documento no cuadra con lo que ves en el código, gana el código —
 > y avísalo, porque significa que este archivo volvió a quedarse atrás.
 
@@ -1021,6 +1021,30 @@ Cosas que ya costaron un incidente. Léelas antes de tocar lo que describen.
   problema no es la red y precargar cosas no lo va a arreglar.
 
 ---
+
+- **Una lista de estados escrita a mano se queda vieja sin avisar.** El 6 de septiembre de
+  2026 había cinco —dos diálogos de borrar, el formulario de pedido, dos funciones de Deno— y
+  ninguna tenía `confirmado`, que es donde nace todo contraentrega desde que no hay abono: el
+  aviso «hay un pedido sin entregar» no veía ningún pedido real y el formulario no marcaba
+  ningún estado al editar uno. En el panel las listas son `ORDER_STATUSES`/`STATUS_META` de
+  `secciones/comunes.js` y `ESTADOS_SIN_ENTREGAR`/`sinEntregar` de `dinero.js`. En Deno se
+  reescriben, con un comentario que apunte a §8.
+- **Un webhook que contesta 200 a un error propio no se reintenta.** `mp-webhook` decía
+  «siempre 200 para que MP no reintente» también cuando fallaba la API de Mercado Pago o el
+  `UPDATE` del pedido: el pago quedaba aprobado allá y el pedido `pendiente` aquí hasta que el
+  vigía lo señalara un día después. El 200 es para lo que un reintento no cambia; lo demás,
+  500.
+- **Una cuenta del panel sin `app_metadata.rol` tiene sesión y no ve nada.** `create-admin`
+  las creaba así hasta el 6 de septiembre de 2026, y Ajustes prometía «acceso completo». El
+  vigía lo revisa cada hora; si aparece una, se le pone `{"rol": "equipo"}` en Auth.
+- **`create-preference` es pública, y desde el 1 de septiembre un pedido le cuenta la compra
+  a Meta al nacer.** Sin freno, cualquiera con la URL podía inventarle cien ventas al píxel,
+  que Meta no sabe olvidar. Frena a más de tres pedidos por hora de la misma IP o teléfono, y
+  rechaza contraentrega fuera de Bogotá. Si añades otra forma pública de crear pedidos, lleva
+  las dos cosas.
+- **Un POST de Meta puede traer varios mensajes.** `wa-webhook` leía `messages[0]` y tiraba el
+  resto sin guardarlo. Lo desmenuza `_shared/lote.ts`; si tocas el webhook, que siga
+  recorriendo el lote entero.
 
 ## 12. Índice de specs
 

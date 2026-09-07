@@ -275,12 +275,17 @@ const ReportsSection = ({ orders, products = [], verPruebas = false, onNavigate 
 
     const totalEstados = Object.values(statusCounts).reduce((s, n) => s + n, 0) || 1;
     const estadosOrden = ORDER_STATUSES.filter(s => statusCounts[s]);
+    /* La misma escala de intensidad de DESIGN-PANEL.md: cuanto más
+       avanzado, más lleno. `confirmado` y `devuelto` faltaban desde el 24 de
+       agosto de 2026 y caían en el filete gris, que no dice nada. */
     const TONO_ESTADO = {
         pendiente: '#F2EAE0',
+        confirmado: 'rgba(168,134,63,.25)',
         pagado: 'rgba(168,134,63,.45)',
         procesando: '#A8863F',
         enviado: '#6B615A',
         entregado: '#1C1714',
+        devuelto: '#FBEDE9',
         cancelado: '#FFFFFF',
     };
 

@@ -92,6 +92,7 @@ const Navbar = () => {
                         className={`navbar-hamburger ${menuOpen ? 'navbar-hamburger--open' : ''}`}
                         onClick={() => setMenuOpen(o => !o)}
                         aria-label="Menú"
+                        aria-expanded={menuOpen}
                     >
                         <span />
                         <span />

@@ -15,17 +15,20 @@ const NoteModal = ({ note, onClose, onSaved }) => {
     const isEdit = !!note?.id;
     const [form, setForm] = useState(isEdit ? { title: note.title, content: note.content, priority: note.priority } : { ...EMPTY_NOTE });
     const [saving, setSaving] = useState(false);
+    const [error, setError] = useState('');
     const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
+    /* Se mira el error. Esto guardaba y cerraba sin comprobar nada: si RLS
+       lo bloqueaba, la anotación no existía y el modal decía que sí. Un
+       guardado que se cae sin decirlo no se descubre nunca (CLAUDE.md §11). */
     const handleSave = async () => {
         if (!form.title.trim()) return;
-        setSaving(true);
-        if (isEdit) {
-            await supabase.from('notes').update({ ...form, updated_at: new Date().toISOString() }).eq('id', note.id);
-        } else {
-            await supabase.from('notes').insert([form]);
-        }
+        setSaving(true); setError('');
+        const res = isEdit
+            ? await supabase.from('notes').update({ ...form, updated_at: new Date().toISOString() }).eq('id', note.id)
+            : await supabase.from('notes').insert([form]);
         setSaving(false);
+        if (res.error) { setError(res.error.message); return; }
         onSaved();
         onClose();
     };
@@ -56,6 +59,7 @@ const NoteModal = ({ note, onClose, onSaved }) => {
                         </select>
                     </div>
                 </div>
+                {error && <p style={{ margin: '0 1.5rem 0.75rem', fontSize: '0.85rem', color: 'var(--error-ink)' }}>No se pudo guardar: {error}</p>}
                 <div className="modal-footer">
                     <button className="admin-btn admin-btn--outline" onClick={onClose}>Cancelar</button>
                     <button className="admin-btn" onClick={handleSave} disabled={saving || !form.title.trim()}>
@@ -95,14 +99,19 @@ const NotesSection = () => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- Cargar al montar. La regla del compilador es más estricta que el problema: reestructurar cargadores que funcionan, en un panel que acaba de entrar en producción, arriesga más de lo que arregla.
     useEffect(() => { fetchNotes(); }, [fetchNotes]);
 
+    /* Lo mismo: si no entra, que se sepa. `alert` y no un estado, como hace
+       la cola del taller en Portada: es una acción de un clic sin sitio donde
+       pintar un error. */
     const toggleComplete = async (note) => {
-        await supabase.from('notes').update({ is_completed: !note.is_completed, updated_at: new Date().toISOString() }).eq('id', note.id);
+        const { error } = await supabase.from('notes').update({ is_completed: !note.is_completed, updated_at: new Date().toISOString() }).eq('id', note.id);
+        if (error) alert('No se pudo cambiar la anotación: ' + error.message);
         fetchNotes();
     };
 
     const deleteNote = async () => {
         if (!confirmDel) return;
-        await supabase.from('notes').delete().eq('id', confirmDel.id);
+        const { error } = await supabase.from('notes').delete().eq('id', confirmDel.id);
+        if (error) alert('No se pudo eliminar la anotación: ' + error.message);
         setConfirmDel(null);
         fetchNotes();
     };

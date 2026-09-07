@@ -51,7 +51,11 @@ const Contact = () => {
     const validate = () => {
         const e = {};
         if (!form.name.trim()) e.name = 'Ingresa tu nombre';
-        if (!form.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = 'Ingresa un email válido';
+        /* El correo es opcional: el formulario abre WhatsApp, y ahí lo que
+           importa es el número. Exigirlo era una casilla obligatoria de más
+           entre la clienta y el chat, para un dato que no se guarda en ningún
+           sitio. Si lo escribe, que esté bien escrito. */
+        if (form.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = 'Ingresa un email válido';
         return e;
     };
 
@@ -65,7 +69,7 @@ const Contact = () => {
             mobile ? `Hola! 👋 Me comunico desde la web de *Aurem Gs Joyería*` : `Hola! Me comunico desde la web de *Aurem Gs Joyería*`,
             ``,
             mobile ? `👤 *Nombre:* ${form.name.trim()}` : `- *Nombre:* ${form.name.trim()}`,
-            mobile ? `📧 *Correo:* ${form.email.trim()}` : `- *Correo:* ${form.email.trim()}`,
+            form.email.trim() ? (mobile ? `📧 *Correo:* ${form.email.trim()}` : `- *Correo:* ${form.email.trim()}`) : null,
             form.phone.trim() ? (mobile ? `📞 *Teléfono:* ${form.phone.trim()}` : `- *Teléfono:* ${form.phone.trim()}`) : null,
             mobile ? `💎 *Interés:* ${interest}` : `- *Interés:* ${interest}`,
             form.message.trim() ? (mobile ? `\n💬 *Mensaje:*\n${form.message.trim()}` : `\n*Mensaje:*\n${form.message.trim()}`) : null,
@@ -178,7 +182,7 @@ const Contact = () => {
                         </div>
 
                         <div className="contact-field">
-                            <label className="contact-label" htmlFor="contact-email">Correo</label>
+                            <label className="contact-label" htmlFor="contact-email">Correo <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(opcional)</span></label>
                             <input
                                 id="contact-email"
                                 className={`contact-input${errors.email ? ' contact-input--error' : ''}`}
