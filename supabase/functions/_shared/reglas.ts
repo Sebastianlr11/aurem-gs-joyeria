@@ -409,3 +409,16 @@ export function piezasDelPedido(args: any): PiezaPedida[] {
 export function esContraentrega(metodoPago: unknown): boolean {
   return String(metodoPago ?? '').toLowerCase().includes('entrega')
 }
+
+/**
+ * Si la ciudad que escribió la clienta es Bogotá, que es la única donde hay
+ * contraentrega. Sin tildes ni mayúsculas —«bogota», «Bogotá D.C.», «BOGOTA»—
+ * y aguantando que venga con el departamento o el barrio pegado. Una ciudad
+ * vacía NO es Bogotá: la duda se resuelve preguntando, no despachando.
+ */
+export function esBogota(ciudad: unknown): boolean {
+  return String(ciudad ?? '')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .includes('bogota')
+}

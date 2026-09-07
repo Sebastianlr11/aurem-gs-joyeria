@@ -885,6 +885,25 @@ async function ejecutarHerramienta(
                `crear_pedido con metodo_pago "Mercado Pago".`
       }
 
+      /* Lo mismo con la ciudad: el servidor sólo acepta contraentrega en
+         Bogotá desde el 6 de septiembre de 2026. Es una regla del negocio,
+         no un fallo, y se resuelve en la misma conversación. */
+      if (res.status === 422 && respuesta?.error === 'contraentrega_solo_bogota') {
+        return `El contraentrega es sólo en Bogotá y la ciudad del pedido es «${args.ciudad}». ` +
+               `NO escales: dile con naturalidad que fuera de Bogotá el pago va en línea y el ` +
+               `envío asegurado por cuenta nuestra, y ofrécele el enlace de Mercado Pago. Si ` +
+               `acepta, vuelve a llamar crear_pedido con metodo_pago "Mercado Pago". Si en ` +
+               `realidad está en Bogotá, corrige la ciudad y vuelve a intentarlo.`
+      }
+
+      /* El freno de pedidos repetidos. Con una persona de verdad esto pasa
+         cuando algo se intentó varias veces seguidas: no se insiste. */
+      if (res.status === 429) {
+        return `El sistema frenó este pedido porque ya hay varios de este mismo número en ` +
+               `la última hora. NO lo vuelvas a intentar: dile que su pedido anterior ya ` +
+               `quedó registrado y que alguien del equipo lo confirma, y escala.`
+      }
+
       if (!res.ok) throw new Error(respuesta?.error || `HTTP ${res.status}`)
 
       /* Una sola ficha por persona.

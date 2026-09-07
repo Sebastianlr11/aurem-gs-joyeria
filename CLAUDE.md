@@ -502,8 +502,12 @@ vuelta de un domiciliario que ya no se paga, y la pieza vuelve al inventario.
   (que tiene RLS restringido: el recargo es el margen del negocio).
 - **Si `tope_contraentrega` es `null`, la opción no se pinta.** Es deliberado: mejor no
   ofrecerla que ofrecerla y retirarla.
-- El candado real está en `create-preference`, no en el navegador.
+- El candado real está en `create-preference`, no en el navegador — el del tope y, desde el
+  6 de septiembre de 2026, el de la ciudad: contraentrega fuera de Bogotá responde 422.
 - Contraentrega fuerza destino Bogotá y no pide departamento ni ciudad.
+- `create-preference` es pública y frena a más de tres pedidos por hora de la misma IP o el
+  mismo teléfono (429): un contraentrega sin abono le cuenta la compra a Meta al nacer, y
+  sin freno cualquiera podía inventarle ventas al píxel.
 
 ### Cómo se cuenta la plata — `src/lib/dinero.js`
 
