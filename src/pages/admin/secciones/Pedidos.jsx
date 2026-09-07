@@ -10,7 +10,7 @@ import { queFalta } from '../../../lib/circuito';
 import { estaVivo, recibidoDe, laVentaEntro } from '../../../lib/dinero';
 import { supabase } from '../../../lib/supabase';
 import PedidoModal from '../PedidoModal';
-import { GRUPOS, ORDER_STATUSES, SOURCE_META, STATUS_META, coincideTelefono, despacharPedido, enGrupo, fireWebhook, fmt, fmtDate, isCOD, norm } from './comunes';
+import { GRUPOS, ORDER_STATUSES, SOURCE_META, STATUS_META, coincideTelefono, despacharPedido, enGrupo, fmt, fmtDate, isCOD, norm } from './comunes';
 import { ConfirmModal, ShipModal, SourceBadge, StatusBadge, StatusConfirmModal } from './piezas';
 
 /* Contraentrega. Sólo hay un botón visible por pedido: el que toca ahora.
@@ -269,7 +269,6 @@ const OrdersSection = ({ orders, products, loading, onRefresh }) => {
            y a TikTok, y con un píxel sin más historia eso era todo lo que la
            plataforma sabía del negocio. */
         if (entraLaPlata && !order.es_prueba) await avisarConversion(order.id);
-        await fireWebhook(order, newStatus, extraFields);
         onRefresh();
     };
 

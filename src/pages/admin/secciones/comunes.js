@@ -140,7 +140,6 @@ export const despacharPedido = async (order, transportadora, guia) => {
 
     if (error) return { guardado: false, motivo: error.message };
 
-    await fireWebhook(order, 'enviado', extra);
     return { guardado: true, correo: await avisarDespachoPorCorreo(order.id) };
 };
 
@@ -156,17 +155,12 @@ export const despacharPedido = async (order, transportadora, guia) => {
 
 export const enGrupo = (o, id) => GRUPOS.find(g => g.id === id)?.test(o) ?? false;
 
-export const fireWebhook = async (order, newStatus, extraFields = {}) => {
-    const url = localStorage.getItem('admin_webhook_url');
-    if (!url) return;
-    try {
-        await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ event: 'order_status_changed', order: { ...order, status: newStatus, ...extraFields }, timestamp: new Date().toISOString() }),
-        });
-    } catch (e) { console.error('Webhook error:', e); }
-};
+/* Aquí vivía `fireWebhook`: un POST con el pedido entero —nombre, teléfono,
+   dirección— a la URL que hubiera en `localStorage('admin_webhook_url')`, en
+   cada cambio de estado. Era de la era n8n y nadie lo escuchaba desde hacía
+   meses, pero seguía siendo una salida de datos de clientas hacia cualquier
+   dirección que alguien pegara en Ajustes. Se quitó el 6 de septiembre de
+   2026 junto con la tarjeta que lo configuraba. */
 
 /**
  * Despachar un pedido: guardar el estado con la transportadora y la guía,

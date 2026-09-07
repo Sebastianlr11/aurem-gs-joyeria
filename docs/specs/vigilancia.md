@@ -42,6 +42,7 @@ El Dashboard lee `vigilancia_ultima` y muestra las averías y el "Revisado hace 
 | Endpoints que no responden o responden mal | `:255-259` |
 | **El candado del panel**: políticas sin `es_del_equipo()`, tablas sin RLS, `SECURITY DEFINER` sin `search_path` | `:286` |
 | **La configuración de acceso**: registro abierto, o proveedor de correo apagado | `:315` |
+| **Cuentas sin rol**: una cuenta del panel sin `app_metadata.rol` tiene sesión y no ve nada | junto a la anterior |
 
 > **El webhook de Mercado Pago se espera en 401, no en 200.** Desde que la firma está
 > activa, un POST vacío y sin firmar es justo lo que debe rechazar. Con 200 el vigía

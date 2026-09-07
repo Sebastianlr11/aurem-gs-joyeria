@@ -31,7 +31,7 @@ En contraentrega, `enviado` **no** significa cobrado (ver [checkout-y-pagos.md](
 | `src/pages/admin/secciones/Pedidos.jsx` | La pantalla entera |
 | `src/pages/admin/secciones/Pedidos.jsx` | `NEXT_ACTION_COD` y `NEXT_ACTION_PREPAID`, las dos tablas de acción sugerida |
 | `src/pages/admin/secciones/Pedidos.jsx` | `WA_MESSAGES` — mensaje de WhatsApp por estado |
-| `src/pages/admin/secciones/comunes.js` | `fireWebhook` — webhook propio configurable, y `despacharPedido` |
+| `src/pages/admin/secciones/comunes.js` | `despacharPedido` y `avisarDespachoPorCorreo` |
 | `src/pages/admin/secciones/piezas.jsx` | `ShipModal` y `StatusConfirmModal` |
 | `src/pages/admin/secciones/Pedidos.jsx` | Borrar pedido |
 | `src/pages/admin/PedidoModal.jsx` | Registrar un pedido a mano (527 líneas) |
@@ -153,8 +153,9 @@ algoritmo optimizaría contra una fracción de la realidad.
 **El despacho pide transportadora y guía juntas** (`ShipModal`, `:244`), y desde ahí sale el
 correo `pedido-despachado`. Un despacho sin guía es un cliente preguntando "¿y mi pedido?".
 
-**Hay un webhook propio configurable** (`fireWebhook`, `:130`) para conectar el panel con
-herramientas externas sin tocar código.
+**Ya no hay webhook propio.** `fireWebhook` mandaba el pedido entero a la URL de
+`localStorage('admin_webhook_url')` en cada cambio de estado; era de la era n8n y se quitó el
+6 de septiembre de 2026 — ver [admin-ajustes.md](admin-ajustes.md).
 
 ## Límites conocidos y pendientes
 
