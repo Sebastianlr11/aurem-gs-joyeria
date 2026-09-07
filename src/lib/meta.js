@@ -13,6 +13,16 @@
 
 const RAIZ = 'https://www.auremgsjoyeria.com';
 
+/* El título y la descripción del catálogo viven acá y no en `Catalog.jsx`
+   porque los usan dos sitios: `ponerMeta` al montar la pantalla, y
+   `scripts/prerenderizar.mjs`, que los escribe en el `<head>` de
+   `catalogo.html` para que Google los vea sin ejecutar nada. */
+export const META_CATALOGO = {
+  titulo: 'Catálogo de joyas con esmeralda colombiana | Aurem Gs',
+  descripcion: 'Anillos y dijes en plata 925 y oro 18k con esmeralda colombiana natural. Cada pieza se fotografía como llega a tus manos. Estuche incluido y garantía en el metal.',
+  ruta: '/catalogo',
+};
+
 /* Los valores de index.html, para poder devolver la pantalla al estado
    original cuando se sale de una ficha. Se leen una vez al arrancar: si se
    leyeran al salir, se estaría copiando lo que dejó la pantalla anterior. */

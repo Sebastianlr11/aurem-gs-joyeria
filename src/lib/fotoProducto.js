@@ -30,6 +30,14 @@ export const ANCHOS = [400, 800]
    en pantalla ni en el build. Los compara `fotoProducto.test.js`. */
 export const TAMANOS_FICHA = '(max-width: 900px) 100vw, 55vw'
 
+/* Y lo mismo para la tarjeta del catálogo, desde el 7 de septiembre de 2026:
+   el `<img>` de `ProductCard` lo usa, y `scripts/prerenderizar.mjs` lo repite
+   en el `<link rel="preload">` de las dos primeras fotos de `catalogo.html`.
+   Sigue a las columnas de `.catalogo-grid` en `Catalog.css` —dos hasta 768px,
+   tres hasta 968, ninguna de más de ~300px arriba— y si la rejilla cambia,
+   esto cambia con ella. */
+export const TAMANOS_TARJETA = '(max-width: 768px) 46vw, (max-width: 968px) 31vw, 300px'
+
 /* `-893x1600.webp` al final del nombre. Los dos números son el tamaño real
    del archivo grande, y sirven para reservarle el sitio al <img>. */
 const MARCA = /-(\d+)x(\d+)\.webp$/

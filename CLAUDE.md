@@ -2,7 +2,7 @@
 
 Guía para Claude Code (claude.ai/code) al trabajar en este repositorio.
 
-> **Última conciliación con el código: 6 de septiembre de 2026.**
+> **Última conciliación con el código: 7 de septiembre de 2026.**
 > Si algo de este documento no cuadra con lo que ves en el código, gana el código —
 > y avísalo, porque significa que este archivo volvió a quedarse atrás.
 
@@ -47,7 +47,7 @@ npm run correos      # esbuild: emails/_render.ts -> api/_plantillas.mjs
 npm run email        # Previsualizador de React Email en :3010
 npm run imagenes     # sharp: public/assets/*.jpg -> WebP multi-tamaño
 npm run css:pisadas  # Diagnóstico: reglas CSS que otras pisan
-npm run prerenderizar # Pinta la portada en Node y la mete en dist/index.html (lo corre el build)
+npm run prerenderizar # Pinta la portada y el catálogo en Node: dist/index.html y dist/catalogo.html (lo corre el build)
 
 node scripts/huella-estilos.mjs tomar h.json   # Huella de estilos: qué se ve, medido
 node scripts/css-de-quien-es.mjs               # De qué ruta es cada bloque de index.css
@@ -65,12 +65,17 @@ Cuatro advertencias sobre el build:
    que impide que entre código roto, porque no hay revisión de nadie más.
 3. `scripts/sitemap.mjs` nunca tumba el build: si le faltan las variables de Supabase,
    emite sólo las rutas fijas y sigue.
-4. **El build termina prerenderizando la portada** y deja **dos** HTML en `dist/`:
-   `index.html` con la portada ya pintada dentro de `#root` **y la hoja de estilos en un
-   `<style>`**, y `app.html` vacío y con el `<link>` de siempre para todo lo demás.
-   `scripts/prerenderizar.mjs` se planta —y tumba el build— si no encuentra el `#root`, si
-   la portada sale sin el hero, si no ve el `<link>` de la hoja o si la hoja trae una
-   `url()` relativa: desplegar cualquiera de esas cosas mal no se vería.
+4. **El build termina prerenderizando la portada y el catálogo** y deja **tres** HTML en
+   `dist/`: `index.html` con la portada ya pintada dentro de `#root` **y la hoja de estilos
+   en un `<style>`**, `catalogo.html` con la rejilla pintada, las dos hojas adentro, la foto
+   de la primera tarjeta precargada y la lista de piezas sembrada en `window.__catalogo`
+   (desde el 7 de septiembre de 2026), y `app.html` vacío y con el `<link>` de siempre para
+   todo lo demás. `scripts/prerenderizar.mjs` se planta —y tumba el build— si no encuentra
+   el `#root`, si la portada sale sin el hero, si no ve el `<link>` de la hoja o si la hoja
+   trae una `url()` relativa: desplegar cualquiera de esas cosas mal no se vería. **El
+   catálogo es la excepción**: si su consulta a Supabase falla en el build, `catalogo.html`
+   sale como el cascarón vacío y lo grita en la consola, pero no tumba el build — la
+   política del sitemap.
 
 ### Las pruebas
 
@@ -305,7 +310,7 @@ Todas se crean en `20260228_esquema_base.sql` salvo donde se diga.
 | `taller_precios` | Fila única: oro, recargo, abono, tope, IVA de pauta (`20260818_taller_precios.sql`) |
 | `taller_conocimiento` | Base de conocimiento editable de Valentina (`20260818_taller_conocimiento.sql`) |
 | `plantillas_enviadas` | Candado anti-duplicado de plantillas de WhatsApp (`20260819_plantillas_programadas.sql`) |
-| `ajustes_internos` | Clave/valor: `cron_secreto`, `clave_anon`, `url_funciones`, `telefonos_avisos`, `contactos_equipo`, `anuncios_piezas` |
+| `ajustes_internos` | Clave/valor: `cron_secreto`, `clave_anon`, `url_funciones`, `telefonos_avisos`, `contactos_equipo`, `anuncios_piezas`, `vercel_deploy_hook` |
 | `vigilancia_ultima` | Fila id=1 con el último informe del vigía |
 | `envio_publico` | **Es una vista.** Expone sólo `abono_envio` y `tope_contraentrega` |
 | `pagos` | El libro de movimientos que lee `src/lib/caja.js`, llenado por el trigger `registrar_pago` (`20260822_libro_de_caja.sql`) |
@@ -432,6 +437,7 @@ nombre es el identificador que la base ya tiene anotado.
 | `20260902_el_indice_parcial_rompia_el_upsert.sql` | Un índice parcial no se puede inferir en un `ON CONFLICT`: los contactos sin teléfono no se guardaban |
 | `20260902_en_bogota_el_envio_ya_no_se_cobra.sql` | Valentina seguía cobrando $15.000 de envío en Bogotá, donde entrega el taller |
 | `20260906_en_que_va_cada_conversacion.sql` | `chat_status.estado`: el embudo del chat, porque «resuelto» no se usó ni una vez |
+| `20260907_el_catalogo_se_vuelve_a_pintar_solo.sql` | Guardar una pieza le pide a Vercel un build: el HTML prerenderizado de `/catalogo` no se queda viejo |
 
 `20260822_cerrar_conversaciones_a_anon.sql` cerró el fallo más grave de todos:
 `whatsapp_conversaciones` y `chat_takeover` tenían políticas
@@ -829,12 +835,24 @@ Cosas que ya costaron un incidente. Léelas antes de tocar lo que describen.
   `huella-estilos.mjs --estados`. Dos consecuencias: **una `url()` relativa en `index.css`
   se rompería** (en línea se resuelve contra `/` y no contra `/assets/`; el script lo veta),
   y **no le añadas un `preload` de la hoja a `index.html`**, que sería bajarla dos veces.
-- **`dist/index.html` y `dist/app.html` NO son el mismo archivo.** El primero trae la
-  portada ya pintada; el segundo es el cascarón vacío al que `vercel.json` manda todo lo
-  demás. Si el comodín volviera a apuntar a `/index.html`, quien abre el enlace que Valentina
-  le mandó por WhatsApp **vería la portada** un instante antes de que React pusiera su pieza.
-  Por eso el `source` del comodín termina en `.+` y no en `.*`: la ruta raíz no puede caer
-  ahí ni por accidente.
+- **`dist/index.html`, `dist/catalogo.html` y `dist/app.html` NO son el mismo archivo.** El
+  primero trae la portada ya pintada; el segundo, la rejilla del catálogo (`/catalogo` llega
+  ahí por una reescritura explícita de `vercel.json`, porque no es el nombre de un archivo);
+  el tercero es el cascarón vacío al que el comodín manda todo lo demás. Si el comodín
+  volviera a apuntar a `/index.html`, quien abre el enlace que Valentina le mandó por WhatsApp
+  **vería la portada** un instante antes de que React pusiera su pieza. Por eso el `source`
+  del comodín termina en `.+` y no en `.*`: la ruta raíz no puede caer ahí ni por accidente.
+- **El catálogo prerenderizado arranca de una semilla, y la semilla no es la verdad.**
+  `catalogo.html` trae la lista de piezas del último build en `window.__catalogo`, y
+  `useCatalogoPublico` arranca de ahí para que el primer render coincida con el HTML; en
+  cuanto monta, vuelve a preguntar y pone la lista viva. Dos consecuencias: **`categoria`
+  arranca siempre en «Todos»** y el `?categoria=` de la URL se aplica en un efecto —si
+  arrancara filtrada, la hidratación tiraría la rejilla entera—, y **`TAMANOS_TARJETA` es la
+  cuarta copia que tiene que coincidir** (el `sizes` del `<img>` de la tarjeta y el
+  `imagesizes` de la precarga; `fotoProducto.test.js` vigila que nadie lo escriba a mano). Y
+  guardar una pieza dispara un build por el Deploy Hook de Vercel
+  (`20260907_el_catalogo_se_vuelve_a_pintar_solo.sql`), si la clave
+  `ajustes_internos.vercel_deploy_hook` está puesta; sin ella no pasa nada.
 - **Nada que se pinte puede depender del navegador en el PRIMER render.** Desde que la
   portada se prerenderiza, el HTML sale de Node: sin `navigator`, sin `localStorage`, sin la
   fecha de hoy. Si el primer render del navegador no coincide con ese HTML, React tira lo que

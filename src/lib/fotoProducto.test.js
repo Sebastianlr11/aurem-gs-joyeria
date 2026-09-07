@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { fotoProducto, ANCHOS, TAMANOS_FICHA } from './fotoProducto'
+import { fotoProducto, ANCHOS, TAMANOS_FICHA, TAMANOS_TARJETA } from './fotoProducto'
 
 /**
  * Que la foto que se precarga sea EXACTAMENTE la que se pinta.
@@ -82,6 +82,37 @@ describe('la precarga de la ficha dice lo mismo que el <img>', () => {
        se bajaría el href y el <img> pintaría otro archivo: la foto, dos
        veces. Sin href, ése simplemente ignora la precarga. */
     expect(fotoDeLaPieza({ images: [CON_MARCA] }).href).toBe('')
+  })
+})
+
+/**
+ * Lo mismo para el catálogo, desde el 7 de septiembre de 2026: la primera
+ * tarjeta es el LCP de `/catalogo`, y `scripts/prerenderizar.mjs` la precarga
+ * desde el <head> de `catalogo.html`. Ahí no hay copia que extraer —el script
+ * importa `fotoProducto()` y `TAMANOS_TARJETA` de verdad—, así que lo que hay
+ * que vigilar es que la tarjeta y el script sigan usando la constante y no un
+ * texto suelto: el día que alguien escriba el `sizes` a mano en uno de los
+ * dos, la foto se baja dos veces sin que nada lo delate.
+ */
+describe('la precarga del catálogo dice lo mismo que la tarjeta', () => {
+  const tarjeta = readFileSync(new URL('../components/catalog/ProductCard.jsx', import.meta.url), 'utf8')
+  const prerender = readFileSync(new URL('../../scripts/prerenderizar.mjs', import.meta.url), 'utf8')
+
+  it('la tarjeta usa TAMANOS_TARJETA y no un sizes escrito a mano', () => {
+    expect(tarjeta).toContain('sizes={TAMANOS_TARJETA}')
+    expect(tarjeta).not.toMatch(/sizes="\(/)
+  })
+
+  it('el prerender precarga con TAMANOS_TARJETA y con fotoProducto()', () => {
+    expect(prerender).toContain('imagesizes="${servidor.TAMANOS_TARJETA}"')
+    expect(prerender).toContain('servidor.fotoProducto(p.image_url)')
+    expect(prerender).not.toMatch(/imagesizes="\(/)
+  })
+
+  it('TAMANOS_TARJETA sigue a las columnas de Catalog.css', () => {
+    /* Dos columnas hasta 768px, tres hasta 968, y arriba ninguna de más de
+       ~300px. Si la rejilla cambia, esto tiene que cambiar con ella. */
+    expect(TAMANOS_TARJETA).toBe('(max-width: 768px) 46vw, (max-width: 968px) 31vw, 300px')
   })
 })
 

@@ -32,11 +32,38 @@ const CLAVE = import.meta.env.VITE_SUPABASE_ANON_KEY
    a cuenta porque así hay UNA consulta en todo el sitio y no dos — ver abajo.
    `description` cabe en 180 caracteres por la regla de las fichas, así que lo
    que suma son ~1,5 KB comprimidos en la portada. */
-const CONSULTA =
+export const CONSULTA =
   'select=id,name,category,metal,piedra,image_url,stock,is_featured,is_new,' +
   'price,compare_price,description,created_at&order=created_at.desc'
 
 let enCurso = null
+
+/* ── La semilla: la lista con la que se pinta el PRIMER render ────────────
+ *
+ * Desde el 7 de septiembre de 2026 `/catalogo` viene pintado desde el build
+ * (`scripts/prerenderizar.mjs`), igual que la portada. Pero el catálogo tiene
+ * datos, y para que el HTML del build y el primer render del navegador
+ * coincidan —si no coinciden, React tira el HTML y reconstruye todo, o sea,
+ * deshace el prerender sin que se note— los dos tienen que arrancar de la
+ * MISMA lista:
+ *
+ *   - en el build, la mete `sembrar()` antes de pintar;
+ *   - en el navegador, viene dentro de `catalogo.html` como `window.__catalogo`,
+ *     escrita antes del bundle.
+ *
+ * Es sólo para el primer pintado. Los ganchos de abajo siguen llamando a
+ * `traer()` y reemplazan la lista por la viva en cuanto llega: una pieza que se
+ * subió después del último build aparece igual, un segundo más tarde. En una
+ * ruta sin semilla —`/catalogo/<uuid>`, o si el prerender falló— todo sigue
+ * como antes. */
+let semilla = typeof window !== 'undefined' && Array.isArray(window.__catalogo)
+  ? window.__catalogo
+  : null
+
+/** Sólo la usa el build. En el navegador la semilla llega por `window.__catalogo`. */
+export function sembrar(piezas) {
+  semilla = Array.isArray(piezas) ? piezas : null
+}
 
 /**
  * La consulta, una sola por pestaña, con la marca de si llegó o no.
@@ -100,7 +127,7 @@ if (typeof window !== 'undefined') traer()
  * @returns `null` mientras carga, y la lista —quizá vacía— cuando llega.
  */
 export function usePiezasPublicadas() {
-  const [piezas, setPiezas] = useState(null)
+  const [piezas, setPiezas] = useState(() => semilla)
 
   useEffect(() => {
     let vivo = true
@@ -121,7 +148,9 @@ export function usePiezasPublicadas() {
  * @returns {{piezas: object[], cargando: boolean, fallo: boolean}}
  */
 export function useCatalogoPublico() {
-  const [estado, setEstado] = useState({ piezas: [], cargando: true, fallo: false })
+  const [estado, setEstado] = useState(() => semilla
+    ? { piezas: semilla, cargando: false, fallo: false }
+    : { piezas: [], cargando: true, fallo: false })
 
   useEffect(() => {
     let vivo = true

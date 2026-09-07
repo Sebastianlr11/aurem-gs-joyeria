@@ -32,6 +32,10 @@
       "destination": "/api/ficha?id=:id"
     },
     {
+      "source": "/catalogo",
+      "destination": "/catalogo.html"
+    },
+    {
       "source": "/((?!api/)(?!assets/)(?!.*\\.[a-zA-Z0-9]{2,5}$).+)",
       "destination": "/app.html"
     }

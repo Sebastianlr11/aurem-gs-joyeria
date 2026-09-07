@@ -2,8 +2,8 @@ import React, { useState, useEffect, useLayoutEffect, useMemo, useRef } from 're
 import { useSearchParams } from 'react-router-dom';
 import ProductCard from '../components/catalog/ProductCard';
 import { useCatalogoPublico } from '../lib/piezasPublicadas';
-import { waUrl } from '../lib/whatsapp';
-import { ponerMeta } from '../lib/meta';
+import { useWaUrl } from '../lib/whatsapp';
+import { META_CATALOGO, ponerMeta } from '../lib/meta';
 import { CATEGORIAS as CATEGORIAS_DEL_CATALOGO } from '../lib/categorias';
 
 /* Su propia hoja, y no `index.css`.
@@ -100,7 +100,19 @@ const Catalog = () => {
        decirlo. Sin eso, un corte de red le anuncia a la clienta que no hay
        inventario. */
     const { piezas, cargando, fallo } = useCatalogoPublico();
-    const [categoria, setCategoria] = useState(searchParams.get('categoria') || 'Todos');
+    /* Arranca SIEMPRE en «Todos», y la categoría de la URL se aplica después
+       de montar. Desde el 7 de septiembre de 2026 esta pantalla viene pintada
+       desde el build —con todas las piezas, porque el build no sabe con qué
+       `?categoria=` va a entrar cada quien— y el primer render del navegador
+       tiene que ser idéntico a ese HTML: si arrancara filtrado, React tiraría
+       la rejilla ya pintada y la construiría entera de nuevo, que es justo lo
+       que el prerender viene a evitar. El precio es un frame con la rejilla
+       completa antes de filtrarla, para quien llega desde una colección de
+       la portada. */
+    const [categoria, setCategoria] = useState('Todos');
+    const categoriaDeLaUrl = searchParams.get('categoria');
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Es el punto: el primer render tiene que ser el del build, y sólo después de montar se mira la URL.
+    useEffect(() => { if (categoriaDeLaUrl) setCategoria(categoriaDeLaUrl); }, [categoriaDeLaUrl]);
     const [busqueda, setBusqueda] = useState('');
     const [orden, setOrden] = useState('newest');
     const [rango, setRango] = useState(0);
@@ -115,11 +127,7 @@ const Catalog = () => {
 
     /* El catálogo tiene su propio título y su propia canónica. Sin esto
        comparte los de la home, y para Google son la misma página. */
-    useEffect(() => ponerMeta({
-        titulo: 'Catálogo de joyas con esmeralda colombiana | Aurem Gs',
-        descripcion: 'Anillos y dijes en plata 925 y oro 18k con esmeralda colombiana natural. Cada pieza se fotografía como llega a tus manos. Estuche incluido y garantía en el metal.',
-        ruta: '/catalogo',
-    }), []);
+    useEffect(() => ponerMeta(META_CATALOGO), []);
 
     /* Los materiales salen del catálogo, no de una lista fija: si el joyero
        carga una pieza en platino, el filtro aparece solo. Se agrupan por la
@@ -206,14 +214,16 @@ const Catalog = () => {
        —dice exactamente qué quiere y no lo encontró— y sin él Valentina abre
        la conversación desde cero. Si no hubo búsqueda, al menos va la
        categoría, que también acota. */
-    const waCotizar = useMemo(() => {
+    const mensajeCotizar = useMemo(() => {
         const que = termino
             ? `Busqué "${termino}" en el catálogo y no encontré nada.`
             : categoria !== 'Todos'
                 ? `Estuve viendo ${categoria.toLowerCase()} en el catálogo y no encontré lo que buscaba.`
                 : 'Estuve viendo el catálogo y no encontré lo que buscaba.';
-        return waUrl(`Hola 🙏 ${que} ¿Me pueden cotizar una pieza a la medida?`);
+        return `Hola 🙏 ${que} ¿Me pueden cotizar una pieza a la medida?`;
     }, [termino, categoria]);
+    /* `useWaUrl` y no `waUrl`: el primer render tiene que ser el del build. */
+    const waCotizar = useWaUrl(mensajeCotizar);
 
     /* Qué decir cuando no hay nada que mostrar. Son tres situaciones, no una,
        y la salida de cada una es distinta:
