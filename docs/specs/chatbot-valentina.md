@@ -161,6 +161,15 @@ en el primer mensaje, así que se busca el más antiguo de la conversación. La 
 es demostrar que sabe qué vio el cliente, sin repetir el texto del anuncio — y **si el
 anuncio prometía algo que no está en las políticas, no confirmarlo y escalar**.
 
+**Un POST de Meta puede traer varios mensajes, y se atienden todos** (`_shared/lote.ts`,
+desde el 6 de septiembre de 2026). Hasta entonces `wa-webhook` leía
+`entry[0].changes[0].value.messages[0]` y **lo demás se tiraba sin guardarse**: cuando una
+clienta mandaba la foto y el texto tan seguidos que Meta los juntaba, uno de los dos no
+existía ni para Valentina ni para el panel. Ahora se recorren todas las entradas, todos los
+cambios y todos los mensajes; se guardan en orden, y si dos son de la misma persona la
+espera de 15 s y el candado de turno hacen que responda una sola corrida. `desglosarLote()`
+no tiene nada de Deno y se prueba en `lote.test.ts`.
+
 ## Límites conocidos y pendientes
 
 - **Verificar `taller_conocimiento`.** El seed de la migración dejó las primeras 6 filas marcadas

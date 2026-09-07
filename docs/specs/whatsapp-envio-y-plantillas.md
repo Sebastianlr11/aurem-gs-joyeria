@@ -161,6 +161,12 @@ aviso que no llega.
 Esto es lo que permite desplegar una plantilla antes de que Meta la apruebe sin quemar nada:
 mientras la rechace, cada intento falla y se reintenta; el día que la aprueben, sale.
 
+**`enfriadas()` excluye a quien ya compró comparando los diez últimos dígitos**, no la
+cadena cruda. Hasta el 6 de septiembre de 2026 hacía `.in('customer_phone', candidatos)`: un
+pedido del checkout guarda `+573…` y la conversación `573…`, así que una clienta que acababa
+de comprar recibía igual `cotizacion_sin_cerrar` — de Marketing, y pagada. Es la misma trampa
+que ya se había cerrado en `puede_recibir_plantillas()` y en los disparadores de `es_prueba`.
+
 ## Límites conocidos y pendientes
 
 - `pieza_en_fabricacion` **está desplegada pero Meta aún no la ha aprobado**: hasta entonces

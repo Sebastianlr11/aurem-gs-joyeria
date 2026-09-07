@@ -45,7 +45,7 @@ Deno.serve(async (req: Request) => {
   const { data: { user }, error: errorSesion } = await comoUsuario.auth.getUser()
   if (errorSesion || !user) return json({ error: 'Sesión inválida' }, 401)
 
-  let cuerpo: { pedidoId?: string }
+  let cuerpo: { pedidoId?: string; evento?: string; testEventCode?: string }
   try { cuerpo = await req.json() } catch { return json({ error: 'Cuerpo ilegible' }, 400) }
 
   const pedidoId = String(cuerpo.pedidoId ?? '').trim()

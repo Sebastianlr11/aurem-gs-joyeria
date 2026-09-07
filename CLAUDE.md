@@ -39,7 +39,7 @@ npm run dev          # Vite en http://localhost:5173
 npm run build        # eslint && vitest && sitemap.mjs && correos.mjs && tsc -b && vite build
 npm run preview      # Sirve /dist
 npm run lint         # ESLint (sí corre en el build)
-npm test             # Vitest, una pasada (379 pruebas)
+npm test             # Vitest, una pasada (391 pruebas)
 npm run test:mirar   # Vitest en marcha, repitiendo al guardar
 
 npm run sitemap      # Regenera public/sitemap.xml desde Supabase
@@ -74,7 +74,7 @@ Cuatro advertencias sobre el build:
 
 ### Las pruebas
 
-Hay **379**, en veintisiete archivos que viven al lado de lo que prueban:
+Hay **391**, en veintiocho archivos que viven al lado de lo que prueban:
 
 | Archivo | Qué fija |
 |---|---|
@@ -85,6 +85,7 @@ Hay **379**, en veintisiete archivos que viven al lado de lo que prueban:
 | `src/pages/admin/chat/*.test.js(x)` | Los ganchos del chat, la ficha, la selección, el diálogo, y quién es la siguiente por atender |
 | `supabase/functions/_shared/reglas.test.ts` | Las reglas de Valentina |
 | `supabase/functions/_shared/bucle.test.ts` | El bucle del agente, sin Deno y sin red |
+| `supabase/functions/_shared/lote.test.ts` | Que de un POST de Meta con varios mensajes no se pierda ninguno |
 | `supabase/functions/_shared/redaccion.test.ts` | Lo que se le pide al modelo al redactar una pieza, y lo que se le revisa |
 | `src/lib/envio.test.js` | La caja en la que viaja una pieza: `null` nunca viaja como cero |
 | `src/lib/nombre.test.js` | Partir un nombre para la guía, sin inventarse un apellido |
@@ -236,6 +237,9 @@ Módulos compartidos en `supabase/functions/_shared/`:
 - `correos.ts` — la confirmación por correo de un pedido. Aparte porque la mandan dos
   momentos que no se conocen: `mp-webhook` cuando entra un pago, y `create-preference`
   cuando un contraentrega de Bogotá nace confirmado sin pagar nada
+- `lote.ts` — lo que trae un POST de Meta, desmenuzado: todas las entradas, todos los cambios,
+  todos los mensajes. Sin Deno, con prueba. Existe porque `wa-webhook` leía sólo
+  `messages[0]` y lo demás se perdía sin rastro
 - `reglas.ts` — la lógica de Valentina **sin nada de Deno dentro**: la talla, la cotización
   del oro, la atribución, los teléfonos y el parseo de lo que el modelo pide al tomar un
   pedido. Existe para poder probarla: son las tres cosas del
