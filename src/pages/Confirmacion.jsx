@@ -41,7 +41,12 @@ const Confirmacion = () => {
   const externalRef = searchParams.get('external_reference')
 
   const aprobado = status === 'approved'
-  const enProceso = status === 'pending' || status === 'in_process'
+  /* Sin `status` en la URL no se sabe nada, y «no saber» no es «falló»:
+     hasta el 6 de septiembre de 2026 abrir /confirmacion sin el parámetro
+     —un enlace recortado, una vuelta atrás del navegador— decía «El pago no
+     pasó» sobre un pago que quizá sí pasó. Se lee como en verificación, que
+     es la única frase que no afirma nada que no se sepa. */
+  const enProceso = status === null || status === 'pending' || status === 'in_process'
   const fallido = !aprobado && !enProceso
 
   /* Esta pantalla sólo lee. Antes escribía el estado del pedido —marcaba
@@ -244,8 +249,8 @@ const Confirmacion = () => {
               <path d="M5 9.5v5M19 9.5v5" />
             </svg>
             <p>
-              <strong>¿Estás en Bogotá?</strong> Puedes pagar contra entrega: abonas el envío
-              para confirmar el pedido y el resto lo pagas en efectivo cuando te lo lleven.
+              <strong>¿Estás en Bogotá?</strong> Puedes pagar contra entrega: no pagas nada
+              por adelantado y lo pagas todo en efectivo cuando te lleven la pieza.
             </p>
           </div>
         )}

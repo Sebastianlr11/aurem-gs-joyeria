@@ -35,7 +35,7 @@ import { CARRIERS, ORDER_STATUSES, STATUS_META } from './secciones/comunes';
 const PAGOS = [
     {
         id: 'contraentrega', label: 'Contra entrega',
-        nota: 'La clienta paga en efectivo al recibir. Se cobra el abono del envío por adelantado y hay un tope; confirma la dirección por WhatsApp antes de despachar.',
+        nota: 'La clienta paga todo en efectivo al recibir, sin abono. Sólo Bogotá y hasta el tope; confirma la dirección por WhatsApp antes de despachar.',
     },
     {
         id: 'mercadopago', label: 'Mercado Pago',

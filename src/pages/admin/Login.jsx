@@ -35,7 +35,7 @@ const ArrowIcon = () => (
 
 const stats = [
     { num: '18k', label: 'Oro certificado' },
-    { num: '24–48 h', label: 'Envío hábil' },
+    { num: '3–4 días', label: 'Entrega en Bogotá' },
     { num: '925', label: 'Plata ley' },
 ];
 

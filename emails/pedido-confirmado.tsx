@@ -119,7 +119,11 @@ export default function PedidoConfirmado({
 
           <Trazado
             pasos={[
-              { titulo: esAbono ? 'Abono recibido' : 'Pago recibido', pie: fecha || 'Hoy', hecho: true },
+              /* Tres títulos, no dos: a quien no pagó nada no se le puede
+                 decir «Pago recibido» en el primer paso. Se vio el 6 de
+                 septiembre de 2026, con el texto del cuerpo ya corregido y
+                 el trazado todavía diciendo lo de antes. */
+              { titulo: esAbono ? 'Abono recibido' : alRecibir ? 'Pedido confirmado' : 'Pago recibido', pie: fecha || 'Hoy', hecho: true },
               { titulo: 'En el taller', pie: 'Revisión y empaque', hecho: true },
               { titulo: 'En camino', pie: plazo, hecho: false },
             ]}
