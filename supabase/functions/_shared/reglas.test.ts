@@ -14,7 +14,7 @@ import {
   TALLAS, calcularTalla, cotizarOro, origen, anuncioDe, atribucionDe, refDelTexto,
   DIAS_PARA_AVISAR, DIAS_PARA_NO_COTIZAR, diezUltimos, mismoTelefono, aNumeroDeWhatsApp,
   cantidadPedida, piezasDelPedido, esContraentrega, piezaDelAnuncio, esTelefono,
-  comoLoEscribeWhatsApp,
+  comoLoEscribeWhatsApp, esBogota,
 } from './reglas.ts'
 
 describe('la tabla de tallas', () => {
@@ -467,5 +467,18 @@ describe('cómo lo escribe WhatsApp', () => {
     expect(comoLoEscribeWhatsApp('')).toBe('')
     expect(comoLoEscribeWhatsApp(null)).toBe('')
     expect(comoLoEscribeWhatsApp(undefined)).toBe('')
+  })
+})
+
+describe('esBogota', () => {
+  /* La única ciudad con contraentrega, escrita como la escribe la gente. */
+  it('reconoce Bogotá como la escriben', () => {
+    ;['Bogotá', 'bogota', 'BOGOTA', 'Bogotá D.C.', 'Bogotá, Cundinamarca', 'Suba, Bogotá'].forEach((c) =>
+      expect(esBogota(c), c).toBe(true))
+  })
+
+  it('no confunde otra ciudad ni una ciudad vacía', () => {
+    ;['Medellín', 'Cali', 'Soacha', '', null, undefined].forEach((c) =>
+      expect(esBogota(c), String(c)).toBe(false))
   })
 })

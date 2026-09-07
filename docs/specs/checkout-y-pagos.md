@@ -109,6 +109,20 @@ contraentrega y retirarla después es peor que no ofrecerla.
 **El candado real está en el servidor**, no en el navegador (`create-preference:104-110`).
 El frontend esconde la opción; la Edge Function la rechaza con un mensaje que dice el tope.
 
+**Y la ciudad también se comprueba en el servidor** desde el 6 de septiembre de 2026:
+contraentrega fuera de Bogotá responde 422 `contraentrega_solo_bogota`. La web ya forzaba
+Bogotá, pero Valentina manda la ciudad que le dijeron y la función la aceptaba tal cual: un
+«contraentrega a Medellín» nacía confirmado y nadie podía entregarlo. `esBogota()` vive en
+`reglas.ts`, con su prueba, y `bot.ts` trata el 422 como una regla —ofrece pago en línea—,
+no como un fallo.
+
+**Hay un freno de pedidos repetidos** (429 `demasiados_pedidos`): más de tres pedidos en una
+hora desde la misma IP o el mismo teléfono —diez últimos dígitos— no entran. Existe porque la
+función es pública y un contraentrega sin abono nace `confirmado` **y le cuenta la compra a
+Meta y TikTok al nacer**: sin freno, cualquiera con la URL podía dejarle al píxel cien ventas
+inventadas que Meta no sabe olvidar. Se cuenta sobre `orders`, sin tabla nueva, y los pedidos
+de prueba del equipo no descuentan.
+
 **El abono tiene doble red de seguridad** (`:115-118`): si `abono_envio` viene inválido o
 resulta mayor o igual que el total, cae a `min(20000, total/2)`. Viene de un incidente
 real: **Valentina anunció un abono de "$15.000" y 50 segundos después mandó un enlace de
@@ -219,7 +233,7 @@ separan, gana el catálogo.
   entera, incluido por qué se había puesto.
 
 - **La talla del selector de la ficha no llega al pedido.** Sólo al mensaje de WhatsApp.
-- Contraentrega es **sólo Bogotá**, forzado en el cliente.
+- Contraentrega es **sólo Bogotá**, forzado en el cliente y comprobado en el servidor.
 - La validación del formulario es por `onBlur`, no por submit.
 - `/confirmacion` no llama a `ponerMeta` (está en `robots.txt` como `Disallow`, así que es
   aceptable).

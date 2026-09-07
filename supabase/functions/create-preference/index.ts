@@ -3,6 +3,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { avisarVenta } from '../_shared/conversiones.ts'
 import { piezasDelPedido } from '../_shared/pedidos.ts'
 import { avisarPorCorreo } from '../_shared/correos.ts'
+import { diezUltimos, esBogota } from '../_shared/reglas.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -187,6 +188,21 @@ Deno.serve(async (req: Request) => {
         }), { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
       }
 
+      /* Y sólo Bogotá, por la misma razón que el tope va acá y no sólo en
+         la pantalla: las entregas contraentrega las hace el taller, en
+         persona, y no hay quien las haga en otra ciudad. La web fuerza
+         Bogotá en su formulario, pero Valentina manda la ciudad que le
+         dijeron y esta función la aceptaba tal cual. Hasta el 6 de
+         septiembre de 2026 un «contraentrega a Medellín» nacía confirmado y
+         nadie podía entregarlo. */
+      if (!esBogota(buyer.city)) {
+        console.log(`Contraentrega rechazado: «${buyer.city ?? ''}» no es Bogotá`)
+        return new Response(JSON.stringify({
+          error: 'contraentrega_solo_bogota',
+          mensaje: 'El pago contra entrega es sólo en Bogotá. Fuera de Bogotá se paga en línea.',
+        }), { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      }
+
       /* Cero es una DECISIÓN, no un dato malo.
        *
        * Hasta el 1 de septiembre de 2026 un cero caía en la rama de «abono
@@ -226,6 +242,37 @@ Deno.serve(async (req: Request) => {
        `20260824_cancelar_el_duplicado_no_el_pedido_de_ayer.sql`—, así que esta
        copia sólo servía para matar pedidos legítimos de días atrás. Se quitó el
        6 de septiembre de 2026: una regla, un sitio. */
+
+    /* El freno. Esta función es pública —sin JWT, CORS `*`— y desde el 1 de
+       septiembre de 2026 un contraentrega sin abono nace `confirmado` y le
+       cuenta la compra a Meta y a TikTok en ese mismo momento. Sin esto,
+       cualquiera con la URL podía crear cien pedidos en un minuto y dejarle
+       al píxel cien ventas que nunca existieron, que Meta no sabe olvidar.
+
+       Se cuenta en `orders`, sin tabla nueva: los pedidos de la última hora
+       desde la misma IP o con el mismo teléfono —los diez últimos dígitos,
+       como en todas partes—. Tres es de sobra para una persona que se
+       equivoca y vuelve a intentar; una cuarta en una hora no es una clienta.
+       Los pedidos de prueba del equipo no se descuentan a propósito: probar
+       cuatro veces seguidas es exactamente lo que hace el equipo. */
+    const ip = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || null
+    const telefonoClave = diezUltimos(buyer.phone)
+    const { data: recientes } = await supabase
+      .from('orders')
+      .select('customer_phone, client_ip, es_prueba')
+      .gte('created_at', new Date(Date.now() - 60 * 60 * 1000).toISOString())
+    const delMismo = (recientes ?? []).filter((o) =>
+      !o.es_prueba && (
+        (ip && o.client_ip === ip) ||
+        (telefonoClave.length === 10 && diezUltimos(o.customer_phone) === telefonoClave)
+      ))
+    if (delMismo.length >= 3) {
+      console.warn(`Freno: ${delMismo.length} pedidos en una hora desde ${ip ?? '?'} / …${telefonoClave.slice(-4)}`)
+      return new Response(JSON.stringify({
+        error: 'demasiados_pedidos',
+        mensaje: 'Ya hay varios pedidos tuyos en la última hora. Si es un error, escríbenos por WhatsApp y lo arreglamos.',
+      }), { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
 
     // Insertar una sola orden con todos los productos
     const { data: order, error: orderError } = await supabase
