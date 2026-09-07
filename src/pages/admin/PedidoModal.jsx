@@ -19,15 +19,16 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { laVentaEntro } from '../../lib/dinero';
+import { CARRIERS, ORDER_STATUSES, STATUS_META } from './secciones/comunes';
 
-const ESTADOS = [
-    { id: 'pendiente', label: 'Pendiente' },
-    { id: 'pagado', label: 'Pagado' },
-    { id: 'procesando', label: 'Procesando' },
-    { id: 'enviado', label: 'Enviado' },
-    { id: 'entregado', label: 'Entregado' },
-    { id: 'cancelado', label: 'Cancelado' },
-];
+/* Los estados y las transportadoras salen de `comunes.js`, no de una lista
+   propia. Este archivo tenía las suyas, y se quedaron viejas: sin
+   `confirmado` ni `devuelto` —del 24 de agosto de 2026— y con cuatro
+   transportadoras cuando la tabla de Pedidos ya ofrecía seis. Lo grave era lo
+   primero: `confirmado` es el estado en el que nace TODO contraentrega desde
+   el 1 de septiembre, y al editar uno el formulario no marcaba ningún chip;
+   un clic en cualquiera lo sacaba de ahí sin querer. Se vio el 6 de
+   septiembre de 2026. */
 
 /* Lo que cada método implica de verdad para este negocio. La nota no es
    decoración: quien carga el pedido tiene que saber qué pasa después. */
@@ -58,7 +59,6 @@ const PAGOS = [
     },
 ];
 
-const CARRIERS = ['Servientrega', 'Interrapidisimo', 'Coordinadora', 'Otro'];
 const NOTAS_SUGERIDAS = 240;
 
 const texto = (v) => String(v ?? '').trim();
@@ -381,13 +381,13 @@ export default function PedidoModal({ order, products = [], onClose, onSaved, in
 
                         <Campo etiqueta="Estado">
                             <div className="pd-fichas">
-                                {ESTADOS.map(s => (
+                                {ORDER_STATUSES.map(s => (
                                     <button
-                                        key={s.id} type="button"
-                                        className={`pd-ficha${form.status === s.id ? ' pd-ficha--on' : ''}`}
-                                        onClick={() => set('status', s.id)}
+                                        key={s} type="button"
+                                        className={`pd-ficha${form.status === s ? ' pd-ficha--on' : ''}`}
+                                        onClick={() => set('status', s)}
                                     >
-                                        {s.label}
+                                        {STATUS_META[s]?.label ?? s}
                                     </button>
                                 ))}
                             </div>

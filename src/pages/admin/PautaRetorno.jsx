@@ -159,7 +159,10 @@ export default function PautaRetorno({ orders, periodStart, periodDays, verPrueb
        del modelo en Colombia —el paquete se devuelve en la puerta y el envío
        ya se pagó—, y hasta que haya entregas de verdad no se puede saber. */
     const cod = orders.filter(esContraentrega);
-    const codSalidos = cod.filter(o => ['enviado', 'entregado'].includes(o.status));
+    /* `devuelto` cuenta entre los que salieron: salió, volvió, y es justo el
+       caso que esta tasa existe para medir. Sin él, la tasa de entrega no
+       podía bajar del 100 % más que con paquetes todavía en la calle. */
+    const codSalidos = cod.filter(o => ['enviado', 'entregado', 'devuelto'].includes(o.status));
     const codEntregados = codSalidos.filter(o => o.status === 'entregado');
     const tasaEntrega = codSalidos.length
         ? Math.round((codEntregados.length / codSalidos.length) * 100)

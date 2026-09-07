@@ -559,9 +559,13 @@ La regla de rotulación, para que no se vuelva a mezclar: lo que diga **«entró
 «deja» va después de comisiones**; lo que diga **«vendido» o «pedido» se queda en precio**.
 
 `porCobrarDe` = `amount − recibidoDe` en pedidos vivos. `estaVivo` = ni `cancelado` ni
-`pendiente`. **Cualquier cifra de dinero del panel debe pasar por estas funciones**: el
-bug original era que la ficha del chat y el dashboard contaban distinto y el mismo
-cliente daba dos números.
+`pendiente` ni `devuelto`. `sinEntregar` = vivo y todavía no `entregado`, con su lista
+`ESTADOS_SIN_ENTREGAR` para los `.in('status', …)`. **Cualquier cifra de dinero del panel
+debe pasar por estas funciones, y cualquier lista de estados también**: el bug original era
+que la ficha del chat y el dashboard contaban distinto y el mismo cliente daba dos números;
+el del 6 de septiembre de 2026 fue que cuatro pantallas tenían su propia lista de «vivo»,
+ninguna con `confirmado`, y el aviso de «hay un pedido sin entregar» no veía ningún
+contraentrega.
 
 ### Otras reglas
 

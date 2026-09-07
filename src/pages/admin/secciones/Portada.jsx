@@ -64,7 +64,6 @@ const ingresosDe = (pedidos) => {
         mpNeto,
         codCobrado,
         total: mpNeto + codCobrado,
-        entregados: cod.filter(o => ['entregado', 'pagado'].includes(o.status)).length,
         porCobrar,
         porCobrarTotal: porCobrar.reduce((s, o) => s + porCobrarDe(o), 0),
     };

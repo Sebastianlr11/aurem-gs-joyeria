@@ -21,6 +21,8 @@ import {
     recibidoDe,
     porCobrarDe,
     estaVivo,
+    sinEntregar,
+    ESTADOS_SIN_ENTREGAR,
     resumenDe,
     costoDeMercadoPago,
     netoDeMercadoPago,
@@ -206,6 +208,29 @@ describe('estaVivo', () => {
         ['pendiente', 'cancelado', 'devuelto'].forEach(s =>
             expect(estaVivo(enLinea(s)), s).toBe(false));
         expect(estaVivo(null)).toBe(false);
+    });
+});
+
+describe('sinEntregar', () => {
+    /* Lo que el taller todavía le debe a alguien. `confirmado` tiene que
+       estar: es donde nace todo contraentrega desde el 1 de septiembre de
+       2026, y las listas a mano que había antes no lo traían. */
+    it('sin entregar es lo vivo que todavía no llegó', () => {
+        ['confirmado', 'pagado', 'procesando', 'enviado'].forEach(s =>
+            expect(sinEntregar(enLinea(s)), s).toBe(true));
+    });
+
+    it('lo que ya llegó, lo que nunca empezó y lo que se cayó, no', () => {
+        ['entregado', 'pendiente', 'cancelado', 'devuelto'].forEach(s =>
+            expect(sinEntregar(enLinea(s)), s).toBe(false));
+        expect(sinEntregar(null)).toBe(false);
+    });
+
+    /* La lista que va a la base y la función que corre en el panel no pueden
+       decir cosas distintas, y ninguna puede incluir un pedido muerto. */
+    it('la lista es un subconjunto de lo vivo', () => {
+        ESTADOS_SIN_ENTREGAR.forEach(s => expect(estaVivo(enLinea(s)), s).toBe(true));
+        expect(ESTADOS_SIN_ENTREGAR).not.toContain('entregado');
     });
 });
 
