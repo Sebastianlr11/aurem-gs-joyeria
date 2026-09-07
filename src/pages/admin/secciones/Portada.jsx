@@ -273,7 +273,7 @@ const DashboardHome = ({ products, orders, chatsPendientes, actualizadoEn, verPr
         {
             clave: 'confirmar', icono: 'bag', n: porConfirmar,
             titulo: 'Por confirmar',
-            sub: 'Contraentrega nuevos: llámalos, confirma dirección y cobra el abono',
+            sub: 'Contraentrega nuevos: escríbeles, confirma la dirección y que van a estar para recibir',
             ir: () => onNavigate('orders'),
         },
         /* Sólo aparece si hay alguno: un cero permanente enseña a no mirar la

@@ -1185,7 +1185,10 @@ const ProductPage = () => {
         product.metal,
         piedraCorta || null,
         'contraentrega en Bogotá',
-        'envío 1 a 3 días',
+        /* El plazo completo desde que pide, el mismo de TrustBar, del catálogo
+           y del correo. Decía «envío 1 a 3 días», que era sólo el tramo de la
+           transportadora. */
+        'entrega en 3 a 4 días',
     ].filter(Boolean).join(' · ');
 
     /* Sin "Categoría" —ya lo dice el antetítulo del hero— y sin "Referencia",
@@ -1477,9 +1480,14 @@ const ProductPage = () => {
                         {/* "Solo en Bogotá" va primero y no al final: es la
                             condición que decide si esta opción existe para
                             quien está leyendo. */}
+                        {/* Sin abono desde el 1 de septiembre de 2026. Este
+                            texto es fijo porque el componente no lee
+                            `envio_publico` —lo lee `BuyModal`—; si el abono
+                            vuelve por un UPDATE, hay que cambiarlo aquí o
+                            subir `abonoEnvio` a esta pantalla. */}
                         <p className="joyero-forma-s">
-                          Solo en Bogotá. Abonas el envío al confirmar el pedido y pagas
-                          el resto cuando te entregan la pieza.
+                          Solo en Bogotá. No pagas nada por adelantado: pagas en efectivo
+                          cuando te entregan la pieza.
                         </p>
                       </div>
                     </div>

@@ -62,7 +62,7 @@ const TermsOfService = () => (
           <p>Un pedido se considera confirmado una vez que:</p>
           <ul>
             <li><strong>Pago en línea:</strong> Mercado Pago aprueba el pago del total.</li>
-            <li><strong>Contraentrega:</strong> Mercado Pago aprueba el abono del envío. Hasta ese momento el pedido no entra a producción ni se despacha.</li>
+            <li><strong>Contraentrega (sólo Bogotá):</strong> el pedido queda confirmado al registrarlo, sin pago por adelantado, y el total se paga en efectivo al recibir la pieza. Fuera de Bogotá el pago es anticipado.</li>
           </ul>
           <p>En ambos casos recibes la confirmación por WhatsApp y, si nos diste tu correo, también por correo electrónico.</p>
           <p>Nos reservamos el derecho de cancelar pedidos en caso de error en el precio, falta de inventario o sospecha de fraude.</p>
