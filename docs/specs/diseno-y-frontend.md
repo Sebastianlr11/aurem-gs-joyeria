@@ -69,6 +69,15 @@ otros cinco subconjuntos de Google (cirílico, griego, vietnamita) se descartaro
 > **No importes nada de `fonts.googleapis.com`.** La skill de diseño todavía lo dice y **está
 > desactualizada en ese punto** — [pendientes #6](../pendientes.md).
 
+**Y la precarga de las fuentes (`<link rel="preload" as="font">`) sólo vive en `app.html`.**
+En `index.html` y `catalogo.html`, los prerenderizados con la hoja en línea, el build la
+quita: medido el 7 de septiembre de 2026, con ella Chrome retenía el primer pintado de la
+página entera hasta ~2,4 s aunque todo —fuentes incluidas— estuviera bajado a los 650 ms.
+Sin ella pinta a los 330 ms, con la fuente de respaldo unos 100 ms y luego la propia (CLS
+0). Ahí la precarga no aporta nada: las `@font-face` van en línea y las fuentes se piden al
+parsear el `<head>`. En `app.html` la hoja cuelga de un `<link>` y sin la precarga las
+fuentes esperarían a que baje, así que ahí se queda. Ver la trampa en `CLAUDE.md` §11.
+
 **Marcellus sólo tiene peso 400.** Cualquier `font-weight` mayor produce negrita sintética.
 
 ## Animaciones — `src/lib/aparecer.js`

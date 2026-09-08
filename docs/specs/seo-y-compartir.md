@@ -92,9 +92,9 @@ ráfagas cuando alguien comparte un enlace en un grupo.
 **El sitemap se genera en el build** y **nunca lo tumba**: sin variables de entorno emite
 sólo las rutas fijas.
 
-**Las fuentes se precargan y se autoalojan** (`index.html:14-15`). Ver
-[diseno-y-frontend.md](diseno-y-frontend.md): el elemento LCP es el logo del navbar, que es
-texto en Marcellus.
+**Las fuentes se autoalojan, y se precargan sólo en `app.html`** (`index.html:14-15`): en
+los dos HTML prerenderizados el build quita la precarga porque retenía el primer pintado
+~2 s. Ver [diseno-y-frontend.md](diseno-y-frontend.md).
 
 ### Tres datos estructurados, y por qué esos tres
 
