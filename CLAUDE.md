@@ -842,6 +842,18 @@ Cosas que ya costaron un incidente. Léelas antes de tocar lo que describen.
   volviera a apuntar a `/index.html`, quien abre el enlace que Valentina le mandó por WhatsApp
   **vería la portada** un instante antes de que React pusiera su pieza. Por eso el `source`
   del comodín termina en `.+` y no en `.*`: la ruta raíz no puede caer ahí ni por accidente.
+- **Una fuente precargada retiene el primer pintado de la página entera, y no se ve en nada.**
+  Medido el 7 de septiembre de 2026 en producción, en Chrome 152 local y en el 151 de
+  PageSpeed: con los dos `<link rel="preload" as="font">` en el `<head>`, `/` y `/catalogo`
+  —ya pintados desde el build, con todo bajado a los 650 ms— no pintaban nada hasta los
+  ~2,4 s. Sin ellos, a los 330 ms. No es `font-display` ni las `@font-face`: es la precarga
+  en sí. Y Lighthouse le cargaba a ese pintado tardío todo lo que bajó antes, así que el FCP
+  simulado salía en 1,5 s y la nota en 93–97. Por eso `scripts/prerenderizar.mjs` las quita
+  de `index.html` y `catalogo.html` (la hoja va en línea y las fuentes se piden al parsear
+  el `<head>` igual) y las deja en `app.html`, donde la hoja cuelga de un `<link>`. **No las
+  vuelvas a poner en un HTML con la hoja en línea**, y si sospechas de esto en otra
+  pantalla, la prueba es `lighthouse --blocked-url-patterns "*.woff2"`: si el FCP observado
+  se desploma, es esto.
 - **El catálogo prerenderizado arranca de una semilla, y la semilla no es la verdad.**
   `catalogo.html` trae la lista de piezas del último build en `window.__catalogo`, y
   `useCatalogoPublico` arranca de ahí para que el primer render coincida con el HTML; en

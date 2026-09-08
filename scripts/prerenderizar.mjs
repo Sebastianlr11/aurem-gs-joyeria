@@ -132,6 +132,39 @@ const servidor = await import(pathToFileURL(SERVIDOR).href)
 const { pintar } = servidor
 const portada = pintar('/')
 
+/* ── Las precargas de fuentes se QUITAN de los HTML prerenderizados ─────────
+ *
+ * Medido el 7 de septiembre de 2026, en producción y reproducido en local con
+ * latencia artificial: con los dos `<link rel="preload" as="font">` en el
+ * `<head>`, Chrome (152 en macOS, y el 151 de PageSpeed en Linux) RETIENE EL
+ * PRIMER PINTADO de la página entera hasta ~2,4 s, con todo bajado a los
+ * 650 ms —las fuentes incluidas, a los 400—. Sin ellas, pinta a los 330 ms.
+ * No es `font-display` (con `optional` pasa igual) ni las @font-face (sin
+ * ninguna pasa igual): es la precarga en sí. Chrome trata las fuentes
+ * precargadas como bloqueantes del renderizado y aquí ese bloqueo no se
+ * soltaba a tiempo. Y se llevaba por delante la nota entera: Lighthouse
+ * atribuye a ese pintado tardío todo lo que bajó antes —el bundle, la
+ * consulta, las fotos— y el FCP simulado salía en 1,5 s para una página que
+ * ya venía pintada.
+ *
+ * En estos dos archivos la precarga no aporta nada que perder: la hoja va en
+ * línea, así que las `@font-face` se ven al parsear el `<head>` y las fuentes
+ * se piden en ese mismo instante. Lo que cambia es que el texto se pinta
+ * primero con la fuente de respaldo y ~100 ms después con la propia (CLS
+ * medido: 0). `app.html` las conserva: ahí la hoja cuelga de un `<link>` y sin
+ * la precarga las fuentes esperarían a que baje.
+ *
+ * Se busca por `as="font"` y se exige que haya dos: si `index.html` cambia de
+ * forma, esto se planta en vez de dejar el bloqueo puesto en silencio. */
+const PRECARGA_FUENTES = /\s*<link rel="preload" as="font"[^>]*>/g
+const precargasDeFuentes = (html.match(PRECARGA_FUENTES) || []).length
+if (precargasDeFuentes !== 2) {
+  throw new Error(
+    `Esperaba 2 precargas de fuentes en dist/index.html y hay ${precargasDeFuentes}. Si cambiaron ` +
+    'de forma, actualiza PRECARGA_FUENTES; si se quitaron del HTML, app.html se quedó sin ellas.'
+  )
+}
+
 if (!portada.includes('hero-frame')) {
   throw new Error(
     'La portada se pintó sin el hero. Es el elemento LCP: sin él este paso no ' +
@@ -141,7 +174,7 @@ if (!portada.includes('hero-frame')) {
 
 let conPortada = html.replace(HUECO, `<div id="root">${portada}</div>`)
 
-conPortada = conPortada.replace(ADELANTO_PIEZA, '')
+conPortada = conPortada.replace(ADELANTO_PIEZA, '').replace(PRECARGA_FUENTES, '')
 
 /* ── Y la hoja de estilos, adentro ────────────────────────────────────────
  *
@@ -189,6 +222,10 @@ if (relativas.length) {
   )
 }
 
+if (/as="font"/.test(conPortada)) {
+  throw new Error('index.html salió con la precarga de fuentes, que retiene el primer pintado')
+}
+
 await writeFile(CASCARON, conPortada.replace(enlaceHoja[0], `<style>${hoja}</style>`))
 
 const kb = (t) => `${(Buffer.byteLength(t) / 1024).toFixed(1)} KB`
@@ -230,7 +267,7 @@ console.log(`dist/app.html: el cascarón vacío para las demás rutas (${kb(html
  * ningún despliegue. Pero se dice a gritos en la consola, porque un catálogo
  * que vuelve a tardar 2,8 s no lo delata ninguna prueba.
  */
-const cascaron = html.replace(PRECARGA_HERO, '').replace(ADELANTO_PIEZA, '')
+const cascaron = html.replace(PRECARGA_HERO, '').replace(ADELANTO_PIEZA, '').replace(PRECARGA_FUENTES, '')
 
 async function pintarCatalogo() {
   const { url, clave } = servidor.SUPABASE
@@ -321,6 +358,7 @@ async function pintarCatalogo() {
   for (const [nombre, marca] of [['la rejilla', 'catalogo-grid'], ['la semilla', 'window.__catalogo='], ['el modulepreload', 'modulepreload'], ['el título', meta.titulo]]) {
     if (!salida.includes(marca)) throw new Error(`catalogo.html salió sin ${nombre}`)
   }
+  if (/as="font"/.test(salida)) throw new Error('catalogo.html salió con la precarga de fuentes, que retiene el primer pintado')
 
   await writeFile(CATALOGO, salida)
   console.log(
