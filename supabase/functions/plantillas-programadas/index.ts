@@ -26,6 +26,7 @@ import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { admin, enviarPlantilla } from '../_shared/wa.ts'
 import { aNumeroDeWhatsApp } from '../_shared/reglas.ts'
 import { rastreoDe } from '../_shared/envios.ts'
+import { conReintento } from '../_shared/reintento.ts'
 
 const ACTIVAS = Deno.env.get('PLANTILLAS_ACTIVAS') === 'true'
 
@@ -89,11 +90,34 @@ type Envio = {
 async function mandar(e: Envio): Promise<'enviada' | 'repetida' | 'apagada' | string> {
   const db = admin()
 
-  const { data: anotada, error: choque } = await db.from('plantillas_enviadas').insert({
-    phone_number: e.telefono,
-    plantilla: e.plantilla,
-    pedido_id: e.pedidoId,
-  }).select('id').single()
+  /* Con reintento, y con un cuidado que importa.
+   *
+   * El 8 de septiembre de 2026 este insert recibió `504 Gateway Timeout` en
+   * tres corridas seguidas —un mal día de la puerta de enlace de Supabase, no
+   * de la base— y como el envío va DESPUÉS del candado, esa plantilla no
+   * salió durante tres horas. Nadie recibió nada dos veces, pero una clienta
+   * esperó de más por un bache de red.
+   *
+   * `conReintento` no repite un 23505: eso no es un tropiezo, es el candado
+   * contestando «ésta ya salió», y repetirlo mandaría el mensaje dos veces.
+   * Queda un caso raro y elegido a conciencia: si el primer intento se
+   * escribió de verdad y sólo se perdió la respuesta, el segundo choca contra
+   * el índice y esto devuelve 'repetida', así que el mensaje NO sale. Entre
+   * saltarse uno y mandar dos a la misma persona, se prefiere saltárselo — es
+   * la misma decisión que ya toma `buscarPieza` en el bot. (Comprobado ese
+   * día: las filas no llegaron a escribirse, así que el reintento habría
+   * bastado.) */
+  const { data: anotada, error: choque } = await conReintento(
+    () => db.from('plantillas_enviadas').insert({
+      phone_number: e.telefono,
+      plantilla: e.plantilla,
+      pedido_id: e.pedidoId,
+    }).select('id').single(),
+    {
+      alReintentar: (intento, error) =>
+        console.warn(`plantillas: anotar el envío falló por red (intento ${intento}): ${error?.message ?? '?'}; se reintenta`),
+    },
+  )
 
   if (choque) {
     if (choque.code === '23505') return 'repetida'
@@ -476,8 +500,15 @@ Deno.serve(async (req: Request) => {
      tenga que pasar por ninguna mano: lo generó la base, lo lee el cron para
      firmar su llamada, y lo lee esta función para verificarla. Rotarlo es un
      UPDATE, sin redesplegar nada. */
-  const { data: ajuste } = await admin()
-    .from('ajustes_internos').select('valor').eq('clave', 'cron_secreto').maybeSingle()
+  /* Con reintento: un 504 aquí deja la corrida entera en «sin configurar» y
+     ninguna plantilla sale esa hora. */
+  const { data: ajuste } = await conReintento(
+    () => admin().from('ajustes_internos').select('valor').eq('clave', 'cron_secreto').maybeSingle(),
+    {
+      alReintentar: (intento, error) =>
+        console.warn(`plantillas: leer el secreto del cron falló por red (intento ${intento}): ${error?.message ?? '?'}; se reintenta`),
+    },
+  )
 
   const secreto = String(ajuste?.valor ?? '')
   if (!secreto) {

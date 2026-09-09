@@ -167,6 +167,16 @@ pedido del checkout guarda `+573…` y la conversación `573…`, así que una c
 de comprar recibía igual `cotizacion_sin_cerrar` — de Marketing, y pagada. Es la misma trampa
 que ya se había cerrado en `puede_recibir_plantillas()` y en los disparadores de `es_prueba`.
 
+**El candado se escribe con reintento, y nunca se repite un 23505.** El 8 de septiembre de
+2026 ese insert recibió `504 Gateway Timeout` en tres corridas seguidas —un mal día de la
+puerta de enlace de Supabase— y como el envío va después del candado, esa plantilla no salió
+durante tres horas. Ahora va con `conReintento` (`_shared/reintento.ts`), que repite los
+tropiezos de red pero **nunca un 23505**: eso es el candado contestando «ésta ya salió», y
+repetirlo mandaría el mensaje dos veces. Queda un caso raro y elegido a conciencia: si el
+primer intento se escribió de verdad y sólo se perdió la respuesta, el segundo choca contra el
+índice y la plantilla no sale. Entre saltarse una y mandar dos a la misma persona, se prefiere
+saltársela.
+
 ## Límites conocidos y pendientes
 
 - `pieza_en_fabricacion` **está desplegada pero Meta aún no la ha aprobado**: hasta entonces

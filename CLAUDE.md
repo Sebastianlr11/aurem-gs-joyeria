@@ -39,7 +39,7 @@ npm run dev          # Vite en http://localhost:5173
 npm run build        # eslint && vitest && sitemap.mjs && correos.mjs && tsc -b && vite build
 npm run preview      # Sirve /dist
 npm run lint         # ESLint (sí corre en el build)
-npm test             # Vitest, una pasada (391 pruebas)
+npm test             # Vitest, una pasada (406 pruebas)
 npm run test:mirar   # Vitest en marcha, repitiendo al guardar
 
 npm run sitemap      # Regenera public/sitemap.xml desde Supabase
@@ -79,7 +79,7 @@ Cuatro advertencias sobre el build:
 
 ### Las pruebas
 
-Hay **391**, en veintiocho archivos que viven al lado de lo que prueban:
+Hay **406**, en veintinueve archivos que viven al lado de lo que prueban:
 
 | Archivo | Qué fija |
 |---|---|
@@ -90,6 +90,7 @@ Hay **391**, en veintiocho archivos que viven al lado de lo que prueban:
 | `src/pages/admin/chat/*.test.js(x)` | Los ganchos del chat, la ficha, la selección, el diálogo, y quién es la siguiente por atender |
 | `supabase/functions/_shared/reglas.test.ts` | Las reglas de Valentina |
 | `supabase/functions/_shared/bucle.test.ts` | El bucle del agente, sin Deno y sin red |
+| `supabase/functions/_shared/reintento.test.ts` | Qué fallo merece otro intento — y sobre todo cuál **no** |
 | `supabase/functions/_shared/lote.test.ts` | Que de un POST de Meta con varios mensajes no se pierda ninguno |
 | `supabase/functions/_shared/redaccion.test.ts` | Lo que se le pide al modelo al redactar una pieza, y lo que se le revisa |
 | `src/lib/envio.test.js` | La caja en la que viaja una pieza: `null` nunca viaja como cero |
@@ -242,6 +243,9 @@ Módulos compartidos en `supabase/functions/_shared/`:
 - `correos.ts` — la confirmación por correo de un pedido. Aparte porque la mandan dos
   momentos que no se conocen: `mp-webhook` cuando entra un pago, y `create-preference`
   cuando un contraentrega de Bogotá nace confirmado sin pagar nada
+- `reintento.ts` — un segundo intento cuando el que falla es el camino y no la consulta.
+  Sin Deno, con prueba. **Nunca repite un 23505**: el candado de plantillas contestando «ésta
+  ya salió» es una respuesta, y repetirla mandaría el mensaje dos veces
 - `lote.ts` — lo que trae un POST de Meta, desmenuzado: todas las entradas, todos los cambios,
   todos los mensajes. Sin Deno, con prueba. Existe porque `wa-webhook` leía sólo
   `messages[0]` y lo demás se perdía sin rastro
@@ -842,6 +846,17 @@ Cosas que ya costaron un incidente. Léelas antes de tocar lo que describen.
   volviera a apuntar a `/index.html`, quien abre el enlace que Valentina le mandó por WhatsApp
   **vería la portada** un instante antes de que React pusiera su pieza. Por eso el `source`
   del comodín termina en `.+` y no en `.*`: la ruta raíz no puede caer ahí ni por accidente.
+- **Un 504 de la puerta de enlace no es una avería del negocio, y el vigía no debe gritarlo.**
+  El 8 de septiembre de 2026 llegaron dos correos de «REVISAR AHORA» por tres comprobaciones
+  —la regla del dinero, el libro de caja, el candado del panel— que corridas a mano pasaban
+  las tres en menos de 30 ms. Lo que fallaba era la puerta de enlace de Supabase devolviendo
+  `504 Gateway Timeout` a las llamadas **que salen de las Edge Functions**; desde fuera el API
+  respondía 50 de 50. La misma racha dejó sin salir una plantilla de WhatsApp durante tres
+  horas. Dos reglas desde entonces: las llamadas que cuestan algo van con `conReintento`
+  (`_shared/reintento.ts`), y **«no pude comprobarlo» va como leve**, no como grave — el correo
+  sale si hay algo grave de verdad, o si un aviso leve se repite en dos corridas seguidas.
+  Para reconocer el caso en los registros: `Warp server error: Thread killed by timeout
+  manager` en `postgrest_logs` a la misma hora.
 - **Una fuente precargada retiene el primer pintado de la página entera, y no se ve en nada.**
   Medido el 7 de septiembre de 2026 en producción, en Chrome 152 local y en el 151 de
   PageSpeed: con los dos `<link rel="preload" as="font">` en el `<head>`, `/` y `/catalogo`
