@@ -24,7 +24,7 @@ pg_cron cada hora en el minuto 30  ·  '30 * * * *'
   │     (comparación de largo constante, :29-34)
   ├── corre las comprobaciones → Hallazgo[] { que, detalle, grave }
   ├── guarda en vigilancia_ultima (id=1): hallazgos[] + corrida_en
-  └── SÓLO si hay hallazgos → POST /api/correo → plantilla alerta-sistema
+  └── SÓLO si hay algo grave —o un leve que se repite— → POST /api/correo → alerta-sistema
 ```
 
 El Dashboard lee `vigilancia_ultima` y muestra las averías y el "Revisado hace X"
@@ -159,6 +159,22 @@ Mira dos banderas, y cada una corresponde a un problema real de ese mismo día:
 convierte en un correo que nadie abre — *"y el día que diga otra cosa tampoco lo van a
 abrir"*. El silencio es la señal de que todo va bien.
 
+**Un fallo de red no es una avería, y desde el 8 de septiembre de 2026 no manda correo.** Ese
+día la puerta de enlace de Supabase devolvió `504 Gateway Timeout` intermitentemente a las
+llamadas que salen de las Edge Functions, y llegaron dos correos de «REVISAR AHORA» por tres
+comprobaciones que, corridas a mano, pasaban las tres en menos de 30 ms. Dos cambios:
+
+- Las llamadas van con `conReintento` (`_shared/reintento.ts`): un 504 en una consulta de
+  6 ms merece otro intento, no un correo. Cada reintento queda en el registro, que es lo
+  único que puede delatarlos — por definición no producen hallazgo.
+- **«No se pudo revisar X» va como `grave: false`.** No poder comprobar algo no es que ese
+  algo esté roto. El correo sale si hay un hallazgo grave, o si uno leve **se repite**
+  respecto a la corrida anterior: entonces ya no es un bache, lleva media hora sin funcionar.
+  Los leves nuevos igual quedan en `vigilancia_ultima` y se ven en la portada del panel, en
+  su tono apagado.
+
+Para eso la corrida lee `vigilancia_ultima` **antes** de pisarla.
+
 **Las comprobaciones no son genéricas** (`:9-10`): **cada una corresponde a algo que ya
 falló, o que si falla cuesta plata directamente**. No es un healthcheck de manual; es una
 lista de cicatrices. Por eso vigila las fotos de WhatsApp (que fallan con un 200 engañoso) y
@@ -193,7 +209,8 @@ hace X". Un panel que no dice cuándo se revisó por última vez no distingue "t
 - **Nadie vigila al vigía.** Si la función deja de correr, lo único que lo delata es que el
   "Revisado hace X" del panel envejece — y hay que mirarlo.
 - Los umbrales están hardcodeados, no configurables desde Ajustes.
-- No hay escalado: todos los hallazgos van al mismo correo, graves o no.
+- El escalado es de dos peldaños y nada más: grave manda correo, leve sólo si se repite. No
+  hay a-quién-según-qué; todos los hallazgos van al mismo correo y a la misma gente.
 
 ## Cómo probarlo
 

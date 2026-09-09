@@ -15,6 +15,12 @@
  */
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { admin } from '../_shared/wa.ts'
+import { conReintento } from '../_shared/reintento.ts'
+
+/* Cada reintento queda dicho. Si un día son muchos, el registro es lo único
+   que lo va a delatar: por definición no producen ningún hallazgo. */
+const avisarReintento = (que: string) => (intento: number, error: { message?: string } | null | undefined) =>
+  console.warn(`vigilancia: ${que} falló por red (intento ${intento}): ${error?.message ?? '?'}; se reintenta`)
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -39,8 +45,13 @@ Deno.serve(async (req: Request) => {
 
   const db = admin()
 
-  const { data: ajuste } = await db
-    .from('ajustes_internos').select('valor').eq('clave', 'cron_secreto').maybeSingle()
+  /* Con reintento: un 504 aquí mata la corrida entera con un «sin
+     configurar», y el vigía se queda mudo justo cuando la plataforma está
+     teniendo un mal día. */
+  const { data: ajuste } = await conReintento(
+    () => db.from('ajustes_internos').select('valor').eq('clave', 'cron_secreto').maybeSingle(),
+    { alReintentar: avisarReintento('leer el secreto del cron') },
+  )
   const secreto = String(ajuste?.valor ?? '')
   if (!secreto) return json({ error: 'sin configurar' }, 500)
   if (!iguales(String(req.headers.get('x-cron-secreto') ?? ''), secreto)) {
@@ -319,12 +330,18 @@ Deno.serve(async (req: Request) => {
      No es paranoia: el mismo día que se escribió esto, una tabla de tallas
      duplicada resultó discrepar en el 29 % de los casos sin que nadie lo
      supiera. Aquello eran anillos; esto es la caja. */
-  const { data: descuadre, error: errDinero } = await db.rpc('regla_del_dinero_cuadra')
+  const { data: descuadre, error: errDinero } = await conReintento(
+    () => db.rpc('regla_del_dinero_cuadra'),
+    { alReintentar: avisarReintento('la regla del dinero') },
+  )
   if (errDinero) {
     hallazgos.push({
       que: 'No se pudo revisar la regla del dinero',
       detalle: errDinero.message,
-      grave: true,
+      /* No grave: que no se pudiera COMPROBAR no es que esté rota. Ver la
+         nota larga sobre los correos del 8 de septiembre de 2026, más abajo,
+         donde se decide a quién se avisa. */
+      grave: false,
     })
   } else if (descuadre?.length) {
     for (const d of descuadre as Array<{ regla: string; caso: string; dice: string; deberia_decir: string }>) {
@@ -346,12 +363,15 @@ Deno.serve(async (req: Request) => {
 
      La de arriba comprueba que la regla diga lo que debe; ésta, que el libro
      le haga caso. */
-  const { data: caja, error: errCaja } = await db.rpc('caja_cuadra_con_la_regla')
+  const { data: caja, error: errCaja } = await conReintento(
+    () => db.rpc('caja_cuadra_con_la_regla'),
+    { alReintentar: avisarReintento('el libro de caja') },
+  )
   if (errCaja) {
     hallazgos.push({
       que: 'No se pudo cuadrar el libro de caja',
       detalle: errCaja.message,
-      grave: true,
+      grave: false,
     })
   } else if (caja?.length) {
     for (const c of caja as Array<{ pedido: string; estado: string; forma_de_pago: string; dice_el_libro: number; dice_la_regla: number }>) {
@@ -417,12 +437,15 @@ Deno.serve(async (req: Request) => {
     }
   }
 
-  const { data: flojas, error: errFlojas } = await db.rpc('politicas_flojas')
+  const { data: flojas, error: errFlojas } = await conReintento(
+    () => db.rpc('politicas_flojas'),
+    { alReintentar: avisarReintento('el candado del panel') },
+  )
   if (errFlojas) {
     hallazgos.push({
       que: 'No se pudo revisar el candado del panel',
       detalle: errFlojas.message,
-      grave: true,
+      grave: false,
     })
   } else if (flojas?.length) {
     for (const f of flojas as Array<{ donde: string; politica: string; motivo: string }>) {
@@ -441,7 +464,10 @@ Deno.serve(async (req: Request) => {
      algo cree una cuenta sin rol —a mano en el dashboard, por ejemplo— no
      tarde un mes en verse. */
   try {
-    const { data: cuentas, error: errCuentas } = await db.auth.admin.listUsers({ perPage: 200 })
+    const { data: cuentas, error: errCuentas } = await conReintento(
+      () => db.auth.admin.listUsers({ perPage: 200 }),
+      { alReintentar: avisarReintento('las cuentas del panel') },
+    )
     if (errCuentas) throw errCuentas
     const sinRol = (cuentas?.users ?? []).filter((u) => !['dueño', 'equipo'].includes(String(u.app_metadata?.rol ?? '')))
     for (const u of sinRol) {
@@ -506,17 +532,50 @@ Deno.serve(async (req: Request) => {
      fuera de ahora, que es peor que no enseñar nada: el aviso viejo hace
      desconfiar de todos los demás. Cero hallazgos es una respuesta, y además
      es la que dice que la revisión corrió. */
+  /* Qué encontró la corrida anterior, leído ANTES de pisarlo: es lo único
+     que permite distinguir un bache de un problema que no se va. */
+  const { data: anterior } = await conReintento(
+    () => db.from('vigilancia_ultima').select('hallazgos').eq('id', 1).maybeSingle(),
+    { alReintentar: avisarReintento('leer la revisión anterior') },
+  )
+  const antes = new Set(((anterior?.hallazgos ?? []) as Hallazgo[]).map((h) => h.que))
+
   await db.from('vigilancia_ultima')
     .update({ corrida_en: new Date().toISOString(), hallazgos })
     .eq('id', 1)
 
   if (!hallazgos.length) return json({ ok: true, hallazgos: 0 })
 
+  /* ── A quién se le arruina el día, y por qué ────────────────────────────
+   *
+   * El 8 de septiembre de 2026 llegaron dos correos de «REVISAR AHORA · hay
+   * 2 cosas que no están funcionando» por tres comprobaciones que, corridas
+   * a mano un rato después, pasaban las tres. Lo que había fallado no era el
+   * dinero ni el candado: era la puerta de enlace de Supabase devolviendo
+   * 504 a consultas de seis milisegundos.
+   *
+   * El reintento de arriba se lleva casi todos esos casos. Para el resto,
+   * la regla: **«no pude comprobarlo» no es «está roto»**, y no vale un
+   * correo en rojo. Se manda si hay algo grave de verdad, o si un aviso leve
+   * **se repite** respecto a la corrida anterior — porque entonces ya no es
+   * un bache, es algo que lleva media hora sin funcionar y que hay que
+   * mirar.
+   *
+   * Los leves nuevos igual quedan escritos arriba, así que se ven en la
+   * portada del panel, en su tono apagado. No se pierden: dejan de gritar. */
+  const graves = hallazgos.filter((h) => h.grave !== false)
+  const insistentes = hallazgos.filter((h) => h.grave === false && antes.has(h.que))
+
+  if (!graves.length && !insistentes.length) {
+    console.log(`vigilancia: ${plural(hallazgos.length, 'aviso leve', 'avisos leves')} y nuevos; se anotan sin correo`)
+    return json({ ok: true, hallazgos: hallazgos.length, correo: false, detalle: hallazgos })
+  }
+
   /* Se avisa por correo a quien tenga acceso al panel. La clave de
      idempotencia lleva la hora: si el problema sigue mañana vuelve a avisar,
      pero no manda un correo por cada pasada mientras dura. */
   await avisar(db, sitio, hallazgos)
-  return json({ ok: true, hallazgos: hallazgos.length, detalle: hallazgos })
+  return json({ ok: true, hallazgos: hallazgos.length, correo: true, detalle: hallazgos })
 })
 
 async function avisar(
