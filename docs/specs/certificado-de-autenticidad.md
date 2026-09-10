@@ -42,7 +42,8 @@ verificación de verdad.
 |---|---|
 | `src/lib/certificado.js` | Lógica pura: el código, el congelado, el formato, y los textos del documento. 23 pruebas |
 | `supabase/migrations/20260910_cada_pieza_con_su_certificado.sql` | `products.peso_gramos`, la tabla `certificados`, la RPC pública |
-| `src/pages/Certificado.jsx` · `.css` | `/certificado/:codigo` — la página del QR |
+| `src/pages/Certificado.jsx` · `.css` | `/certificado/:codigo` — la página del QR, que **es** el documento imprimible |
+| `src/components/CodigoQr.jsx` | El QR como SVG, para que la impresora lo rasterice a su resolución |
 | `src/pages/admin/certificado/tarjeta.js` | La tarjeta, pintada en un `<canvas>` |
 | `src/pages/admin/certificado/DialogoCertificado.jsx` | Emitir, previsualizar, mandar, anular |
 
@@ -111,6 +112,20 @@ nombre de una clienta encima.
 **La página va con Navbar y Footer.** Quien escanea muchas veces no es la clienta sino a
 quien le regalaron la pieza, y ése acaba de conocer la marca.
 
+**La página es una hoja carta, no una pantalla.** Portada del diseño `Certificado de
+Autenticidad.dc.html`, que es un documento paginado de 8,5 × 11 pulgadas. Se diseñó para
+imprimirse y se adapta al navegador, no al revés — por eso el ancho de la hoja va **en
+pulgadas**: medida en píxeles se imprimiría a un tamaño distinto en cada navegador. Por
+debajo de 760 px las tres rejillas se apilan, que es donde está casi todo el que escanea un
+QR.
+
+**Las tres casillas del diseño cambiaron de contenido, no de forma.** Decían «Garantía ·
+Envío · Pago» con «24 a 48 horas hábiles» y «contra entrega en todo el país». Las dos son
+falsas aquí: el envío es de 3 a 4 días en Bogotá y de 4 a 6 al resto del país, y el
+contraentrega **es sólo Bogotá** —`create-preference` responde 422 fuera de ella—. Un
+certificado es el papel que la clienta enseña al reclamar: lo que prometa ahí, se cumple.
+Ahora las casillas llevan las dos garantías y la exclusión de las piedras.
+
 **`noindex` + `robots.txt`.** Lleva el nombre de pila de una clienta y la joya que compró.
 
 ## Límites conocidos
@@ -122,8 +137,10 @@ quien le regalaron la pieza, y ése acaba de conocer la marca.
 - **Compartir el enlace por WhatsApp da la tarjeta genérica del sitio.** El desvío de
   `vercel.json` a `api/ficha.js` sólo cubre las fichas de producto. Un certificado
   compartido no enseña de qué pieza es.
-- **La versión impresa no existe todavía.** El diseño ya está pensado a dos caras para
-  cuando se imprima; hoy sólo hay una.
+- **Las fotos de las piezas ya no están en la página.** El diseño es una tabla de
+  documento y no las contempla. Se perdió la comprobación más directa que tenía —quien
+  tiene la joya en la mano ya no puede compararla con nada—, y volver a meterlas es una
+  fila con una miniatura de 26 px.
 - **El peso lo llena el taller pieza por pieza.** Ahí está el costo real de esto, y no en
   el código. Sin peso la línea no sale.
 - **Anular es de una sola dirección.** No hay «desanular» en el panel; se arregla con un

@@ -1,366 +1,417 @@
 /* ================================================================
    El certificado de autenticidad — `/certificado/:codigo`
 
-   Su propia hoja y no `index.css`, como el resto de las pantallas que se
-   cargan perezosas: `index.css` bloquea el primer pintado en TODAS las rutas,
-   así que cada regla que viva ahí la paga también quien sólo abre la portada.
-   Esta pantalla la visita quien acaba de escanear un QR — nadie más.
+   Portado del diseño `Certificado de Autenticidad.dc.html`, que es un
+   documento paginado de 8,5 × 11 pulgadas. **Esta pantalla es una hoja, no una
+   página web**: se diseñó para imprimirse y se adapta al navegador, no al
+   revés.
+
+   De ahí la única decisión rara de esta hoja: **el ancho va en pulgadas.** Una
+   hoja medida en píxeles se imprime a un tamaño que depende del navegador y de
+   su zoom; en pulgadas sale igual en todas partes, y la pantalla la encoge sola
+   cuando no cabe.
+
+   Su propia hoja de estilos y no `index.css`, como el resto de las pantallas
+   perezosas: `index.css` bloquea el primer pintado en TODAS las rutas, así que
+   cada regla que viva ahí la paga también quien sólo abre la portada. Esta
+   pantalla la visita quien acaba de escanear un QR — nadie más.
 
    **Se carga DESPUÉS de `index.css`**, así que a igual especificidad gana lo
-   de aquí. Todo va prefijado `cert-` por eso mismo: para no pisarle nada a
-   nadie sin querer.
-
-   La forma es la de un documento, no la de una tarjeta de interfaz: papel
-   blanco sobre marfil, filete de oro de 1px por dentro del borde, y los datos
-   separados por líneas de pelo. Radio 2px, como todo el sistema — un
-   certificado con esquinas redondeadas de 16px se lee como un cupón.
+   de aquí. Todo va prefijado `cert-` por eso mismo.
    ================================================================ */
 
+/* 9rem arriba, como el encabezado del catálogo: el navbar es `position: fixed`
+   y sin ese hueco la hoja nace debajo de la píldora de navegación —el nombre
+   de la marca queda tapado justo en la pantalla que la gente abre para
+   comprobar que la joyería es real—. En móvil son 7rem, igual que allá. */
 .cert-pagina {
-  max-width: 720px;
-  margin: 0 auto;
-  padding: 3rem 1.5rem 6rem;
+  padding: 9rem 1rem 4rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
 }
 
-/* ── El documento ─────────────────────────────────────────────── */
+/* ── La hoja ──────────────────────────────────────────────────── */
 
-.cert-doc {
-  position: relative;
+.cert-hoja {
+  /* 8,5in menos el margen de 40px del diseño a cada lado. En pantalla se
+     encoge sola; en papel es exactamente la caja de la hoja. */
+  width: min(100%, 7.67in);
+  box-sizing: border-box;
   background: var(--bg-color);
   border: 1px solid var(--hairline);
   border-radius: 2px;
-  padding: 3.5rem 3rem 3rem;
-}
-
-/* El filete de oro, por dentro del borde. Es el marco del sistema —1px, oro
-   viejo— y no un segundo borde: por eso va en su propia capa y a 12px de la
-   caja, igual que el marco interior de la banda oscura de la portada. */
-.cert-marco {
-  position: absolute;
-  inset: 12px;
-  border: 1px solid rgba(168, 134, 63, 0.32);
-  border-radius: 2px;
-  pointer-events: none;
+  padding: 44px 52px 34px;
+  color: var(--ink);
+  font-family: var(--font-ui);
 }
 
 /* Un certificado anulado tiene que verse anulado de un vistazo, antes de leer
-   una palabra. Se apaga el papel y el filete pierde el oro. */
-.cert-doc--anulado { background: var(--bg-marfil); }
-.cert-doc--anulado .cert-marco { border-color: var(--hairline); }
-.cert-doc--anulado .cert-foto img { filter: grayscale(1); opacity: 0.55; }
+   una palabra. Se apaga el papel entero. */
+.cert-hoja--anulada { background: var(--bg-marfil); }
 
 /* ── Cabecera ─────────────────────────────────────────────────── */
 
-.cert-cabecera {
-  text-align: center;
-  padding-bottom: 2rem;
-  border-bottom: 1px solid var(--hairline);
-  margin-bottom: 2rem;
+.cert-cab {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
 }
 
-.cert-antetitulo {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.75rem;
-  margin: 0 0 1.25rem;
-  font-family: var(--font-ui);
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.24em;
+.cert-marca { display: flex; align-items: center; gap: 14px; }
+
+/* El isotipo va en oro: es acento decorativo, que es justo para lo que sirve
+   `--oro` —nunca para texto sobre claro—.
+
+   Con `color` y no con `fill`: los trazados usan `currentColor` a propósito,
+   igual que en el navbar. Y el ancho va explícito y no en `auto` porque al
+   imprimir un SVG sin ancho intrínseco algunos navegadores lo colapsan.
+   47px son los 34 de alto por la proporción del viewBox (240 × 171). */
+.cert-iso { height: 34px; width: 47px; display: block; flex: none; color: var(--oro); }
+
+.cert-marca-texto { display: flex; flex-direction: column; gap: 5px; }
+
+.cert-marca-nombre {
+  font-family: var(--font-display);
+  /* Marcellus sólo tiene peso 400: cualquier valor mayor produce negrita
+     sintética, y a este tamaño se nota. */
+  font-weight: 400;
+  font-size: 22px;
+  letter-spacing: 0.14em;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.cert-marca-sub {
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.26em;
   text-transform: uppercase;
   color: var(--oro-ink);
 }
 
-.cert-filete {
-  display: block;
-  width: 32px;
-  height: 1px;
-  background: var(--oro);
+/* El punzón, con la muesca en dos esquinas del diseño —no la de seis lados del
+   sistema—. Marca un dato comprobable, que es para lo que existe. */
+.cert-punzon {
+  padding: 9px 16px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--oro-ink);
+  background: linear-gradient(180deg, var(--bg-color), var(--bg-marfil));
+  border: 1px solid var(--oro-hairline);
+  clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+}
+
+/* Anulado no lleva el oro de la marca: llevaría a leerlo como un sello de
+   validez, que es exactamente lo contrario de lo que dice. */
+.cert-punzon--anulado {
+  color: var(--error-fuerte);
+  border-color: rgba(140, 47, 30, 0.3);
+  background: var(--error-fondo);
+}
+
+/* ── El filete ────────────────────────────────────────────────── */
+
+.cert-regla { display: flex; align-items: center; margin: 26px 0 24px; }
+.cert-regla-oro { height: 1px; width: 64px; background: var(--oro); }
+.cert-regla-pelo { height: 1px; flex: 1; background: var(--hairline); }
+
+/* ── Título y los datos del documento ─────────────────────────── */
+
+.cert-encabezado {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 36px;
+  align-items: end;
 }
 
 .cert-titulo {
   margin: 0;
   font-family: var(--font-display);
-  /* Marcellus sólo tiene peso 400. Cualquier valor mayor produce negrita
-     sintética, que a este tamaño se nota. */
   font-weight: 400;
-  font-size: clamp(1.9rem, 5vw, 2.6rem);
-  line-height: 1.08;
-  letter-spacing: -0.015em;
+  font-size: 44px;
+  line-height: 1.06;
   color: var(--ink);
 }
 
-/* El énfasis de la segunda línea se hace con versalitas espaciadas y nunca
-   con cursiva: la serif no tiene itálica y el navegador la inclinaría él. */
+/* El énfasis va en versalitas espaciadas y NUNCA en cursiva: Marcellus no
+   tiene itálica y el navegador la inclinaría él. */
 .cert-titulo em {
   display: block;
-  margin-top: 0.35em;
   font-style: normal;
   font-weight: 400;
-  font-size: 0.62em;
+  font-size: 27px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
-/* El punzón del sistema. Va aquí porque esto es exactamente lo que el punzón
-   marca: un dato comprobable. */
-.cert-sello { margin-top: 1.5rem; }
+.cert-meta {
+  margin: 0;
+  min-width: 236px;
+  padding-left: 24px;
+  border-left: 1px solid var(--hairline);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.cert-meta dt {
+  margin-bottom: 5px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--oro-ink);
+}
+
+.cert-meta dd { margin: 0; }
+
+.cert-meta-codigo {
+  font-size: 22px;
+  font-weight: 800;
+  /* El código se lee en voz alta y se teclea desde una tarjeta impresa: se
+     separa para que ninguna pareja de caracteres se lea como una sola. */
+  letter-spacing: 0.03em;
+  color: var(--ink);
+}
+
+.cert-meta-fecha { font-size: 16px; font-weight: 600; color: var(--ink); }
 
 /* ── El aviso de anulado ──────────────────────────────────────── */
 
 .cert-anulado {
-  margin-bottom: 2rem;
-  padding: 1.25rem 1.5rem;
+  margin-top: 26px;
+  padding: 16px 20px;
   background: var(--error-fondo);
   border: 1px solid rgba(140, 47, 30, 0.22);
-  border-radius: 2px;
   color: var(--error-ink);
-  font-size: 0.95rem;
-  line-height: 1.6;
+  font-size: 13.5px;
+  line-height: 1.55;
 }
 
 .cert-anulado p { margin: 0; }
 
 .cert-anulado-titulo {
-  margin-bottom: 0.5rem !important;
+  margin-bottom: 6px !important;
   font-weight: 700;
   color: var(--error-fuerte);
 }
 
 /* ── A nombre de quién ────────────────────────────────────────── */
 
-.cert-nombre {
-  margin: 0 0 2rem;
-  text-align: center;
+.cert-titular {
+  margin-top: 26px;
+  padding: 20px 26px;
+  background: var(--bg-arena);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
 }
 
-.cert-nombre-rotulo {
+/* El rótulo dorado del documento. Se repite en seis sitios: aquí una vez. */
+.cert-rotulo {
   display: block;
-  margin-bottom: 0.5rem;
-  font-family: var(--font-ui);
-  font-size: 0.63rem;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--text-secondary);
-}
-
-.cert-nombre strong {
-  font-family: var(--font-display);
-  font-weight: 400;
-  font-size: 1.85rem;
-  line-height: 1.15;
-  color: var(--ink);
-}
-
-/* ── Las piezas ───────────────────────────────────────────────── */
-
-/* Cuántas ampara, dicho antes de enseñarlas: quien mira un certificado de dos
-   joyas necesita saber que la segunda también está cubierta. */
-.cert-cuantas {
-  margin: 0 0 1.5rem;
-  text-align: center;
-  font-family: var(--font-ui);
-  font-size: 0.63rem;
+  margin-bottom: 6px;
+  font-size: 9.5px;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--oro-ink);
 }
 
-.cert-piezas { display: flex; flex-direction: column; gap: 2rem; }
-
-/* Con varias, cada una se separa con una línea de pelo — no con una tarjeta.
-   Un documento no lleva tarjetas dentro. */
-.cert-piezas--varias .cert-pieza + .cert-pieza,
-.cert-piezas--varias .cert-pieza {
-  padding-top: 0;
-}
-.cert-piezas--varias .cert-pieza:not(:first-child) {
-  padding-top: 2rem;
-  border-top: 1px solid var(--hairline);
-}
-
-.cert-pieza-nombre {
-  margin: 0 0 1rem;
-  text-align: center;
+.cert-titular-nombre {
+  display: block;
   font-family: var(--font-display);
   font-weight: 400;
-  font-size: 1.5rem;
-  line-height: 1.15;
+  font-size: 30px;
+  line-height: 1.1;
   color: var(--ink);
 }
 
-/* Con varias piezas la foto se encoge: si cada una ocupa 380px, un certificado
-   de tres joyas se vuelve un rollo de scroll. */
-.cert-piezas--varias .cert-foto img { width: min(300px, 76%); }
+.cert-ampara {
+  text-align: right;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
 
-.cert-comparar {
-  margin: 1.5rem 0 2rem;
-  text-align: center;
-  font-size: 0.85rem;
+.cert-ampara-n {
+  display: block;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 24px;
+  color: var(--ink);
+}
+
+/* ── La tabla de piezas ───────────────────────────────────────── */
+
+.cert-tabla { margin-top: 30px; }
+
+.cert-tabla-cab,
+.cert-fila {
+  display: grid;
+  grid-template-columns: 26px 1fr 118px;
+  gap: 16px;
+}
+
+.cert-tabla-cab {
+  padding-bottom: 9px;
+  /* Línea de tinta, no de pelo: es lo que separa el encabezado de los datos y
+     le da al bloque el peso de una tabla de documento. */
+  border-bottom: 1px solid var(--ink);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.cert-col-ref { text-align: right; }
+
+.cert-fila {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--hairline);
+  align-items: baseline;
+}
+
+.cert-num {
+  font-family: var(--font-display);
+  font-size: 17px;
+  color: var(--oro-ink);
+}
+
+.cert-pieza { display: block; min-width: 0; }
+
+.cert-pieza-nombre {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.cert-pieza-ficha {
+  display: block;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.cert-ref {
+  text-align: right;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--oro-ink);
+}
+
+/* ── Lo que se responde por las piezas ────────────────────────── */
+
+.cert-tira {
+  margin-top: 28px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border: 1px solid var(--hairline);
+}
+
+.cert-tira-celda {
+  padding: 16px 20px;
+  border-right: 1px solid var(--hairline);
+}
+
+.cert-tira-celda:last-child { border-right: 0; }
+
+.cert-tira-celda p {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+/* ── Verificación y firma ─────────────────────────────────────── */
+
+.cert-pie {
+  margin-top: 28px;
+  padding-top: 26px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 28px;
+  align-items: end;
+}
+
+.cert-verificacion { display: flex; align-items: center; gap: 18px; }
+
+.cert-qr {
+  width: 104px;
+  height: 104px;
+  flex: none;
+  display: block;
+  color: var(--ink);
+}
+
+.cert-verificacion-texto {
+  margin: 0;
+  max-width: 230px;
+  font-size: 13px;
   line-height: 1.55;
   color: var(--text-secondary);
 }
 
-.cert-datos--compra { margin-bottom: 2.5rem; }
+/* `--oro-ink` y no `--oro`: el oro de la marca da 3,3:1 sobre claro y no
+   cumple AA. Para texto dorado sobre claro está el otro. */
+.cert-verificacion-texto a { color: var(--oro-ink); text-decoration: none; }
+.cert-verificacion-texto a:hover { color: var(--ink); }
 
-/* ── La foto ──────────────────────────────────────────────────── */
+.cert-firma { text-align: right; }
 
-.cert-foto {
-  margin: 0 0 1.25rem;
-  text-align: center;
+.cert-firma-linea {
+  display: block;
+  height: 1px;
+  width: 240px;
+  margin: 0 0 9px auto;
+  background: var(--ink);
 }
 
-.cert-foto img {
-  width: min(380px, 84%);
-  height: auto;
-  aspect-ratio: 1 / 1;
-  object-fit: cover;
-  border: 1px solid var(--hairline);
-  border-radius: 2px;
-  background: var(--bg-marfil);
-}
-
-/* ── Los datos ────────────────────────────────────────────────── */
-
-.cert-datos {
-  margin: 0;
-  padding: 0;
-}
-
-.cert-dato {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem 1.5rem;
-  justify-content: space-between;
-  align-items: baseline;
-  padding: 0.85rem 0;
-  border-bottom: 1px solid var(--hairline);
-}
-
-.cert-dato:first-child { border-top: 1px solid var(--hairline); }
-
-.cert-dato dt {
-  font-family: var(--font-ui);
-  font-size: 0.63rem;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--text-secondary);
-}
-
-.cert-dato dd {
-  margin: 0;
-  font-size: 1rem;
-  line-height: 1.5;
-  color: var(--ink);
-  text-align: right;
-}
-
-/* ── Garantías ────────────────────────────────────────────────── */
-
-.cert-h2 {
-  margin: 0 0 1rem;
+.cert-firma-nombre {
+  display: block;
   font-family: var(--font-display);
   font-weight: 400;
-  font-size: 1.35rem;
-  line-height: 1.2;
+  font-size: 18px;
   color: var(--ink);
 }
 
-.cert-garantias {
-  padding: 1.75rem;
-  background: var(--bg-marfil);
-  border: 1px solid var(--hairline);
-  border-radius: 2px;
-  margin-bottom: 2rem;
-}
-
-.cert-garantias ul {
-  margin: 0 0 1rem;
-  padding-left: 1.1rem;
-}
-
-.cert-garantias li {
-  margin-bottom: 0.75rem;
-  font-size: 0.95rem;
-  line-height: 1.6;
+/* El rótulo de la firma va en gris y no en oro: en el diseño es el único que
+   no es dorado, porque no rotula un dato sino una línea de firma. */
+.cert-firma .cert-rotulo {
+  margin: 5px 0 0;
   color: var(--text-secondary);
 }
 
-.cert-garantias li strong { color: var(--ink); }
-
-/* La exclusión de las piedras es la parte incómoda del papel, y justamente
-   por eso no se esconde: mismo tamaño que lo demás, sólo separada. */
-.cert-exclusion {
-  margin: 0 0 0.75rem;
-  padding-top: 0.75rem;
-  border-top: 1px solid var(--hairline);
-  font-size: 0.95rem;
-  line-height: 1.6;
-  color: var(--text-secondary);
-}
-
-.cert-mas {
-  margin: 0;
-  font-size: 0.85rem;
-  color: var(--text-muted);
-}
-
-.cert-mas a { color: var(--oro-ink); }
-
-/* ── El pie: código y fecha ───────────────────────────────────── */
-
-.cert-pie {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1.5rem;
-  justify-content: space-between;
-  padding-top: 1.5rem;
-  border-top: 1px solid var(--hairline);
-}
-
-.cert-pie-fecha { text-align: right; }
-
-.cert-pie-rotulo {
-  display: block;
-  margin-bottom: 0.35rem;
-  font-family: var(--font-ui);
-  font-size: 0.63rem;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--text-secondary);
-}
-
-.cert-pie strong {
-  font-size: 1.05rem;
-  color: var(--ink);
-}
-
-.cert-pie-codigo strong {
-  /* El código se lee en voz alta y se teclea desde una tarjeta impresa: se
-     separa para que ninguna pareja de caracteres se lea como una sola. */
-  letter-spacing: 0.08em;
-}
+/* ── La letra que dice qué es esto ────────────────────────────── */
 
 .cert-legal {
-  margin: 1.5rem 0 0;
-  font-size: 0.8rem;
-  line-height: 1.6;
-  color: var(--text-muted);
+  margin: 18px 0 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--hairline);
+  max-width: 640px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-secondary);
 }
 
-/* ── Acciones, fuera del documento ────────────────────────────── */
+/* ── Acciones, fuera de la hoja ───────────────────────────────── */
 
 .cert-acciones {
   display: flex;
   flex-wrap: wrap;
   gap: 1rem;
   justify-content: center;
-  margin-top: 2rem;
 }
 
 /* ── Los tres estados que no son un certificado ───────────────── */
@@ -412,45 +463,88 @@
   margin-top: 2rem;
 }
 
-/* ── Móvil ────────────────────────────────────────────────────── */
+/* ── Cuando la hoja no cabe ───────────────────────────────────── */
 
-@media (max-width: 640px) {
-  .cert-pagina { padding: 1.5rem 1rem 4rem; }
+/* El documento está pensado para 7,67 pulgadas de ancho. Por debajo de eso las
+   tres rejillas de dos y tres columnas se apilan, porque una tabla de tres
+   columnas en un celular parte cada celda en cuatro renglones pegados al borde
+   — y quien escanea el QR está, casi siempre, en un celular. */
+@media (max-width: 760px) {
+  .cert-pagina { padding: 7rem 0.75rem 3rem; }
+  .cert-hoja { padding: 28px 22px 24px; }
 
-  /* El documento pierde el aire lateral antes que el vertical: en un celular
-     lo que se acaba es el ancho, y el filete tiene que seguir cabiendo. */
-  .cert-doc { padding: 2.5rem 1.5rem 2rem; }
-  .cert-marco { inset: 8px; }
+  .cert-cab { flex-direction: column; gap: 16px; }
 
-  /* Etiqueta encima del valor: con el ancho de un celular, «Piedra» y
-     «Esmeralda colombiana natural» en la misma línea parten la respuesta en
-     tres renglones pegados al borde derecho. */
-  .cert-dato {
-    flex-direction: column;
-    gap: 0.25rem;
-    align-items: flex-start;
+  .cert-encabezado { grid-template-columns: 1fr; gap: 20px; }
+  .cert-titulo { font-size: 34px; }
+  .cert-titulo em { font-size: 21px; }
+  .cert-meta {
+    min-width: 0;
+    padding: 16px 0 0;
+    border-left: 0;
+    border-top: 1px solid var(--hairline);
   }
 
-  .cert-dato dd { text-align: left; }
+  .cert-titular { flex-direction: column; align-items: flex-start; gap: 14px; padding: 16px 18px; }
+  .cert-titular-nombre { font-size: 25px; }
+  .cert-ampara { text-align: left; }
 
-  .cert-pie { flex-direction: column; gap: 1.25rem; }
-  .cert-pie-fecha { text-align: left; }
+  /* La columna del número desaparece y la referencia baja debajo del nombre:
+     118px fijos para «AG-4573» dejaban al nombre de la pieza en tres renglones
+     de dos palabras. */
+  .cert-tabla-cab { grid-template-columns: 1fr auto; }
+  .cert-tabla-cab > :first-child { display: none; }
+  .cert-fila { grid-template-columns: 22px 1fr; gap: 12px; padding: 14px 0; }
+  .cert-ref { grid-column: 2; text-align: left; margin-top: 4px; }
 
-  .cert-garantias { padding: 1.25rem; }
+  .cert-tira { grid-template-columns: 1fr; }
+  .cert-tira-celda { border-right: 0; border-bottom: 1px solid var(--hairline); }
+  .cert-tira-celda:last-child { border-bottom: 0; }
+
+  .cert-pie { grid-template-columns: 1fr; gap: 24px; align-items: start; }
+  .cert-firma { text-align: left; }
+  .cert-firma-linea { margin-left: 0; width: min(240px, 100%); }
 }
 
-/* ── Impresión ────────────────────────────────────────────────── */
+/* ── El papel ─────────────────────────────────────────────────── */
 
-/* Alguien va a querer imprimir esto —es un certificado—, y lo que sale por
-   defecto son las acciones, el navbar y el pie del sitio alrededor del
-   documento. Se quedan sólo el papel y sus datos. */
+/* Esto es un certificado: alguien lo va a imprimir. Lo que sale por defecto
+   son el navbar, el pie del sitio y los botones alrededor del documento.
+
+   Las medidas ya están en pulgadas y en `px` absolutos, así que la hoja sale
+   del tamaño que dice el diseño en cualquier navegador. Lo único que hay que
+   hacer aquí es quitar lo que no es el documento y devolverle los colores, que
+   los navegadores descartan al imprimir. */
 @media print {
   .cert-acciones,
   .navbar-outer,
   .footer,
   .wa-float { display: none !important; }
 
-  .cert-pagina { max-width: none; padding: 0; }
-  .cert-doc { border: none; }
-  .cert-foto img { filter: none; }
+  /* En papel no hay navbar que esquivar: el hueco de 9rem sería una hoja
+     casi vacía arriba. */
+  .cert-pagina { padding: 0; display: block; }
+
+  .cert-hoja {
+    width: auto;
+    border: none;
+    padding: 0.4in 0.5in;
+  }
+
+  /* Sin esto, la banda de arena del titular y el oro de los rótulos salen en
+     blanco: los navegadores no imprimen fondos por omisión. */
+  .cert-hoja,
+  .cert-titular,
+  .cert-punzon,
+  .cert-anulado {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Un certificado de muchas piezas puede pasar de una hoja. Que parta por
+     donde no duela: nunca dentro de una pieza ni de una casilla. */
+  .cert-fila,
+  .cert-tira,
+  .cert-pie,
+  .cert-titular { break-inside: avoid; }
 }
