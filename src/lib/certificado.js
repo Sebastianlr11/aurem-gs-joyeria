@@ -197,11 +197,15 @@ export function piezasDe(datos) {
  * tarjeta: si cada una tuviera la suya, el día que se añada un dato una de las
  * dos se quedaría atrás y el QR estaría desmintiendo al papel que lo lleva
  * impreso.
+ *
+ * **La referencia NO está aquí**, y no por olvido: los dos diseños la sacan de
+ * la lista y la ponen aparte —arriba del nombre en la página, alineada a la
+ * derecha en la tarjeta—, porque no es una característica de la joya sino su
+ * identificador. Quien la quiera, la pinta él.
  */
 export function camposDePieza(pieza) {
     const p = pieza || {};
     return [
-        ['Referencia', p.referencia],
         ['Metal', p.metal],
         ['Piedra', p.piedra],
         ['Peso', p.peso],
@@ -209,6 +213,16 @@ export function camposDePieza(pieza) {
     ]
         .filter(([, valor]) => valor)
         .map(([etiqueta, valor]) => ({ etiqueta, valor: String(valor) }));
+}
+
+/**
+ * Cómo se nombra una pieza dentro del certificado: «Pieza 2 de 3».
+ *
+ * Con una sola no se numera. «Pieza 1 de 1» es un contador delatándose: quien
+ * compró una joya no necesita que le confirmen que es una.
+ */
+export function posicionDePieza(indice, total) {
+    return total <= 1 ? 'La pieza' : `Pieza ${indice + 1} de ${total}`;
 }
 
 /**

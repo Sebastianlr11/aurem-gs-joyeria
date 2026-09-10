@@ -11,16 +11,18 @@
  * tiene en la mano sea ésta. Un QR se fotocopia. Prueba que el código existe,
  * de qué piezas es y cuándo se vendieron.
  *
- * ── Es una hoja carta, no una pantalla ────────────────────────────────────
+ * ── La hoja de taller ─────────────────────────────────────────────────────
  *
- * La maqueta viene del diseño `Certificado de Autenticidad.dc.html`, que es un
- * documento paginado de 8,5×11 pulgadas. Así que esta pantalla se diseñó para
- * imprimirse y se adapta al navegador, y no al revés: en papel sale el
- * documento, y en un celular las tres rejillas se apilan.
+ * La maqueta viene del diseño `Certificado-v2-hoja-de-taller.dc.html`. Es una
+ * página, no un documento paginado: rejillas que se reacomodan solas con
+ * `auto-fit`, sin un solo punto de quiebre escrito a mano. Quien llega aquí
+ * acaba de escanear un QR, o sea que está en un celular.
  *
- * Eso obliga a una cosa que en una página normal no haría falta: **el ancho de
- * la hoja se mide en pulgadas**, no en `px` ni en `rem`. Una hoja medida en
- * píxeles se imprime a un tamaño que depende del navegador.
+ * **Cada pieza va con su foto**, y ésa es la parte que hace trabajo: es lo
+ * único que quien tiene la joya en la mano puede comparar de verdad.
+ *
+ * La versión imprimible —la hoja carta— es la TARJETA, que se pinta en un
+ * canvas y se manda por WhatsApp (`pages/admin/certificado/tarjeta.js`).
  *
  * ── Tres desenlaces, y los tres se dicen distinto ─────────────────────────
  *
@@ -39,13 +41,13 @@ import React, { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { traerCertificado } from '../lib/apiPublica';
 import {
-    piezasDe, resumenDePieza, fechaLarga, normalizarCodigo,
-    GARANTIAS, EXCLUSION, NOTA_LEGAL, urlDeCertificado,
+    piezasDe, camposDePieza, posicionDePieza, fechaLarga, normalizarCodigo,
+    GARANTIAS, EXCLUSION, NOTA_LEGAL,
 } from '../lib/certificado';
 import { ponerMeta } from '../lib/meta';
 import { waUrl } from '../lib/whatsapp';
 import Isotipo from '../components/Isotipo';
-import CodigoQr from '../components/CodigoQr';
+import { fotoProducto } from '../lib/fotoProducto';
 
 import './Certificado.css';
 
@@ -165,157 +167,152 @@ const Certificado = () => {
     const datos = cert.datos || {};
     const piezas = piezasDe(datos);
     const anulado = estado === 'anulado';
+    const conteo = `${piezas.length} pieza${piezas.length !== 1 ? 's' : ''}`;
 
     return (
         <main className="cert-pagina">
-            <article className={`cert-hoja${anulado ? ' cert-hoja--anulada' : ''}`}>
+            <article className="cert-hoja">
 
                 {/* ── Cabecera ── */}
                 <header className="cert-cab">
-                    <div className="cert-marca">
-                        <Isotipo className="cert-iso" />
-                        <span className="cert-marca-texto">
-                            <span className="cert-marca-nombre">AUREM GS</span>
-                            <span className="cert-marca-sub">Joyería fina · Colombia</span>
-                        </span>
+                    <div className="cert-cab-marca">
+                        <p className="cert-antetitulo">
+                            <Isotipo className="cert-iso" />
+                            Aurem Gs Joyería
+                        </p>
+                        <h1 className="cert-titulo">
+                            Certificado de
+                            <span>Autenticidad</span>
+                        </h1>
                     </div>
-                    {/* El punzón del sistema, con la muesca del diseño. Marca un
-                        dato comprobable, que es para lo que existe. */}
-                    <span className={`cert-punzon${anulado ? ' cert-punzon--anulado' : ''}`}>
-                        {anulado ? 'Anulado' : 'Documento original'}
-                    </span>
+
+                    <div className="cert-cab-sello">
+                        {/* El sello octogonal: oro por fuera, una hoja de un
+                            píxel de aire, y el degradado del mostrador por
+                            dentro. Es el punzón del sistema llevado a un sello
+                            de lacre, que es lo que un certificado pide. */}
+                        <div className={`cert-sello${anulado ? ' cert-sello--anulado' : ''}`}>
+                            <div className="cert-sello-cara">
+                                <span className="cert-sello-ag">AG</span>
+                                <span className="cert-sello-filete" aria-hidden="true" />
+                                <span className="cert-sello-rotulo">{anulado ? 'Anulado' : 'Verificado'}</span>
+                            </div>
+                        </div>
+                        <div>
+                            <span className="cert-rotulo">Certificado n.º</span>
+                            <strong className="cert-codigo">{cert.codigo}</strong>
+                            <span className="cert-emitido">Emitido el {fechaLarga(cert.emitido_en)}</span>
+                        </div>
+                    </div>
                 </header>
 
-                <div className="cert-regla" aria-hidden="true">
-                    <span className="cert-regla-oro" />
-                    <span className="cert-regla-pelo" />
-                </div>
-
-                {/* ── Título y los dos datos del documento ── */}
-                <div className="cert-encabezado">
-                    <h1 className="cert-titulo">
-                        Certificado de
-                        <em>autenticidad</em>
-                    </h1>
-                    <dl className="cert-meta">
-                        <div>
-                            <dt>N.º de certificado</dt>
-                            <dd className="cert-meta-codigo">{cert.codigo}</dd>
-                        </div>
-                        {datos.compradoEn && (
-                            <div>
-                                <dt>Fecha de compra</dt>
-                                <dd className="cert-meta-fecha">{fechaLarga(datos.compradoEn)}</dd>
-                            </div>
-                        )}
-                    </dl>
-                </div>
+                {/* Dos filetes, oro y pelo, con tres píxeles de aire entre
+                    ellos. Es el gesto del sistema, no un borde doble. */}
+                <div className="cert-filete-oro" aria-hidden="true" />
+                <div className="cert-filete-pelo" aria-hidden="true" />
 
                 {anulado && (
                     <div className="cert-anulado" role="status">
                         <p className="cert-anulado-titulo">Este certificado fue anulado</p>
                         <p>
-                            Se anuló el {fechaLarga(cert.anulado_en)}, y ya no ampara las piezas
-                            que describe. Suele pasar cuando una compra se devolvió o se cambió
-                            por otra pieza. Si llegaste aquí con una joya en la mano, escríbenos
-                            antes de nada.
+                            Ya no ampara las piezas que describe. Suele pasar cuando una
+                            compra se devolvió o se cambió por otra pieza. Si tienes la joya
+                            en la mano, escríbenos antes de nada.
                         </p>
                     </div>
                 )}
 
-                {/* ── A nombre de quién, y cuántas piezas ── */}
-                <div className="cert-titular">
+                {/* ── Los tres datos del documento ── */}
+                <section className="cert-resumen">
                     <div>
                         <span className="cert-rotulo">Expedido a nombre de</span>
-                        <span className="cert-titular-nombre">{datos.cliente || 'Su titular'}</span>
+                        <strong className="cert-resumen-nombre">{datos.cliente || 'Su titular'}</strong>
                     </div>
-                    <div className="cert-ampara">
-                        Ampara
-                        <span className="cert-ampara-n">
-                            {piezas.length} pieza{piezas.length !== 1 ? 's' : ''}
-                        </span>
+                    <div>
+                        <span className="cert-rotulo">Fecha de compra</span>
+                        <strong>{fechaLarga(datos.compradoEn) || '—'}</strong>
                     </div>
-                </div>
+                    <div>
+                        <span className="cert-rotulo">Piezas amparadas</span>
+                        <strong>{conteo}</strong>
+                    </div>
+                </section>
 
                 {/* ── Las piezas ── */}
-                <div className="cert-tabla">
-                    <div className="cert-tabla-cab">
-                        <span aria-hidden="true" />
-                        <span>Pieza y materiales</span>
-                        <span className="cert-col-ref">Referencia</span>
-                    </div>
-                    {piezas.map((pz, i) => (
-                        <div className="cert-fila" key={`${pz.referencia || pz.nombre}-${i}`}>
-                            <span className="cert-num" aria-hidden="true">
-                                {String(i + 1).padStart(2, '0')}
-                            </span>
-                            <span className="cert-pieza">
-                                <span className="cert-pieza-nombre">{pz.nombre}</span>
-                                {/* Metal, piedra, peso y talla en una línea. Es la
-                                    misma función que usa la tarjeta: si cada una
-                                    tuviera la suya, el QR acabaría desmintiendo al
-                                    papel que lo lleva impreso. */}
-                                {resumenDePieza(pz) && (
-                                    <span className="cert-pieza-ficha">{resumenDePieza(pz)}</span>
-                                )}
-                            </span>
-                            <span className="cert-ref">{pz.referencia || '—'}</span>
-                        </div>
-                    ))}
+                <div className="cert-seccion">
+                    <h2>Las piezas</h2>
+                    <span aria-hidden="true" />
                 </div>
 
-                {/* ── Lo que se responde por ellas ──
+                <div className="cert-piezas">
+                    {piezas.map((pz, i) => {
+                        const foto = pz.foto ? fotoProducto(pz.foto) : null;
+                        return (
+                            <article className="cert-pieza" key={`${pz.referencia || pz.nombre}-${i}`}>
+                                <div className="cert-pieza-foto">
+                                    {foto
+                                        ? <img
+                                            {...foto}
+                                            sizes="(max-width: 700px) 92vw, 400px"
+                                            alt={`Foto de ${pz.nombre}`}
+                                            loading={i === 0 ? 'eager' : 'lazy'}
+                                        />
+                                        /* Una pieza a la medida no está en el catálogo y no
+                                           tiene foto. Un punzón antes que un hueco roto. */
+                                        : <span className="cert-pieza-sinfoto" aria-hidden="true">✦</span>}
+                                </div>
 
-                    El diseño trae tres casillas: Garantía, Envío y Pago. Se
-                    conserva la forma y **cambia el contenido**, porque lo que
-                    decían no es cierto en este negocio: el envío no es de 24 a 48
-                    horas —son 3 a 4 días en Bogotá y 4 a 6 al resto del país— y el
-                    contraentrega **no es a todo el país, es sólo Bogotá**. Un
-                    certificado es el papel que la clienta enseña al reclamar: lo
-                    que prometa ahí, se cumple.
-
-                    Así que las casillas dicen lo único que este documento tiene
-                    que decir: las dos garantías, copiadas de
-                    `/politica-de-devoluciones`, y la exclusión de las piedras, que
-                    es la parte incómoda y justo por eso la que no se puede
-                    omitir. */}
-                <div className="cert-tira">
-                    {GARANTIAS.map((g) => (
-                        <div className="cert-tira-celda" key={g.titulo}>
-                            <span className="cert-rotulo">{g.titulo}</span>
-                            <p>{g.texto}</p>
-                        </div>
-                    ))}
-                    <div className="cert-tira-celda">
-                        <span className="cert-rotulo">Las piedras</span>
-                        <p>{EXCLUSION}</p>
-                    </div>
+                                <div className="cert-pieza-cuerpo">
+                                    <div className="cert-pieza-alto">
+                                        <span>{posicionDePieza(i, piezas.length)}</span>
+                                        {pz.referencia && <span className="cert-pieza-ref">Ref. {pz.referencia}</span>}
+                                    </div>
+                                    <h3>{pz.nombre}</h3>
+                                    <dl className="cert-pieza-datos">
+                                        {camposDePieza(pz).map(({ etiqueta, valor }) => (
+                                            <div key={etiqueta}>
+                                                <dt>{etiqueta}</dt>
+                                                <dd>{valor}</dd>
+                                            </div>
+                                        ))}
+                                    </dl>
+                                </div>
+                            </article>
+                        );
+                    })}
                 </div>
 
-                {/* ── Verificación y firma ── */}
-                <div className="cert-pie">
-                    <div className="cert-verificacion">
-                        <CodigoQr valor={urlDeCertificado(cert.codigo)} className="cert-qr" />
-                        <div>
-                            <span className="cert-rotulo">Verificación</span>
-                            <p className="cert-verificacion-texto">
-                                Escanea el código, o abre{' '}
-                                <a href={urlDeCertificado(cert.codigo)}>auremgsjoyeria.com</a>{' '}
-                                y busca el número de arriba.
-                            </p>
-                        </div>
+                {/* Por qué están las fotos, dicho en voz alta. */}
+                <p className="cert-comparar">
+                    {piezas.length === 1
+                        ? 'Compara tu pieza con esta foto: es la de la joya que se te entregó.'
+                        : 'Compara tus piezas con estas fotos: son las de las joyas que se te entregaron.'}
+                </p>
+
+                {/* ── La garantía ── */}
+                <section className="cert-garantias">
+                    <div>
+                        <h2>La garantía que lo acompaña</h2>
+                        {/* La exclusión de las piedras es la parte incómoda del papel, y
+                            justo por eso va aquí arriba y no escondida al final. */}
+                        <p>
+                            {EXCLUSION} Los términos completos están en la{' '}
+                            <Link to="/politica-de-devoluciones">política de devoluciones y garantías</Link>.
+                        </p>
                     </div>
-                    <div className="cert-firma">
-                        <span className="cert-firma-linea" aria-hidden="true" />
-                        <span className="cert-firma-nombre">Aurem Gs Joyería</span>
-                        <span className="cert-rotulo">Firma autorizada</span>
+                    <div className="cert-garantias-lista">
+                        {GARANTIAS.map((g) => (
+                            <div key={g.titulo}>
+                                <p className="cert-garantia-titulo">{g.titulo}</p>
+                                <p>{g.texto}</p>
+                            </div>
+                        ))}
                     </div>
-                </div>
+                </section>
 
                 <p className="cert-legal">{NOTA_LEGAL}</p>
             </article>
 
-            {/* Fuera de la hoja, y fuera del papel: en la impresión no salen. */}
             <div className="cert-acciones">
                 <Link to="/catalogo" className="btn-pill black">Ver el catálogo</Link>
                 <a

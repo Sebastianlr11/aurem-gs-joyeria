@@ -9,6 +9,7 @@ import {
     congelar,
     piezasDe,
     camposDePieza,
+    posicionDePieza,
     resumenDePieza,
     urlDeCertificado,
 } from './certificado';
@@ -233,14 +234,22 @@ describe('camposDePieza', () => {
     it('enseña las líneas en el orden del documento', () => {
         const pieza = congelar({ pedido: PEDIDO, piezas: [{ producto: PIEZA, talla: '14' }] }).piezas[0];
         expect(camposDePieza(pieza).map((c) => c.etiqueta)).toEqual([
-            'Referencia', 'Metal', 'Piedra', 'Peso', 'Talla',
+            'Metal', 'Piedra', 'Peso', 'Talla',
         ]);
     });
 
     it('salta las líneas que no tienen dato', () => {
-        expect(camposDePieza({ nombre: 'Dije', referencia: 'AG-0001' })).toEqual([
-            { etiqueta: 'Referencia', valor: 'AG-0001' },
+        expect(camposDePieza({ nombre: 'Dije', metal: 'Plata 925' })).toEqual([
+            { etiqueta: 'Metal', valor: 'Plata 925' },
         ]);
+    });
+
+    /* La referencia no es una característica de la joya sino su identificador,
+       y los dos diseños la pintan aparte. Si volviera a la lista saldría dos
+       veces en la misma pieza. */
+    it('la referencia no va en la lista: se pinta aparte', () => {
+        expect(camposDePieza({ referencia: 'AG-0001', metal: 'Plata 925' })
+            .map((c) => c.etiqueta)).toEqual(['Metal']);
     });
 
     /* La foto no es una línea del documento: es la imagen que se compara con la
@@ -264,6 +273,19 @@ describe('resumenDePieza', () => {
     it('sin nada devuelve vacío, no una fila de separadores', () => {
         expect(resumenDePieza({ nombre: 'Dije' })).toBe('');
         expect(resumenDePieza(null)).toBe('');
+    });
+});
+
+describe('posicionDePieza', () => {
+    it('numera cuando hay varias', () => {
+        expect(posicionDePieza(0, 3)).toBe('Pieza 1 de 3');
+        expect(posicionDePieza(2, 3)).toBe('Pieza 3 de 3');
+    });
+
+    /* «Pieza 1 de 1» es un contador delatándose: quien compró una joya no
+       necesita que le confirmen que es una. */
+    it('con una sola no numera', () => {
+        expect(posicionDePieza(0, 1)).toBe('La pieza');
     });
 });
 
