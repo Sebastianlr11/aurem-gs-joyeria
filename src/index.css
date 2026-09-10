@@ -2899,3 +2899,40 @@ textarea:focus-visible {
   from { opacity: 0; transform: translateY(-4px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+/* ── Cuando se cae una pantalla ───────────────────────────────────────────
+   La barrera de errores de `SiSeCae.jsx`. Estas reglas viven aquí y NO en una
+   hoja de ruta a propósito: se pintan justo cuando el chunk de una pantalla no
+   llegó, y con él tampoco habría llegado su CSS. `index.css` es la única hoja
+   que está siempre. Por eso son pocas líneas: cada una la paga también quien
+   sólo abre la portada. */
+
+.secae {
+  max-width: 34rem;
+  margin: 0 auto;
+  padding: 7rem 1.5rem;
+  text-align: center;
+}
+
+.secae-icono { display: block; margin-bottom: 1rem; font-size: 1.5rem; color: var(--oro); }
+
+.secae-titulo {
+  margin: 0 0 1rem;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.85rem;
+  line-height: 1.15;
+  color: var(--ink);
+}
+
+.secae-texto { margin: 0; font-size: 1rem; line-height: 1.65; color: var(--text-secondary); }
+.secae-acciones { display: flex; justify-content: center; margin-top: 2rem; }
+
+/* El mensaje crudo: es lo primero que se pide cuando alguien reporta esto por
+   WhatsApp, así que se enseña — pequeño, para que no compita con la salida. */
+.secae-detalle {
+  margin: 2rem 0 0;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+  word-break: break-word;
+}

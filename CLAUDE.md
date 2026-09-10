@@ -1006,6 +1006,19 @@ Cosas que ya costaron un incidente. Léelas antes de tocar lo que describen.
 - **Un POST de Meta puede traer varios mensajes.** `wa-webhook` leía `messages[0]` y tiraba el
   resto sin guardarlo. Lo desmenuza `_shared/lote.ts`; si tocas el webhook, que siga
   recorriendo el lote entero.
+- **Un chunk que no llega deja la pantalla en blanco, sin error y sin salida — y eso pasa
+  en cada despliegue.** Cuando un `import()` de `React.lazy` falla, el navegador **se guarda
+  el rechazo**: todo intento posterior en esa página devuelve el mismo fallo, así que no se
+  recupera sola nunca. Y sin barrera de errores React desmonta el árbol entero: `#root`
+  vacío, ni un pixel. El 9 de septiembre de 2026 un **503 pasajero** del borde de Vercel
+  sobre `ProtectedRoute-*.js` dejó el panel muerto —el archivo estaba bien, `curl` daba 200,
+  y un minuto después cargaba—. Y no hace falta un 503: **cada build cambia el hash de todos
+  los chunks**, así que cualquier pestaña abierta desde antes del despliegue pide nombres
+  que ya no existen y se cae en la primera pantalla perezosa a la que navegue. Lo cubre
+  `src/components/SiSeCae.jsx`, que envuelve el `Suspense` de `App.jsx` y ofrece recargar,
+  que es exactamente lo que arregla los dos casos. **Sus estilos viven en `index.css` y no
+  en una hoja de ruta**: se pintan justo cuando el chunk de esa pantalla no llegó, y con él
+  tampoco habría llegado su CSS.
 - **Una tabla que sólo tocaba una Edge Function con llave de servicio no tiene sus permisos
   probados.** `order_items` tenía una única política, de sólo lectura, y ninguna de
   escritura: la llenaba sólo `create-preference`, que corre con la llave de servicio y se

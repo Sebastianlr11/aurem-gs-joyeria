@@ -31,6 +31,7 @@ const ScrollToTop = () => {
 };
 
 // Componentes que siempre se cargan (layout)
+import SiSeCae from './components/SiSeCae'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 import WhatsAppButton from './components/WhatsAppButton'
@@ -117,6 +118,15 @@ function App() {
       <ScrollToTop />
       <ContadorDePaginas />
       <WhatsAppButton />
+      {/* La red debajo de todo lo perezoso.
+
+          Sin ella, que falle la descarga de UN chunk deja `#root` vacío: ni un
+          mensaje, ni un error, ni forma de saber que hay que recargar. Pasó el
+          9 de septiembre de 2026 con un 503 pasajero del borde de Vercel, y
+          vuelve a pasar en cada despliegue con cualquier pestaña que llevara
+          rato abierta — el hash de los chunks cambia y los nombres que pide su
+          `index.js` ya no existen. Ver `SiSeCae.jsx`. */}
+      <SiSeCae>
       <Suspense fallback={<PageLoader />}>
         <Routes>
           {/* Rutas públicas con Navbar + Footer */}
@@ -170,6 +180,7 @@ function App() {
           <Route path="*" element={<ConNavbar><NoEncontrado /></ConNavbar>} />
         </Routes>
       </Suspense>
+      </SiSeCae>
     </div>
   )
 }
