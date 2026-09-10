@@ -8635,3 +8635,96 @@
   flex-wrap: wrap;
   padding: 0 1.75rem 1.75rem;
 }
+
+/* ── Las piezas de un pedido ─────────────────────────────────────────────
+   9 de septiembre de 2026. El formulario dejaba poner UNA pieza, así que una
+   venta de dos había que partirla en dos pedidos: importe partido, cliente
+   duplicado en los informes y dos conversiones a Meta por una compra.
+
+   La foto no es decoración. Con nombres cortos y parecidos —«Anillo solitario
+   clásico» y «Anillo solitario tallado»— elegir del desplegable es a ciegas, y
+   el pedido sale con otra pieza sin que nada lo delate hasta el despacho. */
+
+.pd-piezas { display: flex; flex-direction: column; gap: 0.5rem; }
+
+.pd-pieza {
+  display: grid;
+  grid-template-columns: 56px 1fr auto;
+  align-items: start;
+  gap: 0.75rem;
+  padding: 0.6rem;
+  border: 1px solid var(--hairline);
+  border-radius: 2px;
+  background: var(--bg-marfil);
+}
+
+.pd-pieza-foto {
+  width: 56px; height: 56px;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+  border: 1px solid var(--hairline); border-radius: 2px;
+  background: var(--bg-color);
+}
+
+.pd-pieza-foto img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* Sin foto no es un error: es un encargo a la medida, que no está en el
+   catálogo y es buena parte de lo que vende este taller. Por eso un punzón
+   discreto y no un hueco roto. */
+.pd-pieza-sinfoto { font-size: 1rem; color: var(--oro); }
+
+.pd-pieza-campos { display: flex; flex-direction: column; gap: 0.4rem; min-width: 0; }
+.pd-pieza-nombre { padding: 0.55rem 0.7rem; font-size: 0.9rem; }
+
+.pd-pieza-fila { display: flex; gap: 0.4rem; }
+.pd-pieza-precio { flex: 1; min-width: 0; padding: 0.55rem 0.7rem; }
+.pd-pieza-precio input { font-size: 0.9rem; }
+
+/* Cantidad y talla: dos casillas cortas. Ancho fijo para que no bailen cuando
+   una queda vacía. */
+.pd-pieza-chico {
+  width: 5.5rem; flex: 0 0 auto;
+  padding: 0.55rem 0.7rem; font-size: 0.9rem;
+  text-align: center;
+}
+
+.pd-pieza-quitar {
+  width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--hairline); border-radius: 2px;
+  background: var(--bg-color); color: var(--text-muted);
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+}
+.pd-pieza-quitar:hover:not(:disabled) { color: var(--error-ink); border-color: rgba(140,47,30,.35); }
+.pd-pieza-quitar:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.pd-anadir {
+  align-self: flex-start;
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.85rem;
+  font-family: var(--font-ui); font-size: 0.8rem; font-weight: 700;
+  color: var(--oro-ink);
+  background: transparent;
+  border: 1px dashed rgba(168,134,63,.4); border-radius: 2px;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+.pd-anadir:hover { background: var(--bg-arena); border-color: var(--oro); }
+
+/* Un enlace dentro de una ayuda: «Usar la suma». Botón porque hace algo, con
+   aspecto de enlace porque va dentro de una frase. */
+.pd-enlace {
+  padding: 0; border: 0; background: none;
+  font: inherit; color: var(--oro-ink); font-weight: 700;
+  text-decoration: underline; cursor: pointer;
+}
+
+@media (max-width: 560px) {
+  /* La foto se queda: es justo en el celular donde se carga un pedido de
+     memoria y donde más falta hace comprobar que la pieza es la que es. */
+  .pd-pieza { grid-template-columns: 44px 1fr auto; gap: 0.5rem; }
+  .pd-pieza-foto { width: 44px; height: 44px; }
+  .pd-pieza-fila { flex-wrap: wrap; }
+  .pd-pieza-chico { width: calc(50% - 0.2rem); }
+}

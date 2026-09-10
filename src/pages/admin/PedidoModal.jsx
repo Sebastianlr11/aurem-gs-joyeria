@@ -18,6 +18,7 @@
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '../../lib/supabase';
+import { fotoProducto } from '../../lib/fotoProducto';
 import { laVentaEntro } from '../../lib/dinero';
 import { CARRIERS, ORDER_STATUSES, STATUS_META } from './secciones/comunes';
 
@@ -87,6 +88,76 @@ const VACIO = {
     costo_taller: '', costo_envio: '',
 };
 
+/* ── Las piezas del pedido ──────────────────────────────────────────────
+ *
+ * Un pedido lleva las que sean, no una. La base ya lo soportaba desde que
+ * existe `order_items` —el checkout de la web mete varias sin problema—; el
+ * que se había quedado atrás era este formulario, y obligaba a partir en dos
+ * pedidos una venta que fue una sola. Eso no es sólo incómodo: parte el
+ * importe, duplica el cliente en los informes y le manda dos conversiones a
+ * Meta por una compra.
+ *
+ * La convención de cómo conviven las dos tablas NO se inventa aquí, se copia
+ * de `create-preference`, que es quien la estableció:
+ *
+ *   · `orders.product_name` → el resumen pegado, «Anillo A + Dije B x2»
+ *   · `orders.product_id`   → el de la primera pieza
+ *   · `orders.amount`       → el total que se cobra
+ *   · `order_items`         → las piezas de verdad, una fila cada una
+ *
+ * El nombre pegado sigue existiendo porque medio sistema lo lee: la tabla de
+ * Pedidos, los avisos de WhatsApp, la búsqueda de duplicados. Es un resumen,
+ * no la verdad.
+ */
+
+/** Una línea vacía, para un encargo a la medida que no está en el catálogo. */
+const lineaVacia = () => ({
+    clave: `l${Date.now()}${Math.random().toString(36).slice(2, 6)}`,
+    product_id: '', nombre: '', precio: '', cantidad: 1, talla: '',
+});
+
+const lineaDePieza = (p) => ({
+    ...lineaVacia(),
+    product_id: p.id,
+    nombre: p.name,
+    precio: aDigitos(p.price),
+});
+
+/** El resumen pegado. Misma fórmula que `create-preference`, a propósito. */
+const nombrePegado = (piezas) => piezas
+    .filter((l) => texto(l.nombre))
+    .map((l) => (Number(l.cantidad) > 1 ? `${texto(l.nombre)} x${l.cantidad}` : texto(l.nombre)))
+    .join(' + ');
+
+const sumaDe = (piezas) => piezas.reduce(
+    (t, l) => t + (numero(l.precio) || 0) * (Number(l.cantidad) || 1),
+    0,
+);
+
+/**
+ * Escribe las piezas de un pedido en `order_items`, reemplazando las que haya.
+ *
+ * `precio` y `cantidad` tienen CHECK en la base (`>= 0` y `> 0`): una línea sin
+ * precio entra en cero —que es un dato, «va incluida»— pero una cantidad en
+ * cero reventaría la inserción entera con un error de Postgres en crudo.
+ */
+async function guardarPiezas(orderId, lineas, esEdicion) {
+    if (esEdicion) {
+        const { error } = await supabase.from('order_items').delete().eq('order_id', orderId);
+        if (error) return { error };
+    }
+    if (!lineas.length) return { error: null };
+
+    return supabase.from('order_items').insert(lineas.map((l) => ({
+        order_id: orderId,
+        product_id: l.product_id || null,
+        nombre: texto(l.nombre),
+        precio: numero(l.precio) || 0,
+        cantidad: Math.max(1, Number(l.cantidad) || 1),
+        talla: texto(l.talla) || null,
+    })));
+}
+
 const Regla = ({ children, extra }) => (
     <div className="pd-regla">
         <span className="pd-regla-t">{children}</span>
@@ -134,6 +205,17 @@ export default function PedidoModal({ order, products = [], onClose, onSaved, in
     const [error, setError] = useState('');
     const primeroRef = useRef(null);
 
+    /* Las piezas. En un pedido nuevo arranca con una línea del catálogo si
+       viene sugerida; al editar se cargan de `order_items` en un efecto. */
+    const [piezas, setPiezas] = useState(() => (isEdit ? [] : [lineaVacia()]));
+
+    /* Si el monto se escribió a mano, deja de seguir a la suma de las piezas.
+       Hace falta porque las dos cosas son legítimas: lo normal es cobrar lo
+       que suman, y a veces se hace un descuento o se redondea. Sin esta
+       bandera, añadir una pieza le pisaría al joyero el número que acababa de
+       escribir. */
+    const [montoTocado, setMontoTocado] = useState(isEdit);
+
     const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
     useEffect(() => {
@@ -143,17 +225,83 @@ export default function PedidoModal({ order, products = [], onClose, onSaved, in
         return () => window.removeEventListener('keydown', alTeclear);
     }, [onClose]);
 
-    /* Elegir del catálogo llena el nombre y el monto. Escribirlos a mano
-       sigue valiendo: los encargos a la medida no están en el catálogo, y son
-       buena parte de lo que vende este negocio. */
-    const elegirPieza = (e) => {
+    /* Las piezas de un pedido que ya existe.
+     *
+     * Si no tiene filas —los de antes de que existiera `order_items`— se arma
+     * una sola línea con lo que hay en la orden. Es el mismo respaldo que hace
+     * `piezasDelPedido` en `_shared/pedidos.ts` para los correos: un pedido con
+     * una pieza es mejor que un formulario en blanco que, al guardar, le
+     * borraría al joyero la que tenía. */
+    useEffect(() => {
+        if (!isEdit) return undefined;
+        let vivo = true;
+
+        supabase
+            .from('order_items')
+            .select('product_id, nombre, precio, cantidad, talla')
+            .eq('order_id', order.id)
+            .order('creado_en')
+            .then(({ data }) => {
+                if (!vivo) return;
+                const filas = (data ?? []).map((f) => ({
+                    ...lineaVacia(),
+                    product_id: f.product_id || '',
+                    nombre: f.nombre || '',
+                    precio: aDigitos(f.precio),
+                    cantidad: Number(f.cantidad) || 1,
+                    talla: f.talla || '',
+                }));
+                setPiezas(filas.length ? filas : [{
+                    ...lineaVacia(),
+                    product_id: order.product_id || '',
+                    nombre: order.product_name || '',
+                    precio: aDigitos(order.amount),
+                }]);
+            });
+
+        return () => { vivo = false; };
+    }, [isEdit, order?.id, order?.product_id, order?.product_name, order?.amount]);
+
+    const cambiarLinea = (clave, campo, valor) =>
+        setPiezas((ls) => ls.map((l) => (l.clave === clave ? { ...l, [campo]: valor } : l)));
+
+    const quitarLinea = (clave) =>
+        setPiezas((ls) => (ls.length > 1 ? ls.filter((l) => l.clave !== clave) : ls));
+
+    /* Elegir del catálogo AÑADE una pieza; no reemplaza la que hubiera. Si la
+       última línea está en blanco se rellena ésa en vez de dejar un hueco. */
+    const agregarDelCatalogo = (e) => {
         const pid = e.target.value;
-        if (!pid) { setForm(f => ({ ...f, product_id: '' })); return; }
-        const p = products.find(x => x.id === pid);
-        if (p) setForm(f => ({ ...f, product_id: pid, product_name: p.name, amount: aDigitos(p.price) }));
+        e.target.value = '';
+        const p = products.find((x) => x.id === pid);
+        if (!p) return;
+        setPiezas((ls) => {
+            const ultima = ls[ls.length - 1];
+            if (ultima && !texto(ultima.nombre) && !ultima.product_id) {
+                return [...ls.slice(0, -1), { ...lineaDePieza(p), clave: ultima.clave }];
+            }
+            return [...ls, lineaDePieza(p)];
+        });
     };
 
+    const suma = sumaDe(piezas);
+
+    /* El monto sigue a la suma de las piezas mientras nadie lo haya escrito a
+       mano. Se hace en un efecto y no al vuelo porque el campo es editable: es
+       una sugerencia que se actualiza, no un cálculo que manda. */
+    useEffect(() => {
+        if (montoTocado) return;
+        setForm((f) => {
+            const nuevo = suma ? String(suma) : '';
+            return f.amount === nuevo ? f : { ...f, amount: nuevo };
+        });
+    }, [suma, montoTocado]);
+
     const monto = numero(form.amount);
+
+    /* Sólo cuentan las líneas con nombre: una en blanco es la que está a medio
+       llenar, no una pieza. */
+    const conNombre = useMemo(() => piezas.filter((l) => texto(l.nombre)), [piezas]);
 
     /* Lo que este pedido deja de verdad. No sale del catálogo: sale de lo que
        costó ESTE pedido, anotado cuando ya se sabe. Ver la migración
@@ -171,10 +319,10 @@ export default function PedidoModal({ order, products = [], onClose, onSaved, in
         const f = [];
         if (!texto(form.customer_name)) f.push('el nombre');
         if (!texto(form.customer_phone)) f.push('el WhatsApp');
-        if (!texto(form.product_name)) f.push('la pieza');
+        if (!conNombre.length) f.push('la pieza');
         if (!monto) f.push('el monto');
         return f;
-    }, [form.customer_name, form.customer_phone, form.product_name, monto]);
+    }, [form.customer_name, form.customer_phone, conNombre.length, monto]);
 
     const listo = falta.length === 0;
     const enLista = (arr) => arr.join(', ').replace(/, ([^,]*)$/, ' y $1');
@@ -191,8 +339,11 @@ export default function PedidoModal({ order, products = [], onClose, onSaved, in
             customer_name: texto(form.customer_name),
             customer_phone: texto(form.customer_phone) || null,
             customer_email: texto(form.customer_email) || null,
-            product_id: form.product_id || null,
-            product_name: texto(form.product_name),
+            /* El resumen pegado y el id de la primera, como los deja
+               `create-preference`. Las piezas de verdad van a `order_items`
+               justo después de guardar. */
+            product_id: conNombre[0]?.product_id || null,
+            product_name: nombrePegado(conNombre),
             amount: monto,
             status: form.status,
             /* La columna es NOT NULL: mandar null devolvía un 23502 en crudo
@@ -238,6 +389,31 @@ export default function PedidoModal({ order, products = [], onClose, onSaved, in
             setSaving(false);
         }
         if (err) { setError(err.message || 'No se pudo guardar el pedido.'); return; }
+
+        /* Las piezas, a su tabla.
+         *
+         * Se borran y se vuelven a escribir en vez de intentar casar fila por
+         * fila: son dos o tres líneas que alguien acaba de revisar en pantalla,
+         * y un emparejamiento sutil aquí es un sitio donde perder una pieza sin
+         * que se note. `order_items` cae en cascada con el pedido, así que el
+         * borrado no puede dejar huérfanas.
+         *
+         * Si esto falla, el pedido ya quedó creado y cobrable —el total y el
+         * nombre pegado están en `orders`—, así que no se tumba la venta por
+         * esto. Pero se dice, porque sin las filas el correo enseña una pieza
+         * sola, el taller no sabe qué fabricar y el certificado sale sin talla.
+         * Es la misma decisión que toma `create-preference`. */
+        const idPedido = isEdit ? order.id : creado?.id;
+        if (idPedido) {
+            const { error: errPiezas } = await guardarPiezas(idPedido, conNombre, isEdit);
+            if (errPiezas) {
+                setError(
+                    `El pedido se guardó, pero sus piezas no: ${errPiezas.message}. ` +
+                    'Ábrelo otra vez y vuelve a guardarlo.',
+                );
+                return;
+            }
+        }
 
         /* Un pedido cargado a mano y ya cobrado es una venta igual de real que
            las demás, y los anuncios tienen que enterarse. Y si se cancela uno
@@ -337,9 +513,9 @@ export default function PedidoModal({ order, products = [], onClose, onSaved, in
                         <Regla>Pieza y pago</Regla>
 
                         {products.length > 0 && (
-                            <Campo etiqueta="Buscar en el catálogo">
+                            <Campo etiqueta="Añadir del catálogo">
                                 <div className="pd-select">
-                                    <select value={form.product_id} onChange={elegirPieza}>
+                                    <select value="" onChange={agregarDelCatalogo}>
                                         <option value="">— Elegir una pieza del catálogo —</option>
                                         {products.map(p => (
                                             <option key={p.id} value={p.id}>
@@ -350,34 +526,125 @@ export default function PedidoModal({ order, products = [], onClose, onSaved, in
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
                                 </div>
                                 <span className="pd-ayuda">
-                                    Al elegir una pieza se completan el nombre y el monto. Para un encargo
-                                    a la medida, escríbelos a mano.
+                                    Se añade a la lista con su precio. Puedes poner las que sean; para un
+                                    encargo a la medida, escríbelo a mano abajo.
                                 </span>
                             </Campo>
                         )}
 
-                        <div className="pd-rejilla pd-rejilla--pieza">
-                            <Campo etiqueta="Pieza" requerido>
+                        <Campo etiqueta={piezas.length > 1 ? `Piezas · ${piezas.length}` : 'Pieza'} requerido>
+                            <div className="pd-piezas">
+                                {piezas.map((l) => {
+                                    const p = products.find((x) => x.id === l.product_id);
+                                    /* La foto es la comprobación: con nombres cortos y parecidos
+                                       —«Anillo solitario clásico» y «Anillo solitario tallado»—
+                                       elegir del desplegable es a ciegas, y el pedido sale con
+                                       otra pieza sin que nada lo delate hasta el despacho. */
+                                    const foto = p ? fotoProducto((Array.isArray(p.images) && p.images[0]) || p.image_url) : null;
+                                    return (
+                                        <div className="pd-pieza" key={l.clave}>
+                                            <div className="pd-pieza-foto">
+                                                {foto?.src
+                                                    ? <img {...foto} sizes="56px" alt="" />
+                                                    : <span className="pd-pieza-sinfoto" title="A la medida: no está en el catálogo">✦</span>}
+                                            </div>
+
+                                            <div className="pd-pieza-campos">
+                                                <input
+                                                    className="pd-input pd-pieza-nombre"
+                                                    value={l.nombre}
+                                                    onChange={e => cambiarLinea(l.clave, 'nombre', e.target.value)}
+                                                    placeholder="Ej: Anillo solitario oro 18k"
+                                                />
+                                                <div className="pd-pieza-fila">
+                                                    <div className="pd-plata pd-pieza-precio">
+                                                        <span className="pd-plata-signo">$</span>
+                                                        <input
+                                                            inputMode="numeric"
+                                                            value={l.precio ? fmt(numero(l.precio)) : ''}
+                                                            onChange={e => cambiarLinea(l.clave, 'precio', e.target.value.replace(/\D/g, '').slice(0, 12))}
+                                                            placeholder="0"
+                                                        />
+                                                    </div>
+                                                    <input
+                                                        className="pd-input pd-pieza-chico"
+                                                        inputMode="numeric"
+                                                        value={l.cantidad}
+                                                        onChange={e => cambiarLinea(l.clave, 'cantidad', e.target.value.replace(/\D/g, '').slice(0, 2))}
+                                                        onBlur={e => cambiarLinea(l.clave, 'cantidad', Math.max(1, Number(e.target.value) || 1))}
+                                                        aria-label="Cantidad"
+                                                        title="Cantidad"
+                                                    />
+                                                    {/* La talla viaja aquí y no en las notas: la lee el
+                                                        correo de confirmación y el certificado. */}
+                                                    <input
+                                                        className="pd-input pd-pieza-chico"
+                                                        value={l.talla}
+                                                        onChange={e => cambiarLinea(l.clave, 'talla', e.target.value)}
+                                                        placeholder="Talla"
+                                                        aria-label="Talla"
+                                                        title="Talla, si aplica"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <button
+                                                type="button"
+                                                className="pd-pieza-quitar"
+                                                onClick={() => quitarLinea(l.clave)}
+                                                disabled={piezas.length === 1}
+                                                title={piezas.length === 1 ? 'Un pedido lleva al menos una pieza' : 'Quitar esta pieza'}
+                                                aria-label="Quitar esta pieza"
+                                            >
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
+                                            </button>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                            <button
+                                type="button"
+                                className="pd-anadir"
+                                onClick={() => setPiezas((ls) => [...ls, lineaVacia()])}
+                            >
+                                + Añadir otra pieza
+                            </button>
+                        </Campo>
+
+                        <Campo
+                            etiqueta="Monto total"
+                            requerido
+                            apunte={piezas.length > 1 ? `${conNombre.length} pieza${conNombre.length !== 1 ? 's' : ''}` : undefined}
+                        >
+                            <div className="pd-plata">
+                                <span className="pd-plata-signo">$</span>
                                 <input
-                                    className="pd-input"
-                                    value={form.product_name}
-                                    onChange={e => set('product_name', e.target.value)}
-                                    placeholder="Ej: Anillo solitario oro 18k"
+                                    inputMode="numeric"
+                                    value={form.amount ? fmt(numero(form.amount)) : ''}
+                                    onChange={e => {
+                                        setMontoTocado(true);
+                                        set('amount', e.target.value.replace(/\D/g, '').slice(0, 12));
+                                    }}
+                                    placeholder="0"
                                 />
-                            </Campo>
-                            <Campo etiqueta="Monto" requerido>
-                                <div className="pd-plata">
-                                    <span className="pd-plata-signo">$</span>
-                                    <input
-                                        inputMode="numeric"
-                                        value={form.amount ? fmt(numero(form.amount)) : ''}
-                                        onChange={e => set('amount', e.target.value.replace(/\D/g, '').slice(0, 12))}
-                                        placeholder="0"
-                                    />
-                                    <span className="pd-plata-cop">COP</span>
-                                </div>
-                            </Campo>
-                        </div>
+                                <span className="pd-plata-cop">COP</span>
+                            </div>
+                            {/* Que el total no cuadre con las piezas es legítimo —un descuento,
+                                un redondeo—, así que se dice y no se corrige. Lo que no puede
+                                pasar es que nadie se entere. */}
+                            {suma > 0 && monto !== null && monto !== suma ? (
+                                <span className="pd-ayuda">
+                                    Las piezas suman ${fmt(suma)}. Estás cobrando ${fmt(monto)}
+                                    {monto < suma ? ` — ${fmt(suma - monto)} menos.` : ` — ${fmt(monto - suma)} más.`}
+                                    {' '}
+                                    <button type="button" className="pd-enlace" onClick={() => { setMontoTocado(false); set('amount', String(suma)); }}>
+                                        Usar la suma
+                                    </button>
+                                </span>
+                            ) : (
+                                <span className="pd-ayuda">Lo que paga la clienta por todo el pedido.</span>
+                            )}
+                        </Campo>
 
                         <Campo etiqueta="Estado">
                             <div className="pd-fichas">
