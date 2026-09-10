@@ -67,6 +67,7 @@ const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'))
 const TermsOfService = lazy(() => import('./pages/TermsOfService'))
 const ReturnsPolicy = lazy(() => import('./pages/ReturnsPolicy'))
 const RingSizeGuide = lazy(() => import('./pages/RingSizeGuide'))
+const Certificado   = lazy(() => import('./pages/Certificado'))
 const NoEncontrado  = lazy(() => import('./pages/NoEncontrado'))
 
 const PageLoader = () => (
@@ -140,6 +141,13 @@ function App() {
           <Route path="/terminos-de-servicio" element={<ConNavbar><TermsOfService /></ConNavbar>} />
           <Route path="/politica-de-devoluciones" element={<ConNavbar><ReturnsPolicy /></ConNavbar>} />
           <Route path="/guia-de-tallas" element={<ConNavbar><RingSizeGuide /></ConNavbar>} />
+
+          {/* El certificado de autenticidad, al que se llega escaneando el QR
+              de la tarjeta. CON navbar y pie a propósito: quien escanea muchas
+              veces no es la clienta sino a quien le regalaron la pieza, y ese
+              acaba de conocer la marca. Dejarlo en un callejón sin salida sería
+              desaprovechar la única visita que llega ya convencida. */}
+          <Route path="/certificado/:codigo" element={<ConNavbar><Certificado /></ConNavbar>} />
 
           {/* Admin — sin Navbar pública */}
           <Route path="/admin/login" element={<Login />} />

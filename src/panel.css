@@ -8554,3 +8554,84 @@
   font-size: 0.82rem; line-height: 1.5; color: var(--text-secondary);
 }
 .guia-despacho-pasa strong { color: var(--ink); font-weight: 700; }
+
+/* ================================================================
+   Certificado de autenticidad — el diálogo de Pedidos
+
+   9 de septiembre de 2026. Emitir el certificado de un pedido, verlo antes de
+   mandarlo y mandarlo por WhatsApp.
+
+   La vista previa es un `<canvas>` de 1080×1350 que el CSS encoge: se ve en el
+   panel exactamente la imagen que va a recibir la clienta, y no una
+   aproximación en HTML que podría no coincidir.
+   ================================================================ */
+
+.cert-dlg { max-width: 620px; }
+
+.cert-dlg-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.cert-dlg-nota {
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.cert-dlg-nota strong { color: var(--ink); }
+.cert-dlg-nota a { color: var(--oro-ink); text-decoration: underline; }
+
+.cert-dlg-pista {
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+/* No es un error: es «esto no es lo normal, mira antes de seguir». Por eso va
+   en arena y no en los tonos de error — el rojo de un aviso que no impide nada
+   se aprende a ignorar, y entonces deja de servir cuando sí importa. */
+.cert-dlg-alerta {
+  padding: 0.75rem 1rem;
+  background: var(--bg-arena);
+  border-left: 2px solid var(--oro);
+  font-size: 0.85rem;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.cert-dlg-error {
+  padding: 0.75rem 1rem;
+  background: var(--error-fondo);
+  border-left: 2px solid var(--error-ink);
+  font-size: 0.85rem;
+  line-height: 1.55;
+  color: var(--error-fuerte);
+}
+
+.cert-dlg-ok {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--oro-ink);
+}
+
+/* El marfil de detrás hace de mostrador: la tarjeta es blanca y sin él se
+   confundiría con el fondo del diálogo. */
+.cert-dlg-previa {
+  background: var(--bg-marfil);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 0.75rem;
+  max-height: 46vh;
+  overflow: auto;
+}
+
+.cert-dlg-previa canvas { display: block; border-radius: 2px; }
+
+/* `.modal-actions` sólo trae separación de arriba porque vive dentro de
+   `.modal-form`, que ya pone los márgenes laterales. Aquí cuelga del cuerpo. */
+.cert-dlg .modal-actions {
+  flex-wrap: wrap;
+  padding: 0 1.75rem 1.75rem;
+}

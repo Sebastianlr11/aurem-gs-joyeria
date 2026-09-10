@@ -184,3 +184,30 @@ export async function llamarFuncion(nombre, cuerpo) {
     return { data: null, error: { message: err?.message || 'Sin conexión' } }
   }
 }
+
+/**
+ * Un certificado de autenticidad, por su código.
+ *
+ * Por RPC y no por tabla, igual que `pedido_publico`: RLS no sabe decir «sólo
+ * si conoces el código», y si `anon` pudiera seleccionar `certificados` por
+ * código podría seleccionarla entera —basta con quitar el filtro—, que es la
+ * lista de las clientas con la joya que compró cada una.
+ *
+ * Devuelve `{ data: null, error: null }` cuando el código no existe: para esta
+ * pantalla «no hay tal certificado» es una respuesta, no una avería, y las dos
+ * se dicen distinto.
+ */
+export async function traerCertificado(codigo) {
+    try {
+        const res = await fetch(`${URL_BASE}/rest/v1/rpc/certificado_publico`, {
+            method: 'POST',
+            headers: { ...cabeceras, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ p_codigo: codigo }),
+        })
+        if (!res.ok) return { data: null, error: { message: `Supabase respondió ${res.status}` } }
+        const cuerpo = await res.json()
+        return { data: (Array.isArray(cuerpo) ? cuerpo[0] : cuerpo) || null, error: null }
+    } catch (err) {
+        return { data: null, error: { message: err?.message || 'Sin conexión' } }
+    }
+}

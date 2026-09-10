@@ -21,6 +21,7 @@
     "@mercadopago/sdk-react": "^1.0.7",
     "@react-email/components": "^1.0.12",
     "@supabase/supabase-js": "^2.98.0",
+    "qrcode-generator": "^2.0.4",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-email": "^6.9.2",
