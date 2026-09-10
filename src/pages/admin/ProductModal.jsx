@@ -71,6 +71,7 @@ const VACIO = {
     name: '', category: 'Anillos', price: '', compare_price: '',
     description: '', image_url: '', is_new: false,
     is_featured: false, stock: '', metal: '', piedra: '', talla_rango: '',
+    peso_gramos: '',
 };
 
 /** Un interruptor. Se usa dentro de un botón, así que es un span, no un input. */
@@ -405,6 +406,10 @@ export default function ProductModal({ product, onClose, onSaved }) {
             metal: texto(form.metal) || null,
             piedra: texto(form.piedra) || null,
             talla_rango: texto(form.talla_rango) || null,
+            /* Vacío es null y no cero: null significa «no se ha pesado», y el
+               certificado omite la línea. Un cero sería un peso, y un peso de
+               cero gramos en un documento lo desmiente entero. */
+            peso_gramos: texto(form.peso_gramos) ? Number(form.peso_gramos) : null,
             // Vacío = sin control de inventario (null). 0 = agotado.
             stock: form.stock === '' || form.stock === null || form.stock === undefined
                 ? null
@@ -657,6 +662,22 @@ export default function ProductModal({ product, onClose, onSaved }) {
                                         placeholder="5 a 12"
                                     />
                                     <span className="pm-ayuda">Sólo para anillos.</span>
+                                </div>
+                                {/* El peso no se enseña en la ficha: es para el certificado de
+                                    autenticidad, donde es el dato más creíble que hay —lo único
+                                    que se puede volver a comprobar con una balanza—. Vacío es
+                                    «sin pesar», y entonces la línea no sale en el documento;
+                                    una línea en blanco en un certificado lo desmiente. */}
+                                <div className="pm-campo">
+                                    <label className="pm-label">Peso</label>
+                                    <input
+                                        className="pm-input"
+                                        type="number" step="0.01" min="0"
+                                        value={form.peso_gramos ?? ''}
+                                        onChange={e => set('peso_gramos', e.target.value)}
+                                        placeholder="En gramos"
+                                    />
+                                    <span className="pm-ayuda">Para el certificado. Vacío si no se ha pesado.</span>
                                 </div>
                             </div>
                             <div className="pm-campo">

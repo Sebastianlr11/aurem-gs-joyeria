@@ -12,6 +12,13 @@ Disallow: /admin/
 # y no debería aparecer en resultados.
 Disallow: /confirmacion
 
+# Cada certificado de autenticidad lleva el nombre de pila de una clienta y la
+# joya que compró. Es para quien tiene el enlace, no para quien busca. La
+# página además se pinta con `noindex`: esto es el segundo cerrojo, porque
+# robots.txt sólo pide que no se rastree y no impide indexar una URL que
+# aparezca enlazada desde otro sitio.
+Disallow: /certificado
+
 # Los buscadores con IA se dejan pasar a propósito. Cada uno tiene su propio
 # user-agent y bloquearlos sólo saca a la joyería de sus respuestas; para un
 # taller que vive de que lo encuentren, eso es perder, no proteger.

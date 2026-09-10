@@ -10,6 +10,7 @@ import { queFalta } from '../../../lib/circuito';
 import { estaVivo, recibidoDe, laVentaEntro } from '../../../lib/dinero';
 import { supabase } from '../../../lib/supabase';
 import PedidoModal from '../PedidoModal';
+import DialogoCertificado from '../certificado/DialogoCertificado';
 import { GRUPOS, ORDER_STATUSES, SOURCE_META, STATUS_META, coincideTelefono, despacharPedido, enGrupo, fmt, fmtDate, isCOD, norm } from './comunes';
 import { ConfirmModal, ShipModal, SourceBadge, StatusBadge, StatusConfirmModal } from './piezas';
 
@@ -484,6 +485,18 @@ const OrdersSection = ({ orders, products, loading, onRefresh }) => {
                                                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
                                                         </a>
                                                     )}
+                                                    {/* El certificado. Se esconde en lo cancelado y lo devuelto:
+                                                        ahí no hay pieza en manos de nadie que certificar. El
+                                                        diálogo avisa si todavía no está entregado. */}
+                                                    {o.status !== 'cancelado' && o.status !== 'devuelto' && (
+                                                        <button
+                                                            className="ped-icono"
+                                                            onClick={() => setModal({ type: 'certificado', order: o })}
+                                                            title="Certificado de autenticidad"
+                                                        >
+                                                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.5 13.5L17 22l-5-3-5 3 1.5-8.5"/></svg>
+                                                        </button>
+                                                    )}
                                                     <button className="ped-icono" onClick={() => setModal({ type: 'edit', order: o })} title="Editar">
                                                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                                                     </button>
@@ -652,6 +665,9 @@ const OrdersSection = ({ orders, products, loading, onRefresh }) => {
             {modal?.type === 'add'    && <PedidoModal products={products} onClose={closeModal} onSaved={afterSave} />}
             {modal?.type === 'edit'   && <PedidoModal order={modal.order} products={products} onClose={closeModal} onSaved={afterSave} />}
             {modal?.type === 'ship'   && <ShipModal order={modal.order} onClose={closeModal} onConfirm={handleShipConfirm} />}
+            {modal?.type === 'certificado' && (
+                <DialogoCertificado pedido={modal.order} productos={products} onClose={closeModal} />
+            )}
             {modal?.type === 'confirm_status' && (
                 <StatusConfirmModal
                     order={modal.order}

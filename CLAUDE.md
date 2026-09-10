@@ -39,7 +39,7 @@ npm run dev          # Vite en http://localhost:5173
 npm run build        # eslint && vitest && sitemap.mjs && correos.mjs && tsc -b && vite build
 npm run preview      # Sirve /dist
 npm run lint         # ESLint (sí corre en el build)
-npm test             # Vitest, una pasada (406 pruebas)
+npm test             # Vitest, una pasada (429 pruebas)
 npm run test:mirar   # Vitest en marcha, repitiendo al guardar
 
 npm run sitemap      # Regenera public/sitemap.xml desde Supabase
@@ -79,7 +79,7 @@ Cuatro advertencias sobre el build:
 
 ### Las pruebas
 
-Hay **406**, en veintinueve archivos que viven al lado de lo que prueban:
+Hay **429**, en treinta archivos que viven al lado de lo que prueban:
 
 | Archivo | Qué fija |
 |---|---|
@@ -105,6 +105,7 @@ Hay **406**, en veintinueve archivos que viven al lado de lo que prueban:
 | `emails/_render.test.ts` | El asunto de cada correo, que no vive en la plantilla |
 | `src/lib/atribucionDelChat.test.js` | Que una venta cerrada por WhatsApp vuelva a la campaña que la trajo |
 | `src/lib/estadoDelChat.test.js` | En qué va cada conversación, y que ninguna se caiga de todos los filtros |
+| `src/lib/certificado.test.js` | El certificado: qué se congela, qué no sale nunca en blanco y qué código se puede leer en voz alta |
 
 **Una de ellas no comprueba código, compara dos copias.** La talla de anillo está
 implementada dos veces —`src/lib/talla.js` para la guía del sitio y
@@ -151,38 +152,21 @@ Este es el punto donde más se equivoca quien llega nuevo:
 | **Edge Functions** | `supabase/functions/` | Deno | Valentina, WhatsApp, Mercado Pago, conversiones, vigía |
 | **Correos** | `emails/` | React Email → Resend | 4 plantillas transaccionales |
 
-Stack real (lo que hay en `package.json`, ni más ni menos):
+El stack sale de `package.json`. Tres cosas que ahí NO se ven:
 
-- React 19 + Vite 7 + react-router-dom 7
-- TypeScript en modo `strict` — pero **casi todo el código es `.jsx`**. El único `.tsx`
+- **TypeScript está en modo `strict` pero casi todo el código es `.jsx`.** El único `.tsx`
   de la app es `src/main.tsx`.
-- Supabase (Auth, Postgres, Storage, Realtime, Edge Functions)
-- Mercado Pago (`@mercadopago/sdk-react`)
-- Resend + React Email
-- **CSS plano, escrito a mano, en dos archivos** (`src/index.css` y `src/panel.css`).
-  No hay Tailwind, ni CSS modules, ni preprocesador.
+- **CSS plano, escrito a mano.** No hay Tailwind, ni CSS modules, ni preprocesador — ver §11,
+  que explica en cuántos archivos y por qué.
 - **No hay Framer Motion.** Se eliminó (~41 KB) y se reemplazó por `src/lib/aparecer.js`.
 
 ---
 
 ## 4. Mapa de rutas
 
-Definidas en `src/App.jsx:74-136`. Todas las páginas son `lazy()`.
+Definidas en `src/App.jsx:74-136` — la tabla de rutas se lee ahí. Todas las páginas van
+`lazy()` salvo `Home`.
 
-| Ruta | Componente | Layout | Protegida |
-|---|---|---|---|
-| `/` | `Home` | Navbar + Footer | — |
-| `/catalogo` | `Catalog` | Navbar + Footer | — |
-| `/catalogo/:id` | `ProductPage` | **sólo Footer** | — |
-| `/confirmacion` | `Confirmacion` | Navbar + Footer | — |
-| `/politica-de-privacidad` | `PrivacyPolicy` | Navbar + Footer | — |
-| `/terminos-de-servicio` | `TermsOfService` | Navbar + Footer | — |
-| `/politica-de-devoluciones` | `ReturnsPolicy` | Navbar + Footer | — |
-| `/guia-de-tallas` | `RingSizeGuide` | Navbar + Footer | — |
-| `/admin/login` | `Login` | ninguno | — |
-| `/admin/reset-password` | `ResetPassword` | ninguno | — |
-| `/admin` | `Dashboard` | propio | `ProtectedRoute` |
-| `/admin/chat` | `ChatPanel` | propio | `ProtectedRoute` |
 
 Cosas que hay que saber antes de tocar el enrutado:
 
@@ -320,40 +304,31 @@ Todas se crean en `20260228_esquema_base.sql` salvo donde se diga.
 | `pagos` | El libro de movimientos que lee `src/lib/caja.js`, llenado por el trigger `registrar_pago` (`20260822_libro_de_caja.sql`) |
 | `ciudades_envio` | Los 1.273 municipios con su código DANE, para 99envios (`20260824_las_ciudades_de_colombia.sql`) |
 | `bot_respondiendo` | El candado de turno: quién le está respondiendo a quién ahora mismo (`20260831_una_valentina_a_la_vez.sql`) |
+| `certificados` | Los certificados de autenticidad emitidos, con los datos de la pieza **congelados** en un `jsonb` (`20260910_cada_pieza_con_su_certificado.sql`) |
 
 **Ya no existen** `message_history`, `whatsapp_dedup`, `conversaciones` ni
 `whatsapp_conversaciones_respaldo`: borradas el 23-ago
 (`20260823_fuera_las_tablas_muertas.sql`). Las tres primeras eran restos de la era n8n; la
 cuarta era una copia entera de los chats que hacía falsa la promesa de borrado del panel.
 
-### Columnas que importan
+### Columnas con trampa
 
-**`orders`** — `id`, `customer_name`, `customer_email`, `customer_phone`, `product_id`,
-`product_name`, `amount`, `status`, `payment_method`, `order_source`, `notes`, `carrier`,
-`tracking_number`, `mp_preference_id`, `mp_payment_id`, `mp_status`, `status_updated_at`,
-`created_at`, `es_prueba`, `shipping_address`, `shipping_city`, `shipping_department`,
-`abono_monto`, `abono_pagado_en`, `conversion_enviada_en`, `costo_taller`, `costo_envio`,
-`costo_anotado_en`, y la atribución
-(`ttclid`, `ttp`, `fbc`, `fbp`, `client_ua`, `client_ip`, `ctwa_clid`, `anuncio_id`,
-`utm_source`, `utm_campaign`).
+Las columnas se leen del esquema; acá sólo va lo que el esquema no dice.
 
 `status` ∈ `pendiente | confirmado | pagado | procesando | enviado | entregado | devuelto |
 cancelado`. **La columna es texto sin restricción**: acepta cualquier cosa, así que el
 vocabulario lo sostienen el código y esta tabla, no la base.
 `payment_method` ∈ `mercadopago | contraentrega | …`.
 
-**`whatsapp_conversaciones`** — `id`, `phone_number`, `role`, `content`, `message_type`,
-`media_url`, `wa_message_id` (**único**, es el candado anti-reentrega), `is_read`,
-`enviado_por` (`ia` | `humano`), `delivery_status`, `error_wa`, `wa_phone_id`, `referral`,
-`created_at`.
+**`whatsapp_conversaciones`** — `wa_message_id` es **único**: es el candado
+anti-reentrega de Meta. `enviado_por` ∈ `ia | humano`.
 
 **`customers`** — base + `wa_id`: el identificador de Meta cuando el contacto llega **sin
 teléfono**. `phone` se queda para números de verdad; ver la trampa de §11.
 
-**`products`** — base + `images[]`, `stock`, `metal`, `piedra`, `talla_rango`,
-`compare_price`. (`costo` y `costo_provisional` siguen en la tabla pero están **muertas**
-desde el 23-ago: el costo vive en el pedido; `engaste` lo está desde el 30-ago: el taller
-nunca lo llenó.)
+**`products`** — `costo` y `costo_provisional` siguen en la tabla pero están **muertas**
+desde el 23-ago (el costo vive en el pedido); `engaste` lo está desde el 30-ago, el taller
+nunca lo llenó.
 
 `category` ∈ `Anillos | Collares | Aretes | Topos | Pulseras | Dijes | Juegos`, y **aquí sí
 hay `CHECK`** —al revés que `orders.status`—: una categoría nueva pide migración.
@@ -365,6 +340,7 @@ hay `CHECK`** —al revés que `orders.status`—: una categoría nueva pide mig
 | `chats_sin_responder` | sí (`20260822_chats_sin_responder.sql`) |
 | `revenue_por_fuente` · `embudo_whatsapp` | sí (`20260824_los_informes_cuentan_lo_que_entro.sql`) |
 | `analiticas_whatsapp` · `buscar_conversaciones` · `clientes_nuevos_vs_recurrentes` · `tendencia_comparativa` · `top_ciudades_envio` | sí (`20260824_las_cinco_que_faltaban.sql`) |
+| `certificado_publico` | sí (`20260910_cada_pieza_con_su_certificado.sql`) |
 
 **Las ocho están.** Los permisos, además, en `20260823_las_rpc_estaban_abiertas.sql`: eran
 `SECURITY DEFINER` y **cualquiera con la llave pública podía ejecutarlas**, que es la misma
@@ -389,59 +365,10 @@ UTC ya es el 24—, y el nombre coincide con lo que quedó registrado en
 nombre es el identificador que la base ya tiene anotado.
 
 
-| Archivo | Qué hizo |
-|---|---|
-| `20260311_add_shipping_address.sql` | Dirección de envío en `orders` |
-| `20260311_orders_rls.sql` | RLS de `orders` — declaraba una política abierta a `anon` que nunca llegó a la base; anulada el 22-ago |
-| `20260818_atribucion_anuncios.sql` | `ttclid`, `ttp`, `fbc`, `fbp`, `conversion_enviada_en` |
-| `20260818_atribucion_navegador.sql` | `client_ua`, `client_ip` (Meta descarta eventos sin UA) |
-| `20260818_referral_anuncios.sql` | `referral jsonb` en conversaciones |
-| `20260818_taller_conocimiento.sql` | Crea la base de conocimiento + 6 filas sembradas |
-| `20260818_taller_precios.sql` | Crea la fila única de precios de taller |
-| `20260818_wa_phone_id.sql` | Arregla que el bot respondiera por el número de prueba |
-| `20260819_abono_envio.sql` | `abono_monto`, `abono_pagado_en`, `abono_envio` |
-| `20260819_atribucion_origen.sql` | `ctwa_clid`, `anuncio_id`, `utm_*` |
-| `20260819_plantillas_programadas.sql` | `plantillas_enviadas` + `customers.no_escribir` |
-| `20260822_libro_de_caja.sql` | La tabla `pagos` y el disparador `registrar_pago`: cuándo entró cada peso |
-| `20260822_chats_sin_responder.sql` | Función `chats_sin_responder()` |
-| `20260822_cerrar_conversaciones_a_anon.sql` | 🔒 Cierra a `anon` las 5 tablas de conversaciones y enciende RLS en 3 respaldos |
-| `20260822_borrar_chat_media.sql` | Política DELETE en `chat-media` |
-| `20260822_conversaciones_purgables.sql` | Función `conversaciones_purgables()` — retención |
-| `20260822_pedido_publico.sql` | 🔒 `pedido_publico(uuid)` y anulación de la política mina |
-| `20260822_quitar_respaldos_de_chats.sql` | Elimina los respaldos del 22-ago |
-| `20260823_las_rpc_estaban_abiertas.sql` | 🔒 Las RPC `SECURITY DEFINER` eran leíbles con la llave pública: cerrar tablas no cierra funciones |
-| `20260823_un_cliente_por_persona.sql` | Índice único por los últimos diez dígitos: el mismo número entraba de tres formas y creaba tres clientes |
-| `20260823_clientes_del_equipo.sql` | Los contactos del equipo también se marcan de prueba, no sólo sus pedidos |
-| `20260823_costos_del_pedido.sql` | El costo pasa del catálogo al pedido: `costo_taller`, `costo_envio`, `costo_anotado_en` |
-| `20260823_avisar_cancelaciones.sql` | El candado de `PedidoCancelado` hacia Meta y TikTok |
-| `20260823_conocimiento_al_dia.sql` | Quita los «SIN CONFIRMAR» del seed de Valentina, que ya estaban confirmados |
-| `20260823_conocimiento_devoluciones.sql` | Valentina no tenía nada que decir de devoluciones: escalaba en vez de responder |
-| `20260823_plazos_de_verdad.sql` | Los plazos que promete Valentina, ajustados a cómo trabaja el taller |
-| `20260823_superficie_de_seguridad.sql` | Volcado de RLS, políticas y funciones tal como están en producción, para poder diffearlo |
-| `20260823_el_reloj_de_la_base.sql` | Declara los dos trabajos de `pg_cron`; antes el horario sólo vivía en la base |
-| `20260823_tener_sesion_no_es_ser_del_equipo.sql` | 🔒 Las 20 políticas del panel exigen `es_del_equipo()`, no sólo tener sesión |
-| `20260823_storage_tambien_pide_ser_del_equipo.sql` | 🔒 Lo mismo para las fotos: subir y borrar pide rol de equipo |
-| `20260823_el_vigia_mira_el_candado.sql` | `politicas_flojas()`: el vigía avisa si una política deja de exigir `es_del_equipo()` |
-| `20260823_a_quien_se_le_puede_escribir.sql` | 🔒 `puede_recibir_plantillas()`: el «no me escriban» se comprobaba con la cadena cruda y fallaba en 10 de 18 pedidos |
-| `20260824_confirmado_y_devuelto.sql` | Dos estados nuevos en el circuito, y el guardián que compara la regla del dinero de la base con la tabla de §8 |
-| `20260824_los_informes_cuentan_lo_que_entro.sql` | `revenue_por_fuente` sumaba todos los pedidos: decía 331 veces más de lo que había entrado |
-| `20260824_las_cinco_que_faltaban.sql` | Las cinco RPC que sólo vivían en la base; tres de ellas mentían |
-| `20260824_lo_que_llega_a_la_cuenta.sql` | `neto_recibido_de`: el abono se cobra por Mercado Pago y los informes lo sumaban en bruto |
-| `20260824_el_embudo_se_ensanchaba.sql` | El embudo dibujaba 0 → 1 → 0: sus peldaños no eran subconjuntos |
-| `20260824_cancelar_el_duplicado_no_el_pedido_de_ayer.sql` | El disparador de duplicados no veía el mismo teléfono en otro formato, y mataba pedidos legítimos de días atrás |
-| `20260824_el_vigia_cuadra_la_caja.sql` | `caja_cuadra_con_la_regla()`: que el libro de pagos le haga caso a `recibido_de` |
-| `20260824_las_ciudades_de_colombia.sql` | Los 1.273 municipios con su código DANE, que es lo que pide 99envios |
-| `20260824_de_lo_que_escribe_la_clienta_al_codigo_dane.sql` | `codigo_dane()`: traduce la ciudad escrita a mano, y calla si es ambigua |
-| `20260830_topos_y_juegos.sql` | Dos categorías nuevas en el `CHECK` de `products`: los topos y los combos de dije con aretes |
-| `20260831_de_que_joya_viene_el_lead.sql` | `ajustes_internos.anuncios_piezas`: de qué pieza es cada anuncio, para que Valentina abra nombrándola |
-| `20260831_una_valentina_a_la_vez.sql` | `tomar_turno`/`soltar_turno`: dos corridas del bot le contestaban a la vez a la misma persona |
-| `20260901_no_todo_el_que_escribe_trae_numero.sql` | `customers.wa_id`: Meta manda contactos sin teléfono y se estaban guardando como si lo fueran |
-| `20260901_lo_que_valentina_no_sabia_contestar.sql` | Dónde estamos y crédito: dos preguntas del primer día de pauta que escalaban sin necesidad |
-| `20260901_el_contraentrega_ya_no_pide_abono.sql` | El abono a cero: en Bogotá se paga todo al recibir, y el pedido nace confirmado |
-| `20260902_el_indice_parcial_rompia_el_upsert.sql` | Un índice parcial no se puede inferir en un `ON CONFLICT`: los contactos sin teléfono no se guardaban |
-| `20260902_en_bogota_el_envio_ya_no_se_cobra.sql` | Valentina seguía cobrando $15.000 de envío en Bogotá, donde entrega el taller |
-| `20260906_en_que_va_cada_conversacion.sql` | `chat_status.estado`: el embudo del chat, porque «resuelto» no se usó ni una vez |
-| `20260907_el_catalogo_se_vuelve_a_pintar_solo.sql` | Guardar una pieza le pide a Vercel un build: el HTML prerenderizado de `/catalogo` no se queda viejo |
+Las 53 migraciones están en `supabase/migrations/`, y **el nombre de cada una dice qué
+hizo** —`20260824_el_embudo_se_ensanchaba.sql`—, así que `ls` es el índice. El detalle de
+cada una vive en su cabecera y en
+[`docs/specs/modelo-de-datos.md`](docs/specs/modelo-de-datos.md).
 
 `20260822_cerrar_conversaciones_a_anon.sql` cerró el fallo más grave de todos:
 `whatsapp_conversaciones` y `chat_takeover` tenían políticas
@@ -663,18 +590,7 @@ su versión operativa: úsala para construir.
 Dirección: **"Luz de vitrina"** — base marfil, tinta cacao, un solo oro, Marcellus +
 Mulish, escala de 8px, radio de 2px.
 
-| Token | Valor | Uso |
-|---|---|---|
-| `--bg-marfil` | `#FBF7F2` | Fondo principal |
-| `--bg-arena` | `#F2EAE0` | Fondo secundario |
-| `--ink` / `--text-primary` | `#1C1714` | Tinta cálida — **nunca negro puro** |
-| `--text-secondary` | `#6B615A` | Texto de apoyo |
-| `--text-muted` | `#766D66` | Aclarado desde `#9C938B` por contraste AA (4,74:1) |
-| `--oro` / `--accent-gold` | `#A8863F` | **El único oro** |
-| `--oro-ink` | `#7A5F26` | Oro oscuro sobre claro |
-| `--hairline` | `#E6DED3` | Líneas |
-| `--font-display` | Marcellus | Titulares — **sólo peso 400** |
-| `--font-ui` | Mulish | Interfaz y cuerpo |
+Los tokens —colores, fuentes, escala— están en `DESIGN.md`, que manda sobre este archivo.
 
 Reglas que se rompen con facilidad:
 
@@ -1090,6 +1006,23 @@ Cosas que ya costaron un incidente. Léelas antes de tocar lo que describen.
 - **Un POST de Meta puede traer varios mensajes.** `wa-webhook` leía `messages[0]` y tiraba el
   resto sin guardarlo. Lo desmenuza `_shared/lote.ts`; si tocas el webhook, que siga
   recorriendo el lote entero.
+- **Un QR sin zona de silencio parece perfecto y no se lee.** La norma pide cuatro módulos
+  de blanco alrededor del código, y sin ellos muchos lectores ni lo encuentran. La primera
+  versión de la tarjeta del certificado dibujaba los módulos hasta el borde: en pantalla se
+  veía impecable. Es un fallo que sólo aparece cuando alguien intenta escanear la tarjeta
+  desde el estuche, que es cuando ya no hay forma de arreglarlo. Se comprueba decodificando
+  la imagen de verdad —no mirándola—; con `jsqr` se leyó bien hasta con la tarjeta reducida
+  a 320 px de ancho.
+- **Lo que dice la tarjeta del certificado y lo que dice su página salen del mismo sitio.**
+  `campos()`, `GARANTIAS`, `EXCLUSION` y `NOTA_LEGAL` viven en `src/lib/certificado.js` y
+  los leen las dos. Si se escribieran a mano en cada lado, el día que se añada un dato una
+  se quedaría atrás: el QR estaría desmintiendo al papel que lo lleva impreso.
+- **Las dos garantías del certificado están COPIADAS de la política, no reescritas.** El
+  certificado es el papel que la clienta guarda y el que te enseña cuando reclama: si
+  promete más que `/politica-de-devoluciones`, vale la promesa; si promete menos, la
+  política queda de adorno. La exclusión de las piedras es la parte incómoda y por eso
+  justamente es la que no se puede omitir. Si cambia la política, cambia `GARANTIAS` — los
+  certificados ya emitidos no, que para eso van congelados.
 
 ## 12. Índice de specs
 
@@ -1124,6 +1057,7 @@ hoy, decisiones tomadas y por qué, límites conocidos, cómo probarlo.
 - [`vigilancia.md`](docs/specs/vigilancia.md) — el vigía
 - [`envios-99envios.md`](docs/specs/envios-99envios.md) — cotizar el envío con las cinco transportadoras
 - [`diseno-y-frontend.md`](docs/specs/diseno-y-frontend.md) — CSS, fuentes, animaciones
+- [`certificado-de-autenticidad.md`](docs/specs/certificado-de-autenticidad.md) — el certificado, su tarjeta y su QR
 
 **Y aparte:** [`docs/pendientes.md`](docs/pendientes.md) — los 41 hallazgos de la revisión,
 **todos cerrados** a 24 de agosto de 2026. Se conserva porque cada uno lleva escrito qué
