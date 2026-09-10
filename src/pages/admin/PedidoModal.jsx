@@ -800,13 +800,25 @@ export default function PedidoModal({ order, products = [], onClose, onSaved, in
                     </section>
                 </div>
 
-                <footer className="pd-pie">
+                {/* El error se repite en el pie, y no es redundancia.
+                    El banner vive arriba de `.pd-cuerpo`, que es lo que hace
+                    scroll; quien acaba de llenar el formulario está abajo, con el
+                    dedo en «Crear pedido», y el aviso le queda fuera de pantalla.
+                    El 9 de septiembre de 2026 eso hizo que un pedido se creara dos
+                    veces: el guardado de las piezas falló, el error salió arriba y
+                    desde abajo parecía que el botón no hacía nada. El pie NO
+                    scrollea, así que aquí no se puede perder. */}
+                <footer className={`pd-pie${error ? ' pd-pie--error' : ''}`}>
                     <div className="pd-pie-estado">
-                        <span className="pd-pie-rotulo">{listo ? 'Total del pedido' : 'Falta por completar'}</span>
-                        <span className={`pd-pie-valor${listo ? '' : ' pd-pie-valor--falta'}`}>
-                            {listo
-                                ? `$${fmt(monto)} COP${form.payment_method ? ` · ${PAGOS.find(p => p.id === form.payment_method)?.label}` : ''}`
-                                : enLista(falta)}
+                        <span className="pd-pie-rotulo">
+                            {error ? 'No se pudo guardar' : listo ? 'Total del pedido' : 'Falta por completar'}
+                        </span>
+                        <span className={`pd-pie-valor${error ? ' pd-pie-valor--error' : listo ? '' : ' pd-pie-valor--falta'}`}>
+                            {error
+                                ? error
+                                : listo
+                                    ? `$${fmt(monto)} COP${form.payment_method ? ` · ${PAGOS.find(p => p.id === form.payment_method)?.label}` : ''}`
+                                    : enLista(falta)}
                         </span>
                     </div>
                     <div className="pd-pie-botones">

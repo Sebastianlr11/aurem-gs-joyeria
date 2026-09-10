@@ -13,7 +13,14 @@ import { CARRIERS, CARRIER_DE_99ENVIOS, EMPTY_CUSTOMER, SOURCE_META, STATUS_META
 import { MINIMO_DOS, comoSeRecoge } from '../../../lib/recogida';
 import { loQuePasa } from '../../../lib/circuito';
 
-export const ConfirmModal = ({ title, text, onClose, onConfirm }) => {
+/* `etiqueta` existe porque este diálogo ya no sólo borra. Desde el 9 de
+   septiembre de 2026 también es el que explica por qué un pedido real NO se
+   puede borrar y ofrece cancelarlo, y un botón rojo que dice «Eliminar»
+   haciendo otra cosa es peor que no tener diálogo. */
+export const ConfirmModal = ({
+    title, text, onClose, onConfirm,
+    etiqueta = 'Eliminar', etiquetaCargando = 'Eliminando...',
+}) => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
@@ -42,11 +49,11 @@ export const ConfirmModal = ({ title, text, onClose, onConfirm }) => {
                 </div>
                 <h3 className="confirm-modal-title">{title}</h3>
                 <p className="confirm-modal-text">{text}</p>
-                {error && <p className="ep-error" style={{ textAlign: 'left' }}>No se pudo eliminar: {error}</p>}
+                {error && <p className="ep-error" style={{ textAlign: 'left' }}>No se pudo: {error}</p>}
                 <div className="confirm-modal-actions">
                     <button className="confirm-modal-btn confirm-modal-btn--cancel" onClick={onClose}>Cancelar</button>
                     <button className="confirm-modal-btn confirm-modal-btn--delete" onClick={confirmar} disabled={loading}>
-                        {loading ? 'Eliminando...' : 'Eliminar'}
+                        {loading ? etiquetaCargando : etiqueta}
                     </button>
                 </div>
             </div>

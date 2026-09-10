@@ -8728,3 +8728,50 @@
   .pd-pieza-fila { flex-wrap: wrap; }
   .pd-pieza-chico { width: calc(50% - 0.2rem); }
 }
+
+/* ── Que algo salió bien ──────────────────────────────────────────────────
+   9 de septiembre de 2026. Guardar cerraba el modal y ya. Sin una palabra, un
+   formulario que desaparece se lee igual que uno que falló, y ese mismo día un
+   pedido se creó dos veces por eso. Cuatro segundos y se va solo: es una
+   confirmación, no un mensaje que haya que despachar. */
+
+.pnl-exito {
+  position: fixed;
+  left: 50%;
+  bottom: 2rem;
+  transform: translateX(-50%);
+  z-index: 2100;
+  display: flex; align-items: center; gap: 0.5rem;
+  padding: 0.7rem 1.1rem;
+  font-family: var(--font-ui); font-size: 0.85rem; font-weight: 700;
+  color: var(--bg-color);
+  background: var(--ink);
+  border-radius: 100px;
+  box-shadow: 0 12px 32px rgba(28, 23, 20, 0.22);
+  animation: pnlExitoEntra 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* El único sitio donde el oro va sobre cacao: ahí sí cumple contraste. */
+.pnl-exito svg { color: var(--oro-luz); flex: 0 0 auto; }
+
+@keyframes pnlExitoEntra {
+  from { opacity: 0; transform: translate(-50%, 12px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pnl-exito { animation: none; }
+}
+
+/* El pie del modal de pedido cuando el guardado falló. El aviso de arriba
+   scrollea y éste no, así que éste es el que se ve. */
+.pd-pie--error { border-top: 2px solid var(--error-ink); }
+.pd-pie-valor--error {
+  color: var(--error-fuerte);
+  font-weight: 700;
+  /* Un mensaje de Postgres es largo: se deja crecer en vez de recortarlo con
+     puntos suspensivos, que escondería justo la parte que explica el fallo. */
+  white-space: normal;
+  line-height: 1.45;
+  max-width: 60ch;
+}

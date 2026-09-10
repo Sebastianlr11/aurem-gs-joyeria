@@ -5,7 +5,7 @@
  * esta pantalla. El código se movió tal cual: lo que comparte con otras
  * secciones vive en `comunes.jsx`.
  */
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { queFalta } from '../../../lib/circuito';
 import { estaVivo, recibidoDe, laVentaEntro } from '../../../lib/dinero';
 import { supabase } from '../../../lib/supabase';
@@ -189,7 +189,23 @@ const OrdersSection = ({ orders, products, loading, onRefresh }) => {
     const [page, setPage]               = useState(1);
 
     const closeModal = () => setModal(null);
-    const afterSave  = () => { closeModal(); onRefresh(); };
+
+    /* Guardar cerraba el modal y ya. Sin una palabra, un formulario que
+       desaparece se lee igual que uno que falló: el 9 de septiembre de 2026 un
+       pedido se creó dos veces porque no pasaba nada visible al pulsar. Ahora
+       lo dice, y se va solo a los cuatro segundos. */
+    const [exito, setExito] = useState('');
+    useEffect(() => {
+        if (!exito) return undefined;
+        const t = setTimeout(() => setExito(''), 4000);
+        return () => clearTimeout(t);
+    }, [exito]);
+
+    const afterSave = (mensaje = 'Listo, el pedido quedó guardado.') => {
+        closeModal();
+        onRefresh();
+        setExito(mensaje);
+    };
 
     /* El filtrado va en dos pasos a propósito. Aquí se aplica todo menos el
        estado, y de este conjunto salen los contadores de la cabecera: así
@@ -505,11 +521,17 @@ const OrdersSection = ({ orders, products, loading, onRefresh }) => {
                                                         borrar uno real se llevaba en silencio los movimientos del
                                                         libro de caja y el «Cobrado · últimos 30 días» cambiaba
                                                         sin rastro. Lo demás se cancela, no se borra. */}
+                                                    {/* Ya NO va apagado. La regla —un pedido real no se borra— sigue
+                                                        intacta, pero antes se aplicaba deshabilitando el botón, y un
+                                                        botón que no responde se lee como una avería: el 9 de septiembre
+                                                        de 2026 el joyero duplicó un pedido sin querer, le dio a eliminar
+                                                        y «no sucedía nada». El motivo vivía en un `title` que sólo
+                                                        aparece al pasar el ratón —y en un celular, nunca—. Ahora abre un
+                                                        diálogo que lo explica y ofrece la salida que sí existe. */}
                                                     <button
                                                         className="ped-icono ped-icono--baja"
                                                         onClick={() => setModal({ type: 'delete', order: o })}
-                                                        disabled={!sePuedeBorrar(o)}
-                                                        title={sePuedeBorrar(o) ? 'Eliminar' : 'Un pedido real no se borra: cancélalo. Borrarlo se llevaría sus pagos del libro de caja.'}
+                                                        title={sePuedeBorrar(o) ? 'Eliminar' : 'Por qué este pedido no se puede borrar'}
                                                     >
                                                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
                                                     </button>
@@ -533,6 +555,15 @@ const OrdersSection = ({ orders, products, loading, onRefresh }) => {
                     </div>
                 )}
             </section>
+            {/* Flota sobre la sección, no dentro del modal: para cuando se pinta,
+                el modal ya se cerró. */}
+            {exito && (
+                <div className="pnl-exito" role="status">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+                    {exito}
+                </div>
+            )}
+
             {modal?.type === 'detail' && (() => {
                 const o = modal.order;
                 const addressParts = [o.shipping_address, o.shipping_city, o.shipping_department].filter(Boolean);
@@ -676,7 +707,7 @@ const OrdersSection = ({ orders, products, loading, onRefresh }) => {
                     onConfirm={async () => { await changeStatus(modal.order, modal.nextStatus); closeModal(); }}
                 />
             )}
-            {modal?.type === 'delete' && (
+            {modal?.type === 'delete' && sePuedeBorrar(modal.order) && (
                 <ConfirmModal
                     title="Eliminar pedido"
                     text={`Eliminar el pedido de "${modal.order.customer_name}"? Se van también los pagos que tuviera anotados en el libro de caja.`}
@@ -684,7 +715,30 @@ const OrdersSection = ({ orders, products, loading, onRefresh }) => {
                     onConfirm={async () => {
                         const res = await supabase.from('orders').delete().eq('id', modal.order.id);
                         if (res.error) return res;
-                        afterSave();
+                        afterSave('El pedido se eliminó.');
+                    }}
+                />
+            )}
+
+            {/* Un pedido real no se borra: `pagos` cae en cascada con él, así que
+                borrar uno se llevaría en silencio sus movimientos del libro de caja
+                y el «Cobrado · últimos 30 días» cambiaría sin rastro. El camino es
+                cancelarlo — y una vez cancelado sí se puede borrar, que es lo que
+                hace falta cuando el pedido se creó por error. */}
+            {modal?.type === 'delete' && !sePuedeBorrar(modal.order) && (
+                <ConfirmModal
+                    title="Este pedido no se puede borrar"
+                    text={`"${modal.order.customer_name}" es un pedido real, y borrarlo se llevaría sus pagos del libro de caja sin dejar rastro. Si lo creaste por error, márcalo cancelado: deja de contar como venta, y una vez cancelado sí lo puedes eliminar.`}
+                    etiqueta="Marcarlo cancelado"
+                    etiquetaCargando="Cancelando..."
+                    onClose={closeModal}
+                    onConfirm={async () => {
+                        const res = await supabase
+                            .from('orders')
+                            .update({ status: 'cancelado', status_updated_at: new Date().toISOString() })
+                            .eq('id', modal.order.id);
+                        if (res.error) return res;
+                        afterSave('El pedido quedó cancelado. Ahora sí se puede eliminar.');
                     }}
                 />
             )}
