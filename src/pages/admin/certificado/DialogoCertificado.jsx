@@ -27,7 +27,7 @@
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '../../../lib/supabase';
-import { congelar, nuevoCodigo, urlDeCertificado } from '../../../lib/certificado';
+import { congelar, nuevoCodigo, piezasDe, urlDeCertificado } from '../../../lib/certificado';
 import { tarjetaJpeg, pintarTarjeta } from './tarjeta';
 
 /* El mismo bucket público del catálogo, bajo su propio prefijo. Un bucket
@@ -42,10 +42,17 @@ const CARPETA = 'certificados';
    «nunca», y un 23505 sin reintento sería un error incomprensible en pantalla. */
 const INTENTOS = 5;
 
-const mensajeWa = (cert) =>
-    `Hola ${cert.datos.cliente || ''}! 💎 Aquí va el certificado de autenticidad de tu ${cert.datos.pieza}.\n\n` +
+const mensajeWa = (cert) => {
+    const piezas = piezasDe(cert.datos);
+    /* «tu anillo» con una, «tus 2 piezas» con varias. Nombrar la pieza cuando
+       hay una es lo que hace que el mensaje no parezca automático. */
+    const que = piezas.length === 1 ? `tu ${piezas[0].nombre}` : `tus ${piezas.length} piezas`;
+    return (
+    `Hola ${cert.datos.cliente || ''}! 💎 Aquí va el certificado de autenticidad de ${que}.\n\n` +
     `Puedes verificarlo en cualquier momento en ${urlDeCertificado(cert.codigo)} o escaneando el código de la tarjeta.\n\n` +
-    `Guárdalo: ahí está también la garantía. Gracias por confiar en Aurem Gs Joyería.`;
+    `Guárdalo: ahí está también la garantía. Gracias por confiar en Aurem Gs Joyería.`
+    );
+};
 
 const DialogoCertificado = ({ pedido, productos = [], onClose }) => {
     const [cargando, setCargando] = useState(true);
@@ -54,10 +61,10 @@ const DialogoCertificado = ({ pedido, productos = [], onClose }) => {
     const [aviso, setAviso] = useState('');
     const [ocupado, setOcupado] = useState('');
 
-    const pieza = productos.find((p) => p.id === pedido.product_id) || null;
-
-    const [peso, setPeso] = useState('');
-    const [talla, setTalla] = useState('');
+    /* Las piezas del pedido, con lo que hace falta corregir antes de emitir.
+       Una por línea de `order_items`; si el pedido no tiene —los de antes de
+       que existiera la tabla— se arma una sola con lo que hay en la orden. */
+    const [lineas, setLineas] = useState([]);
 
     const lienzoRef = useRef(null);
 
@@ -79,23 +86,48 @@ const DialogoCertificado = ({ pedido, productos = [], onClose }) => {
         return () => { vivo = false; };
     }, [pedido.id]);
 
-    /* ── La talla, que vive en la línea del pedido ── */
+    /* ── Las piezas del pedido ── */
     useEffect(() => {
         let vivo = true;
         (async () => {
             const { data } = await supabase
                 .from('order_items')
-                .select('talla')
+                .select('product_id, nombre, talla')
                 .eq('order_id', pedido.id)
-                .limit(1);
-            if (vivo && data?.[0]?.talla) setTalla(data[0].talla);
+                .order('creado_en');
+            if (!vivo) return;
+
+            const filas = (data ?? []).map((f) => {
+                const producto = productos.find((p) => p.id === f.product_id) || null;
+                return {
+                    clave: f.product_id || f.nombre,
+                    producto,
+                    nombre: f.nombre || producto?.name || '',
+                    talla: f.talla || '',
+                    peso: producto?.peso_gramos ? String(producto.peso_gramos) : '',
+                };
+            });
+
+            if (filas.length) return setLineas(filas);
+
+            /* Sin filas: un pedido de antes de `order_items`, o uno cuyo
+               guardado de piezas falló. Se arma una sola con lo de la orden.
+               Ojo: `product_name` puede ser el nombre PEGADO de varias piezas,
+               así que quien emita tiene que mirarlo — por eso es editable. */
+            const producto = productos.find((p) => p.id === pedido.product_id) || null;
+            setLineas([{
+                clave: pedido.id,
+                producto,
+                nombre: producto?.name || pedido.product_name || '',
+                talla: '',
+                peso: producto?.peso_gramos ? String(producto.peso_gramos) : '',
+            }]);
         })();
         return () => { vivo = false; };
-    }, [pedido.id]);
+    }, [pedido.id, pedido.product_id, pedido.product_name, productos]);
 
-    useEffect(() => {
-        if (pieza?.peso_gramos) setPeso(String(pieza.peso_gramos));
-    }, [pieza]);
+    const cambiarLinea = (clave, campo, valor) =>
+        setLineas((ls) => ls.map((l) => (l.clave === clave ? { ...l, [campo]: valor } : l)));
 
     /* ── La vista previa ── */
     const pintar = useCallback(async (elCert) => {
@@ -120,7 +152,7 @@ const DialogoCertificado = ({ pedido, productos = [], onClose }) => {
         setOcupado('emitiendo');
         setError('');
 
-        const datos = congelar({ pedido, pieza, talla, peso });
+        const datos = congelar({ pedido, piezas: lineas });
 
         for (let intento = 0; intento < INTENTOS; intento++) {
             const fila = {
@@ -253,34 +285,40 @@ const DialogoCertificado = ({ pedido, productos = [], onClose }) => {
                             )}
 
                             <p className="cert-dlg-nota">
-                                Se emite a nombre de <strong>{pedido.customer_name}</strong> por{' '}
-                                <strong>{pieza?.name || pedido.product_name}</strong>. En el documento
-                                sale sólo el nombre de pila y nunca el precio.
+                                Se emite a nombre de <strong>{pedido.customer_name}</strong> y ampara{' '}
+                                <strong>{lineas.length} pieza{lineas.length !== 1 ? 's' : ''}</strong>.
+                                En el documento sale sólo el nombre de pila y nunca el precio.
                             </p>
 
-                            <div className="modal-row">
-                                <div className="modal-field">
-                                    <label htmlFor="cert-peso">Peso en gramos</label>
-                                    <input
-                                        id="cert-peso" type="number" step="0.01" min="0"
-                                        value={peso} onChange={(e) => setPeso(e.target.value)}
-                                        placeholder={pieza?.peso_gramos ? '' : 'Lo que marque la balanza'}
-                                    />
-                                    <span className="cert-dlg-pista">
-                                        {pieza?.peso_gramos
-                                            ? 'Viene del catálogo. Corrígelo si esta pieza pesó distinto.'
-                                            : 'Esta pieza no tiene peso en el catálogo. Sin peso, la línea no sale en el certificado.'}
-                                    </span>
+                            {lineas.map((l) => (
+                                <div className="cert-dlg-pieza" key={l.clave}>
+                                    <p className="cert-dlg-pieza-nombre">{l.nombre}</p>
+                                    <div className="modal-row">
+                                        <div className="modal-field">
+                                            <label htmlFor={`cert-peso-${l.clave}`}>Peso en gramos</label>
+                                            <input
+                                                id={`cert-peso-${l.clave}`} type="number" step="0.01" min="0"
+                                                value={l.peso}
+                                                onChange={(e) => cambiarLinea(l.clave, 'peso', e.target.value)}
+                                                placeholder="Lo que marque la balanza"
+                                            />
+                                            <span className="cert-dlg-pista">
+                                                {l.producto?.peso_gramos
+                                                    ? 'Viene del catálogo. Corrígelo si pesó distinto.'
+                                                    : 'Sin peso en el catálogo. Vacío, la línea no sale.'}
+                                            </span>
+                                        </div>
+                                        <div className="modal-field">
+                                            <label htmlFor={`cert-talla-${l.clave}`}>Talla</label>
+                                            <input
+                                                id={`cert-talla-${l.clave}`} value={l.talla}
+                                                onChange={(e) => cambiarLinea(l.clave, 'talla', e.target.value)}
+                                                placeholder="Si aplica"
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
-                                <div className="modal-field">
-                                    <label htmlFor="cert-talla">Talla</label>
-                                    <input
-                                        id="cert-talla" value={talla}
-                                        onChange={(e) => setTalla(e.target.value)}
-                                        placeholder="Si aplica"
-                                    />
-                                </div>
-                            </div>
+                            ))}
 
                             <p className="cert-dlg-pista">
                                 Lo que escribas queda congelado en el documento: un certificado no se

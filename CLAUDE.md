@@ -1006,6 +1006,20 @@ Cosas que ya costaron un incidente. Léelas antes de tocar lo que describen.
 - **Un POST de Meta puede traer varios mensajes.** `wa-webhook` leía `messages[0]` y tiraba el
   resto sin guardarlo. Lo desmenuza `_shared/lote.ts`; si tocas el webhook, que siga
   recorriendo el lote entero.
+- **Una tabla que sólo tocaba una Edge Function con llave de servicio no tiene sus permisos
+  probados.** `order_items` tenía una única política, de sólo lectura, y ninguna de
+  escritura: la llenaba sólo `create-preference`, que corre con la llave de servicio y se
+  salta RLS entera. El día que el panel intentó escribir ahí —9 de septiembre de 2026, al
+  poder cargar un pedido de varias piezas— falló en silencio, y como el error salía arriba
+  de un modal que scrollea, desde el botón parecía que no pasaba nada: el pedido se creó dos
+  veces. Si le abres una tabla al panel, mira sus políticas de INSERT, UPDATE y DELETE, no
+  sólo la de SELECT.
+- **Un error dentro de un modal largo tiene que salir también donde está el botón.** El pie
+  no scrollea; el cuerpo sí. Quien acaba de llenar catorce campos está abajo.
+- **Un modal que espera a una Edge Function antes de cerrarse parece colgado.**
+  `conversion-pedido` arranca en frío y habla con Meta y TikTok: son segundos con el botón
+  diciendo «Guardando…» cuando el pedido ya está guardado. Se cierra primero y se avisa
+  después — el aviso es idempotente del lado del servidor.
 - **Un QR sin zona de silencio parece perfecto y no se lee.** La norma pide cuatro módulos
   de blanco alrededor del código, y sin ellos muchos lectores ni lo encuentran. La primera
   versión de la tarjeta del certificado dibujaba los módulos hasta el borde: en pantalla se
