@@ -8754,6 +8754,17 @@
 /* El único sitio donde el oro va sobre cacao: ahí sí cumple contraste. */
 .pnl-exito svg { color: var(--oro-luz); flex: 0 0 auto; }
 
+/* La palomita se dibuja sola en vez de aparecer ya hecha. Es la diferencia
+   entre «hay un mensaje» y «acaba de pasar algo»: el ojo sigue el trazo y ahí
+   es donde se lee el éxito. 195 es la longitud del trazo con holgura. */
+.pnl-exito svg path {
+  stroke-dasharray: 195;
+  stroke-dashoffset: 195;
+  animation: pnlPalomita 0.45s cubic-bezier(0.16, 1, 0.3, 1) 0.12s forwards;
+}
+
+@keyframes pnlPalomita { to { stroke-dashoffset: 0; } }
+
 @keyframes pnlExitoEntra {
   from { opacity: 0; transform: translate(-50%, 12px); }
   to   { opacity: 1; transform: translate(-50%, 0); }
@@ -8761,6 +8772,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .pnl-exito { animation: none; }
+  .pnl-exito svg path { animation: none; stroke-dashoffset: 0; }
 }
 
 /* El pie del modal de pedido cuando el guardado falló. El aviso de arriba
@@ -8774,4 +8786,21 @@
   white-space: normal;
   line-height: 1.45;
   max-width: 60ch;
+}
+
+/* Una pieza del certificado en el diálogo de emitir. Cada una con su peso y su
+   talla: son datos de la pieza, no del pedido, y en un pedido de dos joyas el
+   anillo lleva talla y el dije no. */
+.cert-dlg-pieza {
+  padding: 0.85rem 1rem;
+  background: var(--bg-marfil);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+}
+
+.cert-dlg-pieza-nombre {
+  margin-bottom: 0.65rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--ink);
 }

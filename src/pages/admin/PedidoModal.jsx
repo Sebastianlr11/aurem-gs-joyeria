@@ -439,16 +439,23 @@ export default function PedidoModal({ order, products = [], onClose, onSaved, in
             laVentaEntro({ payment_method: form.payment_method }, form.status) ? {} :
             form.status === 'cancelado' ? { evento: 'cancelacion' } : null;
 
-        if (id && aviso) {
-            try {
-                await supabase.functions.invoke('conversion-pedido', {
-                    body: { pedidoId: id, ...aviso },
-                });
-            } catch (ex) {
-                console.error('No se pudo avisar a los anuncios:', ex);
-            }
-        }
+        /* El modal se cierra ANTES de avisar a los anuncios, no después.
+           `conversion-pedido` es una Edge Function que arranca en frío y habla
+           con Meta y con TikTok: son segundos con el formulario congelado y el
+           botón diciendo «Guardando…» cuando el pedido ya está guardado hace
+           rato. Quien mira la pantalla no distingue eso de un cuelgue, y la
+           reacción es volver a pulsar.
+
+           No se pierde nada por no esperarla: su resultado no se enseña —lo
+           único que se hacía con él era un console.error— y el aviso es
+           idempotente del lado del servidor, con su propio candado. */
         onSaved();
+
+        if (id && aviso) {
+            supabase.functions
+                .invoke('conversion-pedido', { body: { pedidoId: id, ...aviso } })
+                .catch((ex) => console.error('No se pudo avisar a los anuncios:', ex));
+        }
     };
 
     return (

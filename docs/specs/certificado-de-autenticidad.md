@@ -68,8 +68,16 @@ Si aun así se devuelve, el certificado se **anula** y la página pública lo di
 
 ## Decisiones tomadas
 
-**Uno por pedido, no uno por pieza.** Decisión del taller. `order_id` queda único de hecho
-y el diálogo enseña el que ya existe en vez de dejar emitir dos.
+**Uno por pedido, no uno por pieza** — y ampara **todas** las piezas. Decisión del taller.
+`order_id` queda único de hecho y el diálogo enseña el que ya existe en vez de dejar emitir
+dos. La primera versión guardaba una sola pieza en la raíz de `datos` porque entonces un
+pedido llevaba una; el mismo día el formulario aprendió a llevar varias y el primer
+certificado de un pedido de dos amparó sólo el anillo. Desde el 9 de septiembre de 2026
+`datos.piezas` es una lista.
+
+**Los certificados ya emitidos NO se migran.** Un documento con fecha no se reescribe hacia
+atrás — es justo lo que congelar los datos viene a impedir. `piezasDe()` lee los dos
+formatos, en un solo sitio, y el CHECK de la tabla acepta los dos.
 
 **Los datos van congelados en un `jsonb`.** Mismo motivo que `order_items` congela los
 precios. Si el certificado leyera `products` al vuelo, corregirle el metal a una pieza

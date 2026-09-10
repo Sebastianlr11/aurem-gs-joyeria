@@ -130,55 +130,99 @@ export function pesoLegible(gramos) {
 /**
  * La copia congelada que se guarda con el certificado.
  *
- * Toma lo que hay en el pedido, la pieza y la línea del pedido, y devuelve un
- * objeto plano **sin ninguna clave vacía**: lo que no se sabe no viaja, para
- * que `campos()` no tenga que decidirlo después.
+ * Toma el pedido y sus piezas y devuelve un objeto plano **sin ninguna clave
+ * vacía**: lo que no se sabe no viaja, para que nadie tenga que decidirlo
+ * después. Una línea en blanco en un certificado lo desmiente.
  *
- * `peso` y `talla` llegan sueltos porque el panel los deja corregir antes de
- * emitir: el peso de catálogo es el de la pieza de muestra y una fabricación a
- * medida no pesa lo mismo.
+ * `peso` y `talla` llegan sueltos por pieza porque el panel los deja corregir
+ * antes de emitir: el peso de catálogo es el de la pieza de muestra y una
+ * fabricación a medida no pesa lo mismo.
  */
-export function congelar({ pedido, pieza, talla, peso } = {}) {
+export function congelar({ pedido, piezas = [] } = {}) {
     const datos = {};
-    const poner = (clave, valor) => {
+    const poner = (destino, clave, valor) => {
         const v = typeof valor === 'string' ? valor.trim() : valor;
-        if (v !== null && v !== undefined && v !== '') datos[clave] = v;
+        if (v !== null && v !== undefined && v !== '') destino[clave] = v;
     };
 
-    poner('cliente', nombreDePila(pedido?.customer_name));
-    poner('pieza', pieza?.name || pedido?.product_name);
-    poner('referencia', pieza?.id ? refDe(pieza) : '');
-    poner('metal', pieza?.metal);
-    poner('piedra', pieza?.piedra);
-    poner('peso', pesoLegible(peso ?? pieza?.peso_gramos));
-    poner('talla', talla);
-    poner('compradoEn', pedido?.created_at || null);
-    /* La foto es lo que convierte el QR en algo comprobable: quien tiene la
-       pieza en la mano la compara con la que enseña la página. Sin ella el
-       certificado sólo dice que el código existe. */
-    poner('foto', (Array.isArray(pieza?.images) && pieza.images[0]) || pieza?.image_url);
+    poner(datos, 'cliente', nombreDePila(pedido?.customer_name));
+    poner(datos, 'compradoEn', pedido?.created_at || null);
+
+    datos.piezas = piezas.map(({ producto, nombre, talla, peso }) => {
+        const p = {};
+        /* Sin reserva a `pedido.product_name`: ése es el nombre PEGADO del
+           pedido —«Anillo A + Dije B»— y acabaría impreso como si fuera el
+           nombre de una sola pieza. Quien llama sabe el nombre de cada una; si
+           no lo sabe, esa línea no es una pieza y se cae abajo. */
+        poner(p, 'nombre', nombre || producto?.name);
+        poner(p, 'referencia', producto?.id ? refDe(producto) : '');
+        poner(p, 'metal', producto?.metal);
+        poner(p, 'piedra', producto?.piedra);
+        poner(p, 'peso', pesoLegible(peso ?? producto?.peso_gramos));
+        poner(p, 'talla', talla);
+        /* La foto es lo que convierte el QR en algo comprobable: quien tiene la
+           pieza en la mano la compara con la que enseña la página. Sin ella el
+           certificado sólo dice que el código existe. */
+        poner(p, 'foto', (Array.isArray(producto?.images) && producto.images[0]) || producto?.image_url);
+        return p;
+    }).filter((p) => p.nombre);
 
     return datos;
 }
 
 /**
- * Las líneas del documento, en orden, ya formateadas.
+ * Las piezas de un certificado, siempre como lista.
  *
- * Única lista de qué se enseña. La usan la página pública y la tarjeta.
+ * **Los certificados emitidos antes del 9 de septiembre de 2026 guardan una
+ * sola pieza en la raíz** —`pieza`, `metal`, `piedra`…— porque entonces un
+ * pedido llevaba una. Aquéllos no se migran y no se van a migrar: un
+ * certificado es un documento con fecha, y reescribirle los datos a uno que ya
+ * está impreso en la casa de alguien es exactamente lo que congelarlos viene a
+ * impedir. Así que se leen los dos formatos, aquí y en un solo sitio.
  */
-export function campos(datos) {
-    const d = datos || {};
+export function piezasDe(datos) {
+    if (Array.isArray(datos?.piezas)) return datos.piezas;
+    if (datos?.pieza) {
+        const { pieza, referencia, metal, piedra, peso, talla, foto } = datos;
+        const vieja = { nombre: pieza, referencia, metal, piedra, peso, talla, foto };
+        return [Object.fromEntries(Object.entries(vieja).filter(([, v]) => v))];
+    }
+    return [];
+}
+
+/**
+ * Las líneas de UNA pieza, en orden y ya formateadas.
+ *
+ * Única lista de qué se enseña de cada pieza. La usan la página pública y la
+ * tarjeta: si cada una tuviera la suya, el día que se añada un dato una de las
+ * dos se quedaría atrás y el QR estaría desmintiendo al papel que lo lleva
+ * impreso.
+ */
+export function camposDePieza(pieza) {
+    const p = pieza || {};
     return [
-        ['Pieza', d.pieza],
-        ['Referencia', d.referencia],
-        ['Metal', d.metal],
-        ['Piedra', d.piedra],
-        ['Peso', d.peso],
-        ['Talla', d.talla],
-        ['Fecha de compra', fechaLarga(d.compradoEn)],
+        ['Referencia', p.referencia],
+        ['Metal', p.metal],
+        ['Piedra', p.piedra],
+        ['Peso', p.peso],
+        ['Talla', p.talla],
     ]
         .filter(([, valor]) => valor)
         .map(([etiqueta, valor]) => ({ etiqueta, valor: String(valor) }));
+}
+
+/**
+ * Lo mismo en una sola línea: «Plata 925 · esmeralda natural · 3,4 g · Talla 14».
+ *
+ * Es lo que usa la tarjeta cuando el pedido lleva varias piezas: una tabla de
+ * etiqueta y valor por pieza no cabe, y repetir «METAL» y «PIEDRA» tres veces
+ * convierte un documento en un formulario.
+ */
+export function resumenDePieza(pieza) {
+    const p = pieza || {};
+    return [p.metal, p.piedra, p.peso, p.talla && `Talla ${p.talla}`]
+        .filter(Boolean)
+        .join(' · ');
 }
 
 /**

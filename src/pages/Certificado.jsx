@@ -30,7 +30,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { traerCertificado } from '../lib/apiPublica';
 import {
-    campos, fechaLarga, normalizarCodigo,
+    piezasDe, camposDePieza, fechaLarga, normalizarCodigo,
     GARANTIAS, EXCLUSION, NOTA_LEGAL,
 } from '../lib/certificado';
 import { ponerMeta } from '../lib/meta';
@@ -102,15 +102,19 @@ const Certificado = () => {
         : (resultado.codigo === codigo ? resultado.estado : 'cargando');
     const cert = estado === 'valido' || estado === 'anulado' ? resultado.cert : null;
 
-    const pieza = cert?.datos?.pieza;
+    /* Con una pieza se la nombra; con varias, no se nombra la primera y se
+       callan las demás — el título diría que el certificado es de una joya
+       cuando ampara dos. */
+    const cuantas = cert ? piezasDe(cert.datos) : [];
+    const titulo = cuantas.length === 1 ? `Certificado de ${cuantas[0].nombre}`
+        : cuantas.length > 1 ? `Certificado de ${cuantas.length} piezas`
+        : 'Verificar un certificado';
     useEffect(() => ponerMeta({
-        titulo: pieza
-            ? `Certificado de ${pieza} | Aurem Gs Joyería`
-            : 'Verificar un certificado | Aurem Gs Joyería',
+        titulo: `${titulo} | Aurem Gs Joyería`,
         descripcion: 'Certificado de autenticidad emitido por Aurem Gs Joyería: procedencia de la pieza y garantía del taller.',
         ruta: `/certificado/${codigo || ''}`,
         robots: 'noindex, nofollow',
-    }), [codigo, pieza]);
+    }), [codigo, titulo]);
 
     if (estado === 'cargando') {
         return (
@@ -153,9 +157,9 @@ const Certificado = () => {
     }
 
     const datos = cert.datos || {};
-    const lineas = campos(datos);
+    const piezas = piezasDe(datos);
     const anulado = estado === 'anulado';
-    const foto = datos.foto ? fotoProducto(datos.foto) : null;
+    const variasPiezas = piezas.length > 1;
 
     return (
         <main className="cert-pagina">
@@ -178,10 +182,10 @@ const Certificado = () => {
                     <div className="cert-anulado" role="status">
                         <p className="cert-anulado-titulo">Este certificado fue anulado</p>
                         <p>
-                            Se anuló el {fechaLarga(cert.anulado_en)}
-                            {datos.pieza ? `, y ya no ampara la pieza que describe` : ''}. Suele
-                            pasar cuando una compra se devolvió o se cambió por otra pieza. Si
-                            llegaste aquí con una joya en la mano, escríbenos antes de nada.
+                            Se anuló el {fechaLarga(cert.anulado_en)}, y ya no ampara las piezas
+                            que describe. Suele pasar cuando una compra se devolvió o se cambió
+                            por otra pieza. Si llegaste aquí con una joya en la mano, escríbenos
+                            antes de nada.
                         </p>
                     </div>
                 )}
@@ -193,32 +197,69 @@ const Certificado = () => {
                     </p>
                 )}
 
-                {foto && (
-                    <figure className="cert-foto">
-                        {/* Se reparten las props tal cual, con el `width` y el
-                            `height` reales del archivo: son los que le reservan
-                            el sitio a la foto y evitan que el documento salte
-                            cuando llega. El CSS decide el tamaño en pantalla. */}
-                        <img
-                            {...foto}
-                            sizes="(max-width: 640px) 84vw, 380px"
-                            alt={datos.pieza ? `Foto de ${datos.pieza}` : 'La pieza certificada'}
-                            loading="eager"
-                        />
-                        {/* La razón de que la foto esté aquí, dicha en voz alta:
-                            es lo único que quien tiene la pieza puede comparar. */}
-                        <figcaption>Compara tu pieza con esta foto: es la de la joya que se te entregó.</figcaption>
-                    </figure>
+                {/* Una pieza por bloque, con su foto. Un certificado que ampara
+                    dos joyas y sólo enseña una deja a quien lo mira sin saber si
+                    la otra está cubierta — que es justo lo que vino a resolver. */}
+                {variasPiezas && (
+                    <p className="cert-cuantas">
+                        Este certificado ampara las {piezas.length} piezas de la compra.
+                    </p>
                 )}
 
-                <dl className="cert-datos">
-                    {lineas.map(({ etiqueta, valor }) => (
-                        <div className="cert-dato" key={etiqueta}>
-                            <dt>{etiqueta}</dt>
-                            <dd>{valor}</dd>
+                <div className={`cert-piezas${variasPiezas ? ' cert-piezas--varias' : ''}`}>
+                    {piezas.map((pz, i) => {
+                        const foto = pz.foto ? fotoProducto(pz.foto) : null;
+                        return (
+                            <section className="cert-pieza" key={`${pz.referencia || pz.nombre}-${i}`}>
+                                {foto && (
+                                    <figure className="cert-foto">
+                                        {/* Se reparten las props tal cual, con el `width` y el
+                                            `height` reales del archivo: son los que le reservan
+                                            el sitio a la foto y evitan que el documento salte
+                                            cuando llega. El CSS decide el tamaño en pantalla. */}
+                                        <img
+                                            {...foto}
+                                            sizes={variasPiezas ? '(max-width: 640px) 84vw, 300px' : '(max-width: 640px) 84vw, 380px'}
+                                            alt={`Foto de ${pz.nombre}`}
+                                            loading={i === 0 ? 'eager' : 'lazy'}
+                                        />
+                                    </figure>
+                                )}
+
+                                <h2 className="cert-pieza-nombre">{pz.nombre}</h2>
+
+                                <dl className="cert-datos">
+                                    {camposDePieza(pz).map(({ etiqueta, valor }) => (
+                                        <div className="cert-dato" key={etiqueta}>
+                                            <dt>{etiqueta}</dt>
+                                            <dd>{valor}</dd>
+                                        </div>
+                                    ))}
+                                </dl>
+                            </section>
+                        );
+                    })}
+                </div>
+
+                {/* La razón de que las fotos estén ahí, dicha en voz alta: son lo
+                    único que quien tiene las piezas puede comparar. */}
+                <p className="cert-comparar">
+                    {variasPiezas
+                        ? 'Compara tus piezas con estas fotos: son las de las joyas que se te entregaron.'
+                        : 'Compara tu pieza con esta foto: es la de la joya que se te entregó.'}
+                </p>
+
+                {/* La fecha es del pedido, no de cada pieza: por eso va fuera de
+                    los bloques y en su propia lista. Un `dt` suelto fuera de un
+                    `dl` no es HTML válido. */}
+                {datos.compradoEn && (
+                    <dl className="cert-datos cert-datos--compra">
+                        <div className="cert-dato">
+                            <dt>Fecha de compra</dt>
+                            <dd>{fechaLarga(datos.compradoEn)}</dd>
                         </div>
-                    ))}
-                </dl>
+                    </dl>
+                )}
 
                 <section className="cert-garantias">
                     <h2 className="cert-h2">La garantía que lo acompaña</h2>

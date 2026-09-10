@@ -23,14 +23,14 @@
  *
  * ── Lo que se dibuja tiene que coincidir con la página ────────────────────
  *
- * Las líneas salen de `campos()` y las frases de las constantes de
+ * Las piezas salen de `piezasDe()` y las frases de las constantes de
  * `src/lib/certificado.js`, no escritas a mano aquí. Si la tarjeta dijera una
  * cosa y la página otra, el QR estaría desmintiendo al papel que lo lleva
  * impreso.
  */
 
 import qr from 'qrcode-generator';
-import { campos, urlDeCertificado, LEYENDA_QR, NOTA_LEGAL } from '../../../lib/certificado';
+import { piezasDe, resumenDePieza, fechaLarga, urlDeCertificado, LEYENDA_QR, NOTA_LEGAL } from '../../../lib/certificado';
 
 /* Los tokens de `DESIGN.md`, a pelo y sólo aquí.
 
@@ -285,26 +285,56 @@ export async function pintarTarjeta({ codigo, datos }) {
         texto(c, datos.cliente, centro, y, { fuente: fuenteNombre(px), color: TINTA, alineado: 'center' });
     }
 
-    /* ── Los datos ── */
-    y += 56;
-    const lineas = campos(datos);
-    for (const { etiqueta, valor } of lineas) {
+    /* ── Las piezas ──
+
+       Un bloque por pieza y no una tabla de etiqueta y valor: con dos o tres
+       joyas, repetir «METAL» y «PIEDRA» en cada una convierte un documento en
+       un formulario, y no cabe. El nombre manda y su ficha va debajo en una
+       línea. */
+    y += 44;
+    const piezas = piezasDe(datos);
+
+    if (piezas.length > 1) {
+        texto(c, `ESTE CERTIFICADO AMPARA ${piezas.length} PIEZAS`, centro, y, {
+            fuente: `700 15px ${UI}`, color: ORO_TINTA, alineado: 'center', espaciado: 3,
+        });
+        y += 34;
+    }
+
+    for (const pz of piezas) {
         linea(c, izq, y, der);
         y += 38;
 
-        texto(c, etiqueta.toUpperCase(), izq, y, { fuente: `700 15px ${UI}`, color: HUMO, espaciado: 3 });
+        /* El nombre se encoge antes que partirse: una pieza en dos renglones
+           con su referencia flotando al lado se lee como un error de maqueta. */
+        const refAncho = pz.referencia ? anchoDe(c, pz.referencia, `400 21px ${UI}`) + 24 : 0;
+        let px = 26;
+        while (px > 17 && anchoDe(c, pz.nombre, `700 ${px}px ${UI}`) > (der - izq) - refAncho) px -= 1;
+        texto(c, pz.nombre, izq, y, { fuente: `700 ${px}px ${UI}`, color: TINTA });
+        if (pz.referencia) {
+            texto(c, pz.referencia, der, y, { fuente: `400 21px ${UI}`, color: HUMO, alineado: 'right' });
+        }
 
-        /* El valor se parte si no cabe: hay nombres de pieza de 33 caracteres
-           y piedras que se escriben «Esmeralda colombiana natural». */
-        const anchoEtiqueta = anchoDe(c, etiqueta.toUpperCase(), `700 15px ${UI}`, 3);
-        const disponible = (der - izq) - anchoEtiqueta - 40;
-        const fuenteValor = `400 25px ${UI}`;
-        const trozos = partirEnLineas(c, valor, fuenteValor, disponible);
-        trozos.forEach((trozo, i) => {
-            texto(c, trozo, der, y + i * 32, { fuente: fuenteValor, color: TINTA, alineado: 'right' });
-        });
+        const ficha = resumenDePieza(pz);
+        if (ficha) {
+            y += 30;
+            const trozos = partirEnLineas(c, ficha, `400 21px ${UI}`, der - izq);
+            trozos.forEach((t, i) => {
+                texto(c, t, izq, y + i * 28, { fuente: `400 21px ${UI}`, color: HUMO });
+            });
+            y += (trozos.length - 1) * 28;
+        }
+        y += 22;
+    }
 
-        y += 22 + (trozos.length - 1) * 32;
+    /* La fecha es del pedido, no de cada pieza. */
+    const fecha = fechaLarga(datos.compradoEn);
+    if (fecha) {
+        linea(c, izq, y, der);
+        y += 38;
+        texto(c, 'FECHA DE COMPRA', izq, y, { fuente: `700 15px ${UI}`, color: HUMO, espaciado: 3 });
+        texto(c, fecha, der, y, { fuente: `400 25px ${UI}`, color: TINTA, alineado: 'right' });
+        y += 22;
     }
     linea(c, izq, y, der);
 

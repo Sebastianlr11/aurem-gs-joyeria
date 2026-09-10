@@ -7,7 +7,9 @@ import {
     fechaLarga,
     pesoLegible,
     congelar,
-    campos,
+    piezasDe,
+    camposDePieza,
+    resumenDePieza,
     urlDeCertificado,
 } from './certificado';
 
@@ -121,72 +123,147 @@ const PIEZA = {
     image_url: 'https://x.supabase.co/product-images/vieja.webp',
 };
 
+const DIJE = {
+    id: '39b65688-1f5b-41d0-9852-9ce3482bcc93',
+    name: 'Dije de gota con asa curva',
+    metal: 'Plata 925',
+    piedra: 'esmeralda natural',
+    image_url: 'https://x.supabase.co/product-images/dije.webp',
+};
+
 describe('congelar', () => {
     it('guarda la copia que el certificado va a enseñar para siempre', () => {
-        expect(congelar({ pedido: PEDIDO, pieza: PIEZA, talla: '14' })).toEqual({
+        expect(congelar({
+            pedido: PEDIDO,
+            piezas: [{ producto: PIEZA, talla: '14' }],
+        })).toEqual({
             cliente: 'María Fernanda',
-            pieza: 'Anillo Esencia Imperial',
-            referencia: 'AG-4573',
-            metal: 'Oro 18k',
-            piedra: 'Esmeralda colombiana natural',
-            peso: '3,4 g',
-            talla: '14',
             compradoEn: '2026-09-03T15:00:00Z',
-            foto: 'https://x.supabase.co/product-images/a.webp',
+            piezas: [{
+                nombre: 'Anillo Esencia Imperial',
+                referencia: 'AG-4573',
+                metal: 'Oro 18k',
+                piedra: 'Esmeralda colombiana natural',
+                peso: '3,4 g',
+                talla: '14',
+                foto: 'https://x.supabase.co/product-images/a.webp',
+            }],
         });
+    });
+
+    /* El motivo de todo esto: un pedido lleva las piezas que sean, y el
+       certificado es uno por pedido. Certificar sólo la primera deja a la
+       clienta con un papel que no ampara la mitad de lo que compró. */
+    it('certifica TODAS las piezas del pedido, no la primera', () => {
+        const datos = congelar({
+            pedido: PEDIDO,
+            piezas: [{ producto: PIEZA, talla: '14' }, { producto: DIJE }],
+        });
+        expect(datos.piezas).toHaveLength(2);
+        expect(datos.piezas.map((p) => p.nombre)).toEqual([
+            'Anillo Esencia Imperial', 'Dije de gota con asa curva',
+        ]);
     });
 
     /* Una línea en blanco en un certificado lo desmiente. Lo que no se sabe no
        viaja: ni con cadena vacía, ni con null, ni con la clave puesta. */
     it('no deja ninguna clave vacía', () => {
         const datos = congelar({
-            pedido: { customer_name: 'Ana Torres', product_name: 'Dije', created_at: '2026-09-03T15:00:00Z' },
-            pieza: { id: PIEZA.id, name: 'Dije', metal: '  ', piedra: null },
+            pedido: { customer_name: 'Ana Torres', created_at: '2026-09-03T15:00:00Z' },
+            piezas: [{ producto: { id: PIEZA.id, name: 'Dije', metal: '  ', piedra: null } }],
         });
-        expect(Object.keys(datos).sort()).toEqual(['cliente', 'compradoEn', 'pieza', 'referencia'].sort());
+        expect(Object.keys(datos).sort()).toEqual(['cliente', 'compradoEn', 'piezas']);
+        expect(Object.keys(datos.piezas[0]).sort()).toEqual(['nombre', 'referencia']);
     });
 
     /* El peso de catálogo es el de la pieza de muestra; una fabricación a
        medida no pesa lo mismo, y el panel lo deja corregir antes de emitir. */
     it('el peso que se escribe a mano le gana al del catálogo', () => {
-        expect(congelar({ pedido: PEDIDO, pieza: PIEZA, peso: 4.1 }).peso).toBe('4,1 g');
+        const datos = congelar({ pedido: PEDIDO, piezas: [{ producto: PIEZA, peso: 4.1 }] });
+        expect(datos.piezas[0].peso).toBe('4,1 g');
     });
 
     /* Un pedido tomado por WhatsApp de una pieza que ya no está en el catálogo
        sigue mereciendo su certificado. */
-    it('sin pieza en el catálogo se apoya en lo que guardó el pedido', () => {
-        const datos = congelar({ pedido: PEDIDO, pieza: null });
-        expect(datos.pieza).toBe('Anillo Esencia Imperial');
-        expect(datos.referencia).toBeUndefined();
+    it('sin pieza en el catálogo se apoya en el nombre que traiga', () => {
+        const datos = congelar({ pedido: PEDIDO, piezas: [{ nombre: 'Anillo a la medida' }] });
+        expect(datos.piezas[0].nombre).toBe('Anillo a la medida');
+        expect(datos.piezas[0].referencia).toBeUndefined();
+    });
+
+    it('una línea sin nombre no llega a ser una pieza', () => {
+        expect(congelar({ pedido: PEDIDO, piezas: [{ producto: PIEZA }, {}] }).piezas).toHaveLength(1);
     });
 });
 
-describe('campos', () => {
+describe('piezasDe', () => {
+    it('devuelve la lista de un certificado nuevo', () => {
+        const datos = congelar({ pedido: PEDIDO, piezas: [{ producto: PIEZA }, { producto: DIJE }] });
+        expect(piezasDe(datos)).toHaveLength(2);
+    });
+
+    /* Los certificados emitidos antes del 9 de septiembre de 2026 guardan una
+       sola pieza en la raíz. NO se migran —un documento con fecha no se
+       reescribe hacia atrás— así que hay que seguir sabiendo leerlos, o el
+       papel que alguien tiene impreso deja de verificarse. */
+    it('sigue leyendo el formato viejo, de una pieza en la raíz', () => {
+        const viejo = {
+            cliente: 'Sra',
+            pieza: 'Anillo solitario clásico',
+            referencia: 'AG-4573',
+            metal: 'Plata 925',
+            piedra: 'esmeralda natural',
+            compradoEn: '2026-09-09T15:00:00Z',
+        };
+        expect(piezasDe(viejo)).toEqual([{
+            nombre: 'Anillo solitario clásico',
+            referencia: 'AG-4573',
+            metal: 'Plata 925',
+            piedra: 'esmeralda natural',
+        }]);
+    });
+
+    it('sin datos no revienta', () => {
+        expect(piezasDe(null)).toEqual([]);
+        expect(piezasDe({})).toEqual([]);
+    });
+});
+
+describe('camposDePieza', () => {
     it('enseña las líneas en el orden del documento', () => {
-        const lista = campos(congelar({ pedido: PEDIDO, pieza: PIEZA, talla: '14' }));
-        expect(lista.map((c) => c.etiqueta)).toEqual([
-            'Pieza', 'Referencia', 'Metal', 'Piedra', 'Peso', 'Talla', 'Fecha de compra',
+        const pieza = congelar({ pedido: PEDIDO, piezas: [{ producto: PIEZA, talla: '14' }] }).piezas[0];
+        expect(camposDePieza(pieza).map((c) => c.etiqueta)).toEqual([
+            'Referencia', 'Metal', 'Piedra', 'Peso', 'Talla',
         ]);
-        expect(lista.at(-1).valor).toBe('3 de septiembre de 2026');
     });
 
     it('salta las líneas que no tienen dato', () => {
-        const lista = campos({ pieza: 'Dije', referencia: 'AG-0001' });
-        expect(lista).toEqual([
-            { etiqueta: 'Pieza', valor: 'Dije' },
+        expect(camposDePieza({ nombre: 'Dije', referencia: 'AG-0001' })).toEqual([
             { etiqueta: 'Referencia', valor: 'AG-0001' },
         ]);
     });
 
-    /* La foto no es una línea del documento: es la imagen que se compara con
-       la pieza en la mano. Si se colara en la lista saldría una URL impresa. */
+    /* La foto no es una línea del documento: es la imagen que se compara con la
+       pieza en la mano. Si se colara en la lista saldría una URL impresa. */
     it('la foto no sale como texto', () => {
-        const lista = campos(congelar({ pedido: PEDIDO, pieza: PIEZA }));
-        expect(JSON.stringify(lista)).not.toContain('supabase');
+        const pieza = congelar({ pedido: PEDIDO, piezas: [{ producto: PIEZA }] }).piezas[0];
+        expect(JSON.stringify(camposDePieza(pieza))).not.toContain('supabase');
     });
 
-    it('sin datos no revienta', () => {
-        expect(campos(null)).toEqual([]);
+    it('sin pieza no revienta', () => {
+        expect(camposDePieza(null)).toEqual([]);
+    });
+});
+
+describe('resumenDePieza', () => {
+    it('pone la ficha en una línea, para la tarjeta', () => {
+        const pieza = congelar({ pedido: PEDIDO, piezas: [{ producto: PIEZA, talla: '14' }] }).piezas[0];
+        expect(resumenDePieza(pieza)).toBe('Oro 18k · Esmeralda colombiana natural · 3,4 g · Talla 14');
+    });
+
+    it('sin nada devuelve vacío, no una fila de separadores', () => {
+        expect(resumenDePieza({ nombre: 'Dije' })).toBe('');
+        expect(resumenDePieza(null)).toBe('');
     });
 });
 
