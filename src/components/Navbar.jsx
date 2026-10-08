@@ -142,7 +142,7 @@ const Navbar = () => {
                     {/* Footer */}
                     <div className="mobile-menu-footer">
                         <p className="mobile-menu-footer-text">hola@auremgsjoyeria.com</p>
-                        <p className="mobile-menu-footer-text">+57 311 576 1896</p>
+                        <p className="mobile-menu-footer-text">+57 322 484 7819</p>
                     </div>
                 </div>
             </div>
