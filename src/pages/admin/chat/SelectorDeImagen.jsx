@@ -14,7 +14,7 @@
  * tenga que acordarse de limpiarlo.
  */
 import React, { useState } from 'react';
-import { supabase } from '../../../lib/supabase';
+import { enviarPorWhatsApp } from '../../../lib/enviarPorWhatsApp';
 
 export default function SelectorDeImagen({ piezas, telefono, contenedor, onCerrar, onError }) {
     const [busqueda, setBusqueda] = useState('');
@@ -31,10 +31,7 @@ export default function SelectorDeImagen({ piezas, telefono, contenedor, onCerra
         const texto = pie.trim() || `${pieza.name} - $${Number(pieza.price).toLocaleString('es-CO')}`;
 
         try {
-            const { data, error } = await supabase.functions.invoke('wa-send', {
-                body: { telefono, texto, imagenUrl: pieza.image_url },
-            });
-            if (error || data?.error) throw new Error(data?.error || error.message);
+            await enviarPorWhatsApp({ telefono, texto, imagenUrl: pieza.image_url });
         } catch (e) {
             console.error('No se pudo enviar la imagen:', e);
             onError(e.message || 'No se pudo enviar la imagen.');

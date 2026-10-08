@@ -29,6 +29,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { congelar, nuevoCodigo, piezasDe, urlDeCertificado } from '../../../lib/certificado';
 import { tarjetaJpeg, pintarTarjeta } from './tarjeta';
+import { enviarPorWhatsApp } from '../../../lib/enviarPorWhatsApp';
 
 /* El mismo bucket público del catálogo, bajo su propio prefijo. Un bucket
    nuevo habría que crearlo a mano en el panel de Supabase, y un paso de
@@ -225,22 +226,13 @@ const DialogoCertificado = ({ pedido, productos = [], onClose }) => {
 
             const { data: publica } = supabase.storage.from(BUCKET).getPublicUrl(ruta);
 
-            const { data, error: errEnvio } = await supabase.functions.invoke('wa-send', {
-                body: {
-                    telefono: pedido.customer_phone,
-                    texto: mensajeWa(cert),
-                    imagenUrl: publica.publicUrl,
-                },
+            /* El motivo de un fallo —sobre todo la ventana de 24 h, que es un
+               caso normal y no una avería— lo saca enviarPorWhatsApp. */
+            await enviarPorWhatsApp({
+                telefono: pedido.customer_phone,
+                texto: mensajeWa(cert),
+                imagenUrl: publica.publicUrl,
             });
-
-            /* `invoke` se traga el cuerpo del error, y aquí el cuerpo es lo
-               único que explica el porqué —sobre todo la ventana de 24 h, que
-               es un caso normal y no una avería—. */
-            if (errEnvio) {
-                const cuerpo = await errEnvio.context?.json?.().catch(() => null);
-                throw new Error(cuerpo?.error || errEnvio.message);
-            }
-            if (data?.error) throw new Error(data.error);
 
             setAviso('La tarjeta salió por WhatsApp.');
         } catch (e) {
