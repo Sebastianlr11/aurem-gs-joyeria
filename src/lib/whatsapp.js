@@ -1,7 +1,14 @@
 import { useEffect, useState } from 'react';
 import { origenCorto } from './atribucion';
 
-export const WA_NUMBER = '573115761896';
+/* El número al que escriben desde la web, los correos y los anuncios.
+   Desde el 7 de octubre de 2026 es el WhatsApp normal del joyero, que atiende
+   en persona: con el volumen de hoy sale mejor que Valentina. Lo que cuesta:
+   lo que entre por aquí no pasa por la API, así que no lo contesta Valentina,
+   no aparece en el panel y una venta cerrada así no le llega a Meta si no se
+   registra a mano el pedido. Valentina sigue en el número de la API
+   (311 576 1896) para quien ya le escribía ahí. */
+export const WA_NUMBER = '573224847819';
 
 /* `typeof navigator` y no `navigator` a secas: esto también se evalúa en el
    build, cuando `scripts/prerenderizar.mjs` pinta la portada en Node. Ahí no

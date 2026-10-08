@@ -16,6 +16,7 @@ import { traerAtribucionDelChat } from '../../lib/atribucionDelChat';
 import { ESTADOS, estadoDe, definicionDe, estaAbierto } from '../../lib/estadoDelChat';
 import { nombreVisible } from '../../lib/contacto';
 import SelectorDeImagen from './chat/SelectorDeImagen';
+import { enviarPorWhatsApp } from '../../lib/enviarPorWhatsApp';
 import FilaDeContacto from './chat/FilaDeContacto';
 import CabeceraDeContactos from './chat/CabeceraDeContactos';
 import DialogoDeConfirmacion from './chat/DialogoDeConfirmacion';
@@ -621,10 +622,7 @@ const ChatPanel = () => {
         setNewMessage('');
 
         try {
-            const { data, error } = await supabase.functions.invoke('wa-send', {
-                body: { telefono: activeContact, texto: msg },
-            });
-            if (error || data?.error) throw new Error(data?.error || error.message);
+            await enviarPorWhatsApp({ telefono: activeContact, texto: msg });
             // La fila real llega por la suscripción en vivo; se retira la burbuja
             // provisional cuando aparezca.
         } catch (e) {

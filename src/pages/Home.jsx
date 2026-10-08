@@ -28,7 +28,7 @@ const orgJsonLd = {
        que un asistente responde peor si no se la damos —«¿cómo contacto a
        Aurem Gs?»— y porque es el mismo número que ya está en el botón
        flotante y en la sección de contacto, no un dato nuevo. */
-    telephone: '+573115761896',
+    telephone: '+573224847819',
     areaServed: { '@type': 'Country', name: 'Colombia' },
     priceRange: '$$',
     sameAs: ['https://www.instagram.com/auremgsjoyeria'],

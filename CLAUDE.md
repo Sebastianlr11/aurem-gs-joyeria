@@ -21,6 +21,12 @@ Lo importante para entender cualquier decisión del código:
 - **La atiende "Valentina"**, un bot con LLM que responde WhatsApp, entiende fotos y
   notas de voz, cotiza oro a medida, arma pedidos y escala a una persona cuando hace
   falta. Vive en `supabase/functions/_shared/bot.ts`.
+- **Pero desde el 7 de octubre de 2026 la web no lleva a Valentina.** Los botones de
+  WhatsApp, los correos y los anuncios apuntan al **322 484 7819**, el WhatsApp normal del
+  joyero, que atiende en persona mientras el volumen sea bajo (`WA_NUMBER` en
+  `src/lib/whatsapp.js`). Valentina sigue en el número de la API (311 576 1896) para quien
+  ya le escribía ahí. Lo que entra por el 322 **no aparece en el panel ni le llega a Meta**
+  si el pedido no se registra a mano.
 - **La forma de pago principal es contraentrega con abono**: el cliente abona el envío
   para confirmar y paga el resto en la puerta. Esto contamina toda la lógica de dinero
   del panel — ver §8.

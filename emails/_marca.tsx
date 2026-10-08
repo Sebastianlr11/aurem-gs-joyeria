@@ -17,7 +17,7 @@ import * as React from 'react'
 import { Column, Hr, Img, Link, Row, Section, Text } from '@react-email/components'
 
 export const SITIO = 'https://www.auremgsjoyeria.com'
-export const WHATSAPP = 'https://wa.me/573115761896'
+export const WHATSAPP = 'https://wa.me/573224847819'
 export const CORREO = 'hola@auremgsjoyeria.com'
 
 export const c = {
