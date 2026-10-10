@@ -304,7 +304,14 @@ Deno.serve(async (req: Request) => {
       hallazgos.push({
         que: `${nombre} no respondió`,
         detalle: e instanceof Error ? e.message : String(e),
-        grave: true,
+        /* Leve: no contestar a tiempo es «no pude comprobarlo», no «está roto».
+           El 10 de octubre de 2026 a las 3:30 p. m. llegó un «REVISAR AHORA»
+           porque `mp-webhook` arrancó en 102 ms y la plataforma tardó 23 s en
+           entregarle la petición: contestó su 401 correcto cuando el vigía ya
+           se había ido a los 12. Antes y después, ~40 ms. Si se cae de verdad,
+           se repite a la hora siguiente y el correo sale igual. Un código de
+           estado inesperado, en cambio, sí es una respuesta, y sigue grave. */
+        grave: false,
       })
     }
   }

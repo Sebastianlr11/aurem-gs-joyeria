@@ -172,6 +172,11 @@ comprobaciones que, corridas a mano, pasaban las tres en menos de 30 ms. Dos cam
   respecto a la corrida anterior: entonces ya no es un bache, lleva media hora sin funcionar.
   Los leves nuevos igual quedan en `vigilancia_ultima` y se ven en la portada del panel, en
   su tono apagado.
+- **Desde el 10 de octubre de 2026, lo mismo vale para las sondas HTTP** (el webhook de
+  Mercado Pago y el sitio): si no contestan en 12 s es leve; si contestan con un código que
+  no toca, sigue grave. Ese día `mp-webhook` arrancó en 102 ms, la plataforma tardó 23 s en
+  entregarle la petición y el vigía mandó «REVISAR AHORA» por un 401 perfectamente correcto
+  que llegó tarde.
 
 Para eso la corrida lee `vigilancia_ultima` **antes** de pisarla.
 
